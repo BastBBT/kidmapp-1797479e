@@ -113,6 +113,11 @@
 }
 
 /* Leaflet custom styles for Kidmap */
+/* Soften OSM tiles to create a pastel, family-friendly map feel */
+.leaflet-tile-pane {
+  filter: saturate(0.5) brightness(1.08) contrast(0.92) hue-rotate(-8deg);
+}
+
 .custom-marker {
   background: transparent !important;
   border: none !important;
