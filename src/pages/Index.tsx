@@ -33,7 +33,7 @@ const Index = () => {
         </div>
         <AnimatePresence mode="wait">
           {view === 'map' ? (
-            <motion.div key="map" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 min-h-[400px] rounded-2xl overflow-hidden">
+            <motion.div key="map" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 min-h-[400px] h-[60vh] rounded-2xl overflow-hidden">
               <MapView locations={locations} />
             </motion.div>
           ) : (
