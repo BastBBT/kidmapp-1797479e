@@ -111,3 +111,36 @@
     box-shadow: 0 8px 30px -6px hsl(8 85% 62% / 0.2);
   }
 }
+
+/* Leaflet custom styles for Kidmap */
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-marker div:hover {
+  transform: scale(1.12) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 14px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+  border: 2px solid hsl(30 20% 88%) !important;
+  font-family: 'Nunito', sans-serif !important;
+}
+
+.leaflet-popup-tip {
+  box-shadow: none !important;
+  border: 1px solid hsl(30 20% 88%) !important;
+}
+
+.leaflet-popup-close-button {
+  color: hsl(20 10% 45%) !important;
+  font-size: 18px !important;
+}
+
+.leaflet-control-attribution {
+  background: hsl(30 50% 98% / 0.85) !important;
+  font-size: 10px !important;
+  border-radius: 8px 0 0 0 !important;
+}
