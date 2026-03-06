@@ -28,7 +28,7 @@ const AuthModal = () => {
         await signUp(email, password);
         toast({
           title: 'Compte créé ! 🎉',
-          description: 'Vérifiez votre email pour confirmer votre inscription.',
+          description: 'Vous êtes maintenant connecté.',
         });
       }
     } catch (err: any) {
