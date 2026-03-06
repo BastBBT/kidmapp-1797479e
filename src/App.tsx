@@ -26,6 +26,8 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/location/:id" element={<LocationPage />} />
+          <Route path="/saved" element={<SavedPage />} />
+          <Route path="/account" element={<AccountPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
