@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import LocationPage from "./pages/LocationPage";
 import AdminPage from "./pages/AdminPage";
+import SavedPage from "./pages/SavedPage";
+import AccountPage from "./pages/AccountPage";
 import NotFound from "./pages/NotFound";
 import AuthGate from "./components/AuthGate";
 import BottomNav from "./components/BottomNav";
