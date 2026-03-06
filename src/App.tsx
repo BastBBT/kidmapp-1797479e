@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import LocationPage from "./pages/LocationPage";
 import AdminPage from "./pages/AdminPage";
+import SavedPage from "./pages/SavedPage";
+import AccountPage from "./pages/AccountPage";
 import NotFound from "./pages/NotFound";
 import AuthGate from "./components/AuthGate";
 import BottomNav from "./components/BottomNav";
@@ -24,6 +26,8 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/location/:id" element={<LocationPage />} />
+          <Route path="/saved" element={<SavedPage />} />
+          <Route path="/account" element={<AccountPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
