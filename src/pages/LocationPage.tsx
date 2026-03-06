@@ -1,20 +1,55 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { categoryIcons, categoryLabels } from '@/types/location';
-import { ArrowLeft, Baby, UtensilsCrossed, TreePine, MapPin, MessageSquarePlus } from 'lucide-react';
+import { ArrowLeft, MessageSquarePlus } from 'lucide-react';
 import { useState } from 'react';
 import ContributionModal from '@/components/ContributionModal';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { useLocation as useLocationData } from '@/hooks/useLocations';
 
-const CriterionRow = ({ available, icon, label }: { available: boolean; icon: React.ReactNode; label: string }) => (
-  <div className="flex items-center gap-3 py-3">
-    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${available ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
+const categoryGradients: Record<string, string> = {
+  restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
+  cafe: 'linear-gradient(145deg, #A8D4CE, #5FA89D)',
+  public: 'linear-gradient(145deg, #B8D9A4, #72B05E)',
+  shop: 'linear-gradient(145deg, #F5E0A0, #E0B848)',
+};
+
+const HighChairSVG = ({ color }: { color: string }) => (
+  <svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="11" y="4" width="14" height="10" rx="3"/>
+    <path d="M11 14 L8 26"/><path d="M25 14 L28 26"/><path d="M8 20 L28 20"/><path d="M14 26 L22 26"/>
+  </svg>
+);
+
+const ChangingTableSVG = ({ color }: { color: string }) => (
+  <svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="18" width="28" height="5" rx="2"/>
+    <path d="M7 18 L7 28"/><path d="M29 18 L29 28"/><circle cx="18" cy="11" r="4"/><path d="M14 15 Q18 21 22 15"/>
+  </svg>
+);
+
+const KidsAreaSVG = ({ color }: { color: string }) => (
+  <svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8 28 L8 14 Q8 10 12 10 L24 10"/><path d="M8 28 L22 28"/><path d="M24 10 Q32 14 28 24 L22 28"/><circle cx="26" cy="26" r="3"/>
+  </svg>
+);
+
+const EquipBlock = ({ available, icon, label }: { available: boolean; icon: React.ReactNode; label: string }) => (
+  <div className="flex flex-col items-center gap-1.5">
+    <div
+      className="w-16 h-16 rounded-2xl flex items-center justify-center"
+      style={{
+        background: available ? '#EBF6EC' : 'var(--bg)',
+        opacity: available ? 1 : 0.6,
+      }}
+    >
       {icon}
     </div>
-    <div className="flex-1"><span className="font-semibold text-sm">{label}</span></div>
-    <span className={`text-xs font-bold px-3 py-1 rounded-full ${available ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
-      {available ? 'Disponible' : 'Non disponible'}
+    <span className="font-body text-[10px] uppercase tracking-wider font-medium" style={{ color: available ? '#2E7D32' : 'var(--text-muted)' }}>
+      {label}
+    </span>
+    <span className="font-hand text-[13px]" style={{ color: available ? '#2E7D32' : 'var(--text-muted)' }}>
+      {available ? '✓ Dispo' : '— ?'}
     </span>
   </div>
 );
@@ -27,54 +62,98 @@ const LocationPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Chargement…</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
+        <p style={{ color: 'var(--text-muted)' }}>Chargement…</p>
       </div>
     );
   }
 
   if (!location) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Lieu introuvable</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
+        <p style={{ color: 'var(--text-muted)' }}>Lieu introuvable</p>
       </div>
     );
   }
 
+  const gradient = categoryGradients[location.category] || categoryGradients.public;
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen pb-20" style={{ background: 'var(--bg)' }}>
       <Header />
-      <div className="relative h-56 overflow-hidden">
-        <img src={location.photo ?? '/placeholder.svg'} alt={location.name} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-        <button onClick={() => navigate(-1)} className="absolute top-4 left-4 w-10 h-10 rounded-full bg-card/80 backdrop-blur flex items-center justify-center kid-shadow">
-          <ArrowLeft className="w-5 h-5" />
+      {/* Hero */}
+      <div className="relative overflow-hidden" style={{ height: '260px', background: gradient }}>
+        {/* Blobs */}
+        <svg style={{ position: 'absolute', bottom: '-10px', left: '-20px', width: '200px', height: '160px', zIndex: 2 }} viewBox="0 0 200 160">
+          <path d="M20,140 C-10,120 -5,70 20,40 C45,10 90,0 130,15 C170,30 195,70 180,105 C165,140 130,165 90,158 C60,152 38,152 20,140Z" fill="rgba(255,255,255,0.16)" />
+        </svg>
+        <svg style={{ position: 'absolute', bottom: '-20px', right: '-10px', width: '180px', height: '150px', zIndex: 2 }} viewBox="0 0 180 150">
+          <path d="M160,130 C140,155 100,162 65,148 C30,134 5,100 8,65 C11,30 40,5 75,2 C110,-1 148,20 165,52 C180,80 178,108 160,130Z" fill="rgba(255,255,255,0.10)" />
+        </svg>
+        <svg style={{ position: 'absolute', top: '20px', right: '20px', width: '90px', height: '90px', zIndex: 2 }} viewBox="0 0 90 90">
+          <path d="M45,5 C65,3 83,18 87,38 C91,58 78,77 58,84 C38,91 17,81 8,62 C-1,43 7,20 25,10 C33,5 38,6 45,5Z" fill="rgba(255,255,255,0.13)" />
+        </svg>
+
+        {/* Back button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute top-4 left-4 w-10 h-10 rounded-full flex items-center justify-center z-10"
+          style={{ background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)' }}
+        >
+          <ArrowLeft className="w-5 h-5 text-white" />
         </button>
+
+        {/* Text over hero */}
+        <div className="absolute bottom-6 left-5 z-10">
+          <span className="font-hand italic text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
+            {categoryLabels[location.category as keyof typeof categoryLabels]}
+          </span>
+          <h1 className="font-display text-[30px] font-semibold text-white" style={{ letterSpacing: '-0.03em', lineHeight: 1.15 }}>
+            {location.name}
+          </h1>
+        </div>
       </div>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="container px-4 -mt-8 relative z-10">
-        <div className="bg-card rounded-2xl p-5 kid-shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">{categoryIcons[location.category as keyof typeof categoryIcons]}</span>
-            <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-              {categoryLabels[location.category as keyof typeof categoryLabels]}
-            </span>
-          </div>
-          <h1 className="text-xl font-extrabold mb-1">{location.name}</h1>
+
+      {/* Content card */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="container px-4 -mt-6 relative z-10">
+        <div className="p-5" style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-md)' }}>
           {location.address && (
-            <div className="flex items-center gap-1.5 text-muted-foreground mb-4">
-              <MapPin className="w-3.5 h-3.5" />
-              <span className="text-xs">{location.address}</span>
-            </div>
+            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+              📍 {location.address}
+            </p>
           )}
-          <div className="border-t border-border pt-3">
-            <h2 className="text-sm font-bold mb-1">Équipements enfants</h2>
-            <div className="divide-y divide-border">
-              <CriterionRow available={location.high_chair} icon={<UtensilsCrossed className="w-4 h-4" />} label="Chaise haute" />
-              <CriterionRow available={location.changing_table} icon={<Baby className="w-4 h-4" />} label="Table à langer" />
-              <CriterionRow available={location.kids_area} icon={<TreePine className="w-4 h-4" />} label="Espace jeux enfants" />
-            </div>
+
+          <h2 className="font-display text-base font-semibold mb-4" style={{ color: 'var(--text)' }}>
+            Équipements enfants
+          </h2>
+
+          <div className="flex justify-around">
+            <EquipBlock
+              available={location.high_chair}
+              icon={<HighChairSVG color={location.high_chair ? '#2E7D32' : 'var(--text-muted)'} />}
+              label="Chaise haute"
+            />
+            <EquipBlock
+              available={location.changing_table}
+              icon={<ChangingTableSVG color={location.changing_table ? '#2E7D32' : 'var(--text-muted)'} />}
+              label="Table à langer"
+            />
+            <EquipBlock
+              available={location.kids_area}
+              icon={<KidsAreaSVG color={location.kids_area ? '#2E7D32' : 'var(--text-muted)'} />}
+              label="Espace jeux"
+            />
           </div>
-          <button onClick={() => setShowContribution(true)} className="mt-5 w-full flex items-center justify-center gap-2 bg-secondary text-secondary-foreground py-3 rounded-2xl font-bold text-sm">
+
+          <button
+            onClick={() => setShowContribution(true)}
+            className="mt-6 w-full flex items-center justify-center gap-2 py-3 font-semibold text-sm"
+            style={{
+              borderRadius: '100px',
+              background: 'var(--secondary)',
+              color: '#fff',
+            }}
+          >
             <MessageSquarePlus className="w-4 h-4" />
             Signaler une mise à jour
           </button>
