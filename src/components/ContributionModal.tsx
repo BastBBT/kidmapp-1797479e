@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Location } from '@/types/location';
-import { Baby, UtensilsCrossed, TreePine, X, Send } from 'lucide-react';
+import { Baby, UtensilsCrossed, TreePine, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
-
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 interface ContributionModalProps {
   location: Location;
   open: boolean;
