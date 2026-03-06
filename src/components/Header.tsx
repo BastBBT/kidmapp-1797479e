@@ -1,4 +1,4 @@
-import { MapPin, LogOut } from 'lucide-react';
+import { LogOut, Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -6,53 +6,50 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAdmin, signOut } = useAuth();
-  const isHome = location.pathname === '/';
 
-  const truncatedEmail = user?.email
-    ? user.email.length > 20
-      ? user.email.slice(0, 18) + '…'
-      : user.email
-    : '';
+  const initial = user?.email ? user.email.charAt(0).toUpperCase() : '?';
 
   return (
-    <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
+    <header className="sticky top-0 z-40 backdrop-blur-md border-b" style={{ background: 'rgba(250,249,246,0.85)', borderColor: 'var(--border)' }}>
       <div className="container flex items-center justify-between h-14 px-4">
-        <div
-          className="flex items-center gap-2 cursor-pointer"
-          onClick={() => navigate('/')}
-        >
-          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
-            <MapPin className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <span className="text-lg font-extrabold text-foreground">
-            Kid<span className="text-primary">map</span>
+        {/* Logo */}
+        <div className="flex flex-col cursor-pointer leading-none" onClick={() => navigate('/')}>
+          <span className="font-display text-xl font-semibold" style={{ color: 'var(--primary)' }}>
+            kidmap
+          </span>
+          <span className="font-hand text-xs" style={{ color: 'var(--text-muted)' }}>
+            — Nantes
           </span>
         </div>
+
+        {/* Nav */}
         <nav className="flex items-center gap-2">
-          <button
-            onClick={() => navigate('/')}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-              isHome ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Carte
-          </button>
           {isAdmin && (
             <button
               onClick={() => navigate('/admin')}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                location.pathname === '/admin' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-              }`}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+              style={{
+                background: location.pathname === '/admin' ? 'var(--primary)' : 'transparent',
+                color: location.pathname === '/admin' ? '#fff' : 'var(--text-muted)',
+              }}
             >
               Admin
             </button>
           )}
-          <span className="text-xs text-muted-foreground hidden sm:inline truncate max-w-[140px]">
-            {truncatedEmail}
-          </span>
+
+          {/* Avatar */}
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer"
+            style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}
+            title={user?.email ?? ''}
+          >
+            {initial}
+          </div>
+
           <button
             onClick={signOut}
-            className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="p-2 rounded-full transition-colors hover:opacity-70"
+            style={{ color: 'var(--text-muted)' }}
             title="Déconnexion"
           >
             <LogOut className="w-4 h-4" />

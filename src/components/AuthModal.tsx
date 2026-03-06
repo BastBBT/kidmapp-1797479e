@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { MapPin, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -26,10 +25,7 @@ const AuthModal = () => {
         await signIn(email, password);
       } else {
         await signUp(email, password);
-        toast({
-          title: 'Compte créé ! 🎉',
-          description: 'Vous êtes maintenant connecté.',
-        });
+        toast({ title: 'Compte créé ! 🎉', description: 'Vous êtes maintenant connecté.' });
       }
     } catch (err: any) {
       const msg = err?.message || 'Une erreur est survenue';
@@ -45,36 +41,41 @@ const AuthModal = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: 'var(--bg)' }}>
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mb-4 kid-shadow">
-            <MapPin className="w-7 h-7 text-primary-foreground" />
-          </div>
-          <h1 className="text-3xl font-extrabold text-foreground">
-            Kid<span className="text-primary">map</span>
+          <h1 className="font-display text-4xl font-semibold" style={{ color: 'var(--primary)' }}>
+            kidmap
           </h1>
-          <p className="text-sm text-muted-foreground mt-2 text-center">
+          <p className="font-hand text-base mt-1" style={{ color: 'var(--text-muted)' }}>
             Trouvez les meilleurs endroits kid-friendly à Nantes
           </p>
         </div>
 
         {/* Toggle */}
-        <div className="flex bg-muted rounded-2xl p-1 mb-6">
+        <div className="flex p-1 mb-6" style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '100px' }}>
           <button
             onClick={() => setMode('login')}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-              mode === 'login' ? 'bg-card text-foreground kid-shadow' : 'text-muted-foreground'
-            }`}
+            className="flex-1 py-2.5 text-sm font-semibold transition-all"
+            style={{
+              borderRadius: '100px',
+              background: mode === 'login' ? 'var(--surface)' : 'transparent',
+              boxShadow: mode === 'login' ? 'var(--shadow)' : 'none',
+              color: mode === 'login' ? 'var(--text)' : 'var(--text-muted)',
+            }}
           >
             Se connecter
           </button>
           <button
             onClick={() => setMode('signup')}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-              mode === 'signup' ? 'bg-card text-foreground kid-shadow' : 'text-muted-foreground'
-            }`}
+            className="flex-1 py-2.5 text-sm font-semibold transition-all"
+            style={{
+              borderRadius: '100px',
+              background: mode === 'signup' ? 'var(--surface)' : 'transparent',
+              boxShadow: mode === 'signup' ? 'var(--shadow)' : 'none',
+              color: mode === 'signup' ? 'var(--text)' : 'var(--text-muted)',
+            }}
           >
             Créer un compte
           </button>
@@ -83,18 +84,19 @@ const AuthModal = () => {
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Email</label>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Email</label>
             <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="vous@exemple.com"
               required
-              className="rounded-xl h-12 bg-card border-border"
+              className="h-12"
+              style={{ borderRadius: 'var(--radius-sm)', background: 'var(--surface)', borderColor: 'var(--border)' }}
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Mot de passe</label>
+            <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Mot de passe</label>
             <Input
               type="password"
               value={password}
@@ -102,12 +104,13 @@ const AuthModal = () => {
               placeholder="••••••••"
               required
               minLength={6}
-              className="rounded-xl h-12 bg-card border-border"
+              className="h-12"
+              style={{ borderRadius: 'var(--radius-sm)', background: 'var(--surface)', borderColor: 'var(--border)' }}
             />
           </div>
           {mode === 'signup' && (
             <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Confirmer le mot de passe</label>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Confirmer le mot de passe</label>
               <Input
                 type="password"
                 value={confirmPassword}
@@ -115,23 +118,19 @@ const AuthModal = () => {
                 placeholder="••••••••"
                 required
                 minLength={6}
-                className="rounded-xl h-12 bg-card border-border"
+                className="h-12"
+                style={{ borderRadius: 'var(--radius-sm)', background: 'var(--surface)', borderColor: 'var(--border)' }}
               />
             </div>
           )}
-          <Button
+          <button
             type="submit"
             disabled={loading}
-            className="w-full h-12 rounded-2xl font-bold text-sm mt-2"
+            className="w-full h-12 font-semibold text-sm mt-2 disabled:opacity-40 transition-opacity flex items-center justify-center"
+            style={{ borderRadius: '100px', background: 'var(--primary)', color: '#fff' }}
           >
-            {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : mode === 'login' ? (
-              'Se connecter'
-            ) : (
-              'Créer mon compte'
-            )}
-          </Button>
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
+          </button>
         </form>
       </div>
     </div>
