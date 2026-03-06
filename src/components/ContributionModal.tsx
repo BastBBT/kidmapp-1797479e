@@ -138,10 +138,10 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
 
             <button
               onClick={handleSubmit}
-              disabled={highChair === null && changingTable === null && kidsArea === null}
+              disabled={submitting || (highChair === null && changingTable === null && kidsArea === null)}
               className="mt-6 w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-2xl font-bold text-sm disabled:opacity-40 transition-opacity"
             >
-              <Send className="w-4 h-4" />
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               Envoyer ma contribution
             </button>
           </motion.div>
