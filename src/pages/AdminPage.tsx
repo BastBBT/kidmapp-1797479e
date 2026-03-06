@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Location, categoryLabels, categoryIcons } from '@/types/location';
 import { Baby, UtensilsCrossed, TreePine, Eye, EyeOff, Check, X } from 'lucide-react';
 import Header from '@/components/Header';
@@ -7,10 +7,20 @@ import { motion } from 'framer-motion';
 import { useAllLocations, useContributions } from '@/hooks/useLocations';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 const AdminPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAdmin, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && !isAdmin) {
+      navigate('/');
+    }
+  }, [authLoading, isAdmin, navigate]);
   const { data: locations = [] } = useAllLocations();
   const { data: contributions = [] } = useContributions();
   const [activeTab, setActiveTab] = useState<'locations' | 'contributions'>('locations');

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Location } from '@/types/location';
-import { Baby, UtensilsCrossed, TreePine, X, Send } from 'lucide-react';
+import { Baby, UtensilsCrossed, TreePine, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
-
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 interface ContributionModalProps {
   location: Location;
   open: boolean;
@@ -55,11 +56,27 @@ const CriterionToggle = ({
 
 const ContributionModal = ({ location, open, onClose }: ContributionModalProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [highChair, setHighChair] = useState<boolean | null>(null);
   const [changingTable, setChangingTable] = useState<boolean | null>(null);
   const [kidsArea, setKidsArea] = useState<boolean | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!user) return;
+    setSubmitting(true);
+    const { error } = await supabase.from('contributions').insert({
+      location_id: location.id,
+      user_id: user.id,
+      high_chair: highChair,
+      changing_table: changingTable,
+      kids_area: kidsArea,
+    });
+    setSubmitting(false);
+    if (error) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      return;
+    }
     toast({
       title: 'Merci pour votre contribution ! 🎉',
       description: 'Votre signalement sera vérifié par notre équipe.',
@@ -121,10 +138,10 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
 
             <button
               onClick={handleSubmit}
-              disabled={highChair === null && changingTable === null && kidsArea === null}
+              disabled={submitting || (highChair === null && changingTable === null && kidsArea === null)}
               className="mt-6 w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-2xl font-bold text-sm disabled:opacity-40 transition-opacity"
             >
-              <Send className="w-4 h-4" />
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               Envoyer ma contribution
             </button>
           </motion.div>
