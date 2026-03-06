@@ -39,14 +39,13 @@ export const useAuth = () => {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
-        fetchProfile(currentUser.id);
-      } else {
-        setIsLoading(false);
+        await fetchProfile(currentUser.id);
       }
+      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
