@@ -56,11 +56,27 @@ const CriterionToggle = ({
 
 const ContributionModal = ({ location, open, onClose }: ContributionModalProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [highChair, setHighChair] = useState<boolean | null>(null);
   const [changingTable, setChangingTable] = useState<boolean | null>(null);
   const [kidsArea, setKidsArea] = useState<boolean | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!user) return;
+    setSubmitting(true);
+    const { error } = await supabase.from('contributions').insert({
+      location_id: location.id,
+      user_id: user.id,
+      high_chair: highChair,
+      changing_table: changingTable,
+      kids_area: kidsArea,
+    });
+    setSubmitting(false);
+    if (error) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      return;
+    }
     toast({
       title: 'Merci pour votre contribution ! 🎉',
       description: 'Votre signalement sera vérifié par notre équipe.',
