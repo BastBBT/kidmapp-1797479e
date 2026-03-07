@@ -142,7 +142,7 @@ const MapView = ({ locations, selectedId }: MapViewProps) => {
               <Marker
                 key={loc.id}
                 position={[loc.lat, loc.lng]}
-                icon={createCategoryIcon(loc.category)}
+                icon={getMarkerIcon(loc.category, loc.id === selectedId)}
                 eventHandlers={{
                   click: () => navigate(`/location/${loc.id}`),
                 }}
