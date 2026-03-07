@@ -14,56 +14,32 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-const categorySvgIcons: Record<string, string> = {
-  restaurant: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M7 6c0 0-1 4 1.5 6.5V19a1 1 0 002 0v-6.5C13 10 12 6 12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M9.5 6v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-    <path d="M16 6v5.5c0 1.5-1 2-2 2v6.5a1 1 0 002 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`,
-  cafe: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M5 10h11v5.5a4.5 4.5 0 01-4.5 4.5h-2A4.5 4.5 0 015 15.5V10z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M16 11.5h1.5a2 2 0 010 4H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    <path d="M8.5 6c0-1.5 1.5-1.5 1.5-3" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
-    <path d="M11.5 6.5c0-1.5 1.5-1.5 1.5-3" stroke="currentColor" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
-  </svg>`,
-  shop: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M5 11v9h14v-9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M3.5 7l2 4h13l2-4H3.5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <rect x="9.5" y="15" width="5" height="5" rx="0.5" stroke="currentColor" stroke-width="1.2"/>
-  </svg>`,
-  public: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 4c-2 3-6 4.5-6 10a6 6 0 0012 0c0-5.5-4-7-6-10z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M12 20V11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-    <path d="M9.5 14c1.5-1.5 2.5-0.5 2.5-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
-    <path d="M14.5 15.5c-1.5-1.5-2.5-0.5-2.5-3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
-  </svg>`,
-};
-
-const categoryColors: Record<string, { bg: string; stroke: string; ring: string }> = {
-  restaurant: { bg: '#FFF0ED', stroke: '#E8735A', ring: '#FADBD3' },
-  cafe: { bg: '#EDF7F5', stroke: '#5BA89D', ring: '#C8E6E0' },
-  shop: { bg: '#FFF8EB', stroke: '#D4A24E', ring: '#F5E6C8' },
-  public: { bg: '#EFF6EE', stroke: '#6BA368', ring: '#D1E8CF' },
-};
-
-const createCategoryIcon = (category: Location['category']) => {
-  const svg = categorySvgIcons[category] || categorySvgIcons.public;
-  const colors = categoryColors[category] || categoryColors.public;
+const getMarkerIcon = (category: string, isSelected: boolean) => {
+  const configs: Record<string, { bg: string; border: string; stroke: string; icon: string }> = {
+    restaurant: { bg: '#FAF0EC', border: '#F0C4B4', stroke: '#D95F3B', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D95F3B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>` },
+    cafe:       { bg: '#EBF4F2', border: '#C8E0DC', stroke: '#3B7D6E', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B7D6E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/></svg>` },
+    shop:       { bg: '#FEF9E7', border: '#F5E6C8', stroke: '#C49A35', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C49A35" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>` },
+    public:     { bg: '#EEF6EC', border: '#D1E8CF', stroke: '#5A9A56', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A9A56" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14l-5-10-5 10h4v8h2v-8z"/></svg>` },
+  };
+  const c = configs[category] ?? configs.restaurant;
+  const size = isSelected ? 48 : 40;
   return L.divIcon({
-    html: `<div class="kidmap-marker" style="
-      width: 42px; height: 42px;
-      background: ${colors.bg};
-      border-radius: 50%;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06);
-      display: flex; align-items: center; justify-content: center;
-      border: 2.5px solid ${colors.ring};
-      color: ${colors.stroke};
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    ">${svg}</div>`,
-    className: 'custom-marker',
-    iconSize: [42, 42],
-    iconAnchor: [21, 21],
-    popupAnchor: [0, -24],
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -(size / 2)],
+    html: `
+      <div style="
+        width:${size}px;height:${size}px;
+        border-radius:50%;
+        background:${c.bg};
+        border:2.5px solid ${isSelected ? c.stroke : c.border};
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:${isSelected ? `0 4px 16px ${c.stroke}55` : '0 2px 8px rgba(0,0,0,0.14)'};
+        transition:all 0.2s ease;
+        ${isSelected ? 'transform:scale(1.1);' : ''}
+      ">${c.icon}</div>
+    `
   });
 };
 
@@ -161,12 +137,18 @@ const MapView = ({ locations, selectedId }: MapViewProps) => {
           animateAddingMarkers
         >
           {locations.map((loc) => {
-            const colors = categoryColors[loc.category] || categoryColors.public;
+            const markerColors: Record<string, { stroke: string }> = {
+              restaurant: { stroke: '#D95F3B' },
+              cafe: { stroke: '#3B7D6E' },
+              shop: { stroke: '#C49A35' },
+              public: { stroke: '#5A9A56' },
+            };
+            const colors = markerColors[loc.category] || markerColors.restaurant;
             return (
               <Marker
                 key={loc.id}
                 position={[loc.lat, loc.lng]}
-                icon={createCategoryIcon(loc.category)}
+                icon={getMarkerIcon(loc.category, loc.id === selectedId)}
                 eventHandlers={{
                   click: () => navigate(`/location/${loc.id}`),
                 }}
