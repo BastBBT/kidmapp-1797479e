@@ -137,7 +137,13 @@ const MapView = ({ locations, selectedId }: MapViewProps) => {
           animateAddingMarkers
         >
           {locations.map((loc) => {
-            const colors = categoryColors[loc.category] || categoryColors.public;
+            const markerColors: Record<string, { stroke: string }> = {
+              restaurant: { stroke: '#D95F3B' },
+              cafe: { stroke: '#3B7D6E' },
+              shop: { stroke: '#C49A35' },
+              public: { stroke: '#5A9A56' },
+            };
+            const colors = markerColors[loc.category] || markerColors.restaurant;
             return (
               <Marker
                 key={loc.id}
