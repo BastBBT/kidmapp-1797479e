@@ -106,7 +106,7 @@ const NANTES_CENTER: [number, number] = [47.2184, -1.5536];
 function InvalidateSize() {
   const map = useMap();
   useEffect(() => {
-    const timer = setTimeout(() => map.invalidateSize(), 100);
+    const timer = setTimeout(() => map.invalidateSize(), 150);
     return () => clearTimeout(timer);
   }, [map]);
   return null;
