@@ -65,25 +65,29 @@ const Header = ({ onSearch, selectedCategory, onCategoryChange }: HeaderProps) =
         </div>
 
         {/* Row 2 — Search bar */}
-        <div className="relative pb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)', marginTop: '-6px' }} />
-          <input
-            type="text"
-            placeholder="Rechercher un lieu…"
-            onChange={(e) => onSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-full text-sm outline-none transition-colors"
-            style={{
-              border: '1px solid var(--border)',
-              background: 'var(--bg)',
-              color: 'var(--text)',
-            }}
-          />
-        </div>
+        {onSearch && (
+          <div className="relative pb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)', marginTop: '-6px' }} />
+            <input
+              type="text"
+              placeholder="Rechercher un lieu…"
+              onChange={(e) => onSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-full text-sm outline-none transition-colors"
+              style={{
+                border: '1px solid var(--border)',
+                background: 'var(--bg)',
+                color: 'var(--text)',
+              }}
+            />
+          </div>
+        )}
 
         {/* Row 3 — Category filter */}
-        <div className="pb-3">
-          <CategoryFilter selected={selectedCategory} onChange={onCategoryChange} />
-        </div>
+        {selectedCategory !== undefined && onCategoryChange && (
+          <div className="pb-3">
+            <CategoryFilter selected={selectedCategory} onChange={onCategoryChange} />
+          </div>
+        )}
       </div>
     </header>
   );
