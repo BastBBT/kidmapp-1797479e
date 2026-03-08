@@ -84,6 +84,48 @@ export type Database = {
           },
         ]
       }
+      location_proposals: {
+        Row: {
+          address: string
+          category: string
+          changing_table: boolean | null
+          created_at: string | null
+          high_chair: boolean | null
+          id: string
+          kids_area: boolean | null
+          name: string
+          note: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          address: string
+          category: string
+          changing_table?: boolean | null
+          created_at?: string | null
+          high_chair?: boolean | null
+          id?: string
+          kids_area?: boolean | null
+          name: string
+          note?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string
+          category?: string
+          changing_table?: boolean | null
+          created_at?: string | null
+          high_chair?: boolean | null
+          id?: string
+          kids_area?: boolean | null
+          name?: string
+          note?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           address: string | null
