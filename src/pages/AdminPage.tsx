@@ -101,19 +101,56 @@ const AdminPage = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
+  const [showManualCoords, setShowManualCoords] = useState(false);
+  const [manualLat, setManualLat] = useState('47.2184');
+  const [manualLng, setManualLng] = useState('-1.5536');
+
   const geocodeAddress = async (address: string): Promise<{lat: number, lng: number} | null> => {
-    try {
-      const encoded = encodeURIComponent(address + ', Nantes, France');
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1`,
-        { headers: { 'Accept-Language': 'fr' } }
-      );
-      const data = await res.json();
-      if (data.length === 0) return null;
-      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-    } catch {
-      return null;
+    const cleaned = address
+      .trim()
+      .replace(/\brue\b/gi, 'rue')
+      .replace(/\bav\b\.?/gi, 'avenue')
+      .replace(/\bbd\b\.?/gi, 'boulevard')
+      .replace(/\bpl\b\.?/gi, 'place');
+
+    const queries = [
+      `${cleaned}, Nantes, France`,
+      `${cleaned}, 44000, France`,
+      `${cleaned}, Loire-Atlantique, France`,
+      cleaned,
+    ];
+
+    for (const query of queries) {
+      try {
+        const encoded = encodeURIComponent(query);
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1&countrycodes=fr&addressdetails=1`,
+          {
+            headers: {
+              'Accept-Language': 'fr',
+              'User-Agent': 'Kidmap/1.0'
+            }
+          }
+        );
+        const data = await res.json();
+        if (data.length > 0) {
+          const result = data[0];
+          const lat = parseFloat(result.lat);
+          const lng = parseFloat(result.lon);
+          if (lat >= 46.9 && lat <= 47.5 && lng >= -2.2 && lng <= -1.1) {
+            return { lat, lng };
+          }
+          if (queries.indexOf(query) === queries.length - 1) {
+            return { lat, lng };
+          }
+        }
+      } catch {
+        continue;
+      }
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
+
+    return null;
   };
 
   const updateForm = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
@@ -161,12 +198,21 @@ const AdminPage = () => {
     }
     setSubmitting(true);
 
-    // Geocode address
-    const coords = await geocodeAddress(form.address);
-    if (!coords) {
-      toast({ title: 'Adresse introuvable', description: 'Vérifiez l\'adresse saisie', variant: 'destructive' });
-      setSubmitting(false);
-      return;
+    let coords: { lat: number; lng: number } | null = null;
+
+    if (showManualCoords) {
+      coords = {
+        lat: parseFloat(manualLat),
+        lng: parseFloat(manualLng),
+      };
+    } else {
+      coords = await geocodeAddress(form.address);
+      if (!coords) {
+        setShowManualCoords(true);
+        toast({ title: 'Adresse non trouvée automatiquement', description: 'Ajustez les coordonnées manuellement.', variant: 'destructive' });
+        setSubmitting(false);
+        return;
+      }
     }
 
     // Upload photo if present
@@ -454,7 +500,49 @@ const AdminPage = () => {
                     <option value="public">🌳 Lieu public</option>
                   </select>
                 </div>
-                <FormField label="Adresse *" value={form.address} onChange={(v) => updateForm('address', v)} placeholder="12 Rue Crébillon, 44000 Nantes" />
+                <div>
+                  <FormField label="Adresse *" value={form.address} onChange={(v) => { updateForm('address', v); setShowManualCoords(false); }} placeholder="Ex: 6 rue Saint-Léonard, 44000 Nantes" />
+                  <div style={{fontSize:'11px', color:'var(--text-muted)', marginTop:'4px', fontFamily:'DM Sans'}}>
+                    Incluez le numéro, la rue et le code postal pour de meilleurs résultats.
+                  </div>
+                  {showManualCoords && (
+                    <div style={{
+                      padding:'12px', borderRadius:'var(--radius-sm)',
+                      background:'var(--accent-light)',
+                      border:'1px solid #F2C94C',
+                      marginTop:'8px'
+                    }}>
+                      <div style={{fontFamily:'Caveat', fontSize:'14px', color:'#C49A35', marginBottom:'8px'}}>
+                        Adresse non reconnue — ajustez les coordonnées ✦
+                      </div>
+                      <div style={{display:'flex', gap:'8px'}}>
+                        <div style={{flex:1}}>
+                          <label style={{fontSize:'11px', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:'4px'}}>
+                            Latitude
+                          </label>
+                          <input
+                            value={manualLat}
+                            onChange={e => setManualLat(e.target.value)}
+                            style={{width:'100%', padding:'10px 12px', borderRadius:'var(--radius-sm)', border:'1.5px solid var(--border)', fontFamily:'DM Sans', fontSize:'14px'}}
+                          />
+                        </div>
+                        <div style={{flex:1}}>
+                          <label style={{fontSize:'11px', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:'4px'}}>
+                            Longitude
+                          </label>
+                          <input
+                            value={manualLng}
+                            onChange={e => setManualLng(e.target.value)}
+                            style={{width:'100%', padding:'10px 12px', borderRadius:'var(--radius-sm)', border:'1.5px solid var(--border)', fontFamily:'DM Sans', fontSize:'14px'}}
+                          />
+                        </div>
+                      </div>
+                      <div style={{fontSize:'11px', color:'var(--text-muted)', marginTop:'6px', fontFamily:'DM Sans'}}>
+                        Astuce : trouvez les coordonnées sur maps.google.com en faisant clic droit sur le lieu.
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Photo upload */}
                 <div>
@@ -696,6 +784,9 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   toast: any;
 }) {
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [manualCoordsProposal, setManualCoordsProposal] = useState<string | null>(null);
+  const [proposalManualLat, setProposalManualLat] = useState('47.2184');
+  const [proposalManualLng, setProposalManualLng] = useState('-1.5536');
 
   const { data: proposals = [] } = useQuery({
     queryKey: ['proposals'],
@@ -705,13 +796,21 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
     },
   });
 
-  const handleApprove = async (proposal: any) => {
+  const handleApprove = async (proposal: any, useManualCoords = false) => {
     setProcessingId(proposal.id);
     try {
-      const coords = await geocodeAddress(proposal.address);
-      if (!coords) {
-        toast({ title: 'Adresse introuvable', description: 'Impossible de géocoder cette adresse.', variant: 'destructive' });
-        return;
+      let coords: { lat: number; lng: number } | null = null;
+
+      if (useManualCoords) {
+        coords = { lat: parseFloat(proposalManualLat), lng: parseFloat(proposalManualLng) };
+      } else {
+        coords = await geocodeAddress(proposal.address);
+        if (!coords) {
+          setManualCoordsProposal(proposal.id);
+          toast({ title: 'Adresse non trouvée automatiquement', description: 'Ajustez les coordonnées manuellement.', variant: 'destructive' });
+          setProcessingId(null);
+          return;
+        }
       }
       const insertData: any = {
         name: proposal.name,
@@ -818,33 +917,72 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
               {new Date(proposal.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
             {proposal.status === 'pending' && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleApprove(proposal)}
-                  disabled={isProcessing}
-                  style={{
-                    flex: 1, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
-                    padding: '8px', borderRadius: '100px', border: 'none',
-                    background: 'var(--secondary)', color: '#fff', cursor: isProcessing ? 'not-allowed' : 'pointer',
-                    opacity: isProcessing ? 0.6 : 1,
-                  }}
-                >
-                  {isProcessing ? 'En cours…' : '✓ Approuver'}
-                </button>
-                <button
-                  onClick={() => handleReject(proposal)}
-                  disabled={isProcessing}
-                  style={{
-                    flex: 1, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
-                    padding: '8px', borderRadius: '100px',
-                    border: '1.5px solid var(--border)', background: 'transparent',
-                    color: 'var(--text-muted)', cursor: isProcessing ? 'not-allowed' : 'pointer',
-                    opacity: isProcessing ? 0.6 : 1,
-                  }}
-                >
-                  ✗ Rejeter
-                </button>
-              </div>
+              <>
+                {manualCoordsProposal === proposal.id && (
+                  <div style={{
+                    padding:'12px', borderRadius:'var(--radius-sm)',
+                    background:'var(--accent-light)',
+                    border:'1px solid #F2C94C',
+                    marginBottom:'8px'
+                  }}>
+                    <div style={{fontFamily:'Caveat', fontSize:'14px', color:'#C49A35', marginBottom:'8px'}}>
+                      Adresse non reconnue — ajustez les coordonnées ✦
+                    </div>
+                    <div style={{display:'flex', gap:'8px'}}>
+                      <div style={{flex:1}}>
+                        <label style={{fontSize:'11px', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:'4px'}}>
+                          Latitude
+                        </label>
+                        <input
+                          value={proposalManualLat}
+                          onChange={e => setProposalManualLat(e.target.value)}
+                          style={{width:'100%', padding:'10px 12px', borderRadius:'var(--radius-sm)', border:'1.5px solid var(--border)', fontFamily:'DM Sans', fontSize:'14px'}}
+                        />
+                      </div>
+                      <div style={{flex:1}}>
+                        <label style={{fontSize:'11px', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:'4px'}}>
+                          Longitude
+                        </label>
+                        <input
+                          value={proposalManualLng}
+                          onChange={e => setProposalManualLng(e.target.value)}
+                          style={{width:'100%', padding:'10px 12px', borderRadius:'var(--radius-sm)', border:'1.5px solid var(--border)', fontFamily:'DM Sans', fontSize:'14px'}}
+                        />
+                      </div>
+                    </div>
+                    <div style={{fontSize:'11px', color:'var(--text-muted)', marginTop:'6px', fontFamily:'DM Sans'}}>
+                      Astuce : trouvez les coordonnées sur maps.google.com en faisant clic droit sur le lieu.
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleApprove(proposal, manualCoordsProposal === proposal.id)}
+                    disabled={isProcessing}
+                    style={{
+                      flex: 1, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                      padding: '8px', borderRadius: '100px', border: 'none',
+                      background: 'var(--secondary)', color: '#fff', cursor: isProcessing ? 'not-allowed' : 'pointer',
+                      opacity: isProcessing ? 0.6 : 1,
+                    }}
+                  >
+                    {isProcessing ? 'En cours…' : manualCoordsProposal === proposal.id ? '✓ Approuver avec ces coordonnées' : '✓ Approuver'}
+                  </button>
+                  <button
+                    onClick={() => handleReject(proposal)}
+                    disabled={isProcessing}
+                    style={{
+                      flex: 1, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                      padding: '8px', borderRadius: '100px',
+                      border: '1.5px solid var(--border)', background: 'transparent',
+                      color: 'var(--text-muted)', cursor: isProcessing ? 'not-allowed' : 'pointer',
+                      opacity: isProcessing ? 0.6 : 1,
+                    }}
+                  >
+                    ✗ Rejeter
+                  </button>
+                </div>
+              </>
             )}
           </motion.div>
         );
