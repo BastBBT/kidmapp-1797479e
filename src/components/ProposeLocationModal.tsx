@@ -21,6 +21,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     high_chair: false,
     changing_table: false,
     kids_area: false,
+    bookable: 'unknown',
     note: '',
   });
 
