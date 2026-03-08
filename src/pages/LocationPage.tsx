@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { categoryIcons, categoryLabels } from '@/types/location';
-import { ArrowLeft, MessageSquarePlus } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import ContributionModal from '@/components/ContributionModal';
 import { motion } from 'framer-motion';
