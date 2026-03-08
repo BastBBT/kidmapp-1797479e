@@ -130,7 +130,7 @@ const MapView = ({ locations, selectedId }: MapViewProps) => {
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
-        <InvalidateSize />
+        <RecenterMap />
         <FlyToSelected location={selectedLocation} />
         <MarkerClusterGroup
           chunkedLoading
