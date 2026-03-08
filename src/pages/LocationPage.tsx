@@ -8,6 +8,9 @@ import Header from '@/components/Header';
 import { useLocation as useLocationData } from '@/hooks/useLocations';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useEquipmentVotes } from '@/hooks/useEquipmentVotes';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const categoryGradients: Record<string, string> = {
   restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
