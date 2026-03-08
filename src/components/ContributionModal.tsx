@@ -83,20 +83,27 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
   const [highChair, setHighChair] = useState<boolean | null>(null);
   const [changingTable, setChangingTable] = useState<boolean | null>(null);
   const [kidsArea, setKidsArea] = useState<boolean | null>(null);
+  const [bookable, setBookable] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const showBookable = location.category === 'restaurant' || location.category === 'cafe';
 
   const handleSubmit = async () => {
     if (!user) return;
     setSubmitting(true);
     try {
-      const { error } = await supabase.from('contributions').insert({
+      const insertData: any = {
         location_id: location.id,
         user_id: user.id,
         high_chair: highChair,
         changing_table: changingTable,
         kids_area: kidsArea,
         status: 'pending',
-      });
+      };
+      if (showBookable && bookable !== null) {
+        insertData.bookable = bookable;
+      }
+      const { error } = await supabase.from('contributions').insert(insertData);
       if (error) throw error;
       toast({
         title: 'Merci pour ta contribution ✦',
@@ -107,6 +114,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
       setHighChair(null);
       setChangingTable(null);
       setKidsArea(null);
+      setBookable(null);
     } catch (err: any) {
       toast({
         title: 'Une erreur est survenue',
@@ -154,9 +162,33 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
               <CriterionToggle label="Espace jeux" icon={<KidsAreaIcon />} value={kidsArea} onChange={setKidsArea} />
             </div>
 
+            {showBookable && (
+              <div style={{ paddingTop: '14px', borderTop: '1px solid var(--border)', marginTop: '4px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '10px', color: 'var(--text)' }}>
+                  Réservation possible ?
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {(['yes', 'no', 'unknown'] as const).map(val => (
+                    <button key={val}
+                      onClick={() => setBookable(val)}
+                      style={{
+                        flex: 1, padding: '10px 8px',
+                        borderRadius: '100px', fontSize: '13px', fontWeight: 600,
+                        border: bookable === val ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
+                        background: bookable === val ? 'var(--primary-light)' : 'transparent',
+                        color: bookable === val ? 'var(--primary)' : 'var(--text-muted)',
+                        cursor: 'pointer', fontFamily: 'DM Sans',
+                      }}>
+                      {val === 'yes' ? 'Oui' : val === 'no' ? 'Non' : 'Je sais pas'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <button
               onClick={handleSubmit}
-              disabled={submitting || (highChair === null && changingTable === null && kidsArea === null)}
+              disabled={submitting || (highChair === null && changingTable === null && kidsArea === null && bookable === null)}
               className="mt-6 w-full flex items-center justify-center gap-2 py-3 font-semibold text-sm disabled:opacity-40 transition-opacity"
               style={{ borderRadius: '100px', background: 'var(--primary)', color: '#fff' }}
             >
