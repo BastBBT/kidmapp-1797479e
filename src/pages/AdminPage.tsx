@@ -188,7 +188,7 @@ const AdminPage = () => {
       photoUrl = urlData.publicUrl;
     }
 
-    const { error } = await supabase.from('locations').insert({
+    const insertData: any = {
       name: form.name,
       category: form.category,
       address: form.address,
@@ -199,7 +199,11 @@ const AdminPage = () => {
       changing_table: form.changing_table,
       kids_area: form.kids_area,
       status: form.status,
-    } as any);
+    };
+    if (form.category === 'restaurant' || form.category === 'cafe') {
+      insertData.bookable = form.bookable;
+    }
+    const { error } = await supabase.from('locations').insert(insertData as any);
     setSubmitting(false);
     if (error) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
