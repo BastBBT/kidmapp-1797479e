@@ -19,7 +19,7 @@ const getMarkerIcon = (category: string, isSelected: boolean) => {
     restaurant: { bg: '#FAF0EC', border: '#F0C4B4', stroke: '#D95F3B', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D95F3B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>` },
     cafe:       { bg: '#EBF4F2', border: '#C8E0DC', stroke: '#3B7D6E', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B7D6E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/></svg>` },
     shop:       { bg: '#FEF9E7', border: '#F5E6C8', stroke: '#C49A35', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C49A35" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>` },
-    public:     { bg: '#EEF6EC', border: '#D1E8CF', stroke: '#5A9A56', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A9A56" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14l-5-10-5 10h4v8h2v-8z"/></svg>` },
+    public:     { bg: '#EEF6EC', border: '#D1E8CF', stroke: '#5A9A56', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A9A56" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="5"/><path d="M12 12v8"/><path d="M9 18h6"/></svg>` },
   };
   const c = configs[category] ?? configs.restaurant;
   const size = isSelected ? 48 : 40;
