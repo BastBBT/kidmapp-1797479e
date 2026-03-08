@@ -984,9 +984,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                 </div>
               </>
             )}
-                </button>
-              </div>
-            )}
+          </motion.div>
           </motion.div>
         );
       })}
