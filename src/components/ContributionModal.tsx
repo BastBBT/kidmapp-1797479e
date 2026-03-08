@@ -144,7 +144,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
             transition={{ type: 'spring', damping: 25 }}
-            className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[1000] flex flex-col"
             style={{ background: 'var(--surface)', borderRadius: 'var(--radius) var(--radius) 0 0', maxHeight: '85vh' }}
           >
             {/* Header - fixed */}
