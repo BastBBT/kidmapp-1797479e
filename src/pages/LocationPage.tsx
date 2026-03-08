@@ -60,6 +60,8 @@ const LocationPage = () => {
   const navigate = useNavigate();
   const [showContribution, setShowContribution] = useState(false);
   const { data: location, isLoading } = useLocationData(id ?? '');
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const favorite = location ? isFavorite(location.id) : false;
 
   if (isLoading) {
     return (
