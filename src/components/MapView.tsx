@@ -53,7 +53,7 @@ const createClusterCustomIcon = (cluster: any) => {
       <div style="
         width:${size}px;height:${size}px;
         border-radius:50%;
-        background:linear-gradient(135deg, #D95F3B 0%, #3B7D6E 100%);
+        background:#D95F3B;
         border:3px solid white;
         display:flex;align-items:center;justify-content:center;
         box-shadow:0 3px 12px rgba(217,95,59,0.35);
