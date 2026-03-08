@@ -441,12 +441,46 @@ const AdminPage = () => {
                     <option value="public">🌳 Lieu public</option>
                   </select>
                 </div>
-                <FormField label="Adresse *" value={form.address} onChange={(v) => updateForm('address', v)} />
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField label="Latitude *" value={form.lat} onChange={(v) => updateForm('lat', v)} type="number" placeholder="47.2184" />
-                  <FormField label="Longitude *" value={form.lng} onChange={(v) => updateForm('lng', v)} type="number" placeholder="-1.5536" />
+                <FormField label="Adresse *" value={form.address} onChange={(v) => updateForm('address', v)} placeholder="12 Rue Crébillon, 44000 Nantes" />
+
+                {/* Photo upload */}
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                    Photo
+                  </label>
+                  {photoPreview && (
+                    <div style={{ width: '100%', height: '140px', borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: '10px', position: 'relative' }}>
+                      <img src={photoPreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Preview" />
+                      <button
+                        type="button"
+                        onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
+                        style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', fontSize: '12px' }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', border: '1.5px dashed var(--border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px', fontFamily: 'DM Sans' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    {photoFile ? photoFile.name : 'Choisir une photo'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setPhotoFile(file);
+                          setPhotoPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                  </label>
                 </div>
-                <FormField label="URL photo" value={form.photo} onChange={(v) => updateForm('photo', v)} placeholder="https://..." />
 
                 <div className="flex flex-col gap-3 mt-1">
                   <Toggle label="Chaise haute" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
