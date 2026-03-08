@@ -722,6 +722,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         high_chair: proposal.high_chair ?? false,
         changing_table: proposal.changing_table ?? false,
         kids_area: proposal.kids_area ?? false,
+        photo: proposal.photo ?? null,
         status: 'published',
       };
       if ((proposal.category === 'restaurant' || proposal.category === 'cafe') && proposal.bookable) {
@@ -784,6 +785,9 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
           >
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
+                {proposal.photo && (
+                  <img src={proposal.photo} alt={proposal.name} style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                )}
                 <span style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, color: 'var(--text)' }}>
                   {proposal.name}
                 </span>

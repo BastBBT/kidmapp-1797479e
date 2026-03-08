@@ -99,6 +99,7 @@ export type Database = {
           kids_area: boolean | null
           name: string
           note: string | null
+          photo: string | null
           status: string | null
           user_id: string
         }
@@ -113,6 +114,7 @@ export type Database = {
           kids_area?: boolean | null
           name: string
           note?: string | null
+          photo?: string | null
           status?: string | null
           user_id: string
         }
@@ -127,6 +129,7 @@ export type Database = {
           kids_area?: boolean | null
           name?: string
           note?: string | null
+          photo?: string | null
           status?: string | null
           user_id?: string
         }
