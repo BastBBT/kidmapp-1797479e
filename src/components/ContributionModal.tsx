@@ -144,58 +144,67 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
             transition={{ type: 'spring', damping: 25 }}
-            className="fixed bottom-0 left-0 right-0 z-50 p-6 max-h-[80vh] overflow-y-auto"
-            style={{ background: 'var(--surface)', borderRadius: 'var(--radius) var(--radius) 0 0' }}
+            className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
+            style={{ background: 'var(--surface)', borderRadius: 'var(--radius) var(--radius) 0 0', maxHeight: '85vh' }}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-lg font-semibold">Contribuer</h2>
-              <button onClick={onClose} className="p-2 rounded-full" style={{ background: 'var(--bg)' }}>
-                <X className="w-4 h-4" />
+            {/* Header - fixed */}
+            <div style={{ padding: '20px 20px 0', flexShrink: 0 }}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-display text-lg font-semibold">Contribuer</h2>
+                <button onClick={onClose} className="p-2 rounded-full" style={{ background: 'var(--bg)' }}>
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
+                Confirmez les équipements de <strong>{location.name}</strong>
+              </p>
+            </div>
+
+            {/* Scrollable body */}
+            <div style={{ overflowY: 'auto', flex: 1, padding: '0 20px' }}>
+              <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
+                <CriterionToggle label="Chaise haute" icon={<HighChairIcon />} value={highChair} onChange={setHighChair} />
+                <CriterionToggle label="Table à langer" icon={<ChangingTableIcon />} value={changingTable} onChange={setChangingTable} />
+                <CriterionToggle label="Espace jeux" icon={<KidsAreaIcon />} value={kidsArea} onChange={setKidsArea} />
+              </div>
+
+              {showBookable && (
+                <div style={{ paddingTop: '14px', borderTop: '1px solid var(--border)', marginTop: '4px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '10px', color: 'var(--text)' }}>
+                    Réservation possible ?
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {(['yes', 'no', 'unknown'] as const).map(val => (
+                      <button key={val}
+                        onClick={() => setBookable(val)}
+                        style={{
+                          flex: 1, padding: '10px 8px',
+                          borderRadius: '100px', fontSize: '13px', fontWeight: 600,
+                          border: bookable === val ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
+                          background: bookable === val ? 'var(--primary-light)' : 'transparent',
+                          color: bookable === val ? 'var(--primary)' : 'var(--text-muted)',
+                          cursor: 'pointer', fontFamily: 'DM Sans',
+                        }}>
+                        {val === 'yes' ? 'Oui' : val === 'no' ? 'Non' : 'Je sais pas'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Fixed submit button */}
+            <div style={{ padding: '16px 20px 24px', flexShrink: 0, borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || (highChair === null && changingTable === null && kidsArea === null && bookable === null)}
+                className="w-full flex items-center justify-center gap-2 py-3 font-semibold text-sm disabled:opacity-40 transition-opacity"
+                style={{ borderRadius: '100px', background: 'var(--primary)', color: '#fff' }}
+              >
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Envoyer ma contribution
               </button>
             </div>
-            <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
-              Confirmez les équipements de <strong>{location.name}</strong>
-            </p>
-
-            <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-              <CriterionToggle label="Chaise haute" icon={<HighChairIcon />} value={highChair} onChange={setHighChair} />
-              <CriterionToggle label="Table à langer" icon={<ChangingTableIcon />} value={changingTable} onChange={setChangingTable} />
-              <CriterionToggle label="Espace jeux" icon={<KidsAreaIcon />} value={kidsArea} onChange={setKidsArea} />
-            </div>
-
-            {showBookable && (
-              <div style={{ paddingTop: '14px', borderTop: '1px solid var(--border)', marginTop: '4px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '10px', color: 'var(--text)' }}>
-                  Réservation possible ?
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {(['yes', 'no', 'unknown'] as const).map(val => (
-                    <button key={val}
-                      onClick={() => setBookable(val)}
-                      style={{
-                        flex: 1, padding: '10px 8px',
-                        borderRadius: '100px', fontSize: '13px', fontWeight: 600,
-                        border: bookable === val ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
-                        background: bookable === val ? 'var(--primary-light)' : 'transparent',
-                        color: bookable === val ? 'var(--primary)' : 'var(--text-muted)',
-                        cursor: 'pointer', fontFamily: 'DM Sans',
-                      }}>
-                      {val === 'yes' ? 'Oui' : val === 'no' ? 'Non' : 'Je sais pas'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || (highChair === null && changingTable === null && kidsArea === null && bookable === null)}
-              className="mt-6 w-full flex items-center justify-center gap-2 py-3 font-semibold text-sm disabled:opacity-40 transition-opacity"
-              style={{ borderRadius: '100px', background: 'var(--primary)', color: '#fff' }}
-            >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              Envoyer ma contribution
-            </button>
           </motion.div>
         </>
       )}
