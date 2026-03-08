@@ -95,6 +95,7 @@ const Index = () => {
           )}
         </AnimatePresence>
       </div>
+      <ProposeLocationModal open={showProposalModal} onClose={() => setShowProposalModal(false)} />
     </div>
   );
 };
