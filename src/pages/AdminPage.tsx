@@ -381,22 +381,55 @@ const AdminPage = () => {
                       )}
                     </div>
                   </div>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
                   <button
                     onClick={() => togglePublish(loc.id, loc.status)}
                     style={{
-                      fontFamily: 'DM Sans',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      padding: '6px 14px',
-                      borderRadius: '100px',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                      ...(loc.status === 'published'
-                        ? { border: '1.5px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }
-                        : { border: 'none', background: 'var(--primary)', color: '#fff' }),
+                      padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600,
+                      border: loc.status === 'published' ? '1.5px solid var(--border)' : 'none',
+                      background: loc.status === 'published' ? 'transparent' : 'var(--primary)',
+                      color: loc.status === 'published' ? 'var(--text-muted)' : 'white',
+                      fontFamily: 'DM Sans', cursor: 'pointer',
                     }}
                   >
                     {loc.status === 'published' ? 'Masquer' : 'Publier'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingId(loc.id);
+                      setEditForm({
+                        name: loc.name,
+                        category: loc.category,
+                        address: loc.address ?? '',
+                        website: (loc as any).website ?? '',
+                        instagram: (loc as any).instagram ?? '',
+                        photo: loc.photo ?? '',
+                        note: (loc as any).note ?? '',
+                        high_chair: loc.high_chair,
+                        changing_table: loc.changing_table,
+                        kids_area: loc.kids_area,
+                        bookable: (loc as any).bookable ?? 'unknown',
+                        status: loc.status,
+                      });
+                    }}
+                    style={{
+                      padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600,
+                      border: '1.5px solid var(--secondary)', background: 'transparent',
+                      color: 'var(--secondary)', fontFamily: 'DM Sans', cursor: 'pointer',
+                    }}
+                  >
+                    ✏️ Modifier
+                  </button>
+                  <button
+                    onClick={() => setDeletingId(loc.id)}
+                    style={{
+                      padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600,
+                      border: '1.5px solid #FCA5A5', background: 'transparent',
+                      color: '#DC2626', fontFamily: 'DM Sans', cursor: 'pointer',
+                    }}
+                  >
+                    🗑 Supprimer
                   </button>
                 </div>
               </motion.div>
