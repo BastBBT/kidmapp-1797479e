@@ -67,6 +67,7 @@ const LocationPage = () => {
   const [showContribution, setShowContribution] = useState(false);
   const { data: location, isLoading } = useLocationData(id ?? '');
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { data: votes } = useEquipmentVotes(id ?? '');
   const favorite = location ? isFavorite(location.id) : false;
 
   if (isLoading) {
