@@ -131,7 +131,7 @@ const MapView = ({ locations, selectedId }: MapViewProps) => {
         <FlyToSelected location={selectedLocation} />
         <MarkerClusterGroup
           chunkedLoading
-          iconCreateFunction={createClusterIcon}
+          iconCreateFunction={createClusterCustomIcon}
           maxClusterRadius={50}
           spiderfyOnMaxZoom
           animate
