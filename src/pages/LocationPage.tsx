@@ -181,6 +181,54 @@ const LocationPage = () => {
             </p>
           )}
 
+          {/* Website & Instagram links */}
+          {((location as any).website || (location as any).instagram) && (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+              {(location as any).website && (
+                <a
+                  href={(location as any).website.startsWith('http') ? (location as any).website : `https://${(location as any).website}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '7px 14px', borderRadius: '100px',
+                    background: 'var(--bg)', border: '1.5px solid var(--border)',
+                    color: 'var(--text)', fontFamily: 'DM Sans', fontSize: '13px',
+                    fontWeight: 600, textDecoration: 'none',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="2" y1="12" x2="22" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                  </svg>
+                  Site web
+                </a>
+              )}
+              {(location as any).instagram && (
+                <a
+                  href={`https://www.instagram.com/${(location as any).instagram.replace('@', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '7px 14px', borderRadius: '100px',
+                    background: 'var(--bg)', border: '1.5px solid var(--border)',
+                    color: 'var(--text)', fontFamily: 'DM Sans', fontSize: '13px',
+                    fontWeight: 600, textDecoration: 'none',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                    <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                  </svg>
+                  @{(location as any).instagram.replace('@', '')}
+                </a>
+              )}
+            </div>
+          )}
+
           <h2 className="font-display text-base font-semibold mb-4" style={{ color: 'var(--text)' }}>
             Équipements enfants
           </h2>

@@ -25,6 +25,8 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     kids_area: false,
     bookable: 'unknown',
     note: '',
+    website: '',
+    instagram: '',
   });
 
   const updateForm = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
@@ -66,6 +68,8 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
         kids_area: form.kids_area,
         note: form.note || null,
         photo: photoUrl,
+        website: form.website || null,
+        instagram: form.instagram || null,
         status: 'pending',
       };
       if (form.category === 'restaurant' || form.category === 'cafe') {
@@ -78,7 +82,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
         description: 'Merci ! On la vérifie avant de la publier.',
       });
       onClose();
-      setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', note: '' });
+      setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', note: '', website: '', instagram: '' });
       setPhotoFile(null);
       setPhotoPreview(null);
     } catch (err: any) {
@@ -162,6 +166,35 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                 <input value={form.address} onChange={(e) => updateForm('address', e.target.value)} placeholder="Ex: 6 rue Saint-Léonard, 44000 Nantes" style={inputStyle} />
                 <div style={{fontSize:'11px', color:'var(--text-muted)', marginTop:'4px', fontFamily:'DM Sans'}}>
                   Incluez le numéro, la rue et le code postal pour de meilleurs résultats.
+                </div>
+              </div>
+
+              {/* Website */}
+              <div>
+                <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                  Site web
+                </label>
+                <input
+                  value={form.website}
+                  onChange={(e) => updateForm('website', e.target.value)}
+                  placeholder="https://www.lepetitbeurre.fr"
+                  style={inputStyle}
+                />
+              </div>
+
+              {/* Instagram */}
+              <div>
+                <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                  Instagram
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontFamily: 'DM Sans', fontSize: '14px' }}>@</span>
+                  <input
+                    value={form.instagram}
+                    onChange={(e) => updateForm('instagram', e.target.value)}
+                    placeholder="lepetitbeurre_nantes"
+                    style={{ ...inputStyle, paddingLeft: '30px' }}
+                  />
                 </div>
               </div>
 

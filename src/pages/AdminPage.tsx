@@ -96,6 +96,8 @@ const AdminPage = () => {
     kids_area: false,
     bookable: 'unknown',
     status: 'pending',
+    website: '',
+    instagram: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -245,6 +247,8 @@ const AdminPage = () => {
       changing_table: form.changing_table,
       kids_area: form.kids_area,
       status: form.status,
+      website: form.website || null,
+      instagram: form.instagram || null,
     };
     if (form.category === 'restaurant' || form.category === 'cafe') {
       insertData.bookable = form.bookable;
@@ -259,7 +263,7 @@ const AdminPage = () => {
     queryClient.invalidateQueries({ queryKey: ['locations'] });
     queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     toast({ title: 'Lieu ajouté ✓' });
-    setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', status: 'pending' });
+    setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', status: 'pending', website: '', instagram: '' });
     setPhotoFile(null);
     setPhotoPreview(null);
   };
@@ -363,6 +367,14 @@ const AdminPage = () => {
                       {loc.address ?? loc.city}
                     </div>
                     <StatusBadge status={loc.status} />
+                    <div className="flex gap-1 mt-1">
+                      {(loc as any).website && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                      )}
+                      {(loc as any).instagram && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                      )}
+                    </div>
                   </div>
                   <button
                     onClick={() => togglePublish(loc.id, loc.status)}
@@ -581,6 +593,35 @@ const AdminPage = () => {
                       }}
                     />
                   </label>
+                </div>
+
+                {/* Website */}
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                    Site web
+                  </label>
+                  <input
+                    value={form.website}
+                    onChange={(e) => updateForm('website', e.target.value)}
+                    placeholder="https://www.lepetitbeurre.fr"
+                    style={{ width: '100%', padding: '13px 16px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px' }}
+                  />
+                </div>
+
+                {/* Instagram */}
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                    Instagram
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontFamily: 'DM Sans', fontSize: '15px' }}>@</span>
+                    <input
+                      value={form.instagram}
+                      onChange={(e) => updateForm('instagram', e.target.value)}
+                      placeholder="lepetitbeurre_nantes"
+                      style={{ width: '100%', padding: '13px 16px 13px 30px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px' }}
+                    />
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-3 mt-1">
@@ -822,6 +863,8 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         changing_table: proposal.changing_table ?? false,
         kids_area: proposal.kids_area ?? false,
         photo: proposal.photo ?? null,
+        website: proposal.website ?? null,
+        instagram: proposal.instagram ?? null,
         status: 'published',
       };
       if ((proposal.category === 'restaurant' || proposal.category === 'cafe') && proposal.bookable) {
