@@ -94,6 +94,7 @@ const AdminPage = () => {
     high_chair: false,
     changing_table: false,
     kids_area: false,
+    bookable: 'unknown',
     status: 'pending',
   });
   const [submitting, setSubmitting] = useState(false);
