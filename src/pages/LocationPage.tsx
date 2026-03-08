@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { categoryIcons, categoryLabels } from '@/types/location';
-import { ArrowLeft, MessageSquarePlus } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import ContributionModal from '@/components/ContributionModal';
 import { motion } from 'framer-motion';
@@ -145,18 +145,38 @@ const LocationPage = () => {
             />
           </div>
 
-          <button
-            onClick={() => setShowContribution(true)}
-            className="mt-6 w-full flex items-center justify-center gap-2 py-3 font-semibold text-sm"
-            style={{
-              borderRadius: '100px',
-              background: 'var(--secondary)',
-              color: '#fff',
-            }}
+          {/* Nudge contribution */}
+          <div className="flex items-center justify-between gap-3 mt-4 p-4 rounded-xl" style={{ background: 'var(--bg)' }}>
+            <div>
+              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                Vous connaissez ce lieu ?
+              </div>
+              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                Aidez les autres familles ✦
+              </div>
+            </div>
+            <button
+              onClick={() => setShowContribution(true)}
+              className="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap"
+              style={{ border: '1.5px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }}
+            >
+              Contribuer
+            </button>
+          </div>
+
+          {/* Bouton Itinéraire */}
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${location.lat},${location.lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full mt-3 py-4 rounded-full text-white font-semibold text-base"
+            style={{ background: 'var(--primary)', fontFamily: 'DM Sans' }}
           >
-            <MessageSquarePlus className="w-4 h-4" />
-            Signaler une mise à jour
-          </button>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="3 11 22 2 13 21 11 13 3 11" />
+            </svg>
+            Itinéraire
+          </a>
         </div>
       </motion.div>
       <ContributionModal location={location} open={showContribution} onClose={() => setShowContribution(false)} />
