@@ -43,25 +43,26 @@ const getMarkerIcon = (category: string, isSelected: boolean) => {
   });
 };
 
-const createClusterIcon = (cluster: any) => {
+const createClusterCustomIcon = (cluster: any) => {
   const count = cluster.getChildCount();
-  const size = count < 10 ? 40 : count < 30 ? 48 : 56;
+  const size = count < 5 ? 40 : count < 10 ? 48 : 56;
   return L.divIcon({
-    html: `<div class="kidmap-cluster" style="
-      width: ${size}px; height: ${size}px;
-      background: linear-gradient(135deg, hsl(8 85% 92%), hsl(172 35% 88%));
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 3px 12px rgba(0,0,0,0.1);
-      border: 2.5px solid white;
-      font-family: 'Nunito', sans-serif;
-      font-weight: 700;
-      font-size: ${count < 10 ? 14 : 13}px;
-      color: hsl(20 25% 25%);
-    ">${count}</div>`,
-    className: 'custom-cluster',
+    className: '',
     iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
+    html: `
+      <div style="
+        width:${size}px;height:${size}px;
+        border-radius:50%;
+        background:linear-gradient(135deg, #D95F3B 0%, #3B7D6E 100%);
+        border:3px solid white;
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:0 3px 12px rgba(217,95,59,0.35);
+        font-family:'DM Sans',sans-serif;
+        font-size:${count > 9 ? 12 : 14}px;
+        font-weight:700;
+        color:white;
+      ">${count}</div>
+    `
   });
 };
 
@@ -130,7 +131,7 @@ const MapView = ({ locations, selectedId }: MapViewProps) => {
         <FlyToSelected location={selectedLocation} />
         <MarkerClusterGroup
           chunkedLoading
-          iconCreateFunction={createClusterIcon}
+          iconCreateFunction={createClusterCustomIcon}
           maxClusterRadius={50}
           spiderfyOnMaxZoom
           animate
