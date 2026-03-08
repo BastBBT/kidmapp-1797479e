@@ -662,6 +662,24 @@ const AdminPage = () => {
                   </div>
                 </div>
 
+                {/* Note */}
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                    Note (optionnelle)
+                  </label>
+                  <textarea
+                    value={form.note}
+                    onChange={(e) => updateForm('note', e.target.value.slice(0, 300))}
+                    placeholder="Un mot sur ce lieu, une info pratique…"
+                    maxLength={300}
+                    rows={3}
+                    style={{ width: '100%', padding: '13px 16px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px', resize: 'none' }}
+                  />
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>
+                    {(form.note || '').length}/300
+                  </div>
+                </div>
+
                 <div className="flex flex-col gap-3 mt-1">
                   <Toggle label="Chaise haute" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
                   <Toggle label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
