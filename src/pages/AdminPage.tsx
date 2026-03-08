@@ -756,6 +756,153 @@ const AdminPage = () => {
           </motion.div>
         )}
       </div>
+
+      {/* Delete confirmation modal */}
+      {deletingId && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
+          onClick={() => setDeletingId(null)}
+        >
+          <div
+            style={{ background: 'white', width: '100%', borderRadius: '24px 24px 0 0', padding: '24px 20px 40px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontFamily: 'Fraunces', fontSize: '20px', fontWeight: 500, marginBottom: '8px' }}>
+              Supprimer ce lieu ?
+            </div>
+            <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)', marginBottom: '24px' }}>
+              Cette action est irréversible ✦
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setDeletingId(null)}
+                style={{ flex: 1, padding: '14px', borderRadius: '100px', border: '1.5px solid var(--border)', background: 'transparent', fontFamily: 'DM Sans', fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={async () => {
+                  await supabase.from('locations').delete().eq('id', deletingId);
+                  queryClient.invalidateQueries({ queryKey: ['all-locations'] });
+                  queryClient.invalidateQueries({ queryKey: ['locations'] });
+                  queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+                  setDeletingId(null);
+                  toast({ title: 'Lieu supprimé' });
+                }}
+                style={{ flex: 1, padding: '14px', borderRadius: '100px', background: '#DC2626', border: 'none', fontFamily: 'DM Sans', fontSize: '14px', fontWeight: 600, color: 'white', cursor: 'pointer' }}
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit panel */}
+      {editingId && editForm && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
+          onClick={() => setEditingId(null)}
+        >
+          <div
+            style={{ background: 'white', width: '100%', borderRadius: '24px 24px 0 0', padding: '24px 20px 40px', maxHeight: '85vh', overflowY: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontFamily: 'Fraunces', fontSize: '20px', fontWeight: 500, marginBottom: '16px' }}>
+              Modifier le lieu
+            </div>
+            <div className="flex flex-col gap-4">
+              <FormField label="Nom" value={editForm.name} onChange={(v) => setEditForm((f: any) => ({ ...f, name: v }))} />
+              <div>
+                <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Catégorie</label>
+                <select value={editForm.category} onChange={(e) => setEditForm((f: any) => ({ ...f, category: e.target.value }))} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}>
+                  <option value="restaurant">🍽️ Restaurant</option>
+                  <option value="cafe">☕ Café</option>
+                  <option value="shop">🛍️ Boutique</option>
+                  <option value="public">🌳 Lieu public</option>
+                </select>
+              </div>
+              <FormField label="Adresse" value={editForm.address} onChange={(v) => setEditForm((f: any) => ({ ...f, address: v }))} />
+              <FormField label="Site web" value={editForm.website} onChange={(v) => setEditForm((f: any) => ({ ...f, website: v }))} placeholder="https://..." />
+              <div>
+                <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Instagram</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontFamily: 'DM Sans', fontSize: '15px' }}>@</span>
+                  <input value={editForm.instagram} onChange={(e) => setEditForm((f: any) => ({ ...f, instagram: e.target.value }))} placeholder="compte_instagram" style={{ width: '100%', padding: '13px 16px 13px 30px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px' }} />
+                </div>
+              </div>
+              <FormField label="URL photo" value={editForm.photo} onChange={(v) => setEditForm((f: any) => ({ ...f, photo: v }))} placeholder="https://..." />
+              <div>
+                <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Note</label>
+                <textarea
+                  value={editForm.note}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, note: e.target.value.slice(0, 300) }))}
+                  placeholder="Un mot sur ce lieu, une info pratique…"
+                  maxLength={300}
+                  rows={3}
+                  style={{ width: '100%', padding: '13px 16px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px', resize: 'none' }}
+                />
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>{(editForm.note || '').length}/300</div>
+              </div>
+              <div className="flex flex-col gap-3">
+                <Toggle label="Chaise haute" checked={editForm.high_chair} onChange={(v) => setEditForm((f: any) => ({ ...f, high_chair: v }))} />
+                <Toggle label="Table à langer" checked={editForm.changing_table} onChange={(v) => setEditForm((f: any) => ({ ...f, changing_table: v }))} />
+                <Toggle label="Espace jeux" checked={editForm.kids_area} onChange={(v) => setEditForm((f: any) => ({ ...f, kids_area: v }))} />
+              </div>
+              {(editForm.category === 'restaurant' || editForm.category === 'cafe') && (
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Réservation</label>
+                  <select value={editForm.bookable} onChange={(e) => setEditForm((f: any) => ({ ...f, bookable: e.target.value }))} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}>
+                    <option value="unknown">Non renseigné</option>
+                    <option value="yes">Accepte les réservations</option>
+                    <option value="no">Sans réservation</option>
+                  </select>
+                </div>
+              )}
+              <div>
+                <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Statut</label>
+                <select value={editForm.status} onChange={(e) => setEditForm((f: any) => ({ ...f, status: e.target.value }))} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}>
+                  <option value="pending">En attente</option>
+                  <option value="published">Publié</option>
+                  <option value="unpublished">Masqué</option>
+                </select>
+              </div>
+              <button
+                onClick={async () => {
+                  const { error } = await supabase
+                    .from('locations')
+                    .update({
+                      name: editForm.name,
+                      category: editForm.category,
+                      address: editForm.address,
+                      website: editForm.website || null,
+                      instagram: editForm.instagram || null,
+                      photo: editForm.photo || null,
+                      note: editForm.note || null,
+                      high_chair: editForm.high_chair,
+                      changing_table: editForm.changing_table,
+                      kids_area: editForm.kids_area,
+                      bookable: editForm.bookable,
+                      status: editForm.status,
+                    } as any)
+                    .eq('id', editingId);
+                  if (!error) {
+                    queryClient.invalidateQueries({ queryKey: ['all-locations'] });
+                    queryClient.invalidateQueries({ queryKey: ['locations'] });
+                    setEditingId(null);
+                    toast({ title: 'Lieu mis à jour ✓' });
+                  } else {
+                    toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+                  }
+                }}
+                style={{ width: '100%', padding: '14px', borderRadius: '100px', border: 'none', background: 'var(--primary)', color: '#fff', fontFamily: 'DM Sans', fontSize: '15px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}
+              >
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
