@@ -142,6 +142,7 @@ const AdminPage = () => {
       if (contrib.high_chair !== null) updateData.high_chair = contrib.high_chair;
       if (contrib.changing_table !== null) updateData.changing_table = contrib.changing_table;
       if (contrib.kids_area !== null) updateData.kids_area = contrib.kids_area;
+      if (contrib.bookable !== null) updateData.bookable = contrib.bookable;
       if (Object.keys(updateData).length > 0) {
         await supabase.from('locations').update(updateData).eq('id', contrib.location_id);
       }
