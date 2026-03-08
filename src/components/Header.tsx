@@ -34,11 +34,11 @@ const Header = ({ onSearch, selectedCategory, onCategoryChange }: HeaderProps) =
           <nav className="flex items-center gap-2">
             {isAdmin && (
               <button
-                onClick={() => navigate('/admin')}
+                onClick={() => navigate('/gestion-k1dm4p')}
                 className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
                 style={{
-                  background: location.pathname === '/admin' ? 'var(--primary)' : 'transparent',
-                  color: location.pathname === '/admin' ? '#fff' : 'var(--text-muted)',
+                  background: location.pathname === '/gestion-k1dm4p' ? 'var(--primary)' : 'transparent',
+                  color: location.pathname === '/gestion-k1dm4p' ? '#fff' : 'var(--text-muted)',
                 }}
               >
                 Admin

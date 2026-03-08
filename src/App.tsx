@@ -27,7 +27,7 @@ const AppContent = () => {
           <Route path="/location/:id" element={<LocationPage />} />
           <Route path="/saved" element={<SavedPage />} />
           <Route path="/account" element={<AccountPage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/gestion-k1dm4p" element={<AdminPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthGate>
