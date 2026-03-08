@@ -169,6 +169,35 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                 </div>
               </div>
 
+              {/* Website */}
+              <div>
+                <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                  Site web
+                </label>
+                <input
+                  value={form.website}
+                  onChange={(e) => updateForm('website', e.target.value)}
+                  placeholder="https://www.lepetitbeurre.fr"
+                  style={inputStyle}
+                />
+              </div>
+
+              {/* Instagram */}
+              <div>
+                <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                  Instagram
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontFamily: 'DM Sans', fontSize: '14px' }}>@</span>
+                  <input
+                    value={form.instagram}
+                    onChange={(e) => updateForm('instagram', e.target.value)}
+                    placeholder="lepetitbeurre_nantes"
+                    style={{ ...inputStyle, paddingLeft: '30px' }}
+                  />
+                </div>
+              </div>
+
               {/* Photo upload */}
               <div>
                 <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-muted)', marginBottom: '7px', fontFamily: 'DM Sans' }}>
