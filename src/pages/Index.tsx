@@ -55,7 +55,7 @@ const Index = () => {
         </button>
       </div>
 
-      {/* Carte compacte */}
+      {/* Carte compacte — isolation crée un nouveau contexte d'empilement */}
       <div style={{
         margin: '0 16px 8px',
         borderRadius: 'var(--radius)',
@@ -63,6 +63,8 @@ const Index = () => {
         height: '200px',
         position: 'relative',
         flexShrink: 0,
+        isolation: 'isolate',
+        zIndex: 0,
       }}>
         <MapView locations={filteredLocations} selectedId={selectedId} />
         <button
@@ -80,7 +82,7 @@ const Index = () => {
             color: 'var(--text)',
             boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
             cursor: 'pointer',
-            zIndex: 10,
+            zIndex: 500,
           }}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
