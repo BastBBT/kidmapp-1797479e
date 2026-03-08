@@ -249,7 +249,7 @@ const AdminPage = () => {
         ))}
       </div>
 
-      <div style={{ padding: '16px 16px 32px' }}>
+      <div className="flex-1 overflow-y-auto pb-32" style={{ padding: '16px 16px 0' }}>
         {/* Dashboard */}
         {activeTab === 'dashboard' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
