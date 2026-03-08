@@ -263,7 +263,7 @@ const AdminPage = () => {
     queryClient.invalidateQueries({ queryKey: ['locations'] });
     queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     toast({ title: 'Lieu ajouté ✓' });
-    setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', status: 'pending' });
+    setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', status: 'pending', website: '', instagram: '' });
     setPhotoFile(null);
     setPhotoPreview(null);
   };
