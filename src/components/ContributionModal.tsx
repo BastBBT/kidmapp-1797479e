@@ -194,7 +194,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
             </div>
 
             {/* Fixed submit button */}
-            <div style={{ padding: '16px 20px 24px', flexShrink: 0, borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
+            <div style={{ padding: '16px 20px 40px', flexShrink: 0, borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
               <button
                 onClick={handleSubmit}
                 disabled={submitting || (highChair === null && changingTable === null && kidsArea === null && bookable === null)}
