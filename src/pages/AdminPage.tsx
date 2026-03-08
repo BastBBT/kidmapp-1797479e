@@ -247,6 +247,8 @@ const AdminPage = () => {
       changing_table: form.changing_table,
       kids_area: form.kids_area,
       status: form.status,
+      website: form.website || null,
+      instagram: form.instagram || null,
     };
     if (form.category === 'restaurant' || form.category === 'cafe') {
       insertData.bookable = form.bookable;
