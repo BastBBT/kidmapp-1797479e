@@ -135,7 +135,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50"
+            className="fixed inset-0 z-[1000]"
             style={{ background: 'rgba(28,25,23,0.3)' }}
             onClick={onClose}
           />
@@ -144,7 +144,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
             transition={{ type: 'spring', damping: 25 }}
-            className="fixed bottom-0 left-0 right-0 z-50 flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[1000] flex flex-col"
             style={{ background: 'var(--surface)', borderRadius: 'var(--radius) var(--radius) 0 0', maxHeight: '85vh' }}
           >
             {/* Header - fixed */}
@@ -194,7 +194,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
             </div>
 
             {/* Fixed submit button */}
-            <div style={{ padding: '16px 20px 24px', flexShrink: 0, borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
+            <div style={{ padding: '16px 20px 40px', flexShrink: 0, borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
               <button
                 onClick={handleSubmit}
                 disabled={submitting || (highChair === null && changingTable === null && kidsArea === null && bookable === null)}
