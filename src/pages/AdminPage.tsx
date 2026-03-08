@@ -253,6 +253,7 @@ const AdminPage = () => {
       status: form.status,
       website: form.website || null,
       instagram: form.instagram || null,
+      note: form.note || null,
     };
     if (form.category === 'restaurant' || form.category === 'cafe') {
       insertData.bookable = form.bookable;
