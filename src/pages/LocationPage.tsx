@@ -159,16 +159,19 @@ const LocationPage = () => {
               available={location.high_chair}
               icon={<HighChairSVG color={location.high_chair ? '#2E7D32' : 'var(--text-muted)'} />}
               label="Chaise haute"
+              voteCount={votes?.high_chair}
             />
             <EquipBlock
               available={location.changing_table}
               icon={<ChangingTableSVG color={location.changing_table ? '#2E7D32' : 'var(--text-muted)'} />}
               label="Table à langer"
+              voteCount={votes?.changing_table}
             />
             <EquipBlock
               available={location.kids_area}
               icon={<KidsAreaSVG color={location.kids_area ? '#2E7D32' : 'var(--text-muted)'} />}
               label="Espace jeux"
+              voteCount={votes?.kids_area}
             />
           </div>
 
