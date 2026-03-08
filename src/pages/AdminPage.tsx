@@ -367,6 +367,14 @@ const AdminPage = () => {
                       {loc.address ?? loc.city}
                     </div>
                     <StatusBadge status={loc.status} />
+                    <div className="flex gap-1 mt-1">
+                      {(loc as any).website && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                      )}
+                      {(loc as any).instagram && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                      )}
+                    </div>
                   </div>
                   <button
                     onClick={() => togglePublish(loc.id, loc.status)}
