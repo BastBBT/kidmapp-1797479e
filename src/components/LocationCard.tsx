@@ -66,9 +66,18 @@ const LocationCard = ({ location, index = 0 }: LocationCardProps) => {
     >
       {/* Thumbnail */}
       <div className="relative" style={{ height: '118px', background: gradient, overflow: 'hidden' }}>
-        {/* Blobs */}
-        <div className="absolute" style={{ width: 80, height: 80, top: 10, left: 15, borderRadius: '50%', background: 'rgba(255,255,255,0.18)' }} />
-        <div className="absolute" style={{ width: 50, height: 50, bottom: 8, right: 20, borderRadius: '50%', background: 'rgba(255,255,255,0.18)' }} />
+        {location.photo ? (
+          <img
+            src={location.photo}
+            alt={location.name}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <>
+            <div className="absolute" style={{ width: 80, height: 80, top: 10, left: 15, borderRadius: '50%', background: 'rgba(255,255,255,0.18)' }} />
+            <div className="absolute" style={{ width: 50, height: 50, bottom: 8, right: 20, borderRadius: '50%', background: 'rgba(255,255,255,0.18)' }} />
+          </>
+        )}
         {/* Overlay gradient */}
         <div className="absolute inset-x-0 bottom-0 h-12" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.25), transparent)' }} />
         {/* Category emoji */}

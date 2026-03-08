@@ -112,16 +112,28 @@ const LocationPage = () => {
       <Header />
       {/* Hero */}
       <div className="relative overflow-hidden" style={{ height: '260px', background: gradient }}>
-        {/* Blobs */}
-        <svg style={{ position: 'absolute', bottom: '-10px', left: '-20px', width: '200px', height: '160px', zIndex: 2 }} viewBox="0 0 200 160">
-          <path d="M20,140 C-10,120 -5,70 20,40 C45,10 90,0 130,15 C170,30 195,70 180,105 C165,140 130,165 90,158 C60,152 38,152 20,140Z" fill="rgba(255,255,255,0.16)" />
-        </svg>
-        <svg style={{ position: 'absolute', bottom: '-20px', right: '-10px', width: '180px', height: '150px', zIndex: 2 }} viewBox="0 0 180 150">
-          <path d="M160,130 C140,155 100,162 65,148 C30,134 5,100 8,65 C11,30 40,5 75,2 C110,-1 148,20 165,52 C180,80 178,108 160,130Z" fill="rgba(255,255,255,0.10)" />
-        </svg>
-        <svg style={{ position: 'absolute', top: '20px', right: '20px', width: '90px', height: '90px', zIndex: 2 }} viewBox="0 0 90 90">
-          <path d="M45,5 C65,3 83,18 87,38 C91,58 78,77 58,84 C38,91 17,81 8,62 C-1,43 7,20 25,10 C33,5 38,6 45,5Z" fill="rgba(255,255,255,0.13)" />
-        </svg>
+        {location.photo ? (
+          <img
+            src={location.photo}
+            alt={location.name}
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ zIndex: 1 }}
+          />
+        ) : (
+          <>
+            <svg style={{ position: 'absolute', bottom: '-10px', left: '-20px', width: '200px', height: '160px', zIndex: 2 }} viewBox="0 0 200 160">
+              <path d="M20,140 C-10,120 -5,70 20,40 C45,10 90,0 130,15 C170,30 195,70 180,105 C165,140 130,165 90,158 C60,152 38,152 20,140Z" fill="rgba(255,255,255,0.16)" />
+            </svg>
+            <svg style={{ position: 'absolute', bottom: '-20px', right: '-10px', width: '180px', height: '150px', zIndex: 2 }} viewBox="0 0 180 150">
+              <path d="M160,130 C140,155 100,162 65,148 C30,134 5,100 8,65 C11,30 40,5 75,2 C110,-1 148,20 165,52 C180,80 178,108 160,130Z" fill="rgba(255,255,255,0.10)" />
+            </svg>
+            <svg style={{ position: 'absolute', top: '20px', right: '20px', width: '90px', height: '90px', zIndex: 2 }} viewBox="0 0 90 90">
+              <path d="M45,5 C65,3 83,18 87,38 C91,58 78,77 58,84 C38,91 17,81 8,62 C-1,43 7,20 25,10 C33,5 38,6 45,5Z" fill="rgba(255,255,255,0.13)" />
+            </svg>
+          </>
+        )}
+        {/* Overlay gradient for readability */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 50%)', zIndex: 2 }} />
 
         {/* Back button */}
         <button
