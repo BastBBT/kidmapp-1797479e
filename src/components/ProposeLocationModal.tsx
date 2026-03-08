@@ -82,7 +82,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
         description: 'Merci ! On la vérifie avant de la publier.',
       });
       onClose();
-      setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', note: '' });
+      setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', note: '', website: '', instagram: '' });
       setPhotoFile(null);
       setPhotoPreview(null);
     } catch (err: any) {
