@@ -36,7 +36,7 @@ const KidsAreaSVG = ({ color }: { color: string }) => (
   </svg>
 );
 
-const EquipBlock = ({ available, icon, label }: { available: boolean; icon: React.ReactNode; label: string }) => (
+const EquipBlock = ({ available, icon, label, voteCount }: { available: boolean; icon: React.ReactNode; label: string; voteCount?: number }) => (
   <div className="flex flex-col items-center gap-1.5">
     <div
       className="w-16 h-16 rounded-2xl flex items-center justify-center"
@@ -53,6 +53,11 @@ const EquipBlock = ({ available, icon, label }: { available: boolean; icon: Reac
     <span className="font-hand text-[13px]" style={{ color: available ? '#2E7D32' : 'var(--text-muted)' }}>
       {available ? '✓ Dispo' : '— ?'}
     </span>
+    {voteCount != null && voteCount > 0 && (
+      <span style={{ fontFamily: 'Caveat', fontSize: '12px', color: '#2E7D32', fontWeight: 500 }}>
+        {voteCount} confirmation{voteCount > 1 ? 's' : ''} ✓
+      </span>
+    )}
   </div>
 );
 
