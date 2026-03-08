@@ -713,7 +713,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         toast({ title: 'Adresse introuvable', description: 'Impossible de géocoder cette adresse.', variant: 'destructive' });
         return;
       }
-      const { error: insertError } = await supabase.from('locations').insert({
+      const insertData: any = {
         name: proposal.name,
         category: proposal.category,
         address: proposal.address,
@@ -723,7 +723,11 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         changing_table: proposal.changing_table ?? false,
         kids_area: proposal.kids_area ?? false,
         status: 'published',
-      } as any);
+      };
+      if ((proposal.category === 'restaurant' || proposal.category === 'cafe') && proposal.bookable) {
+        insertData.bookable = proposal.bookable;
+      }
+      const { error: insertError } = await supabase.from('locations').insert(insertData as any);
       if (insertError) throw insertError;
       const { error: updateError } = await supabase.from('location_proposals' as any).update({ status: 'approved' }).eq('id', proposal.id);
       if (updateError) throw updateError;
