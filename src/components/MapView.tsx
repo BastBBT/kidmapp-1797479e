@@ -122,7 +122,7 @@ const MapView = ({ locations, selectedId }: MapViewProps) => {
     <div className="w-full h-full rounded-2xl overflow-hidden" style={{ minHeight: '400px' }}>
       <MapContainer
         center={NANTES_CENTER}
-        zoom={13}
+        zoom={DEFAULT_ZOOM}
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
         preferCanvas={true}
