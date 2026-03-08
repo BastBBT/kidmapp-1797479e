@@ -94,6 +94,7 @@ const AdminPage = () => {
     high_chair: false,
     changing_table: false,
     kids_area: false,
+    bookable: 'unknown',
     status: 'pending',
   });
   const [submitting, setSubmitting] = useState(false);
@@ -141,6 +142,7 @@ const AdminPage = () => {
       if (contrib.high_chair !== null) updateData.high_chair = contrib.high_chair;
       if (contrib.changing_table !== null) updateData.changing_table = contrib.changing_table;
       if (contrib.kids_area !== null) updateData.kids_area = contrib.kids_area;
+      if (contrib.bookable !== null) updateData.bookable = contrib.bookable;
       if (Object.keys(updateData).length > 0) {
         await supabase.from('locations').update(updateData).eq('id', contrib.location_id);
       }
@@ -186,7 +188,7 @@ const AdminPage = () => {
       photoUrl = urlData.publicUrl;
     }
 
-    const { error } = await supabase.from('locations').insert({
+    const insertData: any = {
       name: form.name,
       category: form.category,
       address: form.address,
@@ -197,7 +199,11 @@ const AdminPage = () => {
       changing_table: form.changing_table,
       kids_area: form.kids_area,
       status: form.status,
-    } as any);
+    };
+    if (form.category === 'restaurant' || form.category === 'cafe') {
+      insertData.bookable = form.bookable;
+    }
+    const { error } = await supabase.from('locations').insert(insertData as any);
     setSubmitting(false);
     if (error) {
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
@@ -207,7 +213,7 @@ const AdminPage = () => {
     queryClient.invalidateQueries({ queryKey: ['locations'] });
     queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     toast({ title: 'Lieu ajouté ✓' });
-    setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, status: 'pending' });
+    setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', status: 'pending' });
     setPhotoFile(null);
     setPhotoPreview(null);
   };
@@ -362,10 +368,11 @@ const AdminPage = () => {
                   <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '8px' }}>
                     {new Date(contrib.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
                   </div>
-                  <div className="flex gap-4 mb-3" style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
+                  <div className="flex gap-4 flex-wrap mb-3" style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
                     {contrib.high_chair !== null && <span>🪑 Chaise haute {contrib.high_chair ? '✓' : '✗'}</span>}
                     {contrib.changing_table !== null && <span>👶 Table à langer {contrib.changing_table ? '✓' : '✗'}</span>}
                     {contrib.kids_area !== null && <span>🌳 Espace jeux {contrib.kids_area ? '✓' : '✗'}</span>}
+                    {contrib.bookable !== null && <span>📅 Réservation: {contrib.bookable === 'yes' ? 'Oui ✓' : contrib.bookable === 'no' ? 'Non ✗' : '?'}</span>}
                   </div>
                   {contrib.status === 'pending' && (
                     <div className="flex gap-2">
@@ -493,6 +500,27 @@ const AdminPage = () => {
                   <Toggle label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
                   <Toggle label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
                 </div>
+
+                {(form.category === 'restaurant' || form.category === 'cafe') && (
+                  <div>
+                    <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                      Réservation
+                    </label>
+                    <select
+                      value={form.bookable}
+                      onChange={(e) => updateForm('bookable', e.target.value)}
+                      style={{
+                        width: '100%', padding: '10px 14px', borderRadius: '12px',
+                        border: '1px solid var(--border)', background: 'var(--bg)',
+                        fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none',
+                      }}
+                    >
+                      <option value="unknown">Non renseigné</option>
+                      <option value="yes">Accepte les réservations</option>
+                      <option value="no">Sans réservation</option>
+                    </select>
+                  </div>
+                )}
 
                 <div>
                   <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
@@ -685,7 +713,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         toast({ title: 'Adresse introuvable', description: 'Impossible de géocoder cette adresse.', variant: 'destructive' });
         return;
       }
-      const { error: insertError } = await supabase.from('locations').insert({
+      const insertData: any = {
         name: proposal.name,
         category: proposal.category,
         address: proposal.address,
@@ -695,7 +723,11 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         changing_table: proposal.changing_table ?? false,
         kids_area: proposal.kids_area ?? false,
         status: 'published',
-      } as any);
+      };
+      if ((proposal.category === 'restaurant' || proposal.category === 'cafe') && proposal.bookable) {
+        insertData.bookable = proposal.bookable;
+      }
+      const { error: insertError } = await supabase.from('locations').insert(insertData as any);
       if (insertError) throw insertError;
       const { error: updateError } = await supabase.from('location_proposals' as any).update({ status: 'approved' }).eq('id', proposal.id);
       if (updateError) throw updateError;

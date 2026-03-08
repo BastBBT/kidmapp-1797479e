@@ -175,6 +175,57 @@ const LocationPage = () => {
             />
           </div>
 
+          {/* Bookable - only for restaurant & cafe */}
+          {(location.category === 'restaurant' || location.category === 'cafe') && (
+            <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '34px', height: '34px', borderRadius: '10px',
+                    background: (location as any).bookable === 'yes' ? '#EBF6EC'
+                      : (location as any).bookable === 'no' ? '#FEF0EC'
+                      : 'var(--bg)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      stroke={(location as any).bookable === 'yes' ? '#2E7D32'
+                        : (location as any).bookable === 'no' ? 'var(--primary)'
+                        : 'var(--text-muted)'}
+                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/>
+                      <line x1="8" y1="2" x2="8" y2="6"/>
+                      <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)' }}>Réservation</div>
+                    {votes?.bookable_yes != null && votes.bookable_yes > 0 && (
+                      <div style={{ fontFamily: 'Caveat', fontSize: '12px', color: '#2E7D32', fontWeight: 500 }}>
+                        {votes.bookable_yes} confirmation{votes.bookable_yes > 1 ? 's' : ''} ✓
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div style={{
+                  fontSize: '12px', fontWeight: 600, padding: '4px 10px',
+                  borderRadius: '100px',
+                  background: (location as any).bookable === 'yes' ? '#EBF6EC'
+                    : (location as any).bookable === 'no' ? '#FEF0EC'
+                    : 'var(--bg)',
+                  color: (location as any).bookable === 'yes' ? '#2E7D32'
+                    : (location as any).bookable === 'no' ? 'var(--primary)'
+                    : 'var(--text-muted)',
+                  border: (location as any).bookable === 'unknown' ? '1px solid var(--border)' : 'none',
+                }}>
+                  {(location as any).bookable === 'yes' ? 'Accepte les résa'
+                    : (location as any).bookable === 'no' ? 'Sans réservation'
+                    : 'Non renseigné'}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Nudge contribution */}
           <div className="flex items-center justify-between gap-3 mt-4 p-4 rounded-xl" style={{ background: 'var(--bg)' }}>
             <div>

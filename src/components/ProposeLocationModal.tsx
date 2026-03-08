@@ -21,6 +21,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     high_chair: false,
     changing_table: false,
     kids_area: false,
+    bookable: 'unknown',
     note: '',
   });
 
@@ -34,7 +35,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     }
     setSubmitting(true);
     try {
-      const { error } = await supabase.from('location_proposals' as any).insert({
+      const insertData: any = {
         user_id: user.id,
         name: form.name,
         category: form.category,
@@ -44,14 +45,18 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
         kids_area: form.kids_area,
         note: form.note || null,
         status: 'pending',
-      });
+      };
+      if (form.category === 'restaurant' || form.category === 'cafe') {
+        insertData.bookable = form.bookable;
+      }
+      const { error } = await supabase.from('location_proposals' as any).insert(insertData);
       if (error) throw error;
       toast({
         title: 'Proposition envoyée ✦',
         description: 'Merci ! On la vérifie avant de la publier.',
       });
       onClose();
-      setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, note: '' });
+      setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', note: '' });
     } catch (err: any) {
       toast({ title: 'Une erreur est survenue', description: err?.message || 'Réessaie dans quelques instants.', variant: 'destructive' });
     } finally {
@@ -139,6 +144,20 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                 <ToggleRow label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
                 <ToggleRow label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
               </div>
+
+              {/* Bookable - only for restaurant & cafe */}
+              {(form.category === 'restaurant' || form.category === 'cafe') && (
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                    Réservation
+                  </label>
+                  <select value={form.bookable} onChange={(e) => updateForm('bookable', e.target.value)} style={inputStyle}>
+                    <option value="unknown">Non renseigné</option>
+                    <option value="yes">Accepte les réservations</option>
+                    <option value="no">Sans réservation</option>
+                  </select>
+                </div>
+              )}
 
               {/* Note */}
               <div>
