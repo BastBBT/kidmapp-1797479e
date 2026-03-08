@@ -6,11 +6,13 @@ import Header from '@/components/Header';
 import { Map, List } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocations } from '@/hooks/useLocations';
+import ProposeLocationModal from '@/components/ProposeLocationModal';
 
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState<'map' | 'list'>('map');
+  const [showProposalModal, setShowProposalModal] = useState(false);
   const { data: locations = [], isLoading } = useLocations(selectedCategory);
 
   const filteredLocations = locations.filter(loc => {
