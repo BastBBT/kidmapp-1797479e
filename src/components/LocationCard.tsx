@@ -1,6 +1,7 @@
 import { Location, categoryIcons, categoryLabels } from '@/types/location';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useFavorites } from '@/hooks/useFavorites';
 
 interface LocationCardProps {
   location: Location;
