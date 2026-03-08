@@ -229,6 +229,25 @@ const LocationPage = () => {
             </div>
           )}
 
+          {/* Note du lieu */}
+          {(location as any).note && (
+            <div style={{
+              padding: '12px 14px',
+              background: 'var(--accent-light)',
+              borderRadius: 'var(--radius-sm)',
+              marginBottom: '16px',
+              borderLeft: '3px solid var(--accent)',
+            }}>
+              <div style={{
+                fontFamily: 'Caveat', fontStyle: 'italic',
+                fontSize: '16px', color: 'var(--text)',
+                lineHeight: 1.5,
+              }}>
+                "{(location as any).note}"
+              </div>
+            </div>
+          )}
+
           <h2 className="font-display text-base font-semibold mb-4" style={{ color: 'var(--text)' }}>
             Équipements enfants
           </h2>

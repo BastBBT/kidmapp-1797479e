@@ -156,6 +156,7 @@ export type Database = {
           lat: number
           lng: number
           name: string
+          note: string | null
           photo: string | null
           status: string
           updated_at: string
@@ -175,6 +176,7 @@ export type Database = {
           lat: number
           lng: number
           name: string
+          note?: string | null
           photo?: string | null
           status?: string
           updated_at?: string
@@ -194,6 +196,7 @@ export type Database = {
           lat?: number
           lng?: number
           name?: string
+          note?: string | null
           photo?: string | null
           status?: string
           updated_at?: string
