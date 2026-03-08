@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { useLocation as useLocationData } from '@/hooks/useLocations';
 import { useFavorites } from '@/hooks/useFavorites';
+import { useEquipmentVotes } from '@/hooks/useEquipmentVotes';
 
 const categoryGradients: Record<string, string> = {
   restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
@@ -35,7 +36,7 @@ const KidsAreaSVG = ({ color }: { color: string }) => (
   </svg>
 );
 
-const EquipBlock = ({ available, icon, label }: { available: boolean; icon: React.ReactNode; label: string }) => (
+const EquipBlock = ({ available, icon, label, voteCount }: { available: boolean; icon: React.ReactNode; label: string; voteCount?: number }) => (
   <div className="flex flex-col items-center gap-1.5">
     <div
       className="w-16 h-16 rounded-2xl flex items-center justify-center"
@@ -52,6 +53,11 @@ const EquipBlock = ({ available, icon, label }: { available: boolean; icon: Reac
     <span className="font-hand text-[13px]" style={{ color: available ? '#2E7D32' : 'var(--text-muted)' }}>
       {available ? '✓ Dispo' : '— ?'}
     </span>
+    {voteCount != null && voteCount > 0 && (
+      <span style={{ fontFamily: 'Caveat', fontSize: '12px', color: '#2E7D32', fontWeight: 500 }}>
+        {voteCount} confirmation{voteCount > 1 ? 's' : ''} ✓
+      </span>
+    )}
   </div>
 );
 
@@ -61,6 +67,7 @@ const LocationPage = () => {
   const [showContribution, setShowContribution] = useState(false);
   const { data: location, isLoading } = useLocationData(id ?? '');
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { data: votes } = useEquipmentVotes(id ?? '');
   const favorite = location ? isFavorite(location.id) : false;
 
   if (isLoading) {
@@ -152,16 +159,19 @@ const LocationPage = () => {
               available={location.high_chair}
               icon={<HighChairSVG color={location.high_chair ? '#2E7D32' : 'var(--text-muted)'} />}
               label="Chaise haute"
+              voteCount={votes?.high_chair}
             />
             <EquipBlock
               available={location.changing_table}
               icon={<ChangingTableSVG color={location.changing_table ? '#2E7D32' : 'var(--text-muted)'} />}
               label="Table à langer"
+              voteCount={votes?.changing_table}
             />
             <EquipBlock
               available={location.kids_area}
               icon={<KidsAreaSVG color={location.kids_area ? '#2E7D32' : 'var(--text-muted)'} />}
               label="Espace jeux"
+              voteCount={votes?.kids_area}
             />
           </div>
 
