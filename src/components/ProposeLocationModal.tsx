@@ -56,7 +56,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
         description: 'Merci ! On la vérifie avant de la publier.',
       });
       onClose();
-      setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, note: '' });
+      setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', note: '' });
     } catch (err: any) {
       toast({ title: 'Une erreur est survenue', description: err?.message || 'Réessaie dans quelques instants.', variant: 'destructive' });
     } finally {
