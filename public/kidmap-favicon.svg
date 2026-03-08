@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Fond rond terracotta -->
+  <rect width="64" height="64" rx="16" fill="#D95F3B"/>
+  
+  <!-- Lettre k en Fraunces style, blanc -->
+  <!-- Tige verticale du k -->
+  <rect x="18" y="14" width="6" height="36" rx="3" fill="white"/>
+  
+  <!-- Branche haute du k -->
+  <path d="M24 32 L42 16" stroke="white" stroke-width="6" stroke-linecap="round"/>
+  
+  <!-- Branche basse du k -->
+  <path d="M24 32 L42 48" stroke="white" stroke-width="6" stroke-linecap="round"/>
+  
+  <!-- Petit point accent jaune -->
+  <circle cx="46" cy="14" r="5" fill="#F2C94C"/>
+</svg>
