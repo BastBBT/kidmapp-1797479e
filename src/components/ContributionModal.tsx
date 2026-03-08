@@ -169,7 +169,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
               </div>
 
               {showBookable && (
-                <div style={{ paddingTop: '14px', borderTop: '1px solid var(--border)', marginTop: '4px' }}>
+                <div style={{ paddingTop: '20px', marginTop: '12px' }}>
                   <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '10px', color: 'var(--text)' }}>
                     Réservation possible ?
                   </div>
