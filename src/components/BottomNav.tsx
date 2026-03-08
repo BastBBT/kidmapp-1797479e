@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useFavorites } from '@/hooks/useFavorites';
 
 const tabs = [
   {
@@ -40,6 +40,7 @@ const tabs = [
 const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { favoriteIds } = useFavorites();
 
   return (
     <nav
@@ -57,10 +58,20 @@ const BottomNav = () => {
           <button
             key={tab.id}
             onClick={() => navigate(tab.path)}
-            className="flex flex-col items-center gap-0.5 px-4 py-1 transition-colors"
+            className="relative flex flex-col items-center gap-0.5 px-4 py-1 transition-colors"
             style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)' }}
           >
-            {tab.icon}
+            <div className="relative">
+              {tab.icon}
+              {tab.id === 'saved' && favoriteIds.length > 0 && (
+                <span
+                  className="absolute -top-1.5 -right-2 min-w-[16px] h-4 flex items-center justify-center text-[10px] font-bold text-white rounded-full px-1"
+                  style={{ background: '#D95F3B' }}
+                >
+                  {favoriteIds.length}
+                </span>
+              )}
+            </div>
             <span className="font-body text-[10px] uppercase font-semibold tracking-wide">
               {tab.label}
             </span>

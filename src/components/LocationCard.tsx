@@ -1,6 +1,7 @@
 import { Location, categoryIcons, categoryLabels } from '@/types/location';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useFavorites } from '@/hooks/useFavorites';
 
 interface LocationCardProps {
   location: Location;
@@ -47,8 +48,8 @@ const KidsAreaIcon = () => (
 
 const LocationCard = ({ location, index = 0 }: LocationCardProps) => {
   const navigate = useNavigate();
+  const { isFavorite } = useFavorites();
   const gradient = categoryGradients[location.category] || categoryGradients.public;
-  const hasAllEquip = location.high_chair && location.changing_table && location.kids_area;
 
   return (
     <motion.div
@@ -74,8 +75,7 @@ const LocationCard = ({ location, index = 0 }: LocationCardProps) => {
         <span className="absolute bottom-2 right-3 text-xl opacity-80">
           {categoryIcons[location.category as keyof typeof categoryIcons]}
         </span>
-        {/* Coup de coeur badge */}
-        {hasAllEquip && (
+        {isFavorite(location.id) && (
           <span
             className="absolute top-2 left-2 font-hand text-xs px-2 py-0.5"
             style={{ background: 'rgba(255,255,255,0.8)', borderRadius: '100px', color: 'var(--primary)' }}

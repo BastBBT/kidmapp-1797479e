@@ -6,6 +6,7 @@ import ContributionModal from '@/components/ContributionModal';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { useLocation as useLocationData } from '@/hooks/useLocations';
+import { useFavorites } from '@/hooks/useFavorites';
 
 const categoryGradients: Record<string, string> = {
   restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
@@ -59,6 +60,8 @@ const LocationPage = () => {
   const navigate = useNavigate();
   const [showContribution, setShowContribution] = useState(false);
   const { data: location, isLoading } = useLocationData(id ?? '');
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const favorite = location ? isFavorite(location.id) : false;
 
   if (isLoading) {
     return (
@@ -101,6 +104,23 @@ const LocationPage = () => {
           style={{ background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)' }}
         >
           <ArrowLeft className="w-5 h-5 text-white" />
+        </button>
+
+        {/* Favorite button */}
+        <button
+          onClick={() => location && toggleFavorite.mutate(location.id)}
+          className="absolute z-10 flex items-center justify-center"
+          style={{
+            top: '52px', right: '16px',
+            width: '36px', height: '36px', borderRadius: '50%',
+            background: 'rgba(255,255,255,0.92)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            border: 'none', cursor: 'pointer',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill={favorite ? 'var(--primary)' : 'none'} stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
         </button>
 
         {/* Text over hero */}
