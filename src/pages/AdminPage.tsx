@@ -90,15 +90,29 @@ const AdminPage = () => {
     name: '',
     category: 'restaurant',
     address: '',
-    lat: '',
-    lng: '',
-    photo: '',
     high_chair: false,
     changing_table: false,
     kids_area: false,
     status: 'pending',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  const geocodeAddress = async (address: string): Promise<{lat: number, lng: number} | null> => {
+    try {
+      const encoded = encodeURIComponent(address + ', Nantes, France');
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1`,
+        { headers: { 'Accept-Language': 'fr' } }
+      );
+      const data = await res.json();
+      if (data.length === 0) return null;
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    } catch {
+      return null;
+    }
+  };
 
   const updateForm = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
 
@@ -138,28 +152,46 @@ const AdminPage = () => {
   };
 
   const handleAddLocation = async () => {
-    if (!form.name || !form.address || !form.lat || !form.lng) {
+    if (!form.name || !form.address) {
       toast({ title: 'Erreur', description: 'Remplissez tous les champs obligatoires', variant: 'destructive' });
       return;
     }
-    const lat = parseFloat(form.lat);
-    const lng = parseFloat(form.lng);
-    if (isNaN(lat) || lat < 46 || lat > 48) {
-      toast({ title: 'Erreur', description: 'Latitude doit être entre 46 et 48', variant: 'destructive' });
-      return;
-    }
-    if (isNaN(lng) || lng < -3 || lng > 0) {
-      toast({ title: 'Erreur', description: 'Longitude doit être entre -3 et 0', variant: 'destructive' });
-      return;
-    }
     setSubmitting(true);
+
+    // Geocode address
+    const coords = await geocodeAddress(form.address);
+    if (!coords) {
+      toast({ title: 'Adresse introuvable', description: 'Vérifiez l\'adresse saisie', variant: 'destructive' });
+      setSubmitting(false);
+      return;
+    }
+
+    // Upload photo if present
+    let photoUrl: string | null = null;
+    if (photoFile) {
+      const fileExt = photoFile.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('location-photos')
+        .upload(fileName, photoFile);
+      if (uploadError) {
+        toast({ title: 'Erreur upload photo', variant: 'destructive' });
+        setSubmitting(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage
+        .from('location-photos')
+        .getPublicUrl(fileName);
+      photoUrl = urlData.publicUrl;
+    }
+
     const { error } = await supabase.from('locations').insert({
       name: form.name,
       category: form.category,
       address: form.address,
-      lat,
-      lng,
-      photo: form.photo || null,
+      lat: coords.lat,
+      lng: coords.lng,
+      photo: photoUrl,
       high_chair: form.high_chair,
       changing_table: form.changing_table,
       kids_area: form.kids_area,
@@ -174,14 +206,16 @@ const AdminPage = () => {
     queryClient.invalidateQueries({ queryKey: ['locations'] });
     queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     toast({ title: 'Lieu ajouté ✓' });
-    setForm({ name: '', category: 'restaurant', address: '', lat: '', lng: '', photo: '', high_chair: false, changing_table: false, kids_area: false, status: 'pending' });
+    setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, status: 'pending' });
+    setPhotoFile(null);
+    setPhotoPreview(null);
   };
 
   if (authLoading) return null;
   if (!isAdmin) return null;
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
       {/* Header */}
       <div style={{ padding: '52px 16px 0' }}>
         <div style={{ fontFamily: 'Fraunces', fontSize: '24px', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text)' }}>
@@ -215,7 +249,7 @@ const AdminPage = () => {
         ))}
       </div>
 
-      <div style={{ padding: '16px 16px 32px' }}>
+      <div className="flex-1 overflow-y-auto pb-32" style={{ padding: '16px 16px 0' }}>
         {/* Dashboard */}
         {activeTab === 'dashboard' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -407,12 +441,46 @@ const AdminPage = () => {
                     <option value="public">🌳 Lieu public</option>
                   </select>
                 </div>
-                <FormField label="Adresse *" value={form.address} onChange={(v) => updateForm('address', v)} />
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField label="Latitude *" value={form.lat} onChange={(v) => updateForm('lat', v)} type="number" placeholder="47.2184" />
-                  <FormField label="Longitude *" value={form.lng} onChange={(v) => updateForm('lng', v)} type="number" placeholder="-1.5536" />
+                <FormField label="Adresse *" value={form.address} onChange={(v) => updateForm('address', v)} placeholder="12 Rue Crébillon, 44000 Nantes" />
+
+                {/* Photo upload */}
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                    Photo
+                  </label>
+                  {photoPreview && (
+                    <div style={{ width: '100%', height: '140px', borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: '10px', position: 'relative' }}>
+                      <img src={photoPreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Preview" />
+                      <button
+                        type="button"
+                        onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
+                        style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', fontSize: '12px' }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', border: '1.5px dashed var(--border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px', fontFamily: 'DM Sans' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    {photoFile ? photoFile.name : 'Choisir une photo'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setPhotoFile(file);
+                          setPhotoPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                  </label>
                 </div>
-                <FormField label="URL photo" value={form.photo} onChange={(v) => updateForm('photo', v)} placeholder="https://..." />
 
                 <div className="flex flex-col gap-3 mt-1">
                   <Toggle label="Chaise haute" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
