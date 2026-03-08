@@ -90,15 +90,29 @@ const AdminPage = () => {
     name: '',
     category: 'restaurant',
     address: '',
-    lat: '',
-    lng: '',
-    photo: '',
     high_chair: false,
     changing_table: false,
     kids_area: false,
     status: 'pending',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  const geocodeAddress = async (address: string): Promise<{lat: number, lng: number} | null> => {
+    try {
+      const encoded = encodeURIComponent(address + ', Nantes, France');
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1`,
+        { headers: { 'Accept-Language': 'fr' } }
+      );
+      const data = await res.json();
+      if (data.length === 0) return null;
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    } catch {
+      return null;
+    }
+  };
 
   const updateForm = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
 
