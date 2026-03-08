@@ -35,7 +35,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     }
     setSubmitting(true);
     try {
-      const { error } = await supabase.from('location_proposals' as any).insert({
+      const insertData: any = {
         user_id: user.id,
         name: form.name,
         category: form.category,
@@ -45,7 +45,11 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
         kids_area: form.kids_area,
         note: form.note || null,
         status: 'pending',
-      });
+      };
+      if (form.category === 'restaurant' || form.category === 'cafe') {
+        insertData.bookable = form.bookable;
+      }
+      const { error } = await supabase.from('location_proposals' as any).insert(insertData);
       if (error) throw error;
       toast({
         title: 'Proposition envoyée ✦',
