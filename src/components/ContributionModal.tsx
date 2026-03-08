@@ -79,6 +79,7 @@ const KidsAreaIcon = () => (
 const ContributionModal = ({ location, open, onClose }: ContributionModalProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [highChair, setHighChair] = useState<boolean | null>(null);
   const [changingTable, setChangingTable] = useState<boolean | null>(null);
   const [kidsArea, setKidsArea] = useState<boolean | null>(null);
