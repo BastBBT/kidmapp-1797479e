@@ -198,12 +198,21 @@ const AdminPage = () => {
     }
     setSubmitting(true);
 
-    // Geocode address
-    const coords = await geocodeAddress(form.address);
-    if (!coords) {
-      toast({ title: 'Adresse introuvable', description: 'Vérifiez l\'adresse saisie', variant: 'destructive' });
-      setSubmitting(false);
-      return;
+    let coords: { lat: number; lng: number } | null = null;
+
+    if (showManualCoords) {
+      coords = {
+        lat: parseFloat(manualLat),
+        lng: parseFloat(manualLng),
+      };
+    } else {
+      coords = await geocodeAddress(form.address);
+      if (!coords) {
+        setShowManualCoords(true);
+        toast({ title: 'Adresse non trouvée automatiquement', description: 'Ajustez les coordonnées manuellement.', variant: 'destructive' });
+        setSubmitting(false);
+        return;
+      }
     }
 
     // Upload photo if present
