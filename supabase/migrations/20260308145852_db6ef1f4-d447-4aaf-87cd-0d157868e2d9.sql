@@ -1,0 +1,1 @@
+ALTER TABLE location_proposals ADD COLUMN IF NOT EXISTS photo TEXT;

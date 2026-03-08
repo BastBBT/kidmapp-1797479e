@@ -14,6 +14,8 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
     category: 'restaurant',
@@ -35,6 +37,25 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     }
     setSubmitting(true);
     try {
+      // Upload photo if present
+      let photoUrl: string | null = null;
+      if (photoFile) {
+        const fileExt = photoFile.name.split('.').pop();
+        const fileName = `proposals/${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('location-photos')
+          .upload(fileName, photoFile);
+        if (uploadError) {
+          toast({ title: 'Erreur upload photo', description: 'Réessaie ou continue sans photo.', variant: 'destructive' });
+          setSubmitting(false);
+          return;
+        }
+        const { data: urlData } = supabase.storage
+          .from('location-photos')
+          .getPublicUrl(fileName);
+        photoUrl = urlData.publicUrl;
+      }
+
       const insertData: any = {
         user_id: user.id,
         name: form.name,
@@ -44,6 +65,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
         changing_table: form.changing_table,
         kids_area: form.kids_area,
         note: form.note || null,
+        photo: photoUrl,
         status: 'pending',
       };
       if (form.category === 'restaurant' || form.category === 'cafe') {
@@ -57,6 +79,8 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
       });
       onClose();
       setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', note: '' });
+      setPhotoFile(null);
+      setPhotoPreview(null);
     } catch (err: any) {
       toast({ title: 'Une erreur est survenue', description: err?.message || 'Réessaie dans quelques instants.', variant: 'destructive' });
     } finally {
@@ -93,8 +117,8 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
             transition={{ type: 'spring', damping: 25 }}
-            className="fixed bottom-0 left-0 right-0 z-[1000] p-6 max-h-[85vh] overflow-y-auto"
-            style={{ background: 'var(--surface)', borderRadius: 'var(--radius) var(--radius) 0 0' }}
+            className="fixed bottom-0 left-0 right-0 z-[1000] max-h-[85vh] overflow-y-auto"
+            style={{ background: 'var(--surface)', borderRadius: 'var(--radius) var(--radius) 0 0', padding: '24px 20px 32px' }}
           >
             <div className="flex items-center justify-between mb-1">
               <h2 style={{ fontFamily: 'Fraunces', fontSize: '20px', fontWeight: 500, color: 'var(--text)' }}>
@@ -136,6 +160,65 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                   Adresse *
                 </label>
                 <input value={form.address} onChange={(e) => updateForm('address', e.target.value)} placeholder="12 Rue Crébillon, Nantes" style={inputStyle} />
+              </div>
+
+              {/* Photo upload */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--text-muted)', marginBottom: '7px', fontFamily: 'DM Sans' }}>
+                  Photo du lieu
+                </label>
+                {photoPreview ? (
+                  <div style={{ width: '100%', height: '140px', borderRadius: 'var(--radius-sm)', overflow: 'hidden', position: 'relative' }}>
+                    <img src={photoPreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Preview" />
+                    <button
+                      onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
+                      style={{
+                        position: 'absolute', top: '8px', right: '8px',
+                        background: 'rgba(0,0,0,0.5)', color: 'white',
+                        border: 'none', borderRadius: '50%',
+                        width: '28px', height: '28px',
+                        cursor: 'pointer', fontSize: '13px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >✕</button>
+                  </div>
+                ) : (
+                  <label style={{
+                    display: 'flex', flexDirection: 'column' as const,
+                    alignItems: 'center', justifyContent: 'center',
+                    gap: '8px', padding: '20px',
+                    border: '1.5px dashed var(--border)',
+                    borderRadius: 'var(--radius-sm)',
+                    cursor: 'pointer', background: 'var(--bg)',
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                      Ajouter une photo ✦
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
+                      JPG, PNG — 5 Mo max
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 5 * 1024 * 1024) {
+                          toast({ title: 'Photo trop lourde', description: '5 Mo maximum.', variant: 'destructive' });
+                          return;
+                        }
+                        setPhotoFile(file);
+                        setPhotoPreview(URL.createObjectURL(file));
+                      }}
+                    />
+                  </label>
+                )}
               </div>
 
               {/* Toggles */}
