@@ -145,6 +145,20 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                 <ToggleRow label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
               </div>
 
+              {/* Bookable - only for restaurant & cafe */}
+              {(form.category === 'restaurant' || form.category === 'cafe') && (
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                    Réservation
+                  </label>
+                  <select value={form.bookable} onChange={(e) => updateForm('bookable', e.target.value)} style={inputStyle}>
+                    <option value="unknown">Non renseigné</option>
+                    <option value="yes">Accepte les réservations</option>
+                    <option value="no">Sans réservation</option>
+                  </select>
+                </div>
+              )}
+
               {/* Note */}
               <div>
                 <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
