@@ -48,8 +48,8 @@ const KidsAreaIcon = () => (
 
 const LocationCard = ({ location, index = 0 }: LocationCardProps) => {
   const navigate = useNavigate();
+  const { isFavorite } = useFavorites();
   const gradient = categoryGradients[location.category] || categoryGradients.public;
-  const hasAllEquip = location.high_chair && location.changing_table && location.kids_area;
 
   return (
     <motion.div
