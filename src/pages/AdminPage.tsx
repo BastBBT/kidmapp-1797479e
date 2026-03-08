@@ -500,7 +500,49 @@ const AdminPage = () => {
                     <option value="public">🌳 Lieu public</option>
                   </select>
                 </div>
-                <FormField label="Adresse *" value={form.address} onChange={(v) => updateForm('address', v)} placeholder="12 Rue Crébillon, 44000 Nantes" />
+                <div>
+                  <FormField label="Adresse *" value={form.address} onChange={(v) => { updateForm('address', v); setShowManualCoords(false); }} placeholder="Ex: 6 rue Saint-Léonard, 44000 Nantes" />
+                  <div style={{fontSize:'11px', color:'var(--text-muted)', marginTop:'4px', fontFamily:'DM Sans'}}>
+                    Incluez le numéro, la rue et le code postal pour de meilleurs résultats.
+                  </div>
+                  {showManualCoords && (
+                    <div style={{
+                      padding:'12px', borderRadius:'var(--radius-sm)',
+                      background:'var(--accent-light)',
+                      border:'1px solid #F2C94C',
+                      marginTop:'8px'
+                    }}>
+                      <div style={{fontFamily:'Caveat', fontSize:'14px', color:'#C49A35', marginBottom:'8px'}}>
+                        Adresse non reconnue — ajustez les coordonnées ✦
+                      </div>
+                      <div style={{display:'flex', gap:'8px'}}>
+                        <div style={{flex:1}}>
+                          <label style={{fontSize:'11px', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:'4px'}}>
+                            Latitude
+                          </label>
+                          <input
+                            value={manualLat}
+                            onChange={e => setManualLat(e.target.value)}
+                            style={{width:'100%', padding:'10px 12px', borderRadius:'var(--radius-sm)', border:'1.5px solid var(--border)', fontFamily:'DM Sans', fontSize:'14px'}}
+                          />
+                        </div>
+                        <div style={{flex:1}}>
+                          <label style={{fontSize:'11px', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:'4px'}}>
+                            Longitude
+                          </label>
+                          <input
+                            value={manualLng}
+                            onChange={e => setManualLng(e.target.value)}
+                            style={{width:'100%', padding:'10px 12px', borderRadius:'var(--radius-sm)', border:'1.5px solid var(--border)', fontFamily:'DM Sans', fontSize:'14px'}}
+                          />
+                        </div>
+                      </div>
+                      <div style={{fontSize:'11px', color:'var(--text-muted)', marginTop:'6px', fontFamily:'DM Sans'}}>
+                        Astuce : trouvez les coordonnées sur maps.google.com en faisant clic droit sur le lieu.
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Photo upload */}
                 <div>
