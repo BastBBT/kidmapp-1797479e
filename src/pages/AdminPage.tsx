@@ -96,6 +96,8 @@ const AdminPage = () => {
     kids_area: false,
     bookable: 'unknown',
     status: 'pending',
+    website: '',
+    instagram: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
