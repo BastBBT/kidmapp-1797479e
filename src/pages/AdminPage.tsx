@@ -368,10 +368,11 @@ const AdminPage = () => {
                   <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '8px' }}>
                     {new Date(contrib.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
                   </div>
-                  <div className="flex gap-4 mb-3" style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
+                  <div className="flex gap-4 flex-wrap mb-3" style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
                     {contrib.high_chair !== null && <span>🪑 Chaise haute {contrib.high_chair ? '✓' : '✗'}</span>}
                     {contrib.changing_table !== null && <span>👶 Table à langer {contrib.changing_table ? '✓' : '✗'}</span>}
                     {contrib.kids_area !== null && <span>🌳 Espace jeux {contrib.kids_area ? '✓' : '✗'}</span>}
+                    {contrib.bookable !== null && <span>📅 Réservation: {contrib.bookable === 'yes' ? 'Oui ✓' : contrib.bookable === 'no' ? 'Non ✗' : '?'}</span>}
                   </div>
                   {contrib.status === 'pending' && (
                     <div className="flex gap-2">
