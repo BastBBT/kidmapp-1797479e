@@ -411,6 +411,11 @@ const AdminPage = () => {
           </motion.div>
         )}
 
+        {/* Proposals */}
+        {activeTab === 'proposals' && (
+          <ProposalsTab geocodeAddress={geocodeAddress} queryClient={queryClient} toast={toast} />
+        )}
+
         {/* Add location */}
         {activeTab === 'add' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
