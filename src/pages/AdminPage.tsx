@@ -722,6 +722,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         high_chair: proposal.high_chair ?? false,
         changing_table: proposal.changing_table ?? false,
         kids_area: proposal.kids_area ?? false,
+        photo: proposal.photo ?? null,
         status: 'published',
       };
       if ((proposal.category === 'restaurant' || proposal.category === 'cafe') && proposal.bookable) {
