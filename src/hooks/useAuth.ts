@@ -44,35 +44,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    let initialSessionHandled = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        try {
-          const currentUser = session?.user ?? null;
-          setUser(currentUser);
-          if (currentUser) {
-            await fetchProfile(currentUser.id);
-          } else {
-            setProfile(null);
-          }
-        } catch (e) {
-          console.error('Auth state change error:', e);
-        } finally {
-          setIsLoading(false);
+      (_event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (!currentUser) {
+          setProfile(null);
         }
+        setIsLoading(false);
+        // Fetch profile in background, don't block loading
+        if (currentUser) {
+          fetchProfile(currentUser.id);
+        }
+        initialSessionHandled = true;
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      try {
+    // Fallback in case onAuthStateChange doesn't fire
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!initialSessionHandled) {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
-        if (currentUser) {
-          await fetchProfile(currentUser.id);
+        if (!currentUser) {
+          setProfile(null);
         }
-      } catch (e) {
-        console.error('Get session error:', e);
-      } finally {
         setIsLoading(false);
+        if (currentUser) {
+          fetchProfile(currentUser.id);
+        }
       }
     }).catch((e) => {
       console.error('Get session failed:', e);
