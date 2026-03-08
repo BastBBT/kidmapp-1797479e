@@ -88,7 +88,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
             transition={{ type: 'spring', damping: 25 }}
-            className="fixed bottom-0 left-0 right-0 z-50 p-6 max-h-[85vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 z-[1000] p-6 max-h-[85vh] overflow-y-auto"
             style={{ background: 'var(--surface)', borderRadius: 'var(--radius) var(--radius) 0 0' }}
           >
             <div className="flex items-center justify-between mb-1">
