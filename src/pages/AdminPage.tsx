@@ -595,6 +595,35 @@ const AdminPage = () => {
                   </label>
                 </div>
 
+                {/* Website */}
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                    Site web
+                  </label>
+                  <input
+                    value={form.website}
+                    onChange={(e) => updateForm('website', e.target.value)}
+                    placeholder="https://www.lepetitbeurre.fr"
+                    style={{ width: '100%', padding: '13px 16px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px' }}
+                  />
+                </div>
+
+                {/* Instagram */}
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                    Instagram
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontFamily: 'DM Sans', fontSize: '15px' }}>@</span>
+                    <input
+                      value={form.instagram}
+                      onChange={(e) => updateForm('instagram', e.target.value)}
+                      placeholder="lepetitbeurre_nantes"
+                      style={{ width: '100%', padding: '13px 16px 13px 30px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px' }}
+                    />
+                  </div>
+                </div>
+
                 <div className="flex flex-col gap-3 mt-1">
                   <Toggle label="Chaise haute" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
                   <Toggle label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
