@@ -78,14 +78,15 @@ interface MapViewProps {
   selectedId?: string;
 }
 
-const NANTES_CENTER: [number, number] = [47.2184, -1.5536];
+const NANTES_CENTER: [number, number] = [47.2284, -1.5536];
+const DEFAULT_ZOOM = 12;
 
 function RecenterMap() {
   const map = useMap();
   useEffect(() => {
     const timer = setTimeout(() => {
       map.invalidateSize();
-      map.setView(NANTES_CENTER, 13);
+      map.setView(NANTES_CENTER, DEFAULT_ZOOM);
     }, 150);
     return () => clearTimeout(timer);
   }, [map]);
@@ -121,7 +122,7 @@ const MapView = ({ locations, selectedId }: MapViewProps) => {
     <div className="w-full h-full rounded-2xl overflow-hidden" style={{ minHeight: '400px' }}>
       <MapContainer
         center={NANTES_CENTER}
-        zoom={13}
+        zoom={DEFAULT_ZOOM}
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
         preferCanvas={true}
