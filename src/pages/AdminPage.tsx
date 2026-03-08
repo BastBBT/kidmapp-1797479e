@@ -863,6 +863,8 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         changing_table: proposal.changing_table ?? false,
         kids_area: proposal.kids_area ?? false,
         photo: proposal.photo ?? null,
+        website: proposal.website ?? null,
+        instagram: proposal.instagram ?? null,
         status: 'published',
       };
       if ((proposal.category === 'restaurant' || proposal.category === 'cafe') && proposal.bookable) {

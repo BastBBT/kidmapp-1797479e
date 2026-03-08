@@ -25,6 +25,8 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     kids_area: false,
     bookable: 'unknown',
     note: '',
+    website: '',
+    instagram: '',
   });
 
   const updateForm = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
