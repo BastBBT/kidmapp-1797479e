@@ -662,4 +662,159 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
   );
 }
 
+function ProposalsTab({ geocodeAddress, queryClient, toast }: {
+  geocodeAddress: (address: string) => Promise<{lat: number; lng: number} | null>;
+  queryClient: any;
+  toast: any;
+}) {
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const { data: proposals = [] } = useQuery({
+    queryKey: ['proposals'],
+    queryFn: async () => {
+      const { data } = await supabase.from('location_proposals' as any).select('*').order('created_at', { ascending: false });
+      return (data ?? []) as any[];
+    },
+  });
+
+  const handleApprove = async (proposal: any) => {
+    setProcessingId(proposal.id);
+    try {
+      const coords = await geocodeAddress(proposal.address);
+      if (!coords) {
+        toast({ title: 'Adresse introuvable', description: 'Impossible de géocoder cette adresse.', variant: 'destructive' });
+        return;
+      }
+      const { error: insertError } = await supabase.from('locations').insert({
+        name: proposal.name,
+        category: proposal.category,
+        address: proposal.address,
+        lat: coords.lat,
+        lng: coords.lng,
+        high_chair: proposal.high_chair ?? false,
+        changing_table: proposal.changing_table ?? false,
+        kids_area: proposal.kids_area ?? false,
+        status: 'published',
+      } as any);
+      if (insertError) throw insertError;
+      const { error: updateError } = await supabase.from('location_proposals' as any).update({ status: 'approved' }).eq('id', proposal.id);
+      if (updateError) throw updateError;
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['all-locations'] });
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      toast({ title: 'Proposition approuvée ✓', description: `${proposal.name} a été ajouté aux lieux.` });
+    } catch (err: any) {
+      toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleReject = async (proposal: any) => {
+    setProcessingId(proposal.id);
+    try {
+      const { error } = await supabase.from('location_proposals' as any).update({ status: 'rejected' }).eq('id', proposal.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      toast({ title: 'Proposition rejetée' });
+    } catch (err: any) {
+      toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const categoryBadgeColors: Record<string, { bg: string; color: string }> = {
+    restaurant: { bg: '#F5E0D0', color: '#A0522D' },
+    cafe: { bg: '#D4EDDA', color: '#2E7D32' },
+    shop: { bg: '#FFF3CD', color: '#856404' },
+    public: { bg: '#D4EDDA', color: '#2E7D32' },
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
+      {proposals.length === 0 && (
+        <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
+          Aucune proposition
+        </p>
+      )}
+      {proposals.map((proposal: any, i: number) => {
+        const catStyle = categoryBadgeColors[proposal.category] ?? { bg: 'var(--bg)', color: 'var(--text-muted)' };
+        const isProcessing = processingId === proposal.id;
+        return (
+          <motion.div
+            key={proposal.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.02 }}
+            style={{ background: 'var(--surface)', borderRadius: 'var(--radius-sm)', padding: '14px', boxShadow: 'var(--shadow)' }}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <span style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, color: 'var(--text)' }}>
+                  {proposal.name}
+                </span>
+                <span style={{
+                  display: 'inline-block', padding: '2px 8px', borderRadius: '100px',
+                  fontSize: '10px', fontWeight: 600, fontFamily: 'DM Sans',
+                  background: catStyle.bg, color: catStyle.color,
+                }}>
+                  {categoryLabels[proposal.category as keyof typeof categoryLabels] ?? proposal.category}
+                </span>
+              </div>
+              <StatusBadge status={proposal.status === 'approved' ? 'validated' : proposal.status} />
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+              📍 {proposal.address}
+            </div>
+            <div className="flex gap-3 mb-2" style={{ fontFamily: 'DM Sans', fontSize: '12px' }}>
+              {proposal.high_chair && <span style={{ color: '#2E7D32' }}>🪑 Chaise haute</span>}
+              {proposal.changing_table && <span style={{ color: '#2E7D32' }}>👶 Table à langer</span>}
+              {proposal.kids_area && <span style={{ color: '#2E7D32' }}>🌳 Espace jeux</span>}
+            </div>
+            {proposal.note && (
+              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '6px' }}>
+                "{proposal.note}"
+              </div>
+            )}
+            <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              {new Date(proposal.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </div>
+            {proposal.status === 'pending' && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleApprove(proposal)}
+                  disabled={isProcessing}
+                  style={{
+                    flex: 1, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                    padding: '8px', borderRadius: '100px', border: 'none',
+                    background: 'var(--secondary)', color: '#fff', cursor: isProcessing ? 'not-allowed' : 'pointer',
+                    opacity: isProcessing ? 0.6 : 1,
+                  }}
+                >
+                  {isProcessing ? 'En cours…' : '✓ Approuver'}
+                </button>
+                <button
+                  onClick={() => handleReject(proposal)}
+                  disabled={isProcessing}
+                  style={{
+                    flex: 1, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                    padding: '8px', borderRadius: '100px',
+                    border: '1.5px solid var(--border)', background: 'transparent',
+                    color: 'var(--text-muted)', cursor: isProcessing ? 'not-allowed' : 'pointer',
+                    opacity: isProcessing ? 0.6 : 1,
+                  }}
+                >
+                  ✗ Rejeter
+                </button>
+              </div>
+            )}
+          </motion.div>
+        );
+      })}
+    </motion.div>
+  );
+}
+
 export default AdminPage;
