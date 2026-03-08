@@ -8,12 +8,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
-type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add';
+type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals';
 
 const tabs: { key: AdminTab; label: string }[] = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'locations', label: 'Lieux' },
   { key: 'contributions', label: 'Contributions' },
+  { key: 'proposals', label: 'Propositions' },
   { key: 'add', label: 'Ajouter un lieu' },
 ];
 
