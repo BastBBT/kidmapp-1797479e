@@ -500,6 +500,27 @@ const AdminPage = () => {
                   <Toggle label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
                 </div>
 
+                {(form.category === 'restaurant' || form.category === 'cafe') && (
+                  <div>
+                    <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                      Réservation
+                    </label>
+                    <select
+                      value={form.bookable}
+                      onChange={(e) => updateForm('bookable', e.target.value)}
+                      style={{
+                        width: '100%', padding: '10px 14px', borderRadius: '12px',
+                        border: '1px solid var(--border)', background: 'var(--bg)',
+                        fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none',
+                      }}
+                    >
+                      <option value="unknown">Non renseigné</option>
+                      <option value="yes">Accepte les réservations</option>
+                      <option value="no">Sans réservation</option>
+                    </select>
+                  </div>
+                )}
+
                 <div>
                   <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
                     Statut initial
