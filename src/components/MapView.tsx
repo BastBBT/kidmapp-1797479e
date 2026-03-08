@@ -80,10 +80,13 @@ interface MapViewProps {
 
 const NANTES_CENTER: [number, number] = [47.2184, -1.5536];
 
-function InvalidateSize() {
+function RecenterMap() {
   const map = useMap();
   useEffect(() => {
-    const timer = setTimeout(() => map.invalidateSize(), 150);
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+      map.setView(NANTES_CENTER, 13);
+    }, 150);
     return () => clearTimeout(timer);
   }, [map]);
   return null;
