@@ -245,6 +245,32 @@ const LocationPage = () => {
             </div>
           )}
 
+          {/* Pending contribution banner */}
+          {pendingContribution && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '12px 14px', borderRadius: 'var(--radius-sm)',
+              background: 'var(--accent-light)',
+              border: '1px solid #F2C94C',
+              marginTop: '12px',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="#C49A35" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#C49A35' }}>
+                  Contribution en attente de validation
+                </div>
+                <div style={{ fontFamily: 'Caveat', fontSize: '12px', color: '#C49A35', fontWeight: 500 }}>
+                  Merci ! On vérifie ça très vite ✦
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Nudge contribution */}
           <div className="flex items-center justify-between gap-3 mt-4 p-4 rounded-xl" style={{ background: 'var(--bg)' }}>
             <div>
@@ -255,13 +281,19 @@ const LocationPage = () => {
                 Aidez les autres familles ✦
               </div>
             </div>
-            <button
-              onClick={() => setShowContribution(true)}
-              className="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap"
-              style={{ border: '1.5px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }}
-            >
-              Contribuer
-            </button>
+            {pendingContribution ? (
+              <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                Déjà envoyée ✓
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowContribution(true)}
+                className="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap"
+                style={{ border: '1.5px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }}
+              >
+                Contribuer
+              </button>
+            )}
           </div>
 
           {/* Bouton Itinéraire */}

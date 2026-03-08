@@ -109,6 +109,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
         title: 'Merci pour ta contribution ✦',
         description: 'Elle sera vérifiée par notre équipe.',
       });
+      queryClient.invalidateQueries({ queryKey: ['my-contribution', location.id, user.id] });
       queryClient.invalidateQueries({ queryKey: ['contributions'] });
       onClose();
       setHighChair(null);
