@@ -68,6 +68,8 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
         kids_area: form.kids_area,
         note: form.note || null,
         photo: photoUrl,
+        website: form.website || null,
+        instagram: form.instagram || null,
         status: 'pending',
       };
       if (form.category === 'restaurant' || form.category === 'cafe') {
