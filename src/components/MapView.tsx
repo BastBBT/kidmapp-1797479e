@@ -80,10 +80,13 @@ interface MapViewProps {
 
 const NANTES_CENTER: [number, number] = [47.2184, -1.5536];
 
-function InvalidateSize() {
+function RecenterMap() {
   const map = useMap();
   useEffect(() => {
-    const timer = setTimeout(() => map.invalidateSize(), 150);
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+      map.setView(NANTES_CENTER, 13);
+    }, 150);
     return () => clearTimeout(timer);
   }, [map]);
   return null;
@@ -127,7 +130,7 @@ const MapView = ({ locations, selectedId }: MapViewProps) => {
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
-        <InvalidateSize />
+        <RecenterMap />
         <FlyToSelected location={selectedLocation} />
         <MarkerClusterGroup
           chunkedLoading
