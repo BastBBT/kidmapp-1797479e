@@ -784,6 +784,9 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   toast: any;
 }) {
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [manualCoordsProposal, setManualCoordsProposal] = useState<string | null>(null);
+  const [proposalManualLat, setProposalManualLat] = useState('47.2184');
+  const [proposalManualLng, setProposalManualLng] = useState('-1.5536');
 
   const { data: proposals = [] } = useQuery({
     queryKey: ['proposals'],
@@ -793,13 +796,21 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
     },
   });
 
-  const handleApprove = async (proposal: any) => {
+  const handleApprove = async (proposal: any, useManualCoords = false) => {
     setProcessingId(proposal.id);
     try {
-      const coords = await geocodeAddress(proposal.address);
-      if (!coords) {
-        toast({ title: 'Adresse introuvable', description: 'Impossible de géocoder cette adresse.', variant: 'destructive' });
-        return;
+      let coords: { lat: number; lng: number } | null = null;
+
+      if (useManualCoords) {
+        coords = { lat: parseFloat(proposalManualLat), lng: parseFloat(proposalManualLng) };
+      } else {
+        coords = await geocodeAddress(proposal.address);
+        if (!coords) {
+          setManualCoordsProposal(proposal.id);
+          toast({ title: 'Adresse non trouvée automatiquement', description: 'Ajustez les coordonnées manuellement.', variant: 'destructive' });
+          setProcessingId(null);
+          return;
+        }
       }
       const insertData: any = {
         name: proposal.name,
