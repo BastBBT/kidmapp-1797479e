@@ -71,7 +71,23 @@ const LocationPage = () => {
   const { data: location, isLoading } = useLocationData(id ?? '');
   const { isFavorite, toggleFavorite } = useFavorites();
   const { data: votes } = useEquipmentVotes(id ?? '');
+  const { user } = useAuth();
   const favorite = location ? isFavorite(location.id) : false;
+
+  const { data: pendingContribution } = useQuery({
+    queryKey: ['my-contribution', location?.id, user?.id],
+    enabled: !!user && !!location,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('contributions')
+        .select('id, status, created_at')
+        .eq('location_id', location!.id)
+        .eq('user_id', user!.id)
+        .eq('status', 'pending')
+        .maybeSingle();
+      return data;
+    },
+  });
 
   if (isLoading) {
     return (
