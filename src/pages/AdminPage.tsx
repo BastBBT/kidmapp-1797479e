@@ -52,6 +52,7 @@ const AdminPage = () => {
 
   const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
+    enabled: isAdmin,
     queryFn: async () => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
