@@ -6,6 +6,7 @@ import ContributionModal from '@/components/ContributionModal';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { useLocation as useLocationData } from '@/hooks/useLocations';
+import { useFavorites } from '@/hooks/useFavorites';
 
 const categoryGradients: Record<string, string> = {
   restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
