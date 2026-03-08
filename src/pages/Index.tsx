@@ -129,10 +129,11 @@ const Index = () => {
         <div style={{
           position: 'fixed',
           inset: 0,
-          zIndex: 100,
+          zIndex: 900,
           background: 'var(--bg)',
+          isolation: 'isolate',
         }}>
-          <div style={{ height: '100vh', width: '100%' }}>
+          <div style={{ height: '100vh', width: '100%', position: 'relative', zIndex: 0 }}>
             <MapView locations={filteredLocations} selectedId={selectedId} />
           </div>
           <button
@@ -150,7 +151,7 @@ const Index = () => {
               color: 'var(--text)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
               cursor: 'pointer',
-              zIndex: 101,
+              zIndex: 910,
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -165,7 +166,7 @@ const Index = () => {
             position: 'absolute',
             bottom: '100px', left: 0, right: 0,
             padding: '0 16px',
-            zIndex: 101,
+            zIndex: 910,
           }}>
             <div style={{
               background: 'rgba(255,255,255,0.95)',
