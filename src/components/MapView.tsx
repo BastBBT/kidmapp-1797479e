@@ -78,7 +78,8 @@ interface MapViewProps {
   selectedId?: string;
 }
 
-const NANTES_CENTER: [number, number] = [47.2184, -1.5536];
+const NANTES_CENTER: [number, number] = [47.2284, -1.5536];
+const DEFAULT_ZOOM = 12;
 
 function RecenterMap() {
   const map = useMap();
