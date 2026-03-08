@@ -43,7 +43,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
       let photoUrl: string | null = null;
       if (photoFile) {
         const fileExt = photoFile.name.split('.').pop();
-        const fileName = `proposals/${Date.now()}.${fileExt}`;
+        const fileName = `proposals/${user.id}/${crypto.randomUUID()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from('location-photos')
           .upload(fileName, photoFile);

@@ -6,7 +6,7 @@ export const useLocations = (category?: LocationCategory | 'all') => {
   return useQuery({
     queryKey: ['locations', category],
     queryFn: async () => {
-      let query = supabase.from('locations').select('*');
+      let query = supabase.from('locations').select('*').eq('status', 'published');
       if (category && category !== 'all') {
         query = query.eq('category', category);
       }
