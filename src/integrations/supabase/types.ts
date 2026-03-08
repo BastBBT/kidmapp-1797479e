@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       contributions: {
         Row: {
+          bookable: string | null
           changing_table: boolean | null
           created_at: string
           high_chair: boolean | null
@@ -26,6 +27,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          bookable?: string | null
           changing_table?: boolean | null
           created_at?: string
           high_chair?: boolean | null
@@ -36,6 +38,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          bookable?: string | null
           changing_table?: boolean | null
           created_at?: string
           high_chair?: boolean | null
@@ -87,6 +90,7 @@ export type Database = {
       location_proposals: {
         Row: {
           address: string
+          bookable: string | null
           category: string
           changing_table: boolean | null
           created_at: string | null
@@ -100,6 +104,7 @@ export type Database = {
         }
         Insert: {
           address: string
+          bookable?: string | null
           category: string
           changing_table?: boolean | null
           created_at?: string | null
@@ -113,6 +118,7 @@ export type Database = {
         }
         Update: {
           address?: string
+          bookable?: string | null
           category?: string
           changing_table?: boolean | null
           created_at?: string | null
@@ -129,6 +135,7 @@ export type Database = {
       locations: {
         Row: {
           address: string | null
+          bookable: string | null
           category: string
           changing_table: boolean
           city: string
@@ -145,6 +152,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          bookable?: string | null
           category: string
           changing_table?: boolean
           city?: string
@@ -161,6 +169,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          bookable?: string | null
           category?: string
           changing_table?: boolean
           city?: string
