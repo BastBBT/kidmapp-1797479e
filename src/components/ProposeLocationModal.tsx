@@ -159,7 +159,10 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                 <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
                   Adresse *
                 </label>
-                <input value={form.address} onChange={(e) => updateForm('address', e.target.value)} placeholder="12 Rue Crébillon, Nantes" style={inputStyle} />
+                <input value={form.address} onChange={(e) => updateForm('address', e.target.value)} placeholder="Ex: 6 rue Saint-Léonard, 44000 Nantes" style={inputStyle} />
+                <div style={{fontSize:'11px', color:'var(--text-muted)', marginTop:'4px', fontFamily:'DM Sans'}}>
+                  Incluez le numéro, la rue et le code postal pour de meilleurs résultats.
+                </div>
               </div>
 
               {/* Photo upload */}

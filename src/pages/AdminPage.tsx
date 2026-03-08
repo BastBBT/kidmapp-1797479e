@@ -101,19 +101,56 @@ const AdminPage = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
+  const [showManualCoords, setShowManualCoords] = useState(false);
+  const [manualLat, setManualLat] = useState('47.2184');
+  const [manualLng, setManualLng] = useState('-1.5536');
+
   const geocodeAddress = async (address: string): Promise<{lat: number, lng: number} | null> => {
-    try {
-      const encoded = encodeURIComponent(address + ', Nantes, France');
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1`,
-        { headers: { 'Accept-Language': 'fr' } }
-      );
-      const data = await res.json();
-      if (data.length === 0) return null;
-      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-    } catch {
-      return null;
+    const cleaned = address
+      .trim()
+      .replace(/\brue\b/gi, 'rue')
+      .replace(/\bav\b\.?/gi, 'avenue')
+      .replace(/\bbd\b\.?/gi, 'boulevard')
+      .replace(/\bpl\b\.?/gi, 'place');
+
+    const queries = [
+      `${cleaned}, Nantes, France`,
+      `${cleaned}, 44000, France`,
+      `${cleaned}, Loire-Atlantique, France`,
+      cleaned,
+    ];
+
+    for (const query of queries) {
+      try {
+        const encoded = encodeURIComponent(query);
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&limit=1&countrycodes=fr&addressdetails=1`,
+          {
+            headers: {
+              'Accept-Language': 'fr',
+              'User-Agent': 'Kidmap/1.0'
+            }
+          }
+        );
+        const data = await res.json();
+        if (data.length > 0) {
+          const result = data[0];
+          const lat = parseFloat(result.lat);
+          const lng = parseFloat(result.lon);
+          if (lat >= 46.9 && lat <= 47.5 && lng >= -2.2 && lng <= -1.1) {
+            return { lat, lng };
+          }
+          if (queries.indexOf(query) === queries.length - 1) {
+            return { lat, lng };
+          }
+        }
+      } catch {
+        continue;
+      }
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
+
+    return null;
   };
 
   const updateForm = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
