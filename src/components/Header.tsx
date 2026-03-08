@@ -5,9 +5,9 @@ import CategoryFilter from '@/components/CategoryFilter';
 import { LocationCategory } from '@/types/location';
 
 interface HeaderProps {
-  onSearch: (query: string) => void;
-  selectedCategory: LocationCategory | 'all';
-  onCategoryChange: (cat: LocationCategory | 'all') => void;
+  onSearch?: (query: string) => void;
+  selectedCategory?: LocationCategory | 'all';
+  onCategoryChange?: (cat: LocationCategory | 'all') => void;
 }
 
 const Header = ({ onSearch, selectedCategory, onCategoryChange }: HeaderProps) => {
