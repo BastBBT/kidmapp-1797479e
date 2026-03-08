@@ -35,6 +35,24 @@ const Index = () => {
           <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
             {isLoading ? 'Chargement…' : `${filteredLocations.length} lieu${filteredLocations.length > 1 ? 'x' : ''} trouvé${filteredLocations.length > 1 ? 's' : ''}`}
           </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowProposalModal(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '7px 14px', borderRadius: '100px',
+                border: '1.5px solid var(--primary)',
+                background: 'transparent', color: 'var(--primary)',
+                fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Proposer un lieu
+            </button>
           <div className="flex p-0.5" style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '100px' }}>
             <button
               onClick={() => setView('map')}
