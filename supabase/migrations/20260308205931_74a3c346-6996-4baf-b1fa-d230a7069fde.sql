@@ -1,0 +1,2 @@
+ALTER TABLE public.locations ADD COLUMN IF NOT EXISTS website TEXT, ADD COLUMN IF NOT EXISTS instagram TEXT;
+ALTER TABLE public.location_proposals ADD COLUMN IF NOT EXISTS website TEXT, ADD COLUMN IF NOT EXISTS instagram TEXT;

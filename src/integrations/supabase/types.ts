@@ -96,12 +96,14 @@ export type Database = {
           created_at: string | null
           high_chair: boolean | null
           id: string
+          instagram: string | null
           kids_area: boolean | null
           name: string
           note: string | null
           photo: string | null
           status: string | null
           user_id: string
+          website: string | null
         }
         Insert: {
           address: string
@@ -111,12 +113,14 @@ export type Database = {
           created_at?: string | null
           high_chair?: boolean | null
           id?: string
+          instagram?: string | null
           kids_area?: boolean | null
           name: string
           note?: string | null
           photo?: string | null
           status?: string | null
           user_id: string
+          website?: string | null
         }
         Update: {
           address?: string
@@ -126,12 +130,14 @@ export type Database = {
           created_at?: string | null
           high_chair?: boolean | null
           id?: string
+          instagram?: string | null
           kids_area?: boolean | null
           name?: string
           note?: string | null
           photo?: string | null
           status?: string | null
           user_id?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -145,6 +151,7 @@ export type Database = {
           created_at: string
           high_chair: boolean
           id: string
+          instagram: string | null
           kids_area: boolean
           lat: number
           lng: number
@@ -152,6 +159,7 @@ export type Database = {
           photo: string | null
           status: string
           updated_at: string
+          website: string | null
         }
         Insert: {
           address?: string | null
@@ -162,6 +170,7 @@ export type Database = {
           created_at?: string
           high_chair?: boolean
           id?: string
+          instagram?: string | null
           kids_area?: boolean
           lat: number
           lng: number
@@ -169,6 +178,7 @@ export type Database = {
           photo?: string | null
           status?: string
           updated_at?: string
+          website?: string | null
         }
         Update: {
           address?: string | null
@@ -179,6 +189,7 @@ export type Database = {
           created_at?: string
           high_chair?: boolean
           id?: string
+          instagram?: string | null
           kids_area?: boolean
           lat?: number
           lng?: number
@@ -186,6 +197,7 @@ export type Database = {
           photo?: string | null
           status?: string
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
