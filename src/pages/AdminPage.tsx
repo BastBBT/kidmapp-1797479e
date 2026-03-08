@@ -52,6 +52,7 @@ const AdminPage = () => {
 
   const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
+    enabled: isAdmin,
     queryFn: async () => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -225,7 +226,7 @@ const AdminPage = () => {
     let photoUrl: string | null = null;
     if (photoFile) {
       const fileExt = photoFile.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
+      const fileName = `admin/${crypto.randomUUID()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from('location-photos')
         .upload(fileName, photoFile);
