@@ -152,28 +152,46 @@ const AdminPage = () => {
   };
 
   const handleAddLocation = async () => {
-    if (!form.name || !form.address || !form.lat || !form.lng) {
+    if (!form.name || !form.address) {
       toast({ title: 'Erreur', description: 'Remplissez tous les champs obligatoires', variant: 'destructive' });
       return;
     }
-    const lat = parseFloat(form.lat);
-    const lng = parseFloat(form.lng);
-    if (isNaN(lat) || lat < 46 || lat > 48) {
-      toast({ title: 'Erreur', description: 'Latitude doit être entre 46 et 48', variant: 'destructive' });
-      return;
-    }
-    if (isNaN(lng) || lng < -3 || lng > 0) {
-      toast({ title: 'Erreur', description: 'Longitude doit être entre -3 et 0', variant: 'destructive' });
-      return;
-    }
     setSubmitting(true);
+
+    // Geocode address
+    const coords = await geocodeAddress(form.address);
+    if (!coords) {
+      toast({ title: 'Adresse introuvable', description: 'Vérifiez l\'adresse saisie', variant: 'destructive' });
+      setSubmitting(false);
+      return;
+    }
+
+    // Upload photo if present
+    let photoUrl: string | null = null;
+    if (photoFile) {
+      const fileExt = photoFile.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('location-photos')
+        .upload(fileName, photoFile);
+      if (uploadError) {
+        toast({ title: 'Erreur upload photo', variant: 'destructive' });
+        setSubmitting(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage
+        .from('location-photos')
+        .getPublicUrl(fileName);
+      photoUrl = urlData.publicUrl;
+    }
+
     const { error } = await supabase.from('locations').insert({
       name: form.name,
       category: form.category,
       address: form.address,
-      lat,
-      lng,
-      photo: form.photo || null,
+      lat: coords.lat,
+      lng: coords.lng,
+      photo: photoUrl,
       high_chair: form.high_chair,
       changing_table: form.changing_table,
       kids_area: form.kids_area,
@@ -188,7 +206,9 @@ const AdminPage = () => {
     queryClient.invalidateQueries({ queryKey: ['locations'] });
     queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     toast({ title: 'Lieu ajouté ✓' });
-    setForm({ name: '', category: 'restaurant', address: '', lat: '', lng: '', photo: '', high_chair: false, changing_table: false, kids_area: false, status: 'pending' });
+    setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, status: 'pending' });
+    setPhotoFile(null);
+    setPhotoPreview(null);
   };
 
   if (authLoading) return null;
