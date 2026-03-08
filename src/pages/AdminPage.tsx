@@ -917,31 +917,73 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
               {new Date(proposal.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
             {proposal.status === 'pending' && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleApprove(proposal)}
-                  disabled={isProcessing}
-                  style={{
-                    flex: 1, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
-                    padding: '8px', borderRadius: '100px', border: 'none',
-                    background: 'var(--secondary)', color: '#fff', cursor: isProcessing ? 'not-allowed' : 'pointer',
-                    opacity: isProcessing ? 0.6 : 1,
-                  }}
-                >
-                  {isProcessing ? 'En cours…' : '✓ Approuver'}
-                </button>
-                <button
-                  onClick={() => handleReject(proposal)}
-                  disabled={isProcessing}
-                  style={{
-                    flex: 1, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
-                    padding: '8px', borderRadius: '100px',
-                    border: '1.5px solid var(--border)', background: 'transparent',
-                    color: 'var(--text-muted)', cursor: isProcessing ? 'not-allowed' : 'pointer',
-                    opacity: isProcessing ? 0.6 : 1,
-                  }}
-                >
-                  ✗ Rejeter
+              <>
+                {manualCoordsProposal === proposal.id && (
+                  <div style={{
+                    padding:'12px', borderRadius:'var(--radius-sm)',
+                    background:'var(--accent-light)',
+                    border:'1px solid #F2C94C',
+                    marginBottom:'8px'
+                  }}>
+                    <div style={{fontFamily:'Caveat', fontSize:'14px', color:'#C49A35', marginBottom:'8px'}}>
+                      Adresse non reconnue — ajustez les coordonnées ✦
+                    </div>
+                    <div style={{display:'flex', gap:'8px'}}>
+                      <div style={{flex:1}}>
+                        <label style={{fontSize:'11px', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:'4px'}}>
+                          Latitude
+                        </label>
+                        <input
+                          value={proposalManualLat}
+                          onChange={e => setProposalManualLat(e.target.value)}
+                          style={{width:'100%', padding:'10px 12px', borderRadius:'var(--radius-sm)', border:'1.5px solid var(--border)', fontFamily:'DM Sans', fontSize:'14px'}}
+                        />
+                      </div>
+                      <div style={{flex:1}}>
+                        <label style={{fontSize:'11px', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:'4px'}}>
+                          Longitude
+                        </label>
+                        <input
+                          value={proposalManualLng}
+                          onChange={e => setProposalManualLng(e.target.value)}
+                          style={{width:'100%', padding:'10px 12px', borderRadius:'var(--radius-sm)', border:'1.5px solid var(--border)', fontFamily:'DM Sans', fontSize:'14px'}}
+                        />
+                      </div>
+                    </div>
+                    <div style={{fontSize:'11px', color:'var(--text-muted)', marginTop:'6px', fontFamily:'DM Sans'}}>
+                      Astuce : trouvez les coordonnées sur maps.google.com en faisant clic droit sur le lieu.
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleApprove(proposal, manualCoordsProposal === proposal.id)}
+                    disabled={isProcessing}
+                    style={{
+                      flex: 1, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                      padding: '8px', borderRadius: '100px', border: 'none',
+                      background: 'var(--secondary)', color: '#fff', cursor: isProcessing ? 'not-allowed' : 'pointer',
+                      opacity: isProcessing ? 0.6 : 1,
+                    }}
+                  >
+                    {isProcessing ? 'En cours…' : manualCoordsProposal === proposal.id ? '✓ Approuver avec ces coordonnées' : '✓ Approuver'}
+                  </button>
+                  <button
+                    onClick={() => handleReject(proposal)}
+                    disabled={isProcessing}
+                    style={{
+                      flex: 1, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                      padding: '8px', borderRadius: '100px',
+                      border: '1.5px solid var(--border)', background: 'transparent',
+                      color: 'var(--text-muted)', cursor: isProcessing ? 'not-allowed' : 'pointer',
+                      opacity: isProcessing ? 0.6 : 1,
+                    }}
+                  >
+                    ✗ Rejeter
+                  </button>
+                </div>
+              </>
+            )}
                 </button>
               </div>
             )}
