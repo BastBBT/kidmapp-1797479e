@@ -86,7 +86,7 @@ function RecenterMap() {
   useEffect(() => {
     const timer = setTimeout(() => {
       map.invalidateSize();
-      map.setView(NANTES_CENTER, 13);
+      map.setView(NANTES_CENTER, DEFAULT_ZOOM);
     }, 150);
     return () => clearTimeout(timer);
   }, [map]);
