@@ -191,3 +191,9 @@
 .leaflet-control-zoom {
   display: none !important;
 }
+
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  select, textarea, input[type="text"], input[type="number"], input[type="email"], input[type="password"] {
+    font-size: max(16px, 1em);
+  }
+}
