@@ -549,6 +549,7 @@ const AdminPage = () => {
                     <option value="cafe">☕ Café</option>
                     <option value="shop">🛍️ Boutique</option>
                     <option value="public">🌳 Lieu public</option>
+                    <option value="coiffeur">✂️ Coiffeur</option>
                   </select>
                 </div>
                 <div>
@@ -821,6 +822,7 @@ const AdminPage = () => {
                   <option value="cafe">☕ Café</option>
                   <option value="shop">🛍️ Boutique</option>
                   <option value="public">🌳 Lieu public</option>
+                  <option value="coiffeur">✂️ Coiffeur</option>
                 </select>
               </div>
               <FormField label="Adresse" value={editForm.address} onChange={(v) => setEditForm((f: any) => ({ ...f, address: v }))} />

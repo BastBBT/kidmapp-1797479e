@@ -6,7 +6,7 @@ interface CategoryFilterProps {
   onChange: (cat: LocationCategory | 'all') => void;
 }
 
-const categories: (LocationCategory | 'all')[] = ['all', 'restaurant', 'cafe', 'shop', 'public'];
+const categories: (LocationCategory | 'all')[] = ['all', 'restaurant', 'cafe', 'shop', 'public', 'coiffeur'];
 
 const allLabels: Record<string, string> = {
   all: 'Tout',
@@ -51,6 +51,16 @@ const CategoryIcon = ({ cat }: { cat: string }) => {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 4c-2 3-6 4.5-6 10a6 6 0 0012 0c0-5.5-4-7-6-10z" />
           <path d="M12 20V11" />
+        </svg>
+      );
+    case 'coiffeur':
+      return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="6" cy="6" r="3" />
+          <circle cx="6" cy="18" r="3" />
+          <line x1="20" y1="4" x2="8.12" y2="15.88" />
+          <line x1="14.47" y1="14.48" x2="20" y2="20" />
+          <line x1="8.12" y1="8.12" x2="12" y2="12" />
         </svg>
       );
     default:

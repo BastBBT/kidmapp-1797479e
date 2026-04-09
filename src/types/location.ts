@@ -1,6 +1,6 @@
 import { Tables } from '@/integrations/supabase/types';
 
-export type LocationCategory = 'restaurant' | 'cafe' | 'shop' | 'public';
+export type LocationCategory = 'restaurant' | 'cafe' | 'shop' | 'public' | 'coiffeur';
 
 export type Location = Tables<'locations'> & {
   // Type narrowing helpers
@@ -13,6 +13,7 @@ export const categoryLabels: Record<LocationCategory, string> = {
   cafe: 'Café',
   shop: 'Boutique',
   public: 'Lieu public',
+  coiffeur: 'Coiffeur',
 };
 
 export const categoryIcons: Record<LocationCategory, string> = {
@@ -20,4 +21,5 @@ export const categoryIcons: Record<LocationCategory, string> = {
   cafe: '☕',
   shop: '🛍️',
   public: '🌳',
+  coiffeur: '✂️',
 };
