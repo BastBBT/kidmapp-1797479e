@@ -13,6 +13,7 @@ const categoryGradients: Record<string, string> = {
   cafe: 'linear-gradient(145deg, #A8D4CE, #5FA89D)',
   public: 'linear-gradient(145deg, #B8D9A4, #72B05E)',
   shop: 'linear-gradient(145deg, #F5E0A0, #E0B848)',
+  coiffeur: 'linear-gradient(145deg, #D7BDE2, #9B59B6)',
 };
 
 const EquipBadge = ({ active, label, icon }: { active: boolean; label: string; icon: React.ReactNode }) => (

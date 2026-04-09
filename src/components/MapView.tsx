@@ -20,6 +20,7 @@ const getMarkerIcon = (category: string, isSelected: boolean) => {
     cafe:       { bg: '#EBF4F2', border: '#C8E0DC', stroke: '#3B7D6E', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B7D6E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/></svg>` },
     shop:       { bg: '#FEF9E7', border: '#F5E6C8', stroke: '#C49A35', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C49A35" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>` },
     public:     { bg: '#EEF6EC', border: '#D1E8CF', stroke: '#5A9A56', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5A9A56" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M12 12C12 12 7 9 7 5a5 5 0 0110 0c0 4-5 7-5 7z"/><path d="M9 19c-2 0-4-1-4-3"/><path d="M15 19c2 0 4-1 4-3"/></svg>` },
+    coiffeur:   { bg: '#F3EAF7', border: '#D7BDE2', stroke: '#9B59B6', icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9B59B6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>` },
   };
   const c = configs[category] ?? configs.restaurant;
   const size = isSelected ? 48 : 40;
@@ -71,6 +72,7 @@ const categoryLabels: Record<string, string> = {
   cafe: 'Café',
   shop: 'Boutique',
   public: 'Lieu public',
+  coiffeur: 'Coiffeur',
 };
 
 interface MapViewProps {
@@ -147,6 +149,7 @@ const MapView = ({ locations, selectedId }: MapViewProps) => {
               cafe: { stroke: '#3B7D6E' },
               shop: { stroke: '#C49A35' },
               public: { stroke: '#5A9A56' },
+              coiffeur: { stroke: '#9B59B6' },
             };
             const colors = markerColors[loc.category] || markerColors.restaurant;
             return (

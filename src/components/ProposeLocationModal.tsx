@@ -155,6 +155,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                   <option value="cafe">☕ Café</option>
                   <option value="shop">🛍️ Boutique</option>
                   <option value="public">🌳 Lieu public</option>
+                  <option value="coiffeur">✂️ Coiffeur</option>
                 </select>
               </div>
 
