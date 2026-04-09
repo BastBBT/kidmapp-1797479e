@@ -80,7 +80,7 @@ const AuthModal = () => {
 
         {/* Logo */}
         <div style={{ fontFamily: 'Fraunces', fontSize: '48px', color: 'var(--primary)', letterSpacing: '-0.04em', fontWeight: 500, position: 'relative', zIndex: 1 }}>
-          kidmap
+          kidmapp
         </div>
         <div style={{ fontFamily: 'Caveat', fontSize: '18px', color: '#C45A38', fontWeight: 500, position: 'relative', zIndex: 1 }}>
           Nantes pour les familles ✦
