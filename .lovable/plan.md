@@ -1,40 +1,18 @@
 
 
-## Ajouter la catégorie "coiffeur"
+## Corriger la contrainte de catégorie en base de données
 
-### Fichiers à modifier
+**Problème** : La table `locations` possède une contrainte CHECK (`locations_category_check`) qui n'autorise que `restaurant`, `cafe`, `shop` et `public`. La valeur `coiffeur` est rejetée par la base, ce qui bloque toute insertion ou modification avec cette catégorie.
 
-**1. `src/types/location.ts`**
-- Ajouter `'coiffeur'` au type `LocationCategory`
-- Ajouter l'entrée dans `categoryLabels` : `coiffeur: 'Coiffeur'`
-- Ajouter l'entrée dans `categoryIcons` : `coiffeur: '✂️'`
+**Correction** : Une migration SQL pour supprimer l'ancienne contrainte et la recréer en incluant `coiffeur`.
 
-**2. `src/components/CategoryFilter.tsx`**
-- Ajouter `'coiffeur'` dans le tableau `categories`
-- Ajouter un cas `'coiffeur'` dans le switch `CategoryIcon` avec une icône SVG ciseaux
+```sql
+ALTER TABLE public.locations DROP CONSTRAINT locations_category_check;
+ALTER TABLE public.locations ADD CONSTRAINT locations_category_check
+  CHECK (category = ANY (ARRAY['restaurant','cafe','shop','public','coiffeur']));
+```
 
-**3. `src/components/MapView.tsx`**
-- Ajouter une entrée `coiffeur` dans `configs` de `getMarkerIcon` (couleurs dédiées, ex. violet/mauve)
-- Ajouter `coiffeur: 'Coiffeur'` dans le `categoryLabels` local
+**Fichiers modifiés** : Aucun fichier de code a changer, uniquement une migration base de données.
 
-**4. `src/components/LocationCard.tsx`**
-- Ajouter `coiffeur` dans `categoryGradients`
-
-**5. `src/pages/LocationPage.tsx`**
-- Ajouter `coiffeur` dans `categoryGradients`
-
-**6. `src/pages/AdminPage.tsx`**
-- Ajouter `<option value="coiffeur">✂️ Coiffeur</option>` dans les 2 selects (ajout + édition)
-
-**7. `src/components/ProposeLocationModal.tsx`**
-- Ajouter `<option value="coiffeur">✂️ Coiffeur</option>` dans le select du formulaire de proposition
-
-### Palette couleur pour "coiffeur"
-- Stroke/accent : `#9B59B6` (violet)
-- Background clair : `#F3EAF7`
-- Border : `#D7BDE2`
-- Gradient carte : `linear-gradient(145deg, #D7BDE2, #9B59B6)`
-
-### Pas de migration DB nécessaire
-La colonne `category` est de type `text`, pas un enum SQL — aucune migration requise.
+Cela corrigera l'édition, l'ajout admin et l'approbation de propositions pour la catégorie coiffeur.
 
