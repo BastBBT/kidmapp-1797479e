@@ -671,14 +671,14 @@ const AdminPage = () => {
                   </label>
                   <textarea
                     value={form.note}
-                    onChange={(e) => updateForm('note', e.target.value.slice(0, 300))}
+                    onChange={(e) => updateForm('note', e.target.value.slice(0, 500))}
                     placeholder="Un mot sur ce lieu, une info pratique…"
-                    maxLength={300}
+                    maxLength={500}
                     rows={3}
                     style={{ width: '100%', padding: '13px 16px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px', resize: 'none' }}
                   />
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>
-                    {(form.note || '').length}/300
+                    {(form.note || '').length}/500
                   </div>
                 </div>
 
@@ -839,13 +839,13 @@ const AdminPage = () => {
                 <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Note</label>
                 <textarea
                   value={editForm.note}
-                  onChange={(e) => setEditForm((f: any) => ({ ...f, note: e.target.value.slice(0, 300) }))}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, note: e.target.value.slice(0, 500) }))}
                   placeholder="Un mot sur ce lieu, une info pratique…"
-                  maxLength={300}
+                  maxLength={500}
                   rows={3}
                   style={{ width: '100%', padding: '13px 16px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px', resize: 'none' }}
                 />
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>{(editForm.note || '').length}/300</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>{(editForm.note || '').length}/500</div>
               </div>
               <div className="flex flex-col gap-3">
                 <Toggle label="Chaise haute" checked={editForm.high_chair} onChange={(v) => setEditForm((f: any) => ({ ...f, high_chair: v }))} />

@@ -286,14 +286,14 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                 </label>
                 <textarea
                   value={form.note}
-                  onChange={(e) => updateForm('note', e.target.value.slice(0, 200))}
+                  onChange={(e) => updateForm('note', e.target.value.slice(0, 500))}
                   placeholder="Un mot sur ce lieu…"
-                  maxLength={200}
+                  maxLength={500}
                   rows={3}
                   style={{ ...inputStyle, resize: 'none' }}
                 />
                 <div style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: 2 }}>
-                  {form.note.length}/200
+                  {form.note.length}/500
                 </div>
               </div>
 
