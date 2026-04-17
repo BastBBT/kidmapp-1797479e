@@ -518,14 +518,36 @@ const AdminPage = () => {
         {/* Contributions */}
         {activeTab === 'contributions' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
+            <SearchBar
+              value={searchContributions}
+              onChange={setSearchContributions}
+              placeholder="Rechercher par nom de lieu…"
+            />
             {contributions.length === 0 && (
               <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
                 Aucune contribution
               </p>
             )}
-            {contributions.map((contrib: any, i: number) => {
-              const loc = locations.find((l) => l.id === contrib.location_id);
+            {(() => {
+              const filteredContribs = contributions.filter((contrib: any) => {
+                const loc = locations.find((l) => l.id === contrib.location_id);
+                return matchSearch(searchContributions, loc?.name);
+              });
               return (
+                <>
+                  {contributions.length > 0 && (
+                    <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      {filteredContribs.length} {filteredContribs.length > 1 ? 'contributions affichées' : 'contribution affichée'}
+                    </div>
+                  )}
+                  {contributions.length > 0 && filteredContribs.length === 0 && (
+                    <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
+                      Aucun résultat
+                    </p>
+                  )}
+                  {filteredContribs.map((contrib: any, i: number) => {
+                    const loc = locations.find((l) => l.id === contrib.location_id);
+                    return (
                 <motion.div
                   key={contrib.id}
                   initial={{ opacity: 0, y: 10 }}
