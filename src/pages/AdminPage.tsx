@@ -1136,6 +1136,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   const [manualCoordsProposal, setManualCoordsProposal] = useState<string | null>(null);
   const [proposalManualLat, setProposalManualLat] = useState('47.2184');
   const [proposalManualLng, setProposalManualLng] = useState('-1.5536');
+  const [searchProposals, setSearchProposals] = useState('');
 
   const { data: proposals = [] } = useQuery({
     queryKey: ['proposals'],
