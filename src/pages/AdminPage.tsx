@@ -509,6 +509,9 @@ const AdminPage = () => {
                 </div>
               </motion.div>
             ))}
+                </>
+              );
+            })()}
           </motion.div>
         )}
 
