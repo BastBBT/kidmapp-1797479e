@@ -93,6 +93,8 @@ const AdminPage = () => {
   const { isAdmin, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [searchLocations, setSearchLocations] = useState('');
+  const [searchContributions, setSearchContributions] = useState('');
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
