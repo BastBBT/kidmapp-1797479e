@@ -611,6 +611,9 @@ const AdminPage = () => {
                 </motion.div>
               );
             })}
+                </>
+              );
+            })()}
           </motion.div>
         )}
 
