@@ -1,35 +1,43 @@
 
 
-## Augmenter la limite du champ Note à 500 caractères
+## Ajouter une barre de recherche dans l'admin (Lieux, Contributions, Propositions)
 
-### Contexte
-Le champ "Note" est actuellement limité à 300 caractères dans l'admin (ajout + édition) et 200 dans le formulaire de proposition. La colonne `note` en base est de type `text` sans contrainte de longueur — il n'y a donc rien à modifier côté base de données. La limite est uniquement côté front-end.
+### Objectif
+Permettre de retrouver rapidement un élément dans chacun des 3 onglets de l'admin avec une recherche simple par texte.
 
-Cependant, pour que l'app iOS puisse aussi respecter cette limite, on va ajouter une contrainte CHECK en base de données à 500 caractères. Ainsi, les deux apps (web et iOS) seront alignées.
+### Champs de recherche
 
-### Plan
+- **Lieux** : nom, adresse, website
+- **Contributions** : nom du lieu associé (cherché via `locations.find(...)`)
+- **Propositions** : nom, adresse, website
 
-**1. Migration base de données** — Ajouter une contrainte CHECK sur les 3 tables concernées :
-```sql
-ALTER TABLE public.locations ADD CONSTRAINT locations_note_length CHECK (char_length(note) <= 500);
-ALTER TABLE public.location_proposals ADD CONSTRAINT proposals_note_length CHECK (char_length(note) <= 500);
-ALTER TABLE public.contributions ADD CONSTRAINT contributions_note_length CHECK (char_length(note) <= 500);
+Recherche insensible à la casse, sans accents (filtrage côté client, immédiat).
+
+### Implémentation — `src/pages/AdminPage.tsx`
+
+**1. Ajouter 3 états de recherche** (au niveau du composant `AdminPage`) :
+```tsx
+const [searchLocations, setSearchLocations] = useState('');
+const [searchContributions, setSearchContributions] = useState('');
+```
+(et un 3ème dans `ProposalsTab` pour `searchProposals`)
+
+**2. Créer un petit composant inline réutilisable `SearchBar`** au-dessus de chaque liste — input avec icône loupe, style cohérent avec le reste de l'admin (border-radius 100px, fontFamily DM Sans, padding 10px).
+
+**3. Filtrage** :
+- **Lieux** (ligne 354) : remplacer `locations.map(...)` par `locations.filter(loc => match(loc.name, loc.address, loc.website)).map(...)`
+- **Contributions** (ligne 449) : filtrer sur le nom du lieu trouvé via `locations.find(l => l.id === contrib.location_id)?.name`
+- **Propositions** (ligne 1124, dans `ProposalsTab`) : filtrer sur `proposal.name`, `proposal.address`, `proposal.website`
+
+**4. Helper de normalisation** :
+```ts
+const normalize = (s?: string) => (s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const match = (q: string, ...fields: (string | undefined)[]) => 
+  fields.some(f => normalize(f).includes(normalize(q)));
 ```
 
-**2. `src/pages/AdminPage.tsx`** — Modifier les 4 occurrences de `300` liées au champ note :
-- Ligne 674 : `.slice(0, 300)` → `.slice(0, 500)`
-- Ligne 676 : `maxLength={300}` → `maxLength={500}`
-- Ligne 681 : `}/300` → `}/500`
-- Ligne 842 : `.slice(0, 300)` → `.slice(0, 500)`
-- Ligne 844 : `maxLength={300}` → `maxLength={500}`
-- Ligne 848 : `}/300` → `}/500`
+**5. UX** : afficher un message "Aucun résultat" quand le filtre ne renvoie rien, et un compteur discret du type "12 lieux affichés".
 
-**3. `src/components/ProposeLocationModal.tsx`** — Modifier les 3 occurrences de `200` :
-- Ligne 289 : `.slice(0, 200)` → `.slice(0, 500)`
-- Ligne 291 : `maxLength={200}` → `maxLength={500}`
-- Ligne 296 : `}/200` → `}/500`
-
-### Résultat
-- La limite est de 500 caractères partout (web + futur iOS via la contrainte DB)
-- L'app iOS pourra lire la contrainte ou simplement appliquer la même limite de 500
+### Pas de changement BDD
+Filtrage 100% côté client — les listes sont déjà chargées en mémoire.
 
