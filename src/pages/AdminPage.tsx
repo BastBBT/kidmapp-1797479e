@@ -1361,6 +1361,9 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
           </motion.div>
         );
       })}
+          </>
+        );
+      })()}
     </motion.div>
   );
 }
