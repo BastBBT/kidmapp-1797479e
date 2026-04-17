@@ -34,12 +34,67 @@ function getDayLabel(dateStr: string) {
   return dayLabels[d.getDay() === 0 ? 6 : d.getDay() - 1];
 }
 
+const normalize = (s?: string | null) =>
+  (s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const matchSearch = (q: string, ...fields: (string | undefined | null)[]) => {
+  const nq = normalize(q).trim();
+  if (!nq) return true;
+  return fields.some((f) => normalize(f).includes(nq));
+};
+
+function SearchBar({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <div style={{ position: 'relative', marginBottom: '12px' }}>
+      <svg
+        width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+      >
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{
+          width: '100%',
+          padding: '10px 14px 10px 38px',
+          borderRadius: '100px',
+          border: '1.5px solid var(--border)',
+          background: 'var(--surface)',
+          fontFamily: 'DM Sans',
+          fontSize: '14px',
+          color: 'var(--text)',
+          outline: 'none',
+        }}
+      />
+      {value && (
+        <button
+          onClick={() => onChange('')}
+          aria-label="Effacer"
+          style={{
+            position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            color: 'var(--text-muted)', fontSize: '16px', padding: '4px 8px',
+          }}
+        >
+          ✕
+        </button>
+      )}
+    </div>
+  );
+}
+
 const AdminPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [searchLocations, setSearchLocations] = useState('');
+  const [searchContributions, setSearchContributions] = useState('');
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -351,7 +406,26 @@ const AdminPage = () => {
         {/* Lieux */}
         {activeTab === 'locations' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
-            {locations.map((loc, i) => (
+            <SearchBar
+              value={searchLocations}
+              onChange={setSearchLocations}
+              placeholder="Rechercher par nom, adresse ou site web…"
+            />
+            {(() => {
+              const filtered = locations.filter((loc) =>
+                matchSearch(searchLocations, loc.name, loc.address, (loc as any).website)
+              );
+              return (
+                <>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    {filtered.length} {filtered.length > 1 ? 'lieux affichés' : 'lieu affiché'}
+                  </div>
+                  {filtered.length === 0 && (
+                    <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
+                      Aucun résultat
+                    </p>
+                  )}
+                  {filtered.map((loc, i) => (
               <motion.div
                 key={loc.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -435,20 +509,45 @@ const AdminPage = () => {
                 </div>
               </motion.div>
             ))}
+                </>
+              );
+            })()}
           </motion.div>
         )}
 
         {/* Contributions */}
         {activeTab === 'contributions' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
+            <SearchBar
+              value={searchContributions}
+              onChange={setSearchContributions}
+              placeholder="Rechercher par nom de lieu…"
+            />
             {contributions.length === 0 && (
               <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
                 Aucune contribution
               </p>
             )}
-            {contributions.map((contrib: any, i: number) => {
-              const loc = locations.find((l) => l.id === contrib.location_id);
+            {(() => {
+              const filteredContribs = contributions.filter((contrib: any) => {
+                const loc = locations.find((l) => l.id === contrib.location_id);
+                return matchSearch(searchContributions, loc?.name);
+              });
               return (
+                <>
+                  {contributions.length > 0 && (
+                    <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      {filteredContribs.length} {filteredContribs.length > 1 ? 'contributions affichées' : 'contribution affichée'}
+                    </div>
+                  )}
+                  {contributions.length > 0 && filteredContribs.length === 0 && (
+                    <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
+                      Aucun résultat
+                    </p>
+                  )}
+                  {filteredContribs.map((contrib: any, i: number) => {
+                    const loc = locations.find((l) => l.id === contrib.location_id);
+                    return (
                 <motion.div
                   key={contrib.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -512,6 +611,9 @@ const AdminPage = () => {
                 </motion.div>
               );
             })}
+                </>
+              );
+            })()}
           </motion.div>
         )}
 
@@ -1034,6 +1136,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   const [manualCoordsProposal, setManualCoordsProposal] = useState<string | null>(null);
   const [proposalManualLat, setProposalManualLat] = useState('47.2184');
   const [proposalManualLng, setProposalManualLng] = useState('-1.5536');
+  const [searchProposals, setSearchProposals] = useState('');
 
   const { data: proposals = [] } = useQuery({
     queryKey: ['proposals'],
@@ -1116,15 +1219,36 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
+      <SearchBar
+        value={searchProposals}
+        onChange={setSearchProposals}
+        placeholder="Rechercher par nom, adresse ou site web…"
+      />
       {proposals.length === 0 && (
         <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
           Aucune proposition
         </p>
       )}
-      {proposals.map((proposal: any, i: number) => {
-        const catStyle = categoryBadgeColors[proposal.category] ?? { bg: 'var(--bg)', color: 'var(--text-muted)' };
-        const isProcessing = processingId === proposal.id;
+      {(() => {
+        const filteredProposals = proposals.filter((p: any) =>
+          matchSearch(searchProposals, p.name, p.address, p.website)
+        );
         return (
+          <>
+            {proposals.length > 0 && (
+              <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                {filteredProposals.length} {filteredProposals.length > 1 ? 'propositions affichées' : 'proposition affichée'}
+              </div>
+            )}
+            {proposals.length > 0 && filteredProposals.length === 0 && (
+              <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
+                Aucun résultat
+              </p>
+            )}
+            {filteredProposals.map((proposal: any, i: number) => {
+              const catStyle = categoryBadgeColors[proposal.category] ?? { bg: 'var(--bg)', color: 'var(--text-muted)' };
+              const isProcessing = processingId === proposal.id;
+              return (
           <motion.div
             key={proposal.id}
             initial={{ opacity: 0, y: 10 }}
@@ -1237,6 +1361,9 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
           </motion.div>
         );
       })}
+          </>
+        );
+      })()}
     </motion.div>
   );
 }
