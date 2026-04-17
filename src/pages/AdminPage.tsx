@@ -1219,15 +1219,36 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
+      <SearchBar
+        value={searchProposals}
+        onChange={setSearchProposals}
+        placeholder="Rechercher par nom, adresse ou site web…"
+      />
       {proposals.length === 0 && (
         <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
           Aucune proposition
         </p>
       )}
-      {proposals.map((proposal: any, i: number) => {
-        const catStyle = categoryBadgeColors[proposal.category] ?? { bg: 'var(--bg)', color: 'var(--text-muted)' };
-        const isProcessing = processingId === proposal.id;
+      {(() => {
+        const filteredProposals = proposals.filter((p: any) =>
+          matchSearch(searchProposals, p.name, p.address, p.website)
+        );
         return (
+          <>
+            {proposals.length > 0 && (
+              <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                {filteredProposals.length} {filteredProposals.length > 1 ? 'propositions affichées' : 'proposition affichée'}
+              </div>
+            )}
+            {proposals.length > 0 && filteredProposals.length === 0 && (
+              <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
+                Aucun résultat
+              </p>
+            )}
+            {filteredProposals.map((proposal: any, i: number) => {
+              const catStyle = categoryBadgeColors[proposal.category] ?? { bg: 'var(--bg)', color: 'var(--text-muted)' };
+              const isProcessing = processingId === proposal.id;
+              return (
           <motion.div
             key={proposal.id}
             initial={{ opacity: 0, y: 10 }}
