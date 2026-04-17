@@ -406,7 +406,26 @@ const AdminPage = () => {
         {/* Lieux */}
         {activeTab === 'locations' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
-            {locations.map((loc, i) => (
+            <SearchBar
+              value={searchLocations}
+              onChange={setSearchLocations}
+              placeholder="Rechercher par nom, adresse ou site web…"
+            />
+            {(() => {
+              const filtered = locations.filter((loc) =>
+                matchSearch(searchLocations, loc.name, loc.address, (loc as any).website)
+              );
+              return (
+                <>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    {filtered.length} {filtered.length > 1 ? 'lieux affichés' : 'lieu affiché'}
+                  </div>
+                  {filtered.length === 0 && (
+                    <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
+                      Aucun résultat
+                    </p>
+                  )}
+                  {filtered.map((loc, i) => (
               <motion.div
                 key={loc.id}
                 initial={{ opacity: 0, y: 10 }}
