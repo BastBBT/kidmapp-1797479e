@@ -34,6 +34,59 @@ function getDayLabel(dateStr: string) {
   return dayLabels[d.getDay() === 0 ? 6 : d.getDay() - 1];
 }
 
+const normalize = (s?: string | null) =>
+  (s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const matchSearch = (q: string, ...fields: (string | undefined | null)[]) => {
+  const nq = normalize(q).trim();
+  if (!nq) return true;
+  return fields.some((f) => normalize(f).includes(nq));
+};
+
+function SearchBar({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <div style={{ position: 'relative', marginBottom: '12px' }}>
+      <svg
+        width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+      >
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{
+          width: '100%',
+          padding: '10px 14px 10px 38px',
+          borderRadius: '100px',
+          border: '1.5px solid var(--border)',
+          background: 'var(--surface)',
+          fontFamily: 'DM Sans',
+          fontSize: '14px',
+          color: 'var(--text)',
+          outline: 'none',
+        }}
+      />
+      {value && (
+        <button
+          onClick={() => onChange('')}
+          aria-label="Effacer"
+          style={{
+            position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            color: 'var(--text-muted)', fontSize: '16px', padding: '4px 8px',
+          }}
+        >
+          ✕
+        </button>
+      )}
+    </div>
+  );
+}
+
 const AdminPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
