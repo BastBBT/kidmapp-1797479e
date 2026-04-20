@@ -78,20 +78,42 @@ const categoryLabels: Record<string, string> = {
 interface MapViewProps {
   locations: Location[];
   selectedId?: string;
+  initialCenter?: [number, number];
+  initialZoom?: number;
+  onViewChange?: (center: [number, number], zoom: number) => void;
 }
 
 const NANTES_CENTER: [number, number] = [47.1984, -1.5536];
 const DEFAULT_ZOOM = 12;
 
-function RecenterMap() {
+function RecenterMap({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap();
   useEffect(() => {
     const timer = setTimeout(() => {
       map.invalidateSize();
-      map.setView(NANTES_CENTER, DEFAULT_ZOOM);
+      map.setView(center, zoom);
     }, 150);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map]);
+  return null;
+}
+
+function ViewChangeReporter({ onViewChange }: { onViewChange?: (center: [number, number], zoom: number) => void }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!onViewChange) return;
+    const handler = () => {
+      const c = map.getCenter();
+      onViewChange([c.lat, c.lng], map.getZoom());
+    };
+    map.on('moveend', handler);
+    map.on('zoomend', handler);
+    return () => {
+      map.off('moveend', handler);
+      map.off('zoomend', handler);
+    };
+  }, [map, onViewChange]);
   return null;
 }
 
