@@ -11,12 +11,12 @@ import { useMealTypes, type MealType } from '@/hooks/useMeals';
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals';
 
-type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; days_custom: string; confirmed_count: number }>;
+type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; confirmed_count: number }>;
 
 const buildEmptyMealsState = (mealTypes: MealType[]): MealsState => {
   const s: MealsState = {};
   mealTypes.forEach((m) => {
-    s[m.id] = { enabled: false, time_open: '', time_close: '', days_custom: '', confirmed_count: 0 };
+    s[m.id] = { enabled: false, time_open: '', time_close: '', confirmed_count: 0 };
   });
   return s;
 };
@@ -357,7 +357,6 @@ const AdminPage = () => {
           meal_type_id,
           time_open: v.time_open || mt?.default_time_start || null,
           time_close: v.time_close || mt?.default_time_end || null,
-          days_custom: v.days_custom || null,
           is_confirmed: true,
           confirmed_count: 0,
         };
@@ -548,7 +547,6 @@ const AdminPage = () => {
                             enabled: true,
                             time_open: row.time_open ?? '',
                             time_close: row.time_close ?? '',
-                            days_custom: row.days_custom ?? '',
                             confirmed_count: row.confirmed_count ?? 0,
                           };
                         }
@@ -1078,7 +1076,6 @@ const AdminPage = () => {
                         meal_type_id,
                         time_open: v.time_open || mt?.default_time_start || null,
                         time_close: v.time_close || mt?.default_time_end || null,
-                        days_custom: v.days_custom || null,
                         is_confirmed: true,
                       };
                     });
@@ -1257,46 +1254,40 @@ function MealsEditor({
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {mealTypes.map((mt) => {
-          const v = state[mt.id] ?? { enabled: false, time_open: '', time_close: '', days_custom: '', confirmed_count: 0 };
+          const v = state[mt.id] ?? { enabled: false, time_open: '', time_close: '', confirmed_count: 0 };
           return (
             <div
               key={mt.id}
               style={{
-                background: v.enabled ? (mt.bg_hex ?? 'var(--bg)') : 'var(--bg)',
-                border: v.enabled ? `1.5px solid ${mt.fill_hex ?? 'var(--primary)'}` : '1px solid var(--border)',
-                borderRadius: '12px',
-                padding: '10px 12px',
+                padding: '12px', borderRadius: '12px',
+                border: '1px solid var(--border)', background: 'var(--surface)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                  <span style={{ fontSize: '18px' }}>{mt.emoji}</span>
-                  <span style={{ fontFamily: 'DM Sans', fontSize: '14px', fontWeight: 500, color: 'var(--text)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '20px' }}>{mt.emoji}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: '14px' }}>
                     {mt.label}
-                  </span>
+                  </div>
                   {v.confirmed_count > 0 && (
-                    <span
-                      style={{
-                        padding: '2px 8px', borderRadius: '100px', background: 'var(--bg)',
-                        fontSize: '10px', fontFamily: 'DM Sans', color: 'var(--text-muted)', fontWeight: 600,
-                      }}
-                    >
-                      ✓ {v.confirmed_count}
-                    </span>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      {v.confirmed_count} confirmation{v.confirmed_count > 1 ? 's' : ''}
+                    </div>
                   )}
                 </div>
                 <button
                   type="button"
                   onClick={() => update(mt.id, { enabled: !v.enabled })}
                   style={{
-                    width: 44, height: 24, borderRadius: '100px', border: 'none',
-                    background: v.enabled ? (mt.fill_hex ?? 'var(--primary)') : 'var(--border)',
-                    position: 'relative', cursor: 'pointer', flexShrink: 0,
+                    width: 44, height: 24, borderRadius: 100,
+                    background: v.enabled ? (mt.fill_hex || 'var(--primary)') : 'var(--border)',
+                    position: 'relative', border: 'none', cursor: 'pointer',
+                    transition: 'background 0.2s', flexShrink: 0,
                   }}
-                  aria-label={`Toggle ${mt.label}`}
                 >
-                  <div
+                  <span
                     style={{
+                      display: 'block',
                       width: 18, height: 18, borderRadius: '50%', background: '#fff',
                       position: 'absolute', top: 3, left: v.enabled ? 23 : 3,
                       transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
@@ -1305,39 +1296,26 @@ function MealsEditor({
                 </button>
               </div>
               {v.enabled && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      type="text"
-                      placeholder={mt.default_time_start ?? '12:00'}
-                      value={v.time_open}
-                      onChange={(e) => update(mt.id, { time_open: e.target.value })}
-                      style={{
-                        flex: 1, padding: '8px 10px', borderRadius: '8px',
-                        border: '1px solid var(--border)', background: 'var(--surface)',
-                        fontFamily: 'DM Sans', fontSize: '13px', outline: 'none',
-                      }}
-                    />
-                    <span style={{ alignSelf: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>–</span>
-                    <input
-                      type="text"
-                      placeholder={mt.default_time_end ?? '15:00'}
-                      value={v.time_close}
-                      onChange={(e) => update(mt.id, { time_close: e.target.value })}
-                      style={{
-                        flex: 1, padding: '8px 10px', borderRadius: '8px',
-                        border: '1px solid var(--border)', background: 'var(--surface)',
-                        fontFamily: 'DM Sans', fontSize: '13px', outline: 'none',
-                      }}
-                    />
-                  </div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                   <input
                     type="text"
-                    placeholder={mt.default_days ?? 'lun – dim'}
-                    value={v.days_custom}
-                    onChange={(e) => update(mt.id, { days_custom: e.target.value })}
+                    placeholder={mt.default_time_start ?? '12:00'}
+                    value={v.time_open}
+                    onChange={(e) => update(mt.id, { time_open: e.target.value })}
                     style={{
-                      width: '100%', padding: '8px 10px', borderRadius: '8px',
+                      flex: 1, padding: '8px 10px', borderRadius: '8px',
+                      border: '1px solid var(--border)', background: 'var(--surface)',
+                      fontFamily: 'DM Sans', fontSize: '13px', outline: 'none',
+                    }}
+                  />
+                  <span style={{ alignSelf: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>–</span>
+                  <input
+                    type="text"
+                    placeholder={mt.default_time_end ?? '15:00'}
+                    value={v.time_close}
+                    onChange={(e) => update(mt.id, { time_close: e.target.value })}
+                    style={{
+                      flex: 1, padding: '8px 10px', borderRadius: '8px',
                       border: '1px solid var(--border)', background: 'var(--surface)',
                       fontFamily: 'DM Sans', fontSize: '13px', outline: 'none',
                     }}

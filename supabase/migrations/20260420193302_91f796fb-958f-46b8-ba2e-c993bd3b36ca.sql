@@ -1,0 +1,1 @@
+ALTER TABLE public.location_meals DROP COLUMN IF EXISTS days_custom;

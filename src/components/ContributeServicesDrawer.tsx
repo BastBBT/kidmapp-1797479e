@@ -14,42 +14,11 @@ interface Props {
   onRequireAuth?: () => void;
 }
 
-type DayKey = 'L' | 'M1' | 'M2' | 'J' | 'V' | 'S' | 'D';
-const DAYS: { key: DayKey; label: string; full: string }[] = [
-  { key: 'L', label: 'L', full: 'lun' },
-  { key: 'M1', label: 'M', full: 'mar' },
-  { key: 'M2', label: 'M', full: 'mer' },
-  { key: 'J', label: 'J', full: 'jeu' },
-  { key: 'V', label: 'V', full: 'ven' },
-  { key: 'S', label: 'S', full: 'sam' },
-  { key: 'D', label: 'D', full: 'dim' },
-];
-
 interface MealFormState {
   enabled: boolean;
   time_open: string;
   time_close: string;
-  days: DayKey[];
 }
-
-// Try to parse stored days_custom string back into day keys (best effort)
-const parseDays = (str: string | null | undefined): DayKey[] => {
-  if (!str) return [];
-  const lower = str.toLowerCase();
-  const out: DayKey[] = [];
-  DAYS.forEach((d) => {
-    if (lower.includes(d.full)) out.push(d.key);
-  });
-  return out;
-};
-
-const serializeDays = (keys: DayKey[]): string => {
-  if (keys.length === 0) return '';
-  if (keys.length === 7) return 'lun – dim';
-  return DAYS.filter((d) => keys.includes(d.key))
-    .map((d) => d.full)
-    .join(', ');
-};
 
 const ContributeServicesDrawer = ({ locationId, open, onClose, onRequireAuth }: Props) => {
   const { user } = useAuth();
@@ -59,7 +28,6 @@ const ContributeServicesDrawer = ({ locationId, open, onClose, onRequireAuth }: 
   const [state, setState] = useState<Record<string, MealFormState>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  // Initialize/refresh form state when drawer opens or data changes
   useEffect(() => {
     if (!open) return;
     const initial: Record<string, MealFormState> = {};
@@ -69,7 +37,6 @@ const ContributeServicesDrawer = ({ locationId, open, onClose, onRequireAuth }: 
         enabled: !!found,
         time_open: found?.time_open ?? mt.default_time_start ?? '12:00',
         time_close: found?.time_close ?? mt.default_time_end ?? '14:00',
-        days: parseDays(found?.days_custom ?? mt.default_days ?? ''),
       };
     });
     setState(initial);
@@ -80,13 +47,6 @@ const ContributeServicesDrawer = ({ locationId, open, onClose, onRequireAuth }: 
 
   const updateField = (id: string, patch: Partial<MealFormState>) =>
     setState((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
-
-  const toggleDay = (id: string, day: DayKey) =>
-    setState((s) => {
-      const cur = s[id]?.days ?? [];
-      const next = cur.includes(day) ? cur.filter((d) => d !== day) : [...cur, day];
-      return { ...s, [id]: { ...s[id], days: next } };
-    });
 
   const handleSubmit = async () => {
     if (!user) {
@@ -102,7 +62,6 @@ const ContributeServicesDrawer = ({ locationId, open, onClose, onRequireAuth }: 
           meal_type_id,
           time_open: v.time_open || null,
           time_close: v.time_close || null,
-          days_custom: v.days.length > 0 ? serializeDays(v.days) : null,
           is_confirmed: true,
           created_by: user.id,
         }));
@@ -158,7 +117,6 @@ const ContributeServicesDrawer = ({ locationId, open, onClose, onRequireAuth }: 
               maxHeight: '90vh',
             }}
           >
-            {/* Header */}
             <div style={{ padding: '20px 20px 12px', flexShrink: 0 }}>
               <div className="flex items-center justify-between mb-2">
                 <h2 className="font-display" style={{ fontSize: 18, fontWeight: 600 }}>
@@ -173,7 +131,6 @@ const ContributeServicesDrawer = ({ locationId, open, onClose, onRequireAuth }: 
               </p>
             </div>
 
-            {/* Body */}
             <div style={{ overflowY: 'auto', flex: 1, padding: '4px 20px 16px' }}>
               {!user && (
                 <div
@@ -202,14 +159,12 @@ const ContributeServicesDrawer = ({ locationId, open, onClose, onRequireAuth }: 
                       onToggle={() => toggleMeal(mt.id)}
                       onTimeOpen={(v) => updateField(mt.id, { time_open: v })}
                       onTimeClose={(v) => updateField(mt.id, { time_close: v })}
-                      onToggleDay={(d) => toggleDay(mt.id, d)}
                     />
                   );
                 })}
               </div>
             </div>
 
-            {/* Footer */}
             <div
               style={{
                 padding: '14px 20px 32px', flexShrink: 0,
@@ -242,9 +197,8 @@ const ContributeServicesDrawer = ({ locationId, open, onClose, onRequireAuth }: 
   );
 };
 
-// --- Row editor ---
 const MealRowEditor = ({
-  mealType, state, fill, bg, onToggle, onTimeOpen, onTimeClose, onToggleDay,
+  mealType, state, fill, bg, onToggle, onTimeOpen, onTimeClose,
 }: {
   mealType: MealType;
   state: MealFormState;
@@ -253,7 +207,6 @@ const MealRowEditor = ({
   onToggle: () => void;
   onTimeOpen: (v: string) => void;
   onTimeClose: (v: string) => void;
-  onToggleDay: (d: DayKey) => void;
 }) => {
   const subtitle =
     mealType.default_time_start && mealType.default_time_end
@@ -296,7 +249,6 @@ const MealRowEditor = ({
             </div>
           )}
         </div>
-        {/* Switch */}
         <div
           style={{
             width: 42, height: 24, borderRadius: 100,
@@ -323,37 +275,9 @@ const MealRowEditor = ({
             transition={{ duration: 0.2 }}
             style={{ overflow: 'hidden' }}
           >
-            <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <TimeField label="Ouverture" value={state.time_open} onChange={onTimeOpen} />
-                <TimeField label="Fermeture" value={state.time_close} onChange={onTimeClose} />
-              </div>
-              <div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>
-                  Jours
-                </div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {DAYS.map((d) => {
-                    const active = state.days.includes(d.key);
-                    return (
-                      <button
-                        key={d.key}
-                        onClick={() => onToggleDay(d.key)}
-                        style={{
-                          flex: 1, height: 36, borderRadius: 10,
-                          background: active ? fill : 'var(--surface)',
-                          color: active ? '#fff' : 'var(--text-muted)',
-                          border: active ? 'none' : '1px solid var(--border)',
-                          fontSize: 13, fontWeight: 600, fontFamily: 'DM Sans',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {d.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+            <div style={{ padding: '0 14px 14px', display: 'flex', gap: 10 }}>
+              <TimeField label="Ouverture" value={state.time_open} onChange={onTimeOpen} />
+              <TimeField label="Fermeture" value={state.time_close} onChange={onTimeClose} />
             </div>
           </motion.div>
         )}

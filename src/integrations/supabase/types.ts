@@ -92,7 +92,6 @@ export type Database = {
           confirmed_count: number
           created_at: string
           created_by: string | null
-          days_custom: string | null
           id: string
           is_confirmed: boolean
           location_id: string
@@ -104,7 +103,6 @@ export type Database = {
           confirmed_count?: number
           created_at?: string
           created_by?: string | null
-          days_custom?: string | null
           id?: string
           is_confirmed?: boolean
           location_id: string
@@ -116,7 +114,6 @@ export type Database = {
           confirmed_count?: number
           created_at?: string
           created_by?: string | null
-          days_custom?: string | null
           id?: string
           is_confirmed?: boolean
           location_id?: string

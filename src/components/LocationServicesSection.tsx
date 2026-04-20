@@ -36,9 +36,6 @@ const formatHours = (m: MealWithType) => {
   return `${start ?? '?'} – ${end ?? '?'}`;
 };
 
-const formatDays = (m: MealWithType) =>
-  m.days_custom ?? m.meal_types.default_days ?? null;
-
 const MealRow = ({
   meal,
   onConfirm,
@@ -51,7 +48,6 @@ const MealRow = ({
   showConfirmButton?: boolean;
 }) => {
   const hours = formatHours(meal);
-  const days = formatDays(meal);
   const isVerified = meal.confirmed_count >= 2;
   const fill = meal.meal_types.fill_hex || 'var(--primary)';
   const bg = meal.meal_types.bg_hex || 'var(--bg)';
@@ -89,8 +85,7 @@ const MealRow = ({
           )}
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-          {hours ?? 'Horaires non précisés'}
-          {days ? ` · ${days}` : ''}
+          {hours ?? 'Horaires à confirmer'}
         </div>
       </div>
       {showConfirmButton && (
