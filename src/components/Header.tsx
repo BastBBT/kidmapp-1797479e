@@ -72,6 +72,7 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange }: H
             <input
               type="text"
               placeholder="Rechercher un lieu…"
+              value={searchValue ?? ''}
               onChange={(e) => onSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-full text-sm outline-none transition-colors"
               style={{
