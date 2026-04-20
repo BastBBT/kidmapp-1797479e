@@ -87,6 +87,60 @@ export type Database = {
           },
         ]
       }
+      location_meals: {
+        Row: {
+          confirmed_count: number
+          created_at: string
+          created_by: string | null
+          days_custom: string | null
+          id: string
+          is_confirmed: boolean
+          location_id: string
+          meal_type_id: string
+          time_close: string | null
+          time_open: string | null
+        }
+        Insert: {
+          confirmed_count?: number
+          created_at?: string
+          created_by?: string | null
+          days_custom?: string | null
+          id?: string
+          is_confirmed?: boolean
+          location_id: string
+          meal_type_id: string
+          time_close?: string | null
+          time_open?: string | null
+        }
+        Update: {
+          confirmed_count?: number
+          created_at?: string
+          created_by?: string | null
+          days_custom?: string | null
+          id?: string
+          is_confirmed?: boolean
+          location_id?: string
+          meal_type_id?: string
+          time_close?: string | null
+          time_open?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_meals_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "location_meals_meal_type_id_fkey"
+            columns: ["meal_type_id"]
+            isOneToOne: false
+            referencedRelation: "meal_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       location_proposals: {
         Row: {
           address: string
@@ -204,6 +258,48 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_types: {
+        Row: {
+          bg_hex: string | null
+          color_hex: string | null
+          default_days: string | null
+          default_time_end: string | null
+          default_time_start: string | null
+          emoji: string
+          fill_hex: string | null
+          id: string
+          label: string
+          short_label: string
+          sort_order: number | null
+        }
+        Insert: {
+          bg_hex?: string | null
+          color_hex?: string | null
+          default_days?: string | null
+          default_time_end?: string | null
+          default_time_start?: string | null
+          emoji: string
+          fill_hex?: string | null
+          id: string
+          label: string
+          short_label: string
+          sort_order?: number | null
+        }
+        Update: {
+          bg_hex?: string | null
+          color_hex?: string | null
+          default_days?: string | null
+          default_time_end?: string | null
+          default_time_start?: string | null
+          emoji?: string
+          fill_hex?: string | null
+          id?: string
+          label?: string
+          short_label?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -227,6 +323,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      increment_meal_confirmed_count: {
+        Args: { p_location_id: string; p_meal_type_id: string }
+        Returns: undefined
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
