@@ -6,6 +6,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 interface LocationCardProps {
   location: Location;
   index?: number;
+  mealEmojis?: string[];
 }
 
 const categoryGradients: Record<string, string> = {
@@ -47,7 +48,7 @@ const KidsAreaIcon = () => (
   </svg>
 );
 
-const LocationCard = ({ location, index = 0 }: LocationCardProps) => {
+const LocationCard = ({ location, index = 0, mealEmojis = [] }: LocationCardProps) => {
   const navigate = useNavigate();
   const { isFavorite } = useFavorites();
   const gradient = categoryGradients[location.category] || categoryGradients.public;
@@ -99,6 +100,13 @@ const LocationCard = ({ location, index = 0 }: LocationCardProps) => {
         <h3 className="font-display font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>
           {location.name}
         </h3>
+        {mealEmojis.length > 0 && (
+          <div className="flex gap-1 mt-1" style={{ fontSize: '13px', lineHeight: 1 }}>
+            {mealEmojis.map((e, i) => (
+              <span key={i}>{e}</span>
+            ))}
+          </div>
+        )}
         <div className="flex flex-wrap gap-1 mt-1.5">
           <EquipBadge active={location.high_chair} label="Chaise" icon={<HighChairIcon />} />
           <EquipBadge active={location.changing_table} label="Change" icon={<ChangingTableIcon />} />

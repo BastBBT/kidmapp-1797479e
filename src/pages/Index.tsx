@@ -1,26 +1,54 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { LocationCategory } from '@/types/location';
 import MapView from '@/components/MapView';
 import LocationCard from '@/components/LocationCard';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
+import MealFilter from '@/components/MealFilter';
 import { useLocations } from '@/hooks/useLocations';
+import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
 import ProposeLocationModal from '@/components/ProposeLocationModal';
 
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>('all');
+  const [selectedMeal, setSelectedMeal] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showProposalModal, setShowProposalModal] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const { data: locations = [], isLoading } = useLocations(selectedCategory);
+  const { data: mealTypes = [] } = useMealTypes();
+  const { data: locationMeals = [] } = useAllLocationMeals();
 
-  const filteredLocations = locations.filter(loc => {
+  // Map: locationId -> meal_type_ids[]
+  const mealsByLocation = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const lm of locationMeals) {
+      const arr = map.get(lm.location_id) ?? [];
+      arr.push(lm.meal_type_id);
+      map.set(lm.location_id, arr);
+    }
+    return map;
+  }, [locationMeals]);
+
+  // Set of location ids matching the selected meal filter
+  const locationIdsForMeal = useMemo(() => {
+    if (!selectedMeal) return null;
+    return new Set(
+      locationMeals.filter((lm) => lm.meal_type_id === selectedMeal).map((lm) => lm.location_id)
+    );
+  }, [locationMeals, selectedMeal]);
+
+  const activeMeal = mealTypes.find((m) => m.id === selectedMeal) || null;
+
+  const filteredLocations = locations.filter((loc) => {
     const matchCategory = !selectedCategory || selectedCategory === 'all' || loc.category === selectedCategory;
-    const matchSearch = !searchQuery
-      || loc.name.toLowerCase().includes(searchQuery.toLowerCase())
-      || loc.address?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchCategory && matchSearch;
+    const matchSearch =
+      !searchQuery ||
+      loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      loc.address?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchMeal = !locationIdsForMeal || locationIdsForMeal.has(loc.id);
+    return matchCategory && matchSearch && matchMeal;
   });
 
   return (
@@ -31,10 +59,20 @@ const Index = () => {
         onCategoryChange={setSelectedCategory}
       />
 
+      {/* Meal type filter (2nd row) */}
+      <MealFilter mealTypes={mealTypes} selected={selectedMeal} onChange={setSelectedMeal} />
+
       {/* Compteur + Proposer */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 8px' }}>
         <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
-          {isLoading ? 'Chargement…' : `${filteredLocations.length} lieu${filteredLocations.length > 1 ? 'x' : ''} trouvé${filteredLocations.length > 1 ? 's' : ''}`}
+          {isLoading
+            ? 'Chargement…'
+            : `${filteredLocations.length} lieu${filteredLocations.length > 1 ? 'x' : ''} trouvé${filteredLocations.length > 1 ? 's' : ''}`}
+          {activeMeal && (
+            <span style={{ marginLeft: 4 }}>
+              · {activeMeal.emoji} {activeMeal.label}
+            </span>
+          )}
         </p>
         <button
           onClick={() => setShowProposalModal(true)}
@@ -119,9 +157,14 @@ const Index = () => {
         gap: '12px',
         padding: '0 16px 120px',
       }}>
-        {filteredLocations.map((loc, i) => (
-          <LocationCard key={loc.id} location={loc} index={i} />
-        ))}
+        {filteredLocations.map((loc, i) => {
+          const mealIds = mealsByLocation.get(loc.id) ?? [];
+          const mealEmojis = mealIds
+            .map((id) => mealTypes.find((m) => m.id === id)?.emoji)
+            .filter((e): e is string => Boolean(e))
+            .slice(0, 3);
+          return <LocationCard key={loc.id} location={loc} index={i} mealEmojis={mealEmojis} />;
+        })}
       </div>
 
       {/* Mode carte plein écran */}
