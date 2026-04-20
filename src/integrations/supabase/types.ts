@@ -152,6 +152,7 @@ export type Database = {
           id: string
           instagram: string | null
           kids_area: boolean | null
+          metadata: Json | null
           name: string
           note: string | null
           photo: string | null
@@ -169,6 +170,7 @@ export type Database = {
           id?: string
           instagram?: string | null
           kids_area?: boolean | null
+          metadata?: Json | null
           name: string
           note?: string | null
           photo?: string | null
@@ -186,6 +188,7 @@ export type Database = {
           id?: string
           instagram?: string | null
           kids_area?: boolean | null
+          metadata?: Json | null
           name?: string
           note?: string | null
           photo?: string | null
