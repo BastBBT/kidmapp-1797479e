@@ -331,6 +331,7 @@ const LocationPage = () => {
           {/* Horaires & services (repas) */}
           <LocationServicesSection
             locationId={location.id}
+            category={location.category}
             onEdit={() => setShowServicesDrawer(true)}
           />
 

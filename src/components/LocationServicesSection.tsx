@@ -10,8 +10,11 @@ type MealWithType = LocationMeal & { meal_types: MealType };
 
 interface Props {
   locationId: string;
+  category?: string;
   onEdit?: () => void;
 }
+
+const MEAL_CATEGORIES = new Set(['restaurant', 'cafe']);
 
 const PencilIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -107,7 +110,12 @@ const MealRow = ({
   );
 };
 
-const LocationServicesSection = ({ locationId, onEdit }: Props) => {
+const LocationServicesSection = ({ locationId, category, onEdit }: Props) => {
+  if (!category || !MEAL_CATEGORIES.has(category)) return null;
+  return <LocationServicesSectionInner locationId={locationId} onEdit={onEdit} />;
+};
+
+const LocationServicesSectionInner = ({ locationId, onEdit }: { locationId: string; onEdit?: () => void }) => {
   const { data = [], isLoading } = useLocationMeals(locationId);
   const { user } = useAuth();
   const { toast } = useToast();

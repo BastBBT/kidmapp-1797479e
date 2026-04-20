@@ -9,6 +9,8 @@ import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
 import ProposeLocationModal from '@/components/ProposeLocationModal';
 
+const MEAL_CATEGORIES = new Set(['all', 'restaurant', 'cafe']);
+
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>('all');
   const [selectedMeal, setSelectedMeal] = useState<string | null>(null);
@@ -19,6 +21,13 @@ const Index = () => {
   const { data: locations = [], isLoading } = useLocations(selectedCategory);
   const { data: mealTypes = [] } = useMealTypes();
   const { data: locationMeals = [] } = useAllLocationMeals();
+
+  const showMealFilter = MEAL_CATEGORIES.has(selectedCategory);
+
+  // Reset meal filter when switching to a non-meal category
+  if (!showMealFilter && selectedMeal !== null) {
+    setSelectedMeal(null);
+  }
 
   // Map: locationId -> meal_type_ids[]
   const mealsByLocation = useMemo(() => {
@@ -59,8 +68,10 @@ const Index = () => {
         onCategoryChange={setSelectedCategory}
       />
 
-      {/* Meal type filter (2nd row) */}
-      <MealFilter mealTypes={mealTypes} selected={selectedMeal} onChange={setSelectedMeal} />
+      {/* Meal type filter (2nd row) — only for restaurant / cafe / all */}
+      {showMealFilter && (
+        <MealFilter mealTypes={mealTypes} selected={selectedMeal} onChange={setSelectedMeal} />
+      )}
 
       {/* Compteur + Proposer */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 8px' }}>
