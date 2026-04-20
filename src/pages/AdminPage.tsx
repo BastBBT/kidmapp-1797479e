@@ -264,15 +264,27 @@ const AdminPage = () => {
       if (contrib.changing_table !== null) updateData.changing_table = contrib.changing_table;
       if (contrib.kids_area !== null) updateData.kids_area = contrib.kids_area;
       if (contrib.bookable !== null) updateData.bookable = contrib.bookable;
+
+      // Parse JSON content (may carry equipment + meal_types)
+      let parsedContent: any = null;
+      if (contrib.content) {
+        try { parsedContent = JSON.parse(contrib.content); } catch { /* ignore */ }
+      }
+      // Equipment from JSON content (overrides only for non-null values)
+      if (parsedContent?.equipment) {
+        const eq = parsedContent.equipment;
+        if (eq.high_chair === true || eq.high_chair === false) updateData.high_chair = eq.high_chair;
+        if (eq.changing_table === true || eq.changing_table === false) updateData.changing_table = eq.changing_table;
+        if (eq.kids_area === true || eq.kids_area === false) updateData.kids_area = eq.kids_area;
+      }
       if (Object.keys(updateData).length > 0) {
         await supabase.from('locations').update(updateData).eq('id', contrib.location_id);
       }
 
       // Handle meal_types contributions: upsert each meal into location_meals
-      if (contrib.type === 'meal_types' && contrib.content) {
+      if (contrib.type === 'meal_types' && parsedContent) {
         try {
-          const parsed = JSON.parse(contrib.content);
-          const mealIds: string[] = parsed?.meal_types ?? [];
+          const mealIds: string[] = parsedContent?.meal_types ?? [];
           if (mealIds.length > 0) {
             // Fetch existing meals to know which exist (to bump confirmed_count)
             const { data: existing } = await supabase
