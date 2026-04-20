@@ -21,7 +21,6 @@ export type LocationMeal = {
   meal_type_id: string;
   time_open: string | null;
   time_close: string | null;
-  days_custom: string | null;
   is_confirmed: boolean;
   confirmed_count: number;
   created_by: string | null;
