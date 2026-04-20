@@ -394,7 +394,7 @@ const AdminPage = () => {
           is_confirmed: true,
           confirmed_count: 0,
         };
-      });
+      }) : [];
     if (mealRows.length > 0) {
       await supabase.from('location_meals').insert(mealRows);
     }
