@@ -138,15 +138,17 @@ const CriterionDot = ({ active, label, icon }: { active: boolean; label: string;
   </div>
 );
 
-const MapView = ({ locations, selectedId }: MapViewProps) => {
+const MapView = ({ locations, selectedId, initialCenter, initialZoom, onViewChange }: MapViewProps) => {
   const navigate = useNavigate();
   const selectedLocation = locations.find(l => l.id === selectedId);
+  const center = initialCenter ?? NANTES_CENTER;
+  const zoom = initialZoom ?? DEFAULT_ZOOM;
 
   return (
     <div className="w-full h-full rounded-2xl overflow-hidden" style={{ minHeight: '400px' }}>
       <MapContainer
-        center={NANTES_CENTER}
-        zoom={DEFAULT_ZOOM}
+        center={center}
+        zoom={zoom}
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
         preferCanvas={true}
@@ -155,7 +157,8 @@ const MapView = ({ locations, selectedId }: MapViewProps) => {
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
-        <RecenterMap />
+        <RecenterMap center={center} zoom={zoom} />
+        <ViewChangeReporter onViewChange={onViewChange} />
         <FlyToSelected location={selectedLocation} />
         <MarkerClusterGroup
           chunkedLoading
