@@ -661,13 +661,26 @@ const AdminPage = () => {
                     const isMealContrib = contrib.type === 'meal_types';
                     let mealIds: string[] = [];
                     let mealComment: string | null = null;
-                    if (isMealContrib && contrib.content) {
+                    let jsonEquipment: { high_chair?: boolean | null; changing_table?: boolean | null; kids_area?: boolean | null } | null = null;
+                    if (contrib.content) {
                       try {
                         const parsed = JSON.parse(contrib.content);
-                        mealIds = Array.isArray(parsed?.meal_types) ? parsed.meal_types : [];
+                        if (isMealContrib) {
+                          mealIds = Array.isArray(parsed?.meal_types) ? parsed.meal_types : [];
+                        }
                         mealComment = parsed?.comment ?? null;
+                        if (parsed?.equipment && typeof parsed.equipment === 'object') {
+                          jsonEquipment = parsed.equipment;
+                        }
                       } catch { /* ignore */ }
                     }
+                    const equipItems: { emoji: string; label: string; value: boolean | null | undefined }[] = jsonEquipment
+                      ? [
+                          { emoji: '🪑', label: 'Chaise haute', value: jsonEquipment.high_chair },
+                          { emoji: '👶', label: 'Table à langer', value: jsonEquipment.changing_table },
+                          { emoji: '🎨', label: 'Espace jeux', value: jsonEquipment.kids_area },
+                        ].filter((e) => e.value !== undefined && e.value !== null)
+                      : [];
                     return (
                 <motion.div
                   key={contrib.id}
@@ -700,7 +713,7 @@ const AdminPage = () => {
                   {isMealContrib ? (
                     <div style={{ marginBottom: '10px' }}>
                       {mealIds.length > 0 && (
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: mealComment ? 8 : 0 }}>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                           {mealIds.map((id) => {
                             const mt = mealTypes.find((m) => m.id === id);
                             if (!mt) return null;
@@ -722,6 +735,25 @@ const AdminPage = () => {
                           })}
                         </div>
                       )}
+                      {equipItems.length > 0 && (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                          {equipItems.map((e) => (
+                            <span
+                              key={e.label}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                padding: '4px 10px', borderRadius: 100,
+                                background: e.value ? '#EBF6EC' : '#FEF0EC',
+                                color: e.value ? '#2E7D32' : 'var(--primary)',
+                                fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                              }}
+                            >
+                              <span style={{ fontSize: 14 }}>{e.emoji}</span>
+                              {e.label} {e.value ? '✓' : '✗'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       {mealComment && (
                         <div style={{
                           fontFamily: 'DM Sans', fontSize: '13px',
@@ -732,6 +764,46 @@ const AdminPage = () => {
                           « {mealComment} »
                         </div>
                       )}
+                    </div>
+                  ) : (
+                    <div style={{ marginBottom: '10px' }}>
+                      <div className="flex gap-4 flex-wrap mb-2" style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
+                        {contrib.high_chair !== null && <span>🪑 Chaise haute {contrib.high_chair ? '✓' : '✗'}</span>}
+                        {contrib.changing_table !== null && <span>👶 Table à langer {contrib.changing_table ? '✓' : '✗'}</span>}
+                        {contrib.kids_area !== null && <span>🎨 Espace jeux {contrib.kids_area ? '✓' : '✗'}</span>}
+                        {contrib.bookable !== null && <span>📅 Réservation: {contrib.bookable === 'yes' ? 'Oui ✓' : contrib.bookable === 'no' ? 'Non ✗' : '?'}</span>}
+                      </div>
+                      {equipItems.length > 0 && (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                          {equipItems.map((e) => (
+                            <span
+                              key={e.label}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                padding: '4px 10px', borderRadius: 100,
+                                background: e.value ? '#EBF6EC' : '#FEF0EC',
+                                color: e.value ? '#2E7D32' : 'var(--primary)',
+                                fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                              }}
+                            >
+                              <span style={{ fontSize: 14 }}>{e.emoji}</span>
+                              {e.label} {e.value ? '✓' : '✗'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {mealComment && (
+                        <div style={{
+                          fontFamily: 'DM Sans', fontSize: '13px',
+                          color: 'var(--text-muted)', fontStyle: 'italic',
+                          padding: '8px 12px', borderRadius: 10,
+                          background: 'var(--bg)',
+                        }}>
+                          « {mealComment} »
+                        </div>
+                      )}
+                    </div>
+                  )}
                     </div>
                   ) : (
                     <div className="flex gap-4 flex-wrap mb-3" style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
