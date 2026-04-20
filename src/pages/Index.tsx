@@ -179,7 +179,13 @@ const Index = () => {
         isolation: 'isolate',
         zIndex: 0,
       }}>
-        <MapView locations={filteredLocations} selectedId={selectedId} />
+        <MapView
+          locations={filteredLocations}
+          selectedId={selectedId}
+          initialCenter={initialCenter}
+          initialZoom={initialZoom}
+          onViewChange={handleMapViewChange}
+        />
         <button
           onClick={() => setMapExpanded(true)}
           style={{
