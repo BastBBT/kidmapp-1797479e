@@ -520,7 +520,7 @@ const AdminPage = () => {
                     {loc.status === 'published' ? 'Masquer' : 'Publier'}
                   </button>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setEditingId(loc.id);
                       setEditForm({
                         name: loc.name,
@@ -536,6 +536,24 @@ const AdminPage = () => {
                         bookable: (loc as any).bookable ?? 'unknown',
                         status: loc.status,
                       });
+                      // Load existing meals for this location
+                      const base = buildEmptyMealsState(mealTypes);
+                      const { data: existing } = await supabase
+                        .from('location_meals')
+                        .select('*')
+                        .eq('location_id', loc.id);
+                      (existing ?? []).forEach((row: any) => {
+                        if (base[row.meal_type_id]) {
+                          base[row.meal_type_id] = {
+                            enabled: true,
+                            time_open: row.time_open ?? '',
+                            time_close: row.time_close ?? '',
+                            days_custom: row.days_custom ?? '',
+                            confirmed_count: row.confirmed_count ?? 0,
+                          };
+                        }
+                      });
+                      setEditMeals(base);
                     }}
                     style={{
                       padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600,
