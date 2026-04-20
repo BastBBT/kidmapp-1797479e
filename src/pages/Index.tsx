@@ -127,6 +127,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col pb-20" style={{ background: 'var(--bg)' }}>
       <Header
         onSearch={setSearchQuery}
+        searchValue={searchQuery}
         selectedCategory={selectedCategory}
         onCategoryChange={setSelectedCategory}
       />
