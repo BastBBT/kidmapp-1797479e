@@ -7,8 +7,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { useMealTypes, type MealType } from '@/hooks/useMeals';
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals';
+
+type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; days_custom: string; confirmed_count: number }>;
+
+const buildEmptyMealsState = (mealTypes: MealType[]): MealsState => {
+  const s: MealsState = {};
+  mealTypes.forEach((m) => {
+    s[m.id] = { enabled: false, time_open: '', time_close: '', days_custom: '', confirmed_count: 0 };
+  });
+  return s;
+};
 
 const tabs: { key: AdminTab; label: string }[] = [
   { key: 'dashboard', label: 'Dashboard' },
@@ -163,6 +174,17 @@ const AdminPage = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
+  const { data: mealTypes = [] } = useMealTypes();
+  const [addMeals, setAddMeals] = useState<MealsState>({});
+  const [editMeals, setEditMeals] = useState<MealsState>({});
+
+  // Initialize add-form meals when meal types load
+  useEffect(() => {
+    if (mealTypes.length > 0 && Object.keys(addMeals).length === 0) {
+      setAddMeals(buildEmptyMealsState(mealTypes));
+    }
+  }, [mealTypes, addMeals]);
+
   const [showManualCoords, setShowManualCoords] = useState(false);
   const [manualLat, setManualLat] = useState('47.2184');
   const [manualLng, setManualLng] = useState('-1.5536');
@@ -314,19 +336,46 @@ const AdminPage = () => {
     if (form.category === 'restaurant' || form.category === 'cafe') {
       insertData.bookable = form.bookable;
     }
-    const { error } = await supabase.from('locations').insert(insertData as any);
-    setSubmitting(false);
-    if (error) {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    const { data: insertedLocation, error } = await supabase
+      .from('locations')
+      .insert(insertData as any)
+      .select('id')
+      .single();
+    if (error || !insertedLocation) {
+      setSubmitting(false);
+      toast({ title: 'Erreur', description: error?.message ?? 'Insertion échouée', variant: 'destructive' });
       return;
     }
+
+    // Insert meals for new location
+    const mealRows = Object.entries(addMeals)
+      .filter(([, v]) => v.enabled)
+      .map(([meal_type_id, v]) => {
+        const mt = mealTypes.find((m) => m.id === meal_type_id);
+        return {
+          location_id: insertedLocation.id,
+          meal_type_id,
+          time_open: v.time_open || mt?.default_time_start || null,
+          time_close: v.time_close || mt?.default_time_end || null,
+          days_custom: v.days_custom || null,
+          is_confirmed: true,
+          confirmed_count: 0,
+        };
+      });
+    if (mealRows.length > 0) {
+      await supabase.from('location_meals').insert(mealRows);
+    }
+
+    setSubmitting(false);
     queryClient.invalidateQueries({ queryKey: ['all-locations'] });
     queryClient.invalidateQueries({ queryKey: ['locations'] });
     queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['location_meals'] });
     toast({ title: 'Lieu ajouté ✓' });
     setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', status: 'pending', website: '', instagram: '', note: '' });
     setPhotoFile(null);
     setPhotoPreview(null);
+    setAddMeals(buildEmptyMealsState(mealTypes));
   };
 
   if (authLoading) return null;
@@ -471,7 +520,7 @@ const AdminPage = () => {
                     {loc.status === 'published' ? 'Masquer' : 'Publier'}
                   </button>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setEditingId(loc.id);
                       setEditForm({
                         name: loc.name,
@@ -487,6 +536,24 @@ const AdminPage = () => {
                         bookable: (loc as any).bookable ?? 'unknown',
                         status: loc.status,
                       });
+                      // Load existing meals for this location
+                      const base = buildEmptyMealsState(mealTypes);
+                      const { data: existing } = await supabase
+                        .from('location_meals')
+                        .select('*')
+                        .eq('location_id', loc.id);
+                      (existing ?? []).forEach((row: any) => {
+                        if (base[row.meal_type_id]) {
+                          base[row.meal_type_id] = {
+                            enabled: true,
+                            time_open: row.time_open ?? '',
+                            time_close: row.time_close ?? '',
+                            days_custom: row.days_custom ?? '',
+                            confirmed_count: row.confirmed_count ?? 0,
+                          };
+                        }
+                      });
+                      setEditMeals(base);
                     }}
                     style={{
                       padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600,
@@ -835,6 +902,8 @@ const AdminPage = () => {
                   </select>
                 </div>
 
+                <MealsEditor mealTypes={mealTypes} state={addMeals} onChange={setAddMeals} />
+
                 <button
                   onClick={handleAddLocation}
                   disabled={submitting}
@@ -972,6 +1041,9 @@ const AdminPage = () => {
                   <option value="unpublished">Masqué</option>
                 </select>
               </div>
+
+              <MealsEditor mealTypes={mealTypes} state={editMeals} onChange={setEditMeals} />
+
               <button
                 onClick={async () => {
                   const { error } = await supabase
@@ -991,14 +1063,47 @@ const AdminPage = () => {
                       status: editForm.status,
                     } as any)
                     .eq('id', editingId);
-                  if (!error) {
-                    queryClient.invalidateQueries({ queryKey: ['all-locations'] });
-                    queryClient.invalidateQueries({ queryKey: ['locations'] });
-                    setEditingId(null);
-                    toast({ title: 'Lieu mis à jour ✓' });
-                  } else {
+                  if (error) {
                     toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+                    return;
                   }
+
+                  // Persist meals: upsert ON, delete OFF
+                  const toUpsert = Object.entries(editMeals)
+                    .filter(([, v]) => v.enabled)
+                    .map(([meal_type_id, v]) => {
+                      const mt = mealTypes.find((m) => m.id === meal_type_id);
+                      return {
+                        location_id: editingId!,
+                        meal_type_id,
+                        time_open: v.time_open || mt?.default_time_start || null,
+                        time_close: v.time_close || mt?.default_time_end || null,
+                        days_custom: v.days_custom || null,
+                        is_confirmed: true,
+                      };
+                    });
+                  const toDelete = Object.entries(editMeals)
+                    .filter(([, v]) => !v.enabled)
+                    .map(([meal_type_id]) => meal_type_id);
+
+                  if (toUpsert.length > 0) {
+                    await supabase
+                      .from('location_meals')
+                      .upsert(toUpsert, { onConflict: 'location_id,meal_type_id' });
+                  }
+                  if (toDelete.length > 0) {
+                    await supabase
+                      .from('location_meals')
+                      .delete()
+                      .eq('location_id', editingId!)
+                      .in('meal_type_id', toDelete);
+                  }
+
+                  queryClient.invalidateQueries({ queryKey: ['all-locations'] });
+                  queryClient.invalidateQueries({ queryKey: ['locations'] });
+                  queryClient.invalidateQueries({ queryKey: ['location_meals'] });
+                  setEditingId(null);
+                  toast({ title: 'Lieu mis à jour ✓' });
                 }}
                 style={{ width: '100%', padding: '14px', borderRadius: '100px', border: 'none', background: 'var(--primary)', color: '#fff', fontFamily: 'DM Sans', fontSize: '15px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}
               >
@@ -1123,6 +1228,126 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
           }}
         />
       </button>
+    </div>
+  );
+}
+
+function MealsEditor({
+  mealTypes,
+  state,
+  onChange,
+}: {
+  mealTypes: MealType[];
+  state: MealsState;
+  onChange: (s: MealsState) => void;
+}) {
+  if (mealTypes.length === 0) return null;
+
+  const update = (id: string, patch: Partial<MealsState[string]>) => {
+    onChange({ ...state, [id]: { ...state[id], ...patch } });
+  };
+
+  return (
+    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '8px' }}>
+      <div style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, color: 'var(--text)', marginBottom: '4px' }}>
+        Repas & Horaires
+      </div>
+      <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+        Active les services disponibles ✦
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {mealTypes.map((mt) => {
+          const v = state[mt.id] ?? { enabled: false, time_open: '', time_close: '', days_custom: '', confirmed_count: 0 };
+          return (
+            <div
+              key={mt.id}
+              style={{
+                background: v.enabled ? (mt.bg_hex ?? 'var(--bg)') : 'var(--bg)',
+                border: v.enabled ? `1.5px solid ${mt.fill_hex ?? 'var(--primary)'}` : '1px solid var(--border)',
+                borderRadius: '12px',
+                padding: '10px 12px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                  <span style={{ fontSize: '18px' }}>{mt.emoji}</span>
+                  <span style={{ fontFamily: 'DM Sans', fontSize: '14px', fontWeight: 500, color: 'var(--text)' }}>
+                    {mt.label}
+                  </span>
+                  {v.confirmed_count > 0 && (
+                    <span
+                      style={{
+                        padding: '2px 8px', borderRadius: '100px', background: 'var(--bg)',
+                        fontSize: '10px', fontFamily: 'DM Sans', color: 'var(--text-muted)', fontWeight: 600,
+                      }}
+                    >
+                      ✓ {v.confirmed_count}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => update(mt.id, { enabled: !v.enabled })}
+                  style={{
+                    width: 44, height: 24, borderRadius: '100px', border: 'none',
+                    background: v.enabled ? (mt.fill_hex ?? 'var(--primary)') : 'var(--border)',
+                    position: 'relative', cursor: 'pointer', flexShrink: 0,
+                  }}
+                  aria-label={`Toggle ${mt.label}`}
+                >
+                  <div
+                    style={{
+                      width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                      position: 'absolute', top: 3, left: v.enabled ? 23 : 3,
+                      transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                    }}
+                  />
+                </button>
+              </div>
+              {v.enabled && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder={mt.default_time_start ?? '12:00'}
+                      value={v.time_open}
+                      onChange={(e) => update(mt.id, { time_open: e.target.value })}
+                      style={{
+                        flex: 1, padding: '8px 10px', borderRadius: '8px',
+                        border: '1px solid var(--border)', background: 'var(--surface)',
+                        fontFamily: 'DM Sans', fontSize: '13px', outline: 'none',
+                      }}
+                    />
+                    <span style={{ alignSelf: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>–</span>
+                    <input
+                      type="text"
+                      placeholder={mt.default_time_end ?? '15:00'}
+                      value={v.time_close}
+                      onChange={(e) => update(mt.id, { time_close: e.target.value })}
+                      style={{
+                        flex: 1, padding: '8px 10px', borderRadius: '8px',
+                        border: '1px solid var(--border)', background: 'var(--surface)',
+                        fontFamily: 'DM Sans', fontSize: '13px', outline: 'none',
+                      }}
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder={mt.default_days ?? 'lun – dim'}
+                    value={v.days_custom}
+                    onChange={(e) => update(mt.id, { days_custom: e.target.value })}
+                    style={{
+                      width: '100%', padding: '8px 10px', borderRadius: '8px',
+                      border: '1px solid var(--border)', background: 'var(--surface)',
+                      fontFamily: 'DM Sans', fontSize: '13px', outline: 'none',
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
