@@ -569,6 +569,7 @@ const AdminPage = () => {
                   <button
                     onClick={async () => {
                       setEditingId(loc.id);
+                      setEditPhotoFile(null);
                       setEditForm({
                         name: loc.name,
                         category: loc.category,
@@ -1225,6 +1226,34 @@ const AdminPage = () => {
 
               <button
                 onClick={async () => {
+                  // Upload new photo if user selected a file
+                  let finalPhotoUrl: string | null = editForm.photo || null;
+                  if (editPhotoFile) {
+                    const ext = editPhotoFile.name.split('.').pop() || 'jpg';
+                    const path = `${editingId}/${Date.now()}.${ext}`;
+                    const { error: upErr } = await supabase.storage
+                      .from('location-photos')
+                      .upload(path, editPhotoFile, { contentType: editPhotoFile.type });
+                    if (upErr) {
+                      toast({ title: "Erreur lors de l'upload, réessaie", variant: 'destructive' });
+                      return;
+                    }
+                    const { data: urlData } = supabase.storage
+                      .from('location-photos')
+                      .getPublicUrl(path);
+                    const newUrl = urlData.publicUrl;
+
+                    // Delete previous photo if it lives in our bucket
+                    const prev: string | null = editForm.photo || null;
+                    if (prev && prev.includes('/location-photos/')) {
+                      const oldPath = prev.split('/location-photos/')[1]?.split('?')[0];
+                      if (oldPath) {
+                        await supabase.storage.from('location-photos').remove([oldPath]);
+                      }
+                    }
+                    finalPhotoUrl = newUrl;
+                  }
+
                   const { error } = await supabase
                     .from('locations')
                     .update({
@@ -1233,7 +1262,7 @@ const AdminPage = () => {
                       address: editForm.address,
                       website: editForm.website || null,
                       instagram: editForm.instagram || null,
-                      photo: editForm.photo || null,
+                      photo: finalPhotoUrl,
                       note: editForm.note || null,
                       high_chair: editForm.high_chair,
                       changing_table: editForm.changing_table,
