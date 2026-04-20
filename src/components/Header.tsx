@@ -6,11 +6,12 @@ import { LocationCategory } from '@/types/location';
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
+  searchValue?: string;
   selectedCategory?: LocationCategory | 'all';
   onCategoryChange?: (cat: LocationCategory | 'all') => void;
 }
 
-const Header = ({ onSearch, selectedCategory, onCategoryChange }: HeaderProps) => {
+const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAdmin, signOut } = useAuth();
