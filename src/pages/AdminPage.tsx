@@ -1180,8 +1180,39 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
       if ((proposal.category === 'restaurant' || proposal.category === 'cafe') && proposal.bookable) {
         insertData.bookable = proposal.bookable;
       }
-      const { error: insertError } = await supabase.from('locations').insert(insertData as any);
+      const { data: insertedLocation, error: insertError } = await supabase
+        .from('locations')
+        .insert(insertData as any)
+        .select('id')
+        .single();
       if (insertError) throw insertError;
+
+      // If the proposal carried meal_types in metadata, create location_meals entries
+      const proposalMealTypes: string[] = (proposal.metadata as any)?.meal_types ?? [];
+      if (insertedLocation?.id && Array.isArray(proposalMealTypes) && proposalMealTypes.length > 0) {
+        // Fetch defaults so we can populate time_open/close from meal_types
+        const { data: mealTypesData } = await supabase
+          .from('meal_types')
+          .select('id, default_time_start, default_time_end')
+          .in('id', proposalMealTypes);
+        const defaultsById = new Map<string, { start: string | null; end: string | null }>(
+          (mealTypesData ?? []).map((mt: any) => [mt.id, { start: mt.default_time_start, end: mt.default_time_end }])
+        );
+        const mealRows = proposalMealTypes.map((mealId) => ({
+          location_id: insertedLocation.id,
+          meal_type_id: mealId,
+          time_open: defaultsById.get(mealId)?.start ?? null,
+          time_close: defaultsById.get(mealId)?.end ?? null,
+          is_confirmed: false,
+          confirmed_count: 0,
+          created_by: proposal.user_id ?? null,
+        }));
+        const { error: mealsError } = await supabase
+          .from('location_meals')
+          .upsert(mealRows, { onConflict: 'location_id,meal_type_id' });
+        if (mealsError) console.error('Failed to insert location_meals from proposal:', mealsError);
+      }
+
       const { error: updateError } = await supabase.from('location_proposals' as any).update({ status: 'approved' }).eq('id', proposal.id);
       if (updateError) throw updateError;
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
