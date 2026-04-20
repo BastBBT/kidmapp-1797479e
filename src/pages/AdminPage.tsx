@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useMealTypes, type MealType } from '@/hooks/useMeals';
+import PhotoUpload from '@/components/admin/PhotoUpload';
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals';
 
@@ -173,6 +174,7 @@ const AdminPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
 
   const { data: mealTypes = [] } = useMealTypes();
   const [addMeals, setAddMeals] = useState<MealsState>({});
@@ -1174,7 +1176,13 @@ const AdminPage = () => {
                   <input value={editForm.instagram} onChange={(e) => setEditForm((f: any) => ({ ...f, instagram: e.target.value }))} placeholder="compte_instagram" style={{ width: '100%', padding: '13px 16px 13px 30px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px' }} />
                 </div>
               </div>
-              <FormField label="URL photo" value={editForm.photo} onChange={(v) => setEditForm((f: any) => ({ ...f, photo: v }))} placeholder="https://..." />
+              <PhotoUpload
+                currentUrl={editForm.photo || null}
+                file={editPhotoFile}
+                onFileChange={setEditPhotoFile}
+                urlValue={editForm.photo}
+                onUrlChange={(v) => setEditForm((f: any) => ({ ...f, photo: v }))}
+              />
               <div>
                 <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Note</label>
                 <textarea
