@@ -7,8 +7,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { useMealTypes, type MealType } from '@/hooks/useMeals';
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals';
+
+type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; days_custom: string; confirmed_count: number }>;
+
+const buildEmptyMealsState = (mealTypes: MealType[]): MealsState => {
+  const s: MealsState = {};
+  mealTypes.forEach((m) => {
+    s[m.id] = { enabled: false, time_open: '', time_close: '', days_custom: '', confirmed_count: 0 };
+  });
+  return s;
+};
 
 const tabs: { key: AdminTab; label: string }[] = [
   { key: 'dashboard', label: 'Dashboard' },
