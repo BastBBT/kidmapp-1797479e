@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useMealTypes, type MealType } from '@/hooks/useMeals';
+import PhotoUpload from '@/components/admin/PhotoUpload';
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals';
 
@@ -173,6 +174,7 @@ const AdminPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
 
   const { data: mealTypes = [] } = useMealTypes();
   const [addMeals, setAddMeals] = useState<MealsState>({});
@@ -567,6 +569,7 @@ const AdminPage = () => {
                   <button
                     onClick={async () => {
                       setEditingId(loc.id);
+                      setEditPhotoFile(null);
                       setEditForm({
                         name: loc.name,
                         category: loc.category,
@@ -1174,7 +1177,13 @@ const AdminPage = () => {
                   <input value={editForm.instagram} onChange={(e) => setEditForm((f: any) => ({ ...f, instagram: e.target.value }))} placeholder="compte_instagram" style={{ width: '100%', padding: '13px 16px 13px 30px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px' }} />
                 </div>
               </div>
-              <FormField label="URL photo" value={editForm.photo} onChange={(v) => setEditForm((f: any) => ({ ...f, photo: v }))} placeholder="https://..." />
+              <PhotoUpload
+                currentUrl={editForm.photo || null}
+                file={editPhotoFile}
+                onFileChange={setEditPhotoFile}
+                urlValue={editForm.photo}
+                onUrlChange={(v) => setEditForm((f: any) => ({ ...f, photo: v }))}
+              />
               <div>
                 <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Note</label>
                 <textarea
@@ -1217,6 +1226,34 @@ const AdminPage = () => {
 
               <button
                 onClick={async () => {
+                  // Upload new photo if user selected a file
+                  let finalPhotoUrl: string | null = editForm.photo || null;
+                  if (editPhotoFile) {
+                    const ext = editPhotoFile.name.split('.').pop() || 'jpg';
+                    const path = `${editingId}/${Date.now()}.${ext}`;
+                    const { error: upErr } = await supabase.storage
+                      .from('location-photos')
+                      .upload(path, editPhotoFile, { contentType: editPhotoFile.type });
+                    if (upErr) {
+                      toast({ title: "Erreur lors de l'upload, réessaie", variant: 'destructive' });
+                      return;
+                    }
+                    const { data: urlData } = supabase.storage
+                      .from('location-photos')
+                      .getPublicUrl(path);
+                    const newUrl = urlData.publicUrl;
+
+                    // Delete previous photo if it lives in our bucket
+                    const prev: string | null = editForm.photo || null;
+                    if (prev && prev.includes('/location-photos/')) {
+                      const oldPath = prev.split('/location-photos/')[1]?.split('?')[0];
+                      if (oldPath) {
+                        await supabase.storage.from('location-photos').remove([oldPath]);
+                      }
+                    }
+                    finalPhotoUrl = newUrl;
+                  }
+
                   const { error } = await supabase
                     .from('locations')
                     .update({
@@ -1225,7 +1262,7 @@ const AdminPage = () => {
                       address: editForm.address,
                       website: editForm.website || null,
                       instagram: editForm.instagram || null,
-                      photo: editForm.photo || null,
+                      photo: finalPhotoUrl,
                       note: editForm.note || null,
                       high_chair: editForm.high_chair,
                       changing_table: editForm.changing_table,
@@ -1276,6 +1313,7 @@ const AdminPage = () => {
                   queryClient.invalidateQueries({ queryKey: ['locations'] });
                   queryClient.invalidateQueries({ queryKey: ['location_meals'] });
                   setEditingId(null);
+                  setEditPhotoFile(null);
                   toast({ title: 'Lieu mis à jour ✓' });
                 }}
                 style={{ width: '100%', padding: '14px', borderRadius: '100px', border: 'none', background: 'var(--primary)', color: '#fff', fontFamily: 'DM Sans', fontSize: '15px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}
