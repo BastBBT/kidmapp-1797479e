@@ -3,6 +3,7 @@ import { categoryIcons, categoryLabels } from '@/types/location';
 import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import ContributionModal from '@/components/ContributionModal';
+import LocationServicesSection from '@/components/LocationServicesSection';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { useLocation as useLocationData } from '@/hooks/useLocations';
@@ -325,7 +326,13 @@ const LocationPage = () => {
             </div>
           )}
 
-          {/* Pending contribution banner */}
+          {/* Horaires & services (repas) */}
+          <LocationServicesSection
+            locationId={location.id}
+            onEdit={() => setShowContribution(true)}
+          />
+
+
           {pendingContribution && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: '10px',
