@@ -174,6 +174,17 @@ const AdminPage = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
+  const { data: mealTypes = [] } = useMealTypes();
+  const [addMeals, setAddMeals] = useState<MealsState>({});
+  const [editMeals, setEditMeals] = useState<MealsState>({});
+
+  // Initialize add-form meals when meal types load
+  useEffect(() => {
+    if (mealTypes.length > 0 && Object.keys(addMeals).length === 0) {
+      setAddMeals(buildEmptyMealsState(mealTypes));
+    }
+  }, [mealTypes, addMeals]);
+
   const [showManualCoords, setShowManualCoords] = useState(false);
   const [manualLat, setManualLat] = useState('47.2184');
   const [manualLng, setManualLng] = useState('-1.5536');
