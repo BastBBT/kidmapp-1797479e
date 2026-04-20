@@ -336,19 +336,46 @@ const AdminPage = () => {
     if (form.category === 'restaurant' || form.category === 'cafe') {
       insertData.bookable = form.bookable;
     }
-    const { error } = await supabase.from('locations').insert(insertData as any);
-    setSubmitting(false);
-    if (error) {
-      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+    const { data: insertedLocation, error } = await supabase
+      .from('locations')
+      .insert(insertData as any)
+      .select('id')
+      .single();
+    if (error || !insertedLocation) {
+      setSubmitting(false);
+      toast({ title: 'Erreur', description: error?.message ?? 'Insertion échouée', variant: 'destructive' });
       return;
     }
+
+    // Insert meals for new location
+    const mealRows = Object.entries(addMeals)
+      .filter(([, v]) => v.enabled)
+      .map(([meal_type_id, v]) => {
+        const mt = mealTypes.find((m) => m.id === meal_type_id);
+        return {
+          location_id: insertedLocation.id,
+          meal_type_id,
+          time_open: v.time_open || mt?.default_time_start || null,
+          time_close: v.time_close || mt?.default_time_end || null,
+          days_custom: v.days_custom || null,
+          is_confirmed: true,
+          confirmed_count: 0,
+        };
+      });
+    if (mealRows.length > 0) {
+      await supabase.from('location_meals').insert(mealRows);
+    }
+
+    setSubmitting(false);
     queryClient.invalidateQueries({ queryKey: ['all-locations'] });
     queryClient.invalidateQueries({ queryKey: ['locations'] });
     queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['location_meals'] });
     toast({ title: 'Lieu ajouté ✓' });
     setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', status: 'pending', website: '', instagram: '', note: '' });
     setPhotoFile(null);
     setPhotoPreview(null);
+    setAddMeals(buildEmptyMealsState(mealTypes));
   };
 
   if (authLoading) return null;
