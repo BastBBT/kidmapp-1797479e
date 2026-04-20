@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useMealTypes } from '@/hooks/useMeals';
 import { useQueryClient } from '@tanstack/react-query';
+import { useLocation } from '@/hooks/useLocations';
 
 interface Props {
   locationId: string;
@@ -19,23 +20,44 @@ const MEAL_CATEGORIES = new Set(['restaurant', 'cafe']);
 const MAX_COMMENT_MEAL = 200;
 const MAX_COMMENT_GENERIC = 300;
 
+type EquipValue = boolean | null;
+type EquipKey = 'high_chair' | 'changing_table' | 'kids_area';
+
+const EQUIP_ITEMS: { key: EquipKey; emoji: string; label: string }[] = [
+  { key: 'high_chair', emoji: '🪑', label: 'Chaise haute' },
+  { key: 'changing_table', emoji: '👶', label: 'Table à langer' },
+  { key: 'kids_area', emoji: '🎨', label: 'Espace jeux' },
+];
+
 const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }: Props) => {
   const { user } = useAuth();
   const { data: mealTypes = [] } = useMealTypes();
+  const { data: location } = useLocation(locationId);
   const queryClient = useQueryClient();
   const variant = MEAL_CATEGORIES.has(category) ? 'meals' : 'comment';
   const maxLen = variant === 'meals' ? MAX_COMMENT_MEAL : MAX_COMMENT_GENERIC;
 
   const [selected, setSelected] = useState<string[]>([]);
   const [comment, setComment] = useState('');
+  const [equipment, setEquipment] = useState<Record<EquipKey, EquipValue>>({
+    high_chair: null,
+    changing_table: null,
+    kids_area: null,
+  });
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
       setSelected([]);
       setComment('');
+      // Pre-fill with current location values
+      setEquipment({
+        high_chair: location?.high_chair ?? null,
+        changing_table: location?.changing_table ?? null,
+        kids_area: location?.kids_area ?? null,
+      });
     }
-  }, [open]);
+  }, [open, location]);
 
   const sortedMealTypes = useMemo(
     () => [...mealTypes].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
@@ -45,8 +67,15 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
   const toggle = (id: string) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
+  const setEquip = (key: EquipKey, value: EquipValue) =>
+    setEquipment((e) => ({ ...e, [key]: value }));
+
+  const hasEquipmentInput = Object.values(equipment).some((v) => v !== null);
+
   const canSubmit =
-    variant === 'meals' ? selected.length > 0 : comment.trim().length > 0;
+    variant === 'meals'
+      ? selected.length > 0 || hasEquipmentInput || comment.trim().length > 0
+      : comment.trim().length > 0 || hasEquipmentInput;
 
   const handleSubmit = async () => {
     if (!user) {
@@ -58,9 +87,9 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
     setSubmitting(true);
     try {
       const isMeals = variant === 'meals';
-      const payload = isMeals
-        ? { meal_types: selected, comment: comment.trim() || null }
-        : { comment: comment.trim() };
+      const payload: any = isMeals
+        ? { meal_types: selected, equipment, comment: comment.trim() || null }
+        : { equipment, comment: comment.trim() };
       const { error } = await supabase.from('contributions').insert({
         location_id: locationId,
         user_id: user.id,
@@ -84,6 +113,67 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
     variant === 'meals'
       ? 'Quels repas avez-vous fait ici ?'
       : 'Partagez votre expérience';
+
+  const renderEquipmentSection = () => (
+    <div style={{ marginTop: variant === 'meals' ? 22 : 0 }}>
+      <div
+        style={{
+          fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 10,
+        }}
+      >
+        Équipements disponibles ?
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {EQUIP_ITEMS.map((item) => {
+          const value = equipment[item.key];
+          return (
+            <div
+              key={item.key}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 12px', borderRadius: 12,
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ fontSize: 18 }}>{item.emoji}</div>
+              <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+                {item.label}
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[
+                  { v: true as EquipValue, label: 'Oui' },
+                  { v: false as EquipValue, label: 'Non' },
+                  { v: null as EquipValue, label: '?' },
+                ].map((opt) => {
+                  const active = value === opt.v;
+                  return (
+                    <button
+                      key={String(opt.label)}
+                      onClick={() => setEquip(item.key, opt.v)}
+                      style={{
+                        padding: '5px 10px', borderRadius: 100,
+                        fontSize: 12, fontWeight: 600, fontFamily: 'DM Sans',
+                        border: active ? 'none' : '1px solid var(--border)',
+                        background: active
+                          ? (opt.v === true ? '#2E7D32' : opt.v === false ? 'var(--primary)' : 'var(--text-muted)')
+                          : 'transparent',
+                        color: active ? '#fff' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        minWidth: opt.label === '?' ? 30 : 40,
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <AnimatePresence>
@@ -135,6 +225,13 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
 
               {variant === 'meals' && (
                 <>
+                  <div
+                    style={{
+                      fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 10,
+                    }}
+                  >
+                    Repas
+                  </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {sortedMealTypes.map((mt) => {
                       const active = selected.includes(mt.id);
@@ -180,62 +277,42 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
                       );
                     })}
                   </div>
-
-                  <div style={{ marginTop: 18 }}>
-                    <label
-                      style={{
-                        display: 'block', fontSize: 13, fontWeight: 600,
-                        color: 'var(--text)', marginBottom: 6,
-                      }}
-                    >
-                      Un commentaire ? <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optionnel)</span>
-                    </label>
-                    <textarea
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value.slice(0, maxLen))}
-                      placeholder="Terrasse sympa, idéal pour le goûter…"
-                      rows={3}
-                      style={{
-                        width: '100%', padding: '10px 12px', borderRadius: 12,
-                        border: '1px solid var(--border)', background: 'var(--surface)',
-                        fontSize: 16, fontFamily: 'DM Sans', color: 'var(--text)',
-                        resize: 'none', outline: 'none',
-                      }}
-                    />
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right', marginTop: 4 }}>
-                      {comment.length}/{maxLen}
-                    </div>
-                  </div>
                 </>
               )}
 
-              {variant === 'comment' && (
-                <div>
-                  <label
-                    style={{
-                      display: 'block', fontSize: 13, fontWeight: 600,
-                      color: 'var(--text)', marginBottom: 6,
-                    }}
-                  >
-                    Votre commentaire
-                  </label>
-                  <textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value.slice(0, maxLen))}
-                    placeholder="Un conseil pour les familles qui visitent ce lieu ?"
-                    rows={5}
-                    style={{
-                      width: '100%', padding: '10px 12px', borderRadius: 12,
-                      border: '1px solid var(--border)', background: 'var(--surface)',
-                      fontSize: 16, fontFamily: 'DM Sans', color: 'var(--text)',
-                      resize: 'none', outline: 'none',
-                    }}
-                  />
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right', marginTop: 4 }}>
-                    {comment.length}/{maxLen}
-                  </div>
+              {renderEquipmentSection()}
+
+              <div style={{ marginTop: 18 }}>
+                <label
+                  style={{
+                    display: 'block', fontSize: 13, fontWeight: 600,
+                    color: 'var(--text)', marginBottom: 6,
+                  }}
+                >
+                  {variant === 'meals'
+                    ? <>Un commentaire ? <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optionnel)</span></>
+                    : 'Votre commentaire'}
+                </label>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value.slice(0, maxLen))}
+                  placeholder={
+                    variant === 'meals'
+                      ? 'Terrasse sympa, idéal pour le goûter…'
+                      : 'Un conseil pour les familles qui visitent ce lieu ?'
+                  }
+                  rows={variant === 'meals' ? 3 : 5}
+                  style={{
+                    width: '100%', padding: '10px 12px', borderRadius: 12,
+                    border: '1px solid var(--border)', background: 'var(--surface)',
+                    fontSize: 16, fontFamily: 'DM Sans', color: 'var(--text)',
+                    resize: 'none', outline: 'none',
+                  }}
+                />
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right', marginTop: 4 }}>
+                  {comment.length}/{maxLen}
                 </div>
-              )}
+              </div>
             </div>
 
             <div
@@ -246,7 +323,7 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
             >
               <button
                 onClick={handleSubmit}
-                disabled={submitting || (user && !canSubmit)}
+                disabled={submitting || (!!user && !canSubmit)}
                 className="w-full flex items-center justify-center gap-2 py-3 font-semibold text-sm transition-opacity disabled:opacity-50"
                 style={{ borderRadius: 100, background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer' }}
               >
