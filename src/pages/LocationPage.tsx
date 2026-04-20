@@ -401,6 +401,11 @@ const LocationPage = () => {
         </div>
       </motion.div>
       <ContributionModal location={location} open={showContribution} onClose={() => setShowContribution(false)} />
+      <ContributeServicesDrawer
+        locationId={location.id}
+        open={showServicesDrawer}
+        onClose={() => setShowServicesDrawer(false)}
+      />
     </div>
   );
 };
