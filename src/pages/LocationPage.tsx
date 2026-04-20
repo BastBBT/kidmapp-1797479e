@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import ContributionModal from '@/components/ContributionModal';
 import LocationServicesSection from '@/components/LocationServicesSection';
+import ContributeServicesDrawer from '@/components/ContributeServicesDrawer';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { useLocation as useLocationData } from '@/hooks/useLocations';
@@ -70,6 +71,7 @@ const LocationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [showContribution, setShowContribution] = useState(false);
+  const [showServicesDrawer, setShowServicesDrawer] = useState(false);
   const { data: location, isLoading } = useLocationData(id ?? '');
   const { isFavorite, toggleFavorite } = useFavorites();
   const { data: votes } = useEquipmentVotes(id ?? '');
@@ -329,7 +331,7 @@ const LocationPage = () => {
           {/* Horaires & services (repas) */}
           <LocationServicesSection
             locationId={location.id}
-            onEdit={() => setShowContribution(true)}
+            onEdit={() => setShowServicesDrawer(true)}
           />
 
 
@@ -399,6 +401,11 @@ const LocationPage = () => {
         </div>
       </motion.div>
       <ContributionModal location={location} open={showContribution} onClose={() => setShowContribution(false)} />
+      <ContributeServicesDrawer
+        locationId={location.id}
+        open={showServicesDrawer}
+        onClose={() => setShowServicesDrawer(false)}
+      />
     </div>
   );
 };
