@@ -380,8 +380,9 @@ const AdminPage = () => {
       return;
     }
 
-    // Insert meals for new location
-    const mealRows = Object.entries(addMeals)
+    // Insert meals for new location (only if category supports meals)
+    const supportsMeals = form.category === 'restaurant' || form.category === 'cafe';
+    const mealRows = supportsMeals ? Object.entries(addMeals)
       .filter(([, v]) => v.enabled)
       .map(([meal_type_id, v]) => {
         const mt = mealTypes.find((m) => m.id === meal_type_id);
@@ -993,7 +994,9 @@ const AdminPage = () => {
                   </select>
                 </div>
 
-                <MealsEditor mealTypes={mealTypes} state={addMeals} onChange={setAddMeals} />
+                {(form.category === 'restaurant' || form.category === 'cafe') && (
+                  <MealsEditor mealTypes={mealTypes} state={addMeals} onChange={setAddMeals} />
+                )}
 
                 <button
                   onClick={handleAddLocation}
@@ -1133,7 +1136,9 @@ const AdminPage = () => {
                 </select>
               </div>
 
-              <MealsEditor mealTypes={mealTypes} state={editMeals} onChange={setEditMeals} />
+              {(editForm.category === 'restaurant' || editForm.category === 'cafe') && (
+                <MealsEditor mealTypes={mealTypes} state={editMeals} onChange={setEditMeals} />
+              )}
 
               <button
                 onClick={async () => {
@@ -1159,34 +1164,37 @@ const AdminPage = () => {
                     return;
                   }
 
-                  // Persist meals: upsert ON, delete OFF
-                  const toUpsert = Object.entries(editMeals)
-                    .filter(([, v]) => v.enabled)
-                    .map(([meal_type_id, v]) => {
-                      const mt = mealTypes.find((m) => m.id === meal_type_id);
-                      return {
-                        location_id: editingId!,
-                        meal_type_id,
-                        time_open: v.time_open || mt?.default_time_start || null,
-                        time_close: v.time_close || mt?.default_time_end || null,
-                        is_confirmed: true,
-                      };
-                    });
-                  const toDelete = Object.entries(editMeals)
-                    .filter(([, v]) => !v.enabled)
-                    .map(([meal_type_id]) => meal_type_id);
+                  // Persist meals only if category supports meals; otherwise wipe any existing meals
+                  const supportsMeals = editForm.category === 'restaurant' || editForm.category === 'cafe';
+                  if (supportsMeals) {
+                    const toUpsert = Object.entries(editMeals)
+                      .filter(([, v]) => v.enabled)
+                      .map(([meal_type_id, v]) => {
+                        const mt = mealTypes.find((m) => m.id === meal_type_id);
+                        return {
+                          location_id: editingId!,
+                          meal_type_id,
+                          time_open: v.time_open || mt?.default_time_start || null,
+                          time_close: v.time_close || mt?.default_time_end || null,
+                          is_confirmed: true,
+                        };
+                      });
+                    const toDelete = Object.entries(editMeals)
+                      .filter(([, v]) => !v.enabled)
+                      .map(([meal_type_id]) => meal_type_id);
 
-                  if (toUpsert.length > 0) {
-                    await supabase
-                      .from('location_meals')
-                      .upsert(toUpsert, { onConflict: 'location_id,meal_type_id' });
-                  }
-                  if (toDelete.length > 0) {
-                    await supabase
-                      .from('location_meals')
-                      .delete()
-                      .eq('location_id', editingId!)
-                      .in('meal_type_id', toDelete);
+                    if (toUpsert.length > 0) {
+                      await supabase
+                        .from('location_meals')
+                        .upsert(toUpsert, { onConflict: 'location_id,meal_type_id' });
+                    }
+                    if (toDelete.length > 0) {
+                      await supabase
+                        .from('location_meals')
+                        .delete()
+                        .eq('location_id', editingId!)
+                        .in('meal_type_id', toDelete);
+                    }
                   }
 
                   queryClient.invalidateQueries({ queryKey: ['all-locations'] });
