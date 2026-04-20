@@ -2,9 +2,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { categoryIcons, categoryLabels } from '@/types/location';
 import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
-import ContributionModal from '@/components/ContributionModal';
 import LocationServicesSection from '@/components/LocationServicesSection';
-import ContributeMealsSheet from '@/components/ContributeMealsSheet';
+import ContributeSheet from '@/components/ContributeSheet';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { useLocation as useLocationData } from '@/hooks/useLocations';
@@ -70,8 +69,7 @@ const EquipBlock = ({ available, icon, label, voteCount }: { available: boolean;
 const LocationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [showContribution, setShowContribution] = useState(false);
-  const [showServicesDrawer, setShowServicesDrawer] = useState(false);
+  const [showContribute, setShowContribute] = useState(false);
   const { data: location, isLoading } = useLocationData(id ?? '');
   const { isFavorite, toggleFavorite } = useFavorites();
   const { data: votes } = useEquipmentVotes(id ?? '');
@@ -332,9 +330,7 @@ const LocationPage = () => {
           <LocationServicesSection
             locationId={location.id}
             category={location.category}
-            onEdit={() => setShowServicesDrawer(true)}
           />
-
 
           {pendingContribution && (
             <div style={{
@@ -361,30 +357,20 @@ const LocationPage = () => {
             </div>
           )}
 
-          {/* Nudge contribution */}
-          <div className="flex items-center justify-between gap-3 mt-4 p-4 rounded-xl" style={{ background: 'var(--bg)' }}>
-            <div>
-              <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-                Vous connaissez ce lieu ?
-              </div>
-              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500 }}>
-                Aidez les autres familles ✦
-              </div>
-            </div>
-            {pendingContribution ? (
-              <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>
-                Déjà envoyée ✓
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowContribution(true)}
-                className="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap"
-                style={{ border: '1.5px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }}
-              >
-                Contribuer
-              </button>
-            )}
-          </div>
+          {/* Single unified Contribute button */}
+          <button
+            onClick={() => setShowContribute(true)}
+            style={{
+              width: '100%', marginTop: 16,
+              padding: '12px 16px', borderRadius: 100,
+              border: '1.5px solid var(--primary)',
+              background: 'transparent', color: 'var(--primary)',
+              fontFamily: 'DM Sans', fontSize: 14, fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Contribuer
+          </button>
 
           {/* Bouton Itinéraire */}
           <a
@@ -401,11 +387,11 @@ const LocationPage = () => {
           </a>
         </div>
       </motion.div>
-      <ContributionModal location={location} open={showContribution} onClose={() => setShowContribution(false)} />
-      <ContributeMealsSheet
+      <ContributeSheet
         locationId={location.id}
-        open={showServicesDrawer}
-        onClose={() => setShowServicesDrawer(false)}
+        category={location.category}
+        open={showContribute}
+        onClose={() => setShowContribute(false)}
       />
     </div>
   );

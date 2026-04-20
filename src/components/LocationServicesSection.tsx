@@ -170,27 +170,10 @@ const LocationServicesSectionInner = ({ locationId, onEdit }: { locationId: stri
   };
 
   const SectionHeader = (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      marginBottom: 12,
-    }}>
+    <div style={{ marginBottom: 12 }}>
       <h2 className="font-display" style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
         Horaires & services
       </h2>
-      {onEdit && (
-        <button
-          onClick={onEdit}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            padding: '6px 12px', borderRadius: 100,
-            background: 'transparent', border: '1.5px solid var(--border)',
-            color: 'var(--text-muted)', fontFamily: 'DM Sans',
-            fontSize: 12, fontWeight: 600, cursor: 'pointer',
-          }}
-        >
-          <PencilIcon /> Modifier
-        </button>
-      )}
     </div>
   );
 
@@ -205,22 +188,9 @@ const LocationServicesSectionInner = ({ locationId, onEdit }: { locationId: stri
           padding: '18px 16px', borderRadius: 14,
           background: 'var(--bg)', textAlign: 'center',
         }}>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
             Horaires non renseignés — sois le premier à contribuer !
           </div>
-          {onEdit && (
-            <button
-              onClick={onEdit}
-              style={{
-                padding: '8px 16px', borderRadius: 100,
-                background: 'var(--primary)', color: '#fff',
-                fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
-                border: 'none', cursor: 'pointer',
-              }}
-            >
-              Ajouter les horaires
-            </button>
-          )}
         </div>
       ) : (
         <>
