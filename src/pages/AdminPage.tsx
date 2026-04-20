@@ -1041,6 +1041,9 @@ const AdminPage = () => {
                   <option value="unpublished">Masqué</option>
                 </select>
               </div>
+
+              <MealsEditor mealTypes={mealTypes} state={editMeals} onChange={setEditMeals} />
+
               <button
                 onClick={async () => {
                   const { error } = await supabase
@@ -1060,14 +1063,47 @@ const AdminPage = () => {
                       status: editForm.status,
                     } as any)
                     .eq('id', editingId);
-                  if (!error) {
-                    queryClient.invalidateQueries({ queryKey: ['all-locations'] });
-                    queryClient.invalidateQueries({ queryKey: ['locations'] });
-                    setEditingId(null);
-                    toast({ title: 'Lieu mis à jour ✓' });
-                  } else {
+                  if (error) {
                     toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+                    return;
                   }
+
+                  // Persist meals: upsert ON, delete OFF
+                  const toUpsert = Object.entries(editMeals)
+                    .filter(([, v]) => v.enabled)
+                    .map(([meal_type_id, v]) => {
+                      const mt = mealTypes.find((m) => m.id === meal_type_id);
+                      return {
+                        location_id: editingId!,
+                        meal_type_id,
+                        time_open: v.time_open || mt?.default_time_start || null,
+                        time_close: v.time_close || mt?.default_time_end || null,
+                        days_custom: v.days_custom || null,
+                        is_confirmed: true,
+                      };
+                    });
+                  const toDelete = Object.entries(editMeals)
+                    .filter(([, v]) => !v.enabled)
+                    .map(([meal_type_id]) => meal_type_id);
+
+                  if (toUpsert.length > 0) {
+                    await supabase
+                      .from('location_meals')
+                      .upsert(toUpsert, { onConflict: 'location_id,meal_type_id' });
+                  }
+                  if (toDelete.length > 0) {
+                    await supabase
+                      .from('location_meals')
+                      .delete()
+                      .eq('location_id', editingId!)
+                      .in('meal_type_id', toDelete);
+                  }
+
+                  queryClient.invalidateQueries({ queryKey: ['all-locations'] });
+                  queryClient.invalidateQueries({ queryKey: ['locations'] });
+                  queryClient.invalidateQueries({ queryKey: ['location_meals'] });
+                  setEditingId(null);
+                  toast({ title: 'Lieu mis à jour ✓' });
                 }}
                 style={{ width: '100%', padding: '14px', borderRadius: '100px', border: 'none', background: 'var(--primary)', color: '#fff', fontFamily: 'DM Sans', fontSize: '15px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}
               >
