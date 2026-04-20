@@ -267,6 +267,39 @@ const AdminPage = () => {
       if (Object.keys(updateData).length > 0) {
         await supabase.from('locations').update(updateData).eq('id', contrib.location_id);
       }
+
+      // Handle meal_types contributions: upsert each meal into location_meals
+      if (contrib.type === 'meal_types' && contrib.content) {
+        try {
+          const parsed = JSON.parse(contrib.content);
+          const mealIds: string[] = parsed?.meal_types ?? [];
+          if (mealIds.length > 0) {
+            // Fetch existing meals to know which exist (to bump confirmed_count)
+            const { data: existing } = await supabase
+              .from('location_meals')
+              .select('meal_type_id, confirmed_count')
+              .eq('location_id', contrib.location_id)
+              .in('meal_type_id', mealIds);
+            const existingMap = new Map(
+              (existing ?? []).map((r: any) => [r.meal_type_id, r.confirmed_count ?? 0])
+            );
+            const rows = mealIds.map((mid) => ({
+              location_id: contrib.location_id,
+              meal_type_id: mid,
+              is_confirmed: true,
+              confirmed_count: (existingMap.get(mid) ?? 0) + 1,
+              time_open: null,
+              time_close: null,
+            }));
+            await supabase
+              .from('location_meals')
+              .upsert(rows, { onConflict: 'location_id,meal_type_id' });
+            queryClient.invalidateQueries({ queryKey: ['location_meals'] });
+          }
+        } catch (e) {
+          console.error('Failed to process meal_types contribution', e);
+        }
+      }
     }
     queryClient.invalidateQueries({ queryKey: ['contributions'] });
     queryClient.invalidateQueries({ queryKey: ['all-locations'] });
@@ -612,6 +645,16 @@ const AdminPage = () => {
                   )}
                   {filteredContribs.map((contrib: any, i: number) => {
                     const loc = locations.find((l) => l.id === contrib.location_id);
+                    const isMealContrib = contrib.type === 'meal_types';
+                    let mealIds: string[] = [];
+                    let mealComment: string | null = null;
+                    if (isMealContrib && contrib.content) {
+                      try {
+                        const parsed = JSON.parse(contrib.content);
+                        mealIds = Array.isArray(parsed?.meal_types) ? parsed.meal_types : [];
+                        mealComment = parsed?.comment ?? null;
+                      } catch { /* ignore */ }
+                    }
                     return (
                 <motion.div
                   key={contrib.id}
@@ -620,21 +663,71 @@ const AdminPage = () => {
                   transition={{ delay: i * 0.02 }}
                   style={{ background: 'var(--surface)', borderRadius: 'var(--radius-sm)', padding: '14px', boxShadow: 'var(--shadow)' }}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <div style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, color: 'var(--text)' }}>
-                      {loc?.name ?? 'Lieu inconnu'}
+                  <div className="flex items-center justify-between mb-2 gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                      <div style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, color: 'var(--text)' }}>
+                        {loc?.name ?? 'Lieu inconnu'}
+                      </div>
+                      {isMealContrib && (
+                        <span style={{
+                          fontFamily: 'DM Sans', fontSize: '10px', fontWeight: 700,
+                          padding: '2px 8px', borderRadius: 100,
+                          background: 'var(--primary)', color: '#fff',
+                          letterSpacing: '0.04em', textTransform: 'uppercase',
+                        }}>
+                          Repas
+                        </span>
+                      )}
                     </div>
                     <StatusBadge status={contrib.status} />
                   </div>
                   <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '8px' }}>
                     {new Date(contrib.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
                   </div>
-                  <div className="flex gap-4 flex-wrap mb-3" style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {contrib.high_chair !== null && <span>🪑 Chaise haute {contrib.high_chair ? '✓' : '✗'}</span>}
-                    {contrib.changing_table !== null && <span>👶 Table à langer {contrib.changing_table ? '✓' : '✗'}</span>}
-                    {contrib.kids_area !== null && <span>🌳 Espace jeux {contrib.kids_area ? '✓' : '✗'}</span>}
-                    {contrib.bookable !== null && <span>📅 Réservation: {contrib.bookable === 'yes' ? 'Oui ✓' : contrib.bookable === 'no' ? 'Non ✗' : '?'}</span>}
-                  </div>
+                  {isMealContrib ? (
+                    <div style={{ marginBottom: '10px' }}>
+                      {mealIds.length > 0 && (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: mealComment ? 8 : 0 }}>
+                          {mealIds.map((id) => {
+                            const mt = mealTypes.find((m) => m.id === id);
+                            if (!mt) return null;
+                            return (
+                              <span
+                                key={id}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                                  padding: '4px 10px', borderRadius: 100,
+                                  background: mt.bg_hex || 'var(--bg)',
+                                  fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                                  color: 'var(--text)',
+                                }}
+                              >
+                                <span style={{ fontSize: 14 }}>{mt.emoji}</span>
+                                {mt.short_label || mt.label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {mealComment && (
+                        <div style={{
+                          fontFamily: 'DM Sans', fontSize: '13px',
+                          color: 'var(--text-muted)', fontStyle: 'italic',
+                          padding: '8px 12px', borderRadius: 10,
+                          background: 'var(--bg)',
+                        }}>
+                          « {mealComment} »
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex gap-4 flex-wrap mb-3" style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
+                      {contrib.high_chair !== null && <span>🪑 Chaise haute {contrib.high_chair ? '✓' : '✗'}</span>}
+                      {contrib.changing_table !== null && <span>👶 Table à langer {contrib.changing_table ? '✓' : '✗'}</span>}
+                      {contrib.kids_area !== null && <span>🌳 Espace jeux {contrib.kids_area ? '✓' : '✗'}</span>}
+                      {contrib.bookable !== null && <span>📅 Réservation: {contrib.bookable === 'yes' ? 'Oui ✓' : contrib.bookable === 'no' ? 'Non ✗' : '?'}</span>}
+                    </div>
+                  )}
                   {contrib.status === 'pending' && (
                     <div className="flex gap-2">
                       <button
