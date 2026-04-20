@@ -1,0 +1,3 @@
+ALTER TABLE public.contributions
+  ADD COLUMN IF NOT EXISTS type TEXT,
+  ADD COLUMN IF NOT EXISTS content TEXT;
