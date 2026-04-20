@@ -18,34 +18,40 @@ export type Database = {
         Row: {
           bookable: string | null
           changing_table: boolean | null
+          content: string | null
           created_at: string
           high_chair: boolean | null
           id: string
           kids_area: boolean | null
           location_id: string
           status: string
+          type: string | null
           user_id: string | null
         }
         Insert: {
           bookable?: string | null
           changing_table?: boolean | null
+          content?: string | null
           created_at?: string
           high_chair?: boolean | null
           id?: string
           kids_area?: boolean | null
           location_id: string
           status?: string
+          type?: string | null
           user_id?: string | null
         }
         Update: {
           bookable?: string | null
           changing_table?: boolean | null
+          content?: string | null
           created_at?: string
           high_chair?: boolean | null
           id?: string
           kids_area?: boolean | null
           location_id?: string
           status?: string
+          type?: string | null
           user_id?: string | null
         }
         Relationships: [

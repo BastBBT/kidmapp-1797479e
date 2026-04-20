@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import ContributionModal from '@/components/ContributionModal';
 import LocationServicesSection from '@/components/LocationServicesSection';
-import ContributeServicesDrawer from '@/components/ContributeServicesDrawer';
+import ContributeMealsSheet from '@/components/ContributeMealsSheet';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { useLocation as useLocationData } from '@/hooks/useLocations';
@@ -401,7 +401,7 @@ const LocationPage = () => {
         </div>
       </motion.div>
       <ContributionModal location={location} open={showContribution} onClose={() => setShowContribution(false)} />
-      <ContributeServicesDrawer
+      <ContributeMealsSheet
         locationId={location.id}
         open={showServicesDrawer}
         onClose={() => setShowServicesDrawer(false)}
