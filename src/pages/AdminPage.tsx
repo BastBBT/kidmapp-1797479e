@@ -902,6 +902,8 @@ const AdminPage = () => {
                   </select>
                 </div>
 
+                <MealsEditor mealTypes={mealTypes} state={addMeals} onChange={setAddMeals} />
+
                 <button
                   onClick={handleAddLocation}
                   disabled={submitting}
