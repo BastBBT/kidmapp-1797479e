@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { LocationCategory } from '@/types/location';
 import MapView from '@/components/MapView';
 import LocationCard from '@/components/LocationCard';
@@ -10,14 +11,40 @@ import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
 import ProposeLocationModal from '@/components/ProposeLocationModal';
 
 const MEAL_CATEGORIES = new Set(['all', 'restaurant', 'cafe']);
+const VALID_CATEGORIES = new Set<string>(['all', 'restaurant', 'cafe', 'shop', 'public', 'coiffeur']);
+const NANTES_CENTER: [number, number] = [47.1984, -1.5536];
+const DEFAULT_ZOOM = 12;
 
 const Index = () => {
-  const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>('all');
-  const [selectedMeal, setSelectedMeal] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Read initial values from URL once
+  const initialCategory = (() => {
+    const c = searchParams.get('category');
+    return c && VALID_CATEGORIES.has(c) ? (c as LocationCategory | 'all') : 'all';
+  })();
+  const initialQuery = searchParams.get('q') ?? '';
+  const initialMeal = searchParams.get('meal');
+  const initialCenter = useMemo<[number, number]>(() => {
+    const lat = parseFloat(searchParams.get('lat') ?? '');
+    const lng = parseFloat(searchParams.get('lng') ?? '');
+    return Number.isFinite(lat) && Number.isFinite(lng) ? [lat, lng] : NANTES_CENTER;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const initialZoom = useMemo<number>(() => {
+    const z = parseFloat(searchParams.get('zoom') ?? '');
+    return Number.isFinite(z) ? z : DEFAULT_ZOOM;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>(initialCategory);
+  const [selectedMeal, setSelectedMeal] = useState<string | null>(initialMeal);
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [showProposalModal, setShowProposalModal] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
   const [selectedId, setSelectedId] = useState<string | undefined>();
+  const mapViewRef = useRef<{ center: [number, number]; zoom: number }>({ center: initialCenter, zoom: initialZoom });
+
   const { data: locations = [], isLoading } = useLocations(selectedCategory);
   const { data: mealTypes = [] } = useMealTypes();
   const { data: locationMeals = [] } = useAllLocationMeals();
@@ -25,9 +52,45 @@ const Index = () => {
   const showMealFilter = MEAL_CATEGORIES.has(selectedCategory);
 
   // Reset meal filter when switching to a non-meal category
-  if (!showMealFilter && selectedMeal !== null) {
-    setSelectedMeal(null);
-  }
+  useEffect(() => {
+    if (!showMealFilter && selectedMeal !== null) {
+      setSelectedMeal(null);
+    }
+  }, [showMealFilter, selectedMeal]);
+
+  // Sync URL params (replaceState — no history pollution)
+  const updateUrl = useCallback((overrides: Partial<{ q: string; category: string; meal: string | null; lat: number; lng: number; zoom: number }> = {}) => {
+    const params = new URLSearchParams();
+    const q = overrides.q ?? searchQuery;
+    const category = overrides.category ?? selectedCategory;
+    const meal = overrides.meal !== undefined ? overrides.meal : selectedMeal;
+    const lat = overrides.lat ?? mapViewRef.current.center[0];
+    const lng = overrides.lng ?? mapViewRef.current.center[1];
+    const zoom = overrides.zoom ?? mapViewRef.current.zoom;
+
+    if (q) params.set('q', q);
+    if (category && category !== 'all') params.set('category', category);
+    if (meal) params.set('meal', meal);
+    if (Number.isFinite(lat) && (lat !== NANTES_CENTER[0] || lng !== NANTES_CENTER[1])) {
+      params.set('lat', lat.toFixed(4));
+      params.set('lng', lng.toFixed(4));
+    }
+    if (Number.isFinite(zoom) && zoom !== DEFAULT_ZOOM) {
+      params.set('zoom', String(zoom));
+    }
+    setSearchParams(params, { replace: true });
+  }, [searchQuery, selectedCategory, selectedMeal, setSearchParams]);
+
+  // Push filter changes to URL
+  useEffect(() => {
+    updateUrl();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, selectedCategory, selectedMeal]);
+
+  const handleMapViewChange = useCallback((center: [number, number], zoom: number) => {
+    mapViewRef.current = { center, zoom };
+    updateUrl({ lat: center[0], lng: center[1], zoom });
+  }, [updateUrl]);
 
   // Map: locationId -> meal_type_ids[]
   const mealsByLocation = useMemo(() => {
