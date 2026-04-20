@@ -1313,6 +1313,7 @@ const AdminPage = () => {
                   queryClient.invalidateQueries({ queryKey: ['locations'] });
                   queryClient.invalidateQueries({ queryKey: ['location_meals'] });
                   setEditingId(null);
+                  setEditPhotoFile(null);
                   toast({ title: 'Lieu mis à jour ✓' });
                 }}
                 style={{ width: '100%', padding: '14px', borderRadius: '100px', border: 'none', background: 'var(--primary)', color: '#fff', fontFamily: 'DM Sans', fontSize: '15px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}
