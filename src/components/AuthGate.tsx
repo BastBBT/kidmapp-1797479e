@@ -1,10 +1,26 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import AuthModal from './AuthModal';
+import Onboarding from './Onboarding';
+
+const ONBOARDING_KEY = 'kidmapp_hasSeenOnboarding';
 
 const AuthGate = ({ children }: { children: ReactNode }) => {
   const { user, isLoading } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (user) return;
+    try {
+      const seen = localStorage.getItem(ONBOARDING_KEY);
+      if (!seen) setShowOnboarding(true);
+    } catch {
+      // ignore
+    }
+  }, [isLoading, user]);
 
   if (isLoading) {
     return (
@@ -15,7 +31,17 @@ const AuthGate = ({ children }: { children: ReactNode }) => {
   }
 
   if (!user) {
-    return <AuthModal />;
+    if (showOnboarding) {
+      return (
+        <Onboarding
+          onFinish={(mode) => {
+            setAuthMode(mode);
+            setShowOnboarding(false);
+          }}
+        />
+      );
+    }
+    return <AuthModal initialMode={authMode} />;
   }
 
   return <>{children}</>;
