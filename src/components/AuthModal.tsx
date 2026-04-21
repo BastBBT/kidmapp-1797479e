@@ -281,7 +281,7 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
           <path d="M80,10 C115,8 148,35 155,70 C162,105 145,140 112,152 C79,164 42,150 22,120 C2,90 8,50 35,28 C52,14 62,11 80,10Z" fill="rgba(255,255,255,0.12)" />
         </svg>
 
-        <div style={{ fontFamily: "'Fraunces', serif", fontStyle: 'italic', fontWeight: 700, fontSize: 46, color: 'var(--primary)', letterSpacing: '-0.04em', position: 'relative', zIndex: 1, lineHeight: 1 }}>
+        <div style={{ fontFamily: "'Fraunces', serif", fontStyle: 'italic', fontWeight: 400, fontSize: '2.8rem', fontVariationSettings: "'opsz' 72, 'WONK' 1", color: '#D95F3B', letterSpacing: '-0.02em', position: 'relative', zIndex: 1, lineHeight: 1 }}>
           Kidmapp
         </div>
         <div style={{ fontFamily: "'Caveat', cursive", fontSize: 18, color: '#C45A38', fontWeight: 500, position: 'relative', zIndex: 1, marginTop: 4 }}>
