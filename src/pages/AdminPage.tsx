@@ -435,7 +435,7 @@ const AdminPage = () => {
         <div style={{ fontFamily: 'Fraunces', fontSize: '24px', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text)' }}>
           Administration
         </div>
-        <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)' }}>kidmapp — Nantes ✦</div>
+        <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)' }}>Kidmapp — Nantes ✦</div>
       </div>
 
       {/* Tabs */}
