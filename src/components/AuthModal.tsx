@@ -430,7 +430,7 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
             disabled={loading}
             style={{
               width: '100%',
-              padding: 15,
+              padding: 13,
               borderRadius: 100,
               border: 'none',
               background: 'var(--primary)',
@@ -444,7 +444,7 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
-              marginTop: 6,
+              marginTop: 4,
               boxShadow: '0 8px 22px rgba(217,95,59,0.28)',
               transition: 'opacity 0.2s',
             }}
@@ -463,7 +463,7 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
         </form>
 
         {/* Separator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '22px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0' }}>
           <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
           <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)' }}>ou</div>
           <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
@@ -475,7 +475,7 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
           onClick={() => setError('La connexion Apple sera bientôt disponible')}
           style={{
             width: '100%',
-            padding: 14,
+            padding: 12,
             borderRadius: 100,
             border: 'none',
             background: '#1A1310',
@@ -488,7 +488,7 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 10,
-            marginBottom: 10,
+            marginBottom: 8,
           }}
         >
           <AppleIcon /> Continuer avec Apple
@@ -500,7 +500,7 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
           onClick={() => setError('La connexion Google sera bientôt disponible')}
           style={{
             width: '100%',
-            padding: 14,
+            padding: 12,
             borderRadius: 100,
             border: '1.5px solid var(--border)',
             background: '#fff',
