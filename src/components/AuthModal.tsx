@@ -282,7 +282,7 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
         </svg>
 
         <div style={{ fontFamily: "'Fraunces', serif", fontStyle: 'italic', fontWeight: 400, fontSize: '2.8rem', fontVariationSettings: "'opsz' 72, 'WONK' 1", color: '#D95F3B', letterSpacing: '-0.02em', position: 'relative', zIndex: 1, lineHeight: 1 }}>
-          Kidmapp
+          kidmapp
         </div>
         <div style={{ fontFamily: "'Caveat', cursive", fontSize: 18, color: '#C45A38', fontWeight: 500, position: 'relative', zIndex: 1, marginTop: 4 }}>
           Nantes pour les familles ✦
