@@ -258,12 +258,12 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
-      {/* Hero (~35vh) */}
+      {/* Hero (~28vh) */}
       <div
         style={{
-          height: '35vh',
-          minHeight: 260,
-          maxHeight: 340,
+          height: '28vh',
+          minHeight: 220,
+          maxHeight: 290,
           flexShrink: 0,
           background: 'linear-gradient(160deg, #FAF0EC 0%, #F0C4B4 60%, #E8A088 100%)',
           position: 'relative',
@@ -281,14 +281,14 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
           <path d="M80,10 C115,8 148,35 155,70 C162,105 145,140 112,152 C79,164 42,150 22,120 C2,90 8,50 35,28 C52,14 62,11 80,10Z" fill="rgba(255,255,255,0.12)" />
         </svg>
 
-        <div style={{ fontFamily: 'Fraunces', fontStyle: 'italic', fontSize: 48, color: 'var(--primary)', letterSpacing: '-0.04em', fontWeight: 500, position: 'relative', zIndex: 1 }}>
+        <div style={{ fontFamily: "'Fraunces', serif", fontStyle: 'italic', fontWeight: 700, fontSize: 46, color: 'var(--primary)', letterSpacing: '-0.04em', position: 'relative', zIndex: 1, lineHeight: 1 }}>
           kidmapp
         </div>
-        <div style={{ fontFamily: 'Caveat', fontSize: 18, color: '#C45A38', fontWeight: 500, position: 'relative', zIndex: 1 }}>
+        <div style={{ fontFamily: "'Caveat', cursive", fontSize: 18, color: '#C45A38', fontWeight: 500, position: 'relative', zIndex: 1, marginTop: 4 }}>
           Nantes pour les familles ✦
         </div>
 
-        <div style={{ display: 'flex', gap: 14, marginTop: 18, position: 'relative', zIndex: 1 }}>
+        <div style={{ display: 'flex', gap: 12, marginTop: 14, position: 'relative', zIndex: 1 }}>
           {[
             { stroke: '#D95F3B', paths: [<path key="1" d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2" />, <path key="2" d="M7 2v20" />, <path key="3" d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3z" />, <path key="4" d="M21 15v7" />] },
             { stroke: '#3B7D6E', paths: [<path key="1" d="M18 8h1a4 4 0 010 8h-1" />, <path key="2" d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z" />] },
@@ -298,8 +298,8 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
             <div
               key={i}
               style={{
-                width: 46,
-                height: 46,
+                width: 42,
+                height: 42,
                 borderRadius: '50%',
                 background: 'rgba(255,255,255,0.78)',
                 boxShadow: '0 3px 12px rgba(0,0,0,0.10)',
@@ -308,7 +308,7 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
                 justifyContent: 'center',
               }}
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={icon.stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={icon.stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 {icon.paths}
               </svg>
             </div>
@@ -323,13 +323,13 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
           marginTop: -24,
           background: 'var(--bg)',
           borderRadius: '24px 24px 0 0',
-          padding: '28px 24px calc(env(safe-area-inset-bottom, 0px) + 36px)',
+          padding: '20px 24px calc(env(safe-area-inset-bottom, 0px) + 24px)',
           position: 'relative',
           zIndex: 2,
         }}
       >
-        {/* Underline tabs */}
-        <div style={{ display: 'flex', gap: 28, borderBottom: '1.5px solid var(--border)', marginBottom: 24 }}>
+        {/* Underline tabs - centered */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 36, borderBottom: '1.5px solid var(--border)', marginBottom: 18 }}>
           {(['signup', 'login'] as const).map((m) => {
             const active = mode === m;
             return (
@@ -338,7 +338,7 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
                 onClick={() => setMode(m)}
                 style={{
                   position: 'relative',
-                  padding: '0 0 14px',
+                  padding: '0 0 12px',
                   border: 'none',
                   background: 'transparent',
                   fontFamily: 'DM Sans',
@@ -358,7 +358,7 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
           })}
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div>
             <label style={labelStyle}>Email</label>
             <input
