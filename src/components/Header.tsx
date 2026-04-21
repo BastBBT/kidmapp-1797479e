@@ -25,7 +25,7 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange }: H
         <div className="flex items-center justify-between h-14">
           <div className="flex flex-col cursor-pointer leading-none" onClick={() => navigate('/')}>
             <span style={{ fontFamily: 'Fraunces, serif', fontSize: '22px', color: 'var(--primary)', letterSpacing: '-0.03em', fontWeight: 600 }}>
-              kidmapp
+              Kidmapp
             </span>
             <span style={{ fontFamily: 'Caveat, cursive', fontSize: '14px', color: 'var(--text-muted)' }}>
               — Nantes
