@@ -8,6 +8,8 @@ import LocationPage from "./pages/LocationPage";
 import AdminPage from "./pages/AdminPage";
 import SavedPage from "./pages/SavedPage";
 import AccountPage from "./pages/AccountPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import SupportPage from "./pages/SupportPage";
 import NotFound from "./pages/NotFound";
 import AuthGate from "./components/AuthGate";
 import BottomNav from "./components/BottomNav";
@@ -15,22 +17,32 @@ import { useAuth, AuthProvider } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
 
+const ProtectedRoutes = () => (
+  <AuthGate>
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/location/:id" element={<LocationPage />} />
+      <Route path="/saved" element={<SavedPage />} />
+      <Route path="/account" element={<AccountPage />} />
+      <Route path="/gestion-k1dm4p" element={<AdminPage />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </AuthGate>
+);
+
 const AppContent = () => {
   const { user } = useAuth();
   const showBottomNav = !!user;
 
   return (
     <>
-      <AuthGate>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/location/:id" element={<LocationPage />} />
-          <Route path="/saved" element={<SavedPage />} />
-          <Route path="/account" element={<AccountPage />} />
-          <Route path="/gestion-k1dm4p" element={<AdminPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </AuthGate>
+      <Routes>
+        {/* Public routes — no auth required */}
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/support" element={<SupportPage />} />
+        {/* Everything else goes through AuthGate */}
+        <Route path="*" element={<ProtectedRoutes />} />
+      </Routes>
       {showBottomNav && <BottomNav />}
     </>
   );

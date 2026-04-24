@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useQuery } from '@tanstack/react-query';
@@ -207,6 +208,44 @@ const AccountPage = () => {
           </svg>
           Se déconnecter
         </button>
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        padding: '32px 16px 0',
+        textAlign: 'center',
+      }}>
+        <div style={{
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: '13px',
+          color: 'var(--text-muted)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px',
+        }}>
+          <Link
+            to="/privacy"
+            style={{ color: 'var(--text-muted)', textDecoration: 'none' }}
+          >
+            Confidentialité
+          </Link>
+          <span aria-hidden="true">·</span>
+          <Link
+            to="/support"
+            style={{ color: 'var(--text-muted)', textDecoration: 'none' }}
+          >
+            Support
+          </Link>
+        </div>
+        <div style={{
+          fontFamily: 'Caveat, cursive',
+          fontSize: '14px',
+          color: 'var(--text-muted)',
+          marginTop: '8px',
+        }}>
+          © 2026 Kidmapp
+        </div>
       </div>
     </div>
   );

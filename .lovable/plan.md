@@ -1,30 +1,57 @@
+## Plan : Pages /privacy et /support (publiques)
 
+### 1. Création des pages
 
-## Réappliquer le style logo de la prod dans le hero Auth
+**`src/pages/PrivacyPage.tsx`** — Politique de confidentialité
+- Layout sobre, fond `bg-background` (cream #FAF9F6)
+- Titre en Fraunces (`font-serif`), corps en DM Sans
+- Contenu structuré en sections : Données collectées, Utilisation, Partage, Suppression de compte, Contact
+- Lien `mailto:hello@kidmapp.app`
+- Bouton retour en haut (← Retour) vers `/`
+- Padding bottom 120px (compat bottom nav si user connecté)
 
-L'utilisateur a fourni les valeurs CSS exactes utilisées en prod pour le logo "kidmapp". Je vais les réappliquer telles quelles dans `AuthModal.tsx`.
+**`src/pages/SupportPage.tsx`** — Page de support
+- Hero : "Besoin d'aide ?" (Fraunces) + sous-titre Caveat "On est là pour vous aider"
+- FAQ avec composant `Accordion` (shadcn) — 4 questions
+- Section contact avec mailto
+- Bouton retour vers `/`
+- Même padding/style
 
-### Changement
+### 2. Routing — `src/App.tsx`
 
-**`src/components/AuthModal.tsx`** — remplacer le style inline du logo par :
+Déplacer les routes `/privacy` et `/support` **hors de `<AuthGate>`** pour qu'elles soient accessibles sans connexion (important pour Apple App Store) :
 
-```ts
-{
-  fontFamily: 'Fraunces, serif',
-  fontSize: 48,
-  color: 'var(--primary)',         // #D95F3B via design tokens
-  letterSpacing: '-0.04em',
-  fontWeight: 500,
-  position: 'relative',
-  zIndex: 1,
-}
+```tsx
+<Routes>
+  <Route path="/privacy" element={<PrivacyPage />} />
+  <Route path="/support" element={<SupportPage />} />
+  <Route path="*" element={
+    <AuthGate>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        {/* autres routes protégées */}
+      </Routes>
+    </AuthGate>
+  } />
+</Routes>
 ```
 
-Texte : `kidmapp` (minuscules, déjà en place).
+### 3. Footer dans AccountPage
 
-Suppression de : `fontStyle: italic`, `fontVariationSettings: 'opsz' 72, 'WONK' 1'`, et taille `2.8rem` — non utilisés en prod.
+Ajouter en bas de `src/pages/AccountPage.tsx`, avant le padding du bottom nav :
+- Liens `/privacy` et `/support` (style discret, text-muted-foreground, text-sm)
+- Séparateur `·`
+- Copyright "© 2026 Kidmapp" en dessous
+- Centré, padding vertical
 
-### Note
+### 4. Points d'attention
+- Pages publiques → pas de `useAuth` requis pour le rendu
+- BottomNav reste conditionnel à `user`, donc invisible pour visiteurs non connectés sur `/privacy` et `/support`
+- Design system respecté : Coral #D95F3B pour liens/CTA, Fraunces titres, DM Sans corps
+- Responsive mobile-first (max-w-2xl centré)
 
-Pas besoin de modifier l'import Google Fonts dans `index.css` : Fraunces est déjà importé avec les graisses 300/500/600 qui couvrent le `font-weight: 500` requis.
-
+### Fichiers modifiés/créés
+- ✅ Créé : `src/pages/PrivacyPage.tsx`
+- ✅ Créé : `src/pages/SupportPage.tsx`
+- ✏️ Modifié : `src/App.tsx` (routes publiques)
+- ✏️ Modifié : `src/pages/AccountPage.tsx` (footer)
