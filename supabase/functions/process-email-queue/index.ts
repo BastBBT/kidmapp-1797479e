@@ -56,7 +56,7 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 async function moveToDlq(
   supabase: ReturnType<typeof createClient>,
   queue: string,
-  msg: { msg_id: number; message: Record<string, unknown> },
+  msg: { msg_id: number; message: Record<string, unknown>; read_ct?: number; enqueued_at?: string },
   reason: string
 ): Promise<void> {
   const payload = msg.message
