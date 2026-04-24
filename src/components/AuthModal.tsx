@@ -511,7 +511,8 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
         {/* Apple */}
         <button
           type="button"
-          onClick={() => setError('La connexion Apple sera bientôt disponible')}
+          onClick={handleAppleSignIn}
+          disabled={appleLoading}
           style={{
             width: '100%',
             padding: 12,
@@ -522,7 +523,8 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
             fontFamily: 'DM Sans',
             fontSize: 14,
             fontWeight: 500,
-            cursor: 'pointer',
+            cursor: appleLoading ? 'not-allowed' : 'pointer',
+            opacity: appleLoading ? 0.6 : 1,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -530,7 +532,8 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
             marginBottom: 8,
           }}
         >
-          <AppleIcon /> Continuer avec Apple
+          {appleLoading ? <Loader2 size={16} className="animate-spin" /> : <AppleIcon />}
+          {appleLoading ? 'Connexion…' : 'Continuer avec Apple'}
         </button>
 
         {/* Google */}
