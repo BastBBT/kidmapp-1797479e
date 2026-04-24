@@ -198,6 +198,7 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
   const [error, setError] = useState('');
   const [forgotOpen, setForgotOpen] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const { signIn, signUp } = useAuth();
 
   const handleGoogleSignIn = async () => {
@@ -215,6 +216,24 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
     } catch (err: any) {
       setError(err?.message || 'Connexion Google impossible');
       setGoogleLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setError('');
+    setAppleLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth('apple', {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        setError((result.error as Error)?.message || 'Connexion Apple impossible');
+        setAppleLoading(false);
+      }
+      // If redirected, browser will navigate away.
+    } catch (err: any) {
+      setError(err?.message || 'Connexion Apple impossible');
+      setAppleLoading(false);
     }
   };
 
