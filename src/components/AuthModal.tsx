@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Loader2, X, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 
 interface AuthModalProps {
   initialMode?: 'login' | 'signup';
@@ -196,7 +197,26 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [forgotOpen, setForgotOpen] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { signIn, signUp } = useAuth();
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setGoogleLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        setError((result.error as Error)?.message || 'Connexion Google impossible');
+        setGoogleLoading(false);
+      }
+      // If redirected, browser will navigate away.
+    } catch (err: any) {
+      setError(err?.message || 'Connexion Google impossible');
+      setGoogleLoading(false);
+    }
+  };
 
   useEffect(() => {
     setError('');
@@ -497,7 +517,8 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
         {/* Google */}
         <button
           type="button"
-          onClick={() => setError('La connexion Google sera bientôt disponible')}
+          onClick={handleGoogleSignIn}
+          disabled={googleLoading}
           style={{
             width: '100%',
             padding: 12,
@@ -508,14 +529,16 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
             fontFamily: 'DM Sans',
             fontSize: 14,
             fontWeight: 500,
-            cursor: 'pointer',
+            cursor: googleLoading ? 'not-allowed' : 'pointer',
+            opacity: googleLoading ? 0.6 : 1,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: 10,
           }}
         >
-          <GoogleIcon /> Continuer avec Google
+          {googleLoading ? <Loader2 size={16} className="animate-spin" /> : <GoogleIcon />}
+          {googleLoading ? 'Connexion…' : 'Continuer avec Google'}
         </button>
       </div>
 
