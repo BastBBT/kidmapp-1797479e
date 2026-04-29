@@ -21,6 +21,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
   const [step, setStep] = useState(0);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoUrlInput, setPhotoUrlInput] = useState('');
   const [selectedMeals, setSelectedMeals] = useState<string[]>([]);
   const [form, setForm] = useState({
     name: '',
@@ -46,6 +47,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     setSelectedMeals([]);
     setPhotoFile(null);
     setPhotoPreview(null);
+    setPhotoUrlInput('');
     setStep(0);
   };
 
@@ -91,6 +93,24 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
           .from('location-photos')
           .getPublicUrl(fileName);
         photoUrl = urlData.publicUrl;
+      } else if (photoUrlInput.trim()) {
+        const trimmed = photoUrlInput.trim();
+        if (trimmed.includes('supabase.co/storage')) {
+          photoUrl = trimmed;
+        } else {
+          try {
+            const { data, error } = await supabase.functions.invoke('proxy-image', {
+              body: { url: trimmed },
+            });
+            if (!error && data?.url) {
+              photoUrl = data.url as string;
+            } else {
+              photoUrl = null;
+            }
+          } catch {
+            photoUrl = null;
+          }
+        }
       }
 
       const insertData: any = {
@@ -462,6 +482,30 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                       />
                     </label>
                   )}
+
+                  {!photoFile && (
+                    <div>
+                      <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                        Ou colle une URL d'image
+                      </label>
+                      <input
+                        type="url"
+                        inputMode="url"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        value={photoUrlInput}
+                        onChange={(e) => setPhotoUrlInput(e.target.value)}
+                        placeholder="https://…"
+                        style={inputStyle}
+                      />
+                      {photoUrlInput.trim() && isValidUrl(photoUrlInput.trim()) && (
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', fontFamily: 'DM Sans' }}>
+                          L'image sera hébergée sur nos serveurs
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -497,6 +541,15 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     </AnimatePresence>
   );
 };
+
+function isValidUrl(s: string) {
+  try {
+    const u = new URL(s);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
 function ShortcutChip({ label, onClick }: { label: string; onClick: () => void }) {
   return (
