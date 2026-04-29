@@ -93,6 +93,24 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
           .from('location-photos')
           .getPublicUrl(fileName);
         photoUrl = urlData.publicUrl;
+      } else if (photoUrlInput.trim()) {
+        const trimmed = photoUrlInput.trim();
+        if (trimmed.includes('supabase.co/storage')) {
+          photoUrl = trimmed;
+        } else {
+          try {
+            const { data, error } = await supabase.functions.invoke('proxy-image', {
+              body: { url: trimmed },
+            });
+            if (!error && data?.url) {
+              photoUrl = data.url as string;
+            } else {
+              photoUrl = null;
+            }
+          } catch {
+            photoUrl = null;
+          }
+        }
       }
 
       const insertData: any = {
