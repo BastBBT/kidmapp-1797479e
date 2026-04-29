@@ -47,6 +47,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     setSelectedMeals([]);
     setPhotoFile(null);
     setPhotoPreview(null);
+    setPhotoUrlInput('');
     setStep(0);
   };
 
