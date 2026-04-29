@@ -542,6 +542,15 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
   );
 };
 
+function isValidUrl(s: string) {
+  try {
+    const u = new URL(s);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function ShortcutChip({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
