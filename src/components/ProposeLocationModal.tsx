@@ -482,6 +482,30 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                       />
                     </label>
                   )}
+
+                  {!photoFile && (
+                    <div>
+                      <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                        Ou colle une URL d'image
+                      </label>
+                      <input
+                        type="url"
+                        inputMode="url"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        value={photoUrlInput}
+                        onChange={(e) => setPhotoUrlInput(e.target.value)}
+                        placeholder="https://…"
+                        style={inputStyle}
+                      />
+                      {photoUrlInput.trim() && isValidUrl(photoUrlInput.trim()) && (
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', fontFamily: 'DM Sans' }}>
+                          L'image sera hébergée sur nos serveurs
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
