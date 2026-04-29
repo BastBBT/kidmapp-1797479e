@@ -21,6 +21,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
   const [step, setStep] = useState(0);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoUrlInput, setPhotoUrlInput] = useState('');
   const [selectedMeals, setSelectedMeals] = useState<string[]>([]);
   const [form, setForm] = useState({
     name: '',
