@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useMealTypes } from '@/hooks/useMeals';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation } from '@/hooks/useLocations';
+import { MEAL_ICONS, EQUIP_ICONS, EQUIP_LABELS, EquipKey } from '@/assets/icons';
 
 interface Props {
   locationId: string;
