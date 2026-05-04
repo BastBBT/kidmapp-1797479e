@@ -42,7 +42,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
   const resetAll = () => {
     setForm({
       name: '', category: 'restaurant', address: '',
-      high_chair: false, changing_table: false, kids_area: false,
+      high_chair: false, changing_table: false, kids_area: false, kids_menu: false,
       bookable: 'unknown', note: '', website: '', instagram: '',
     });
     setSelectedMeals([]);
