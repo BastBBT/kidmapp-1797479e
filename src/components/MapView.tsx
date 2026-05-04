@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { Location } from '@/types/location';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { EQUIP_ICONS, EquipKey } from '@/assets/icons';
 
 // Fix leaflet default icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
