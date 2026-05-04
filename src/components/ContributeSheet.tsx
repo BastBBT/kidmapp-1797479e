@@ -44,6 +44,7 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
     high_chair: null,
     changing_table: null,
     kids_area: null,
+    kids_menu: null,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -56,6 +57,7 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
         high_chair: location?.high_chair ?? null,
         changing_table: location?.changing_table ?? null,
         kids_area: location?.kids_area ?? null,
+        kids_menu: (location as any)?.kids_menu ?? null,
       });
     }
   }, [open, location]);
