@@ -7,6 +7,21 @@ import equipChaiseHaute from './equip-chaise-haute.png';
 import equipChange from './equip-change.png';
 import equipJeux from './equip-jeux.png';
 import equipMenu from './equip-menu.png';
+import catTout from './cat-tout.png';
+import catRestaurant from './cat-restaurant.png';
+import catCafe from './cat-cafe.png';
+import catBoutique from './cat-boutique.png';
+import catLieuPublic from './cat-lieu-public.png';
+import catCoiffeur from './cat-coiffeur.png';
+
+export const CATEGORY_ICONS: Record<string, string> = {
+  all: catTout,
+  restaurant: catRestaurant,
+  cafe: catCafe,
+  shop: catBoutique,
+  public: catLieuPublic,
+  coiffeur: catCoiffeur,
+};
 
 export const MEAL_ICONS: Record<string, string> = {
   petitdej: mealPetitdej,
