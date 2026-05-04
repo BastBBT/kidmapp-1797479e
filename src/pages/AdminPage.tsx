@@ -585,6 +585,7 @@ const AdminPage = () => {
                         high_chair: loc.high_chair,
                         changing_table: loc.changing_table,
                         kids_area: loc.kids_area,
+                        kids_menu: (loc as any).kids_menu ?? false,
                         bookable: (loc as any).bookable ?? 'unknown',
                         status: loc.status,
                       });
