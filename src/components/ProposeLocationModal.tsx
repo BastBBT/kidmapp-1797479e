@@ -381,9 +381,13 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                           <div style={{
                             width: 38, height: 38, borderRadius: 12,
                             background: '#fff', display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', fontSize: 20, flexShrink: 0,
+                            justifyContent: 'center', flexShrink: 0, padding: 5,
                           }}>
-                            {mt.emoji}
+                            {MEAL_ICONS[mt.id] ? (
+                              <img src={MEAL_ICONS[mt.id]} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+                            ) : (
+                              <span style={{ fontSize: 20 }}>{mt.emoji}</span>
+                            )}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
