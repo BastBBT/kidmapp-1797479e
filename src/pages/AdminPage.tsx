@@ -1276,6 +1276,7 @@ const AdminPage = () => {
                       high_chair: editForm.high_chair,
                       changing_table: editForm.changing_table,
                       kids_area: editForm.kids_area,
+                      kids_menu: !!editForm.kids_menu,
                       bookable: editForm.bookable,
                       status: editForm.status,
                     } as any)
