@@ -22,13 +22,12 @@ const MAX_COMMENT_MEAL = 200;
 const MAX_COMMENT_GENERIC = 300;
 
 type EquipValue = boolean | null;
-type EquipKey = 'high_chair' | 'changing_table' | 'kids_area' | 'kids_menu';
 
-const EQUIP_ITEMS: { key: EquipKey; emoji: string; label: string }[] = [
-  { key: 'high_chair', emoji: '🪑', label: 'Chaise haute' },
-  { key: 'changing_table', emoji: '👶', label: 'Table à langer' },
-  { key: 'kids_area', emoji: '🎨', label: 'Espace jeux' },
-  { key: 'kids_menu', emoji: '🍽️', label: 'Menu enfant' },
+const EQUIP_ITEMS: { key: EquipKey; label: string }[] = [
+  { key: 'high_chair', label: EQUIP_LABELS.high_chair },
+  { key: 'changing_table', label: EQUIP_LABELS.changing_table },
+  { key: 'kids_area', label: EQUIP_LABELS.kids_area },
+  { key: 'kids_menu', label: EQUIP_LABELS.kids_menu },
 ];
 
 const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }: Props) => {
