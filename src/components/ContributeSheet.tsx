@@ -21,12 +21,13 @@ const MAX_COMMENT_MEAL = 200;
 const MAX_COMMENT_GENERIC = 300;
 
 type EquipValue = boolean | null;
-type EquipKey = 'high_chair' | 'changing_table' | 'kids_area';
+type EquipKey = 'high_chair' | 'changing_table' | 'kids_area' | 'kids_menu';
 
 const EQUIP_ITEMS: { key: EquipKey; emoji: string; label: string }[] = [
   { key: 'high_chair', emoji: '🪑', label: 'Chaise haute' },
   { key: 'changing_table', emoji: '👶', label: 'Table à langer' },
   { key: 'kids_area', emoji: '🎨', label: 'Espace jeux' },
+  { key: 'kids_menu', emoji: '🍽️', label: 'Menu enfant' },
 ];
 
 const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }: Props) => {
