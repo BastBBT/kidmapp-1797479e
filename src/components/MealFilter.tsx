@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { MealType } from '@/hooks/useMeals';
+import { MEAL_ICONS } from '@/assets/icons';
 
 interface MealFilterProps {
   mealTypes: MealType[];
