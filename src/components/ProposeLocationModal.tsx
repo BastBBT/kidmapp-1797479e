@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useMealTypes } from '@/hooks/useMeals';
+import { MEAL_ICONS, EQUIP_ICONS } from '@/assets/icons';
 
 interface ProposeLocationModalProps {
   open: boolean;
