@@ -1740,6 +1740,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
               {proposal.high_chair && <span style={{ color: '#2E7D32' }}>🪑 Chaise haute</span>}
               {proposal.changing_table && <span style={{ color: '#2E7D32' }}>👶 Table à langer</span>}
               {proposal.kids_area && <span style={{ color: '#2E7D32' }}>🌳 Espace jeux</span>}
+              {proposal.kids_menu && <span style={{ color: '#2E7D32' }}>🍽️ Menu enfant</span>}
             </div>
             {proposal.note && (
               <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '6px' }}>
