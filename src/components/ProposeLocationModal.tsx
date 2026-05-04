@@ -122,6 +122,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
         high_chair: form.high_chair,
         changing_table: form.changing_table,
         kids_area: form.kids_area,
+        kids_menu: form.kids_menu,
         note: form.note || null,
         photo: photoUrl,
         website: form.website || null,
