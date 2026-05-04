@@ -12,6 +12,7 @@ import { useEquipmentVotes } from '@/hooks/useEquipmentVotes';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { EQUIP_ICONS, EQUIP_LABELS, EquipKey } from '@/assets/icons';
 
 const categoryGradients: Record<string, string> = {
   restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
@@ -254,32 +255,48 @@ const LocationPage = () => {
             Équipements enfants
           </h2>
 
-          <div className="flex justify-around flex-wrap gap-y-3">
-            <EquipBlock
-              available={location.high_chair}
-              icon={<HighChairSVG color={location.high_chair ? '#2E7D32' : 'var(--text-muted)'} />}
-              label="Chaise haute"
-              voteCount={votes?.high_chair}
-            />
-            <EquipBlock
-              available={location.changing_table}
-              icon={<ChangingTableSVG color={location.changing_table ? '#2E7D32' : 'var(--text-muted)'} />}
-              label="Table à langer"
-              voteCount={votes?.changing_table}
-            />
-            <EquipBlock
-              available={location.kids_area}
-              icon={<KidsAreaSVG color={location.kids_area ? '#2E7D32' : 'var(--text-muted)'} />}
-              label="Espace jeux"
-              voteCount={votes?.kids_area}
-            />
-            <EquipBlock
-              available={(location as any).kids_menu}
-              icon={<span style={{ fontSize: 28 }}>🍽️</span>}
-              label="Menu enfant"
-              voteCount={(votes as any)?.kids_menu}
-            />
-          </div>
+          {(() => {
+            const items: { key: EquipKey; active: boolean; voteCount?: number }[] = [
+              { key: 'high_chair', active: location.high_chair, voteCount: votes?.high_chair },
+              { key: 'changing_table', active: location.changing_table, voteCount: votes?.changing_table },
+              { key: 'kids_area', active: location.kids_area, voteCount: votes?.kids_area },
+              { key: 'kids_menu', active: (location as any).kids_menu, voteCount: (votes as any)?.kids_menu },
+            ];
+            const active = items.filter((i) => i.active);
+            if (active.length === 0) {
+              return (
+                <p style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text-muted)' }}>
+                  Aucun équipement enfant renseigné — sois le premier à contribuer !
+                </p>
+              );
+            }
+            return (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {active.map((it) => (
+                  <div key={it.key} style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '6px 12px 6px 6px', borderRadius: 100,
+                    background: '#EBF6EC',
+                  }}>
+                    <span style={{
+                      width: 28, height: 28, borderRadius: 6, padding: 4,
+                      background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <img src={EQUIP_ICONS[it.key]} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#2E7D32' }}>
+                      {EQUIP_LABELS[it.key]}
+                    </span>
+                    {it.voteCount != null && it.voteCount > 0 && (
+                      <span style={{ fontFamily: 'Caveat', fontSize: 12, color: '#2E7D32', fontWeight: 500 }}>
+                        ✓ {it.voteCount}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* Bookable - only for restaurant & cafe */}
           {(location.category === 'restaurant' || location.category === 'cafe') && (

@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useMealTypes } from '@/hooks/useMeals';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation } from '@/hooks/useLocations';
+import { MEAL_ICONS, EQUIP_ICONS, EQUIP_LABELS, EquipKey } from '@/assets/icons';
 
 interface Props {
   locationId: string;
@@ -21,13 +22,12 @@ const MAX_COMMENT_MEAL = 200;
 const MAX_COMMENT_GENERIC = 300;
 
 type EquipValue = boolean | null;
-type EquipKey = 'high_chair' | 'changing_table' | 'kids_area' | 'kids_menu';
 
-const EQUIP_ITEMS: { key: EquipKey; emoji: string; label: string }[] = [
-  { key: 'high_chair', emoji: '🪑', label: 'Chaise haute' },
-  { key: 'changing_table', emoji: '👶', label: 'Table à langer' },
-  { key: 'kids_area', emoji: '🎨', label: 'Espace jeux' },
-  { key: 'kids_menu', emoji: '🍽️', label: 'Menu enfant' },
+const EQUIP_ITEMS: { key: EquipKey; label: string }[] = [
+  { key: 'high_chair', label: EQUIP_LABELS.high_chair },
+  { key: 'changing_table', label: EQUIP_LABELS.changing_table },
+  { key: 'kids_area', label: EQUIP_LABELS.kids_area },
+  { key: 'kids_menu', label: EQUIP_LABELS.kids_menu },
 ];
 
 const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }: Props) => {
@@ -139,7 +139,12 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
                 border: '1px solid var(--border)',
               }}
             >
-              <div style={{ fontSize: 18 }}>{item.emoji}</div>
+              <div style={{
+                width: 30, height: 30, borderRadius: 8, padding: 4,
+                background: '#EBF4F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <img src={EQUIP_ICONS[item.key]} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+              </div>
               <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
                 {item.label}
               </div>
@@ -257,10 +262,14 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
                             style={{
                               width: 38, height: 38, borderRadius: 12,
                               background: '#fff', display: 'flex', alignItems: 'center',
-                              justifyContent: 'center', fontSize: 20, flexShrink: 0,
+                              justifyContent: 'center', flexShrink: 0, padding: 5,
                             }}
                           >
-                            {mt.emoji}
+                            {MEAL_ICONS[mt.id] ? (
+                              <img src={MEAL_ICONS[mt.id]} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+                            ) : (
+                              <span style={{ fontSize: 20 }}>{mt.emoji}</span>
+                            )}
                           </div>
                           <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
                             {mt.label}

@@ -2,11 +2,13 @@ import { Location, categoryIcons, categoryLabels } from '@/types/location';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useFavorites } from '@/hooks/useFavorites';
+import { MEAL_ICONS, EQUIP_ICONS, EQUIP_SHORT_LABELS, EquipKey } from '@/assets/icons';
 
 interface LocationCardProps {
   location: Location;
   index?: number;
-  mealEmojis?: string[];
+  mealEmojis?: string[]; // legacy, kept for compatibility
+  mealIds?: string[];
 }
 
 const categoryGradients: Record<string, string> = {
@@ -17,41 +19,47 @@ const categoryGradients: Record<string, string> = {
   coiffeur: 'linear-gradient(145deg, #D7BDE2, #9B59B6)',
 };
 
-const EquipBadge = ({ active, label, icon }: { active: boolean; label: string; icon: React.ReactNode }) => (
+const EquipIcon = ({ equipKey }: { equipKey: EquipKey }) => (
   <span
-    className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium"
+    title={EQUIP_SHORT_LABELS[equipKey]}
     style={{
-      borderRadius: '100px',
-      background: active ? '#EBF6EC' : 'var(--bg)',
-      color: active ? '#2E7D32' : 'var(--text-muted)',
-      opacity: active ? 1 : 0.65,
+      width: 24, height: 24, borderRadius: 6, padding: 4,
+      background: '#EBF4F2', display: 'inline-flex',
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     }}
   >
-    {icon}
-    {label}
+    <img src={EQUIP_ICONS[equipKey]} alt={EQUIP_SHORT_LABELS[equipKey]} style={{ width: 16, height: 16, objectFit: 'contain' }} />
   </span>
 );
 
-const HighChairIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 36 36" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="11" y="4" width="14" height="10" rx="3"/><path d="M11 14 L8 26"/><path d="M25 14 L28 26"/><path d="M8 20 L28 20"/><path d="M14 26 L22 26"/>
-  </svg>
-);
-const ChangingTableIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 36 36" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="4" y="18" width="28" height="5" rx="2"/><path d="M7 18 L7 28"/><path d="M29 18 L29 28"/><circle cx="18" cy="11" r="4"/><path d="M14 15 Q18 21 22 15"/>
-  </svg>
-);
-const KidsAreaIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 36 36" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M8 28 L8 14 Q8 10 12 10 L24 10"/><path d="M8 28 L22 28"/><path d="M24 10 Q32 14 28 24 L22 28"/><circle cx="26" cy="26" r="3"/>
-  </svg>
-);
+const MealBubble = ({ mealId }: { mealId: string }) => {
+  const src = MEAL_ICONS[mealId];
+  if (!src) return null;
+  return (
+    <span
+      style={{
+        width: 21, height: 21, borderRadius: '50%', padding: 4,
+        background: 'rgba(255,255,255,0.9)',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+      }}
+    >
+      <img src={src} alt="" style={{ width: 13, height: 13, objectFit: 'contain' }} />
+    </span>
+  );
+};
 
-const LocationCard = ({ location, index = 0, mealEmojis = [] }: LocationCardProps) => {
+const LocationCard = ({ location, index = 0, mealIds = [] }: LocationCardProps) => {
   const navigate = useNavigate();
   const { isFavorite } = useFavorites();
   const gradient = categoryGradients[location.category] || categoryGradients.public;
+  const isMealCategory = location.category === 'restaurant' || location.category === 'cafe';
+
+  const activeEquip: EquipKey[] = [];
+  if (location.high_chair) activeEquip.push('high_chair');
+  if (location.changing_table) activeEquip.push('changing_table');
+  if (location.kids_area) activeEquip.push('kids_area');
+  if ((location as any).kids_menu) activeEquip.push('kids_menu');
 
   return (
     <motion.div
@@ -86,6 +94,14 @@ const LocationCard = ({ location, index = 0, mealEmojis = [] }: LocationCardProp
         <span className="absolute bottom-2 right-3 text-xl opacity-80">
           {categoryIcons[location.category as keyof typeof categoryIcons]}
         </span>
+        {/* Meal bubbles bottom-left for restaurant/cafe */}
+        {isMealCategory && mealIds.length > 0 && (
+          <div className="absolute" style={{ bottom: 6, left: 6, display: 'flex', gap: 3 }}>
+            {mealIds.slice(0, 4).map((id) => (
+              <MealBubble key={id} mealId={id} />
+            ))}
+          </div>
+        )}
         {isFavorite(location.id) && (
           <span
             className="absolute top-2 left-2 font-hand text-xs px-2 py-0.5"
@@ -100,19 +116,11 @@ const LocationCard = ({ location, index = 0, mealEmojis = [] }: LocationCardProp
         <h3 className="font-display font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>
           {location.name}
         </h3>
-        {mealEmojis.length > 0 && (
-          <div className="flex gap-1 mt-1" style={{ fontSize: '13px', lineHeight: 1 }}>
-            {mealEmojis.map((e, i) => (
-              <span key={i}>{e}</span>
-            ))}
+        {activeEquip.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {activeEquip.map((k) => <EquipIcon key={k} equipKey={k} />)}
           </div>
         )}
-        <div className="flex flex-wrap gap-1 mt-1.5">
-          <EquipBadge active={location.high_chair} label="Chaise" icon={<HighChairIcon />} />
-          <EquipBadge active={location.changing_table} label="Change" icon={<ChangingTableIcon />} />
-          <EquipBadge active={location.kids_area} label="Jeux" icon={<KidsAreaIcon />} />
-          <EquipBadge active={(location as any).kids_menu} label="Menu" icon={<span style={{ fontSize: 11, lineHeight: 1 }}>🍽️</span>} />
-        </div>
       </div>
     </motion.div>
   );

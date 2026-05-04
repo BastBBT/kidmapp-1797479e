@@ -240,11 +240,7 @@ const Index = () => {
       }}>
         {filteredLocations.map((loc, i) => {
           const mealIds = mealsByLocation.get(loc.id) ?? [];
-          const mealEmojis = mealIds
-            .map((id) => mealTypes.find((m) => m.id === id)?.emoji)
-            .filter((e): e is string => Boolean(e))
-            .slice(0, 3);
-          return <LocationCard key={loc.id} location={loc} index={i} mealEmojis={mealEmojis} />;
+          return <LocationCard key={loc.id} location={loc} index={i} mealIds={mealIds} />;
         })}
       </div>
 

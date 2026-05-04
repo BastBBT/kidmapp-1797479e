@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useMealTypes } from '@/hooks/useMeals';
+import { MEAL_ICONS, EQUIP_ICONS } from '@/assets/icons';
 
 interface ProposeLocationModalProps {
   open: boolean;
@@ -314,10 +315,10 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                     </p>
                   </div>
                   <div className="flex flex-col gap-3">
-                    <ToggleRow label="Chaise haute" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
-                    <ToggleRow label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
-                    <ToggleRow label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
-                    <ToggleRow label="🍽️ Menu enfant" checked={form.kids_menu} onChange={(v) => updateForm('kids_menu', v)} />
+                    <ToggleRow icon={EQUIP_ICONS.high_chair} label="Chaise haute" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
+                    <ToggleRow icon={EQUIP_ICONS.changing_table} label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
+                    <ToggleRow icon={EQUIP_ICONS.kids_area} label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
+                    <ToggleRow icon={EQUIP_ICONS.kids_menu} label="Menu enfant" checked={form.kids_menu} onChange={(v) => updateForm('kids_menu', v)} />
                   </div>
                   {(form.category === 'restaurant' || form.category === 'cafe') && (
                     <div>
@@ -380,9 +381,13 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                           <div style={{
                             width: 38, height: 38, borderRadius: 12,
                             background: '#fff', display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', fontSize: 20, flexShrink: 0,
+                            justifyContent: 'center', flexShrink: 0, padding: 5,
                           }}>
-                            {mt.emoji}
+                            {MEAL_ICONS[mt.id] ? (
+                              <img src={MEAL_ICONS[mt.id]} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+                            ) : (
+                              <span style={{ fontSize: 20 }}>{mt.emoji}</span>
+                            )}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
@@ -570,10 +575,20 @@ function ShortcutChip({ label, onClick }: { label: string; onClick: () => void }
   );
 }
 
-function ToggleRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function ToggleRow({ label, checked, onChange, icon }: { label: string; checked: boolean; onChange: (v: boolean) => void; icon?: string }) {
   return (
     <div className="flex items-center justify-between">
-      <span style={{ fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)' }}>{label}</span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)' }}>
+        {icon && (
+          <span style={{
+            width: 30, height: 30, borderRadius: 8, padding: 4,
+            background: '#EBF4F2', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <img src={icon} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+          </span>
+        )}
+        {label}
+      </span>
       <button
         type="button"
         onClick={() => onChange(!checked)}

@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { MEAL_ICONS } from '@/assets/icons';
 
 type MealWithType = LocationMeal & { meal_types: MealType };
 
@@ -65,12 +66,16 @@ const MealRow = ({
     >
       <div
         style={{
-          width: 38, height: 38, borderRadius: 12,
-          background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 20, flexShrink: 0,
+          width: 40, height: 40, borderRadius: 10,
+          background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 6, flexShrink: 0,
         }}
       >
-        {meal.meal_types.emoji}
+        {MEAL_ICONS[meal.meal_type_id] ? (
+          <img src={MEAL_ICONS[meal.meal_type_id]} alt="" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+        ) : (
+          <span style={{ fontSize: 20 }}>{meal.meal_types.emoji}</span>
+        )}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
