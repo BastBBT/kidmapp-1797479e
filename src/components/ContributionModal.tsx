@@ -99,6 +99,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
         high_chair: highChair,
         changing_table: changingTable,
         kids_area: kidsArea,
+        kids_menu: kidsMenu,
         status: 'pending',
       };
       if (showBookable && bookable !== null) {
@@ -116,6 +117,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
       setHighChair(null);
       setChangingTable(null);
       setKidsArea(null);
+      setKidsMenu(null);
       setBookable(null);
     } catch (err: any) {
       toast({
