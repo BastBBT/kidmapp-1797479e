@@ -83,6 +83,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
   const [highChair, setHighChair] = useState<boolean | null>(null);
   const [changingTable, setChangingTable] = useState<boolean | null>(null);
   const [kidsArea, setKidsArea] = useState<boolean | null>(null);
+  const [kidsMenu, setKidsMenu] = useState<boolean | null>(null);
   const [bookable, setBookable] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
