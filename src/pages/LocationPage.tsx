@@ -12,6 +12,7 @@ import { useEquipmentVotes } from '@/hooks/useEquipmentVotes';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { EQUIP_ICONS, EQUIP_LABELS, EquipKey } from '@/assets/icons';
 
 const categoryGradients: Record<string, string> = {
   restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
