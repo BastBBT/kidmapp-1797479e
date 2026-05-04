@@ -139,7 +139,12 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
                 border: '1px solid var(--border)',
               }}
             >
-              <div style={{ fontSize: 18 }}>{item.emoji}</div>
+              <div style={{
+                width: 30, height: 30, borderRadius: 8, padding: 4,
+                background: '#EBF4F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <img src={EQUIP_ICONS[item.key]} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+              </div>
               <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
                 {item.label}
               </div>
