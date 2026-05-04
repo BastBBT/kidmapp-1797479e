@@ -571,10 +571,20 @@ function ShortcutChip({ label, onClick }: { label: string; onClick: () => void }
   );
 }
 
-function ToggleRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function ToggleRow({ label, checked, onChange, icon }: { label: string; checked: boolean; onChange: (v: boolean) => void; icon?: string }) {
   return (
     <div className="flex items-center justify-between">
-      <span style={{ fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)' }}>{label}</span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)' }}>
+        {icon && (
+          <span style={{
+            width: 30, height: 30, borderRadius: 8, padding: 4,
+            background: '#EBF4F2', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <img src={icon} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+          </span>
+        )}
+        {label}
+      </span>
       <button
         type="button"
         onClick={() => onChange(!checked)}
