@@ -1208,6 +1208,7 @@ const AdminPage = () => {
                 <Toggle label="Chaise haute" checked={editForm.high_chair} onChange={(v) => setEditForm((f: any) => ({ ...f, high_chair: v }))} />
                 <Toggle label="Table à langer" checked={editForm.changing_table} onChange={(v) => setEditForm((f: any) => ({ ...f, changing_table: v }))} />
                 <Toggle label="Espace jeux" checked={editForm.kids_area} onChange={(v) => setEditForm((f: any) => ({ ...f, kids_area: v }))} />
+                <Toggle label="🍽️ Menu enfant" checked={!!editForm.kids_menu} onChange={(v) => setEditForm((f: any) => ({ ...f, kids_menu: v }))} />
               </div>
               {(editForm.category === 'restaurant' || editForm.category === 'cafe') && (
                 <div>
