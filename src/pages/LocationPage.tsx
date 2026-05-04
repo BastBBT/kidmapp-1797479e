@@ -254,7 +254,7 @@ const LocationPage = () => {
             Équipements enfants
           </h2>
 
-          <div className="flex justify-around">
+          <div className="flex justify-around flex-wrap gap-y-3">
             <EquipBlock
               available={location.high_chair}
               icon={<HighChairSVG color={location.high_chair ? '#2E7D32' : 'var(--text-muted)'} />}
@@ -272,6 +272,12 @@ const LocationPage = () => {
               icon={<KidsAreaSVG color={location.kids_area ? '#2E7D32' : 'var(--text-muted)'} />}
               label="Espace jeux"
               voteCount={votes?.kids_area}
+            />
+            <EquipBlock
+              available={(location as any).kids_menu}
+              icon={<span style={{ fontSize: 28 }}>🍽️</span>}
+              label="Menu enfant"
+              voteCount={(votes as any)?.kids_menu}
             />
           </div>
 
