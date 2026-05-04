@@ -201,7 +201,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
             <div style={{ padding: '16px 20px 40px', flexShrink: 0, borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
               <button
                 onClick={handleSubmit}
-                disabled={submitting || (highChair === null && changingTable === null && kidsArea === null && bookable === null)}
+                disabled={submitting || (highChair === null && changingTable === null && kidsArea === null && kidsMenu === null && bookable === null)}
                 className="w-full flex items-center justify-center gap-2 py-3 font-semibold text-sm disabled:opacity-40 transition-opacity"
                 style={{ borderRadius: '100px', background: 'var(--primary)', color: '#fff' }}
               >
