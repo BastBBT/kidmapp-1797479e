@@ -687,6 +687,7 @@ const AdminPage = () => {
                           { emoji: '🪑', label: 'Chaise haute', value: jsonEquipment.high_chair },
                           { emoji: '👶', label: 'Table à langer', value: jsonEquipment.changing_table },
                           { emoji: '🎨', label: 'Espace jeux', value: jsonEquipment.kids_area },
+                          { emoji: '🍽️', label: 'Menu enfant', value: (jsonEquipment as any).kids_menu },
                         ].filter((e) => e.value !== undefined && e.value !== null)
                       : [];
                     return (
