@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { MEAL_ICONS } from '@/assets/icons';
 
 type MealWithType = LocationMeal & { meal_types: MealType };
 
