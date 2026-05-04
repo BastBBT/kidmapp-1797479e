@@ -169,6 +169,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
                 <CriterionToggle label="Chaise haute" icon={<HighChairIcon />} value={highChair} onChange={setHighChair} />
                 <CriterionToggle label="Table à langer" icon={<ChangingTableIcon />} value={changingTable} onChange={setChangingTable} />
                 <CriterionToggle label="Espace jeux" icon={<KidsAreaIcon />} value={kidsArea} onChange={setKidsArea} />
+                <CriterionToggle label="Menu enfant" icon={<span style={{ fontSize: 14 }}>🍽️</span>} value={kidsMenu} onChange={setKidsMenu} />
               </div>
 
               {showBookable && (
