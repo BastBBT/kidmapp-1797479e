@@ -162,6 +162,7 @@ const AdminPage = () => {
     high_chair: false,
     changing_table: false,
     kids_area: false,
+    kids_menu: false,
     bookable: 'unknown',
     status: 'pending',
     website: '',
