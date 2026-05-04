@@ -240,10 +240,10 @@ const MapView = ({ locations, selectedId, initialCenter, initialZoom, onViewChan
                         </div>
                       )}
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                        <CriterionDot active={loc.high_chair} label="Chaise" icon="🪑" />
-                        <CriterionDot active={loc.changing_table} label="Change" icon="👶" />
-                        <CriterionDot active={loc.kids_area} label="Jeux" icon="🎨" />
-                        <CriterionDot active={(loc as any).kids_menu} label="Menu" icon="🍽️" />
+                        <CriterionDot active={loc.high_chair} label="Chaise" equipKey="high_chair" />
+                        <CriterionDot active={loc.changing_table} label="Change" equipKey="changing_table" />
+                        <CriterionDot active={loc.kids_area} label="Jeux" equipKey="kids_area" />
+                        <CriterionDot active={(loc as any).kids_menu} label="Menu" equipKey="kids_menu" />
                       </div>
                     </div>
                   </div>
