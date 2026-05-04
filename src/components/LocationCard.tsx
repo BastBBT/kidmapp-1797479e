@@ -90,10 +90,6 @@ const LocationCard = ({ location, index = 0, mealIds = [] }: LocationCardProps) 
         )}
         {/* Overlay gradient */}
         <div className="absolute inset-x-0 bottom-0 h-12" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.25), transparent)' }} />
-        {/* Category emoji */}
-        <span className="absolute bottom-2 right-3 text-xl opacity-80">
-          {categoryIcons[location.category as keyof typeof categoryIcons]}
-        </span>
         {/* Meal bubbles bottom-left for restaurant/cafe */}
         {isMealCategory && mealIds.length > 0 && (
           <div className="absolute" style={{ bottom: 6, left: 6, display: 'flex', gap: 3 }}>
@@ -113,8 +109,15 @@ const LocationCard = ({ location, index = 0, mealIds = [] }: LocationCardProps) 
       </div>
       {/* Body */}
       <div className="p-3">
-        <h3 className="font-display font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>
-          {location.name}
+        <h3 className="font-display font-semibold text-sm truncate flex items-center gap-1.5" style={{ color: 'var(--text)' }}>
+          {CATEGORY_ICONS[location.category] && (
+            <img
+              src={CATEGORY_ICONS[location.category]}
+              alt={categoryLabels[location.category as keyof typeof categoryLabels] ?? ''}
+              style={{ width: 16, height: 16, objectFit: 'contain', opacity: 0.85, flexShrink: 0 }}
+            />
+          )}
+          <span className="truncate">{location.name}</span>
         </h3>
         {activeEquip.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">
