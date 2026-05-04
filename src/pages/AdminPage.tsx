@@ -162,6 +162,7 @@ const AdminPage = () => {
     high_chair: false,
     changing_table: false,
     kids_area: false,
+    kids_menu: false,
     bookable: 'unknown',
     status: 'pending',
     website: '',
@@ -265,6 +266,7 @@ const AdminPage = () => {
       if (contrib.high_chair !== null) updateData.high_chair = contrib.high_chair;
       if (contrib.changing_table !== null) updateData.changing_table = contrib.changing_table;
       if (contrib.kids_area !== null) updateData.kids_area = contrib.kids_area;
+      if ((contrib as any).kids_menu !== null && (contrib as any).kids_menu !== undefined) updateData.kids_menu = (contrib as any).kids_menu;
       if (contrib.bookable !== null) updateData.bookable = contrib.bookable;
 
       // Parse JSON content (may carry equipment + meal_types)
@@ -278,6 +280,7 @@ const AdminPage = () => {
         if (eq.high_chair === true || eq.high_chair === false) updateData.high_chair = eq.high_chair;
         if (eq.changing_table === true || eq.changing_table === false) updateData.changing_table = eq.changing_table;
         if (eq.kids_area === true || eq.kids_area === false) updateData.kids_area = eq.kids_area;
+        if (eq.kids_menu === true || eq.kids_menu === false) updateData.kids_menu = eq.kids_menu;
       }
       if (Object.keys(updateData).length > 0) {
         await supabase.from('locations').update(updateData).eq('id', contrib.location_id);
@@ -375,6 +378,7 @@ const AdminPage = () => {
       high_chair: form.high_chair,
       changing_table: form.changing_table,
       kids_area: form.kids_area,
+      kids_menu: form.kids_menu,
       status: form.status,
       website: form.website || null,
       instagram: form.instagram || null,
@@ -419,7 +423,7 @@ const AdminPage = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     queryClient.invalidateQueries({ queryKey: ['location_meals'] });
     toast({ title: 'Lieu ajouté ✓' });
-    setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, bookable: 'unknown', status: 'pending', website: '', instagram: '', note: '' });
+    setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, kids_menu: false, bookable: 'unknown', status: 'pending', website: '', instagram: '', note: '' });
     setPhotoFile(null);
     setPhotoPreview(null);
     setAddMeals(buildEmptyMealsState(mealTypes));
@@ -581,6 +585,7 @@ const AdminPage = () => {
                         high_chair: loc.high_chair,
                         changing_table: loc.changing_table,
                         kids_area: loc.kids_area,
+                        kids_menu: (loc as any).kids_menu ?? false,
                         bookable: (loc as any).bookable ?? 'unknown',
                         status: loc.status,
                       });
@@ -682,6 +687,7 @@ const AdminPage = () => {
                           { emoji: '🪑', label: 'Chaise haute', value: jsonEquipment.high_chair },
                           { emoji: '👶', label: 'Table à langer', value: jsonEquipment.changing_table },
                           { emoji: '🎨', label: 'Espace jeux', value: jsonEquipment.kids_area },
+                          { emoji: '🍽️', label: 'Menu enfant', value: (jsonEquipment as any).kids_menu },
                         ].filter((e) => e.value !== undefined && e.value !== null)
                       : [];
                     return (
@@ -774,6 +780,7 @@ const AdminPage = () => {
                         {contrib.high_chair !== null && <span>🪑 Chaise haute {contrib.high_chair ? '✓' : '✗'}</span>}
                         {contrib.changing_table !== null && <span>👶 Table à langer {contrib.changing_table ? '✓' : '✗'}</span>}
                         {contrib.kids_area !== null && <span>🎨 Espace jeux {contrib.kids_area ? '✓' : '✗'}</span>}
+                        {(contrib as any).kids_menu !== null && (contrib as any).kids_menu !== undefined && <span>🍽️ Menu enfant {(contrib as any).kids_menu ? '✓' : '✗'}</span>}
                         {contrib.bookable !== null && <span>📅 Réservation: {contrib.bookable === 'yes' ? 'Oui ✓' : contrib.bookable === 'no' ? 'Non ✗' : '?'}</span>}
                       </div>
                       {equipItems.length > 0 && (
@@ -1025,6 +1032,7 @@ const AdminPage = () => {
                   <Toggle label="Chaise haute" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
                   <Toggle label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
                   <Toggle label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
+                  <Toggle label="🍽️ Menu enfant" checked={form.kids_menu} onChange={(v) => updateForm('kids_menu', v)} />
                 </div>
 
                 {(form.category === 'restaurant' || form.category === 'cafe') && (
@@ -1200,6 +1208,7 @@ const AdminPage = () => {
                 <Toggle label="Chaise haute" checked={editForm.high_chair} onChange={(v) => setEditForm((f: any) => ({ ...f, high_chair: v }))} />
                 <Toggle label="Table à langer" checked={editForm.changing_table} onChange={(v) => setEditForm((f: any) => ({ ...f, changing_table: v }))} />
                 <Toggle label="Espace jeux" checked={editForm.kids_area} onChange={(v) => setEditForm((f: any) => ({ ...f, kids_area: v }))} />
+                <Toggle label="🍽️ Menu enfant" checked={!!editForm.kids_menu} onChange={(v) => setEditForm((f: any) => ({ ...f, kids_menu: v }))} />
               </div>
               {(editForm.category === 'restaurant' || editForm.category === 'cafe') && (
                 <div>
@@ -1267,6 +1276,7 @@ const AdminPage = () => {
                       high_chair: editForm.high_chair,
                       changing_table: editForm.changing_table,
                       kids_area: editForm.kids_area,
+                      kids_menu: !!editForm.kids_menu,
                       bookable: editForm.bookable,
                       status: editForm.status,
                     } as any)
@@ -1588,6 +1598,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         high_chair: proposal.high_chair ?? false,
         changing_table: proposal.changing_table ?? false,
         kids_area: proposal.kids_area ?? false,
+        kids_menu: proposal.kids_menu ?? false,
         photo: proposal.photo ?? null,
         website: proposal.website ?? null,
         instagram: proposal.instagram ?? null,
@@ -1729,6 +1740,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
               {proposal.high_chair && <span style={{ color: '#2E7D32' }}>🪑 Chaise haute</span>}
               {proposal.changing_table && <span style={{ color: '#2E7D32' }}>👶 Table à langer</span>}
               {proposal.kids_area && <span style={{ color: '#2E7D32' }}>🌳 Espace jeux</span>}
+              {proposal.kids_menu && <span style={{ color: '#2E7D32' }}>🍽️ Menu enfant</span>}
             </div>
             {proposal.note && (
               <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '6px' }}>

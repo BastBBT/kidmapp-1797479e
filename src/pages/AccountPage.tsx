@@ -132,6 +132,11 @@ const AccountPage = () => {
                     🎨 {c.kids_area ? 'Oui' : 'Non'}
                   </span>
                 )}
+                {(c as any).kids_menu !== null && (c as any).kids_menu !== undefined && (
+                  <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '100px', background: 'var(--bg)', color: 'var(--text-muted)' }}>
+                    🍽️ {(c as any).kids_menu ? 'Oui' : 'Non'}
+                  </span>
+                )}
               </div>
             </div>
             <div style={{

@@ -23,6 +23,7 @@ export type Database = {
           high_chair: boolean | null
           id: string
           kids_area: boolean | null
+          kids_menu: boolean | null
           location_id: string
           status: string
           type: string | null
@@ -36,6 +37,7 @@ export type Database = {
           high_chair?: boolean | null
           id?: string
           kids_area?: boolean | null
+          kids_menu?: boolean | null
           location_id: string
           status?: string
           type?: string | null
@@ -49,6 +51,7 @@ export type Database = {
           high_chair?: boolean | null
           id?: string
           kids_area?: boolean | null
+          kids_menu?: boolean | null
           location_id?: string
           status?: string
           type?: string | null
@@ -242,6 +245,7 @@ export type Database = {
           id: string
           instagram: string | null
           kids_area: boolean | null
+          kids_menu: boolean
           metadata: Json | null
           name: string
           note: string | null
@@ -260,6 +264,7 @@ export type Database = {
           id?: string
           instagram?: string | null
           kids_area?: boolean | null
+          kids_menu?: boolean
           metadata?: Json | null
           name: string
           note?: string | null
@@ -278,6 +283,7 @@ export type Database = {
           id?: string
           instagram?: string | null
           kids_area?: boolean | null
+          kids_menu?: boolean
           metadata?: Json | null
           name?: string
           note?: string | null
@@ -300,6 +306,7 @@ export type Database = {
           id: string
           instagram: string | null
           kids_area: boolean
+          kids_menu: boolean
           lat: number
           lng: number
           name: string
@@ -320,6 +327,7 @@ export type Database = {
           id?: string
           instagram?: string | null
           kids_area?: boolean
+          kids_menu?: boolean
           lat: number
           lng: number
           name: string
@@ -340,6 +348,7 @@ export type Database = {
           id?: string
           instagram?: string | null
           kids_area?: boolean
+          kids_menu?: boolean
           lat?: number
           lng?: number
           name?: string

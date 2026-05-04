@@ -83,6 +83,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
   const [highChair, setHighChair] = useState<boolean | null>(null);
   const [changingTable, setChangingTable] = useState<boolean | null>(null);
   const [kidsArea, setKidsArea] = useState<boolean | null>(null);
+  const [kidsMenu, setKidsMenu] = useState<boolean | null>(null);
   const [bookable, setBookable] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -98,6 +99,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
         high_chair: highChair,
         changing_table: changingTable,
         kids_area: kidsArea,
+        kids_menu: kidsMenu,
         status: 'pending',
       };
       if (showBookable && bookable !== null) {
@@ -115,6 +117,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
       setHighChair(null);
       setChangingTable(null);
       setKidsArea(null);
+      setKidsMenu(null);
       setBookable(null);
     } catch (err: any) {
       toast({
@@ -166,6 +169,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
                 <CriterionToggle label="Chaise haute" icon={<HighChairIcon />} value={highChair} onChange={setHighChair} />
                 <CriterionToggle label="Table à langer" icon={<ChangingTableIcon />} value={changingTable} onChange={setChangingTable} />
                 <CriterionToggle label="Espace jeux" icon={<KidsAreaIcon />} value={kidsArea} onChange={setKidsArea} />
+                <CriterionToggle label="Menu enfant" icon={<span style={{ fontSize: 14 }}>🍽️</span>} value={kidsMenu} onChange={setKidsMenu} />
               </div>
 
               {showBookable && (
@@ -197,7 +201,7 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
             <div style={{ padding: '16px 20px 40px', flexShrink: 0, borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
               <button
                 onClick={handleSubmit}
-                disabled={submitting || (highChair === null && changingTable === null && kidsArea === null && bookable === null)}
+                disabled={submitting || (highChair === null && changingTable === null && kidsArea === null && kidsMenu === null && bookable === null)}
                 className="w-full flex items-center justify-center gap-2 py-3 font-semibold text-sm disabled:opacity-40 transition-opacity"
                 style={{ borderRadius: '100px', background: 'var(--primary)', color: '#fff' }}
               >

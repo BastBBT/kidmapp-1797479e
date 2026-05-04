@@ -30,6 +30,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     high_chair: false,
     changing_table: false,
     kids_area: false,
+    kids_menu: false,
     bookable: 'unknown',
     note: '',
     website: '',
@@ -41,7 +42,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
   const resetAll = () => {
     setForm({
       name: '', category: 'restaurant', address: '',
-      high_chair: false, changing_table: false, kids_area: false,
+      high_chair: false, changing_table: false, kids_area: false, kids_menu: false,
       bookable: 'unknown', note: '', website: '', instagram: '',
     });
     setSelectedMeals([]);
@@ -121,6 +122,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
         high_chair: form.high_chair,
         changing_table: form.changing_table,
         kids_area: form.kids_area,
+        kids_menu: form.kids_menu,
         note: form.note || null,
         photo: photoUrl,
         website: form.website || null,
@@ -315,6 +317,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                     <ToggleRow label="Chaise haute" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
                     <ToggleRow label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
                     <ToggleRow label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
+                    <ToggleRow label="🍽️ Menu enfant" checked={form.kids_menu} onChange={(v) => updateForm('kids_menu', v)} />
                   </div>
                   {(form.category === 'restaurant' || form.category === 'cafe') && (
                     <div>

@@ -235,6 +235,7 @@ const MapView = ({ locations, selectedId, initialCenter, initialZoom, onViewChan
                         <CriterionDot active={loc.high_chair} label="Chaise" icon="🪑" />
                         <CriterionDot active={loc.changing_table} label="Change" icon="👶" />
                         <CriterionDot active={loc.kids_area} label="Jeux" icon="🎨" />
+                        <CriterionDot active={(loc as any).kids_menu} label="Menu" icon="🍽️" />
                       </div>
                     </div>
                   </div>

@@ -1,0 +1,3 @@
+ALTER TABLE public.locations ADD COLUMN IF NOT EXISTS kids_menu BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE public.contributions ADD COLUMN IF NOT EXISTS kids_menu BOOLEAN;
+ALTER TABLE public.location_proposals ADD COLUMN IF NOT EXISTS kids_menu BOOLEAN NOT NULL DEFAULT false;
