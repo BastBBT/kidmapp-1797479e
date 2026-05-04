@@ -38,7 +38,11 @@ const MealFilter = ({ mealTypes, selected, onChange }: MealFilterProps) => {
               cursor: 'pointer',
             }}
           >
-            <span style={{ fontSize: '15px', lineHeight: 1 }}>{m.emoji}</span>
+            {MEAL_ICONS[m.id] ? (
+              <img src={MEAL_ICONS[m.id]} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />
+            ) : (
+              <span style={{ fontSize: '15px', lineHeight: 1 }}>{m.emoji}</span>
+            )}
             {m.short_label}
           </motion.button>
         );
