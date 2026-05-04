@@ -780,6 +780,7 @@ const AdminPage = () => {
                         {contrib.high_chair !== null && <span>🪑 Chaise haute {contrib.high_chair ? '✓' : '✗'}</span>}
                         {contrib.changing_table !== null && <span>👶 Table à langer {contrib.changing_table ? '✓' : '✗'}</span>}
                         {contrib.kids_area !== null && <span>🎨 Espace jeux {contrib.kids_area ? '✓' : '✗'}</span>}
+                        {(contrib as any).kids_menu !== null && (contrib as any).kids_menu !== undefined && <span>🍽️ Menu enfant {(contrib as any).kids_menu ? '✓' : '✗'}</span>}
                         {contrib.bookable !== null && <span>📅 Réservation: {contrib.bookable === 'yes' ? 'Oui ✓' : contrib.bookable === 'no' ? 'Non ✗' : '?'}</span>}
                       </div>
                       {equipItems.length > 0 && (
