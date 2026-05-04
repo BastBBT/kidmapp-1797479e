@@ -126,18 +126,25 @@ function FlyToSelected({ location }: { location?: Location }) {
   return null;
 }
 
-const CriterionDot = ({ active, label, icon }: { active: boolean; label: string; icon: string }) => (
-  <div style={{
-    display: 'flex', alignItems: 'center', gap: '4px',
-    padding: '3px 8px', borderRadius: '20px', fontSize: '11px',
-    fontWeight: 600, fontFamily: "'Nunito', sans-serif",
-    background: active ? 'hsl(142 60% 95%)' : 'hsl(30 25% 95%)',
-    color: active ? 'hsl(142 60% 35%)' : 'hsl(20 10% 55%)',
-  }}>
-    <span style={{ fontSize: '12px' }}>{icon}</span>
-    {label}
-  </div>
-);
+const CriterionDot = ({ active, label, equipKey }: { active: boolean; label: string; equipKey: EquipKey }) => {
+  if (!active) return null;
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '4px',
+      padding: '3px 8px 3px 4px', borderRadius: '20px', fontSize: '11px',
+      fontWeight: 600, fontFamily: "'Nunito', sans-serif",
+      background: 'hsl(142 60% 95%)', color: 'hsl(142 60% 35%)',
+    }}>
+      <span style={{
+        width: 18, height: 18, borderRadius: 4, padding: 2,
+        background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <img src={EQUIP_ICONS[equipKey]} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />
+      </span>
+      {label}
+    </div>
+  );
+};
 
 const MapView = ({ locations, selectedId, initialCenter, initialZoom, onViewChange }: MapViewProps) => {
   const navigate = useNavigate();
