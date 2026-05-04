@@ -266,6 +266,7 @@ const AdminPage = () => {
       if (contrib.high_chair !== null) updateData.high_chair = contrib.high_chair;
       if (contrib.changing_table !== null) updateData.changing_table = contrib.changing_table;
       if (contrib.kids_area !== null) updateData.kids_area = contrib.kids_area;
+      if ((contrib as any).kids_menu !== null && (contrib as any).kids_menu !== undefined) updateData.kids_menu = (contrib as any).kids_menu;
       if (contrib.bookable !== null) updateData.bookable = contrib.bookable;
 
       // Parse JSON content (may carry equipment + meal_types)
@@ -279,6 +280,7 @@ const AdminPage = () => {
         if (eq.high_chair === true || eq.high_chair === false) updateData.high_chair = eq.high_chair;
         if (eq.changing_table === true || eq.changing_table === false) updateData.changing_table = eq.changing_table;
         if (eq.kids_area === true || eq.kids_area === false) updateData.kids_area = eq.kids_area;
+        if (eq.kids_menu === true || eq.kids_menu === false) updateData.kids_menu = eq.kids_menu;
       }
       if (Object.keys(updateData).length > 0) {
         await supabase.from('locations').update(updateData).eq('id', contrib.location_id);
