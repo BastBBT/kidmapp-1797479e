@@ -317,6 +317,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                     <ToggleRow label="Chaise haute" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
                     <ToggleRow label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
                     <ToggleRow label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
+                    <ToggleRow label="🍽️ Menu enfant" checked={form.kids_menu} onChange={(v) => updateForm('kids_menu', v)} />
                   </div>
                   {(form.category === 'restaurant' || form.category === 'cafe') && (
                     <div>
