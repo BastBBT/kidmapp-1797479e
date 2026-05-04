@@ -1,8 +1,8 @@
-import { Location, categoryIcons, categoryLabels } from '@/types/location';
+import { Location, categoryLabels } from '@/types/location';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useFavorites } from '@/hooks/useFavorites';
-import { MEAL_ICONS, EQUIP_ICONS, EQUIP_SHORT_LABELS, EquipKey } from '@/assets/icons';
+import { MEAL_ICONS, EQUIP_ICONS, EQUIP_SHORT_LABELS, EquipKey, CATEGORY_ICONS } from '@/assets/icons';
 
 interface LocationCardProps {
   location: Location;
