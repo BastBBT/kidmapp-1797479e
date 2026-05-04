@@ -111,6 +111,7 @@ const LocationCard = ({ location, index = 0, mealEmojis = [] }: LocationCardProp
           <EquipBadge active={location.high_chair} label="Chaise" icon={<HighChairIcon />} />
           <EquipBadge active={location.changing_table} label="Change" icon={<ChangingTableIcon />} />
           <EquipBadge active={location.kids_area} label="Jeux" icon={<KidsAreaIcon />} />
+          <EquipBadge active={(location as any).kids_menu} label="Menu" icon={<span style={{ fontSize: 11, lineHeight: 1 }}>🍽️</span>} />
         </div>
       </div>
     </motion.div>
