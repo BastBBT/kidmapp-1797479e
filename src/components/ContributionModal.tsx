@@ -167,10 +167,10 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
             {/* Scrollable body */}
             <div style={{ overflowY: 'auto', flex: 1, padding: '0 20px' }}>
               <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-                <CriterionToggle label="Chaise haute" icon={<HighChairIcon />} value={highChair} onChange={setHighChair} />
-                <CriterionToggle label="Table à langer" icon={<ChangingTableIcon />} value={changingTable} onChange={setChangingTable} />
-                <CriterionToggle label="Espace jeux" icon={<KidsAreaIcon />} value={kidsArea} onChange={setKidsArea} />
-                <CriterionToggle label="Menu enfant" icon={<span style={{ fontSize: 14 }}>🍽️</span>} value={kidsMenu} onChange={setKidsMenu} />
+                <CriterionToggle label="Chaise haute" icon={<img src={EQUIP_ICONS.high_chair} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />} value={highChair} onChange={setHighChair} />
+                <CriterionToggle label="Table à langer" icon={<img src={EQUIP_ICONS.changing_table} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />} value={changingTable} onChange={setChangingTable} />
+                <CriterionToggle label="Espace jeux" icon={<img src={EQUIP_ICONS.kids_area} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />} value={kidsArea} onChange={setKidsArea} />
+                <CriterionToggle label="Menu enfant" icon={<img src={EQUIP_ICONS.kids_menu} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />} value={kidsMenu} onChange={setKidsMenu} />
               </div>
 
               {showBookable && (
