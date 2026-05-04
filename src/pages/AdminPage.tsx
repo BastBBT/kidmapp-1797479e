@@ -1598,6 +1598,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         high_chair: proposal.high_chair ?? false,
         changing_table: proposal.changing_table ?? false,
         kids_area: proposal.kids_area ?? false,
+        kids_menu: proposal.kids_menu ?? false,
         photo: proposal.photo ?? null,
         website: proposal.website ?? null,
         instagram: proposal.instagram ?? null,
