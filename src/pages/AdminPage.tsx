@@ -378,6 +378,7 @@ const AdminPage = () => {
       high_chair: form.high_chair,
       changing_table: form.changing_table,
       kids_area: form.kids_area,
+      kids_menu: form.kids_menu,
       status: form.status,
       website: form.website || null,
       instagram: form.instagram || null,
