@@ -26,9 +26,9 @@ const MealFilter = ({ mealTypes, selected, onChange }: MealFilterProps) => {
             className="flex shrink-0 items-center gap-2 whitespace-nowrap transition-all"
             style={{
               flexShrink: 0,
-              padding: '10px 18px',
+              padding: '5px 18px',
               borderRadius: '100px',
-              minHeight: 42,
+              minHeight: 32,
               fontFamily: 'DM Sans',
               fontSize: '15px',
               lineHeight: '20px',
