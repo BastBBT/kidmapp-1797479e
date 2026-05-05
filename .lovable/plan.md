@@ -1,57 +1,29 @@
-## Plan : Pages /privacy et /support (publiques)
+## Problème
 
-### 1. Création des pages
+Sur mobile, les libellés des chips de filtres (catégories + types de repas) sont tronqués. De plus, la rangée "type de repas" colle visuellement à celle des catégories.
 
-**`src/pages/PrivacyPage.tsx`** — Politique de confidentialité
-- Layout sobre, fond `bg-background` (cream #FAF9F6)
-- Titre en Fraunces (`font-serif`), corps en DM Sans
-- Contenu structuré en sections : Données collectées, Utilisation, Partage, Suppression de compte, Contact
-- Lien `mailto:hello@kidmapp.app`
-- Bouton retour en haut (← Retour) vers `/`
-- Padding bottom 120px (compat bottom nav si user connecté)
+## Solution
 
-**`src/pages/SupportPage.tsx`** — Page de support
-- Hero : "Besoin d'aide ?" (Fraunces) + sous-titre Caveat "On est là pour vous aider"
-- FAQ avec composant `Accordion` (shadcn) — 4 questions
-- Section contact avec mailto
-- Bouton retour vers `/`
-- Même padding/style
+Restaurer une taille de chip plus généreuse pour que les libellés tiennent en entier, et harmoniser les deux rangées (catégories + repas) avec un style identique. Ajouter un peu d'espace au-dessus de la rangée "type de repas".
 
-### 2. Routing — `src/App.tsx`
+### Changements
 
-Déplacer les routes `/privacy` et `/support` **hors de `<AuthGate>`** pour qu'elles soient accessibles sans connexion (important pour Apple App Store) :
+**1. `src/components/CategoryFilter.tsx`**
+- Padding chip : `px-3.5 py-2` (au lieu de `px-3 py-1.5`)
+- Taille texte : `text-sm` (14px, au lieu de 13px)
+- Icône catégorie : 16px (au lieu de 18px) pour équilibrer avec le texte plus grand
+- Gap inchangé : `gap-1.5`
 
-```tsx
-<Routes>
-  <Route path="/privacy" element={<PrivacyPage />} />
-  <Route path="/support" element={<SupportPage />} />
-  <Route path="*" element={
-    <AuthGate>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        {/* autres routes protégées */}
-      </Routes>
-    </AuthGate>
-  } />
-</Routes>
-```
+**2. `src/components/MealFilter.tsx`**
+- Aligner exactement sur CategoryFilter : `padding: 8px 14px`, `font-size: 14px`, icône 16px, `gap: 6px`, `border-radius: 100px`
+- Container : ajouter un padding top pour aérer → `padding: 10px 16px 8px` (au lieu de `0 16px 8px`)
 
-### 3. Footer dans AccountPage
+### Résultat attendu
 
-Ajouter en bas de `src/pages/AccountPage.tsx`, avant le padding du bottom nav :
-- Liens `/privacy` et `/support` (style discret, text-muted-foreground, text-sm)
-- Séparateur `·`
-- Copyright "© 2026 Kidmapp" en dessous
-- Centré, padding vertical
+- Sur mobile (≤ 402px), les libellés "Restaurant", "Boutique", "Lieu public", "Goûter", "Petit déj"… s'affichent en entier.
+- Les deux rangées partagent exactement la même hauteur, typographie et densité.
+- Un espace clair sépare la rangée des catégories de celle des types de repas.
 
-### 4. Points d'attention
-- Pages publiques → pas de `useAuth` requis pour le rendu
-- BottomNav reste conditionnel à `user`, donc invisible pour visiteurs non connectés sur `/privacy` et `/support`
-- Design system respecté : Coral #D95F3B pour liens/CTA, Fraunces titres, DM Sans corps
-- Responsive mobile-first (max-w-2xl centré)
+### Vérification
 
-### Fichiers modifiés/créés
-- ✅ Créé : `src/pages/PrivacyPage.tsx`
-- ✅ Créé : `src/pages/SupportPage.tsx`
-- ✏️ Modifié : `src/App.tsx` (routes publiques)
-- ✏️ Modifié : `src/pages/AccountPage.tsx` (footer)
+Après implémentation, screenshot du viewport mobile (≈ 402×716) pour confirmer qu'aucun chip n'est tronqué et que l'espacement vertical est harmonieux.

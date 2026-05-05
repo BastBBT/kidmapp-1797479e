@@ -13,7 +13,7 @@ const MealFilter = ({ mealTypes, selected, onChange }: MealFilterProps) => {
   return (
     <div
       className="flex gap-2 overflow-x-auto scrollbar-hide"
-      style={{ padding: '0 16px 8px' }}
+      style={{ padding: '10px 16px 8px' }}
     >
       {mealTypes.map((m) => {
         const isActive = selected === m.id;
@@ -26,10 +26,10 @@ const MealFilter = ({ mealTypes, selected, onChange }: MealFilterProps) => {
             className="flex items-center gap-1.5 whitespace-nowrap transition-all"
             style={{
               flexShrink: 0,
-              padding: '7px 14px',
+              padding: '8px 14px',
               borderRadius: '100px',
               fontFamily: 'DM Sans',
-              fontSize: '13px',
+              fontSize: '14px',
               fontWeight: 600,
               background: isActive ? fill : 'var(--surface)',
               color: isActive ? '#fff' : 'var(--text-muted)',
