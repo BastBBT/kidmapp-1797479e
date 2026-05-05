@@ -23,13 +23,15 @@ const MealFilter = ({ mealTypes, selected, onChange }: MealFilterProps) => {
             key={m.id}
             whileTap={{ scale: 0.95 }}
             onClick={() => onChange(isActive ? null : m.id)}
-            className="flex items-center gap-1.5 whitespace-nowrap transition-all"
+            className="flex shrink-0 items-center gap-2 whitespace-nowrap transition-all"
             style={{
               flexShrink: 0,
-              padding: '8px 14px',
+              padding: '10px 18px',
               borderRadius: '100px',
+              minHeight: 42,
               fontFamily: 'DM Sans',
-              fontSize: '14px',
+              fontSize: '15px',
+              lineHeight: '20px',
               fontWeight: 600,
               background: isActive ? fill : 'var(--surface)',
               color: isActive ? '#fff' : 'var(--text-muted)',
@@ -39,7 +41,7 @@ const MealFilter = ({ mealTypes, selected, onChange }: MealFilterProps) => {
             }}
           >
             {MEAL_ICONS[m.id] ? (
-              <img src={MEAL_ICONS[m.id]} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />
+              <img src={MEAL_ICONS[m.id]} alt="" style={{ width: 17, height: 17, objectFit: 'contain', flexShrink: 0 }} />
             ) : (
               <span style={{ fontSize: '15px', lineHeight: 1 }}>{m.emoji}</span>
             )}
