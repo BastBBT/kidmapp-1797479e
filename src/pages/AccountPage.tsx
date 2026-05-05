@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import DeleteAccountSection from '@/components/DeleteAccountSection';
 
 const AccountPage = () => {
   const { user, signOut } = useAuth();
