@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletions: {
+        Row: {
+          deleted_at: string
+          email: string | null
+          id: string
+          reason: string | null
+          user_id: string | null
+        }
+        Insert: {
+          deleted_at?: string
+          email?: string | null
+          id?: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          deleted_at?: string
+          email?: string | null
+          id?: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      admin_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          read_at: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          read_at?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          read_at?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
       contributions: {
         Row: {
           bookable: string | null
