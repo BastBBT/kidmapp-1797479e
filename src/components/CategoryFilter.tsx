@@ -30,10 +30,10 @@ const CategoryFilter = ({ selected, onChange }: CategoryFilterProps) => {
             key={cat}
             whileTap={{ scale: 0.95 }}
             onClick={() => onChange(cat)}
-            className="flex shrink-0 items-center gap-2 px-4 py-2.5 text-[15px] font-medium leading-5 whitespace-nowrap transition-all"
+            className="flex shrink-0 items-center gap-2 px-4 py-1 text-[15px] font-medium leading-5 whitespace-nowrap transition-all"
             style={{
               borderRadius: '100px',
-              minHeight: 42,
+              minHeight: 32,
               background: isActive ? 'var(--primary)' : 'var(--bg)',
               color: isActive ? '#fff' : 'var(--text-muted)',
               border: isActive ? 'none' : '1px solid var(--border)',
