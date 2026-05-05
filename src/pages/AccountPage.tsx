@@ -216,6 +216,8 @@ const AccountPage = () => {
         </button>
       </div>
 
+      <DeleteAccountSection />
+
       {/* Footer */}
       <div style={{
         padding: '32px 16px 0',
