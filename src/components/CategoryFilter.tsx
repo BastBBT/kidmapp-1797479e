@@ -17,7 +17,7 @@ const allLabels: Record<string, string> = {
 const CategoryIcon = ({ cat }: { cat: string }) => {
   const src = CATEGORY_ICONS[cat];
   if (!src) return null;
-  return <img src={src} alt="" style={{ width: 18, height: 18, objectFit: 'contain' }} />;
+  return <img src={src} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />;
 };
 
 const CategoryFilter = ({ selected, onChange }: CategoryFilterProps) => {
@@ -30,7 +30,7 @@ const CategoryFilter = ({ selected, onChange }: CategoryFilterProps) => {
             key={cat}
             whileTap={{ scale: 0.95 }}
             onClick={() => onChange(cat)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-all"
             style={{
               borderRadius: '100px',
               background: isActive ? 'var(--primary)' : 'var(--bg)',
