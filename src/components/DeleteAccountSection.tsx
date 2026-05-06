@@ -41,7 +41,7 @@ export const DeleteAccountSection = () => {
       }
       toast.success('Compte supprimé');
       await signOut().catch(() => {});
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (e) {
       console.error(e);
       toast.error('Une erreur est survenue. Réessaie ou contacte le support.');
