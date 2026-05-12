@@ -198,7 +198,6 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
   const [error, setError] = useState('');
   const [forgotOpen, setForgotOpen] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [appleLoading, setAppleLoading] = useState(false);
   const { signIn, signUp } = useAuth();
 
   const handleGoogleSignIn = async () => {
@@ -216,24 +215,6 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
     } catch (err: any) {
       setError(err?.message || 'Connexion Google impossible');
       setGoogleLoading(false);
-    }
-  };
-
-  const handleAppleSignIn = async () => {
-    setError('');
-    setAppleLoading(true);
-    try {
-      const result = await lovable.auth.signInWithOAuth('apple', {
-        redirect_uri: window.location.origin,
-      });
-      if (result.error) {
-        setError((result.error as Error)?.message || 'Connexion Apple impossible');
-        setAppleLoading(false);
-      }
-      // If redirected, browser will navigate away.
-    } catch (err: any) {
-      setError(err?.message || 'Connexion Apple impossible');
-      setAppleLoading(false);
     }
   };
 
@@ -507,34 +488,6 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
           <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)' }}>ou</div>
           <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
         </div>
-
-        {/* Apple */}
-        <button
-          type="button"
-          onClick={handleAppleSignIn}
-          disabled={appleLoading}
-          style={{
-            width: '100%',
-            padding: 12,
-            borderRadius: 100,
-            border: 'none',
-            background: '#1A1310',
-            color: '#fff',
-            fontFamily: 'DM Sans',
-            fontSize: 14,
-            fontWeight: 500,
-            cursor: appleLoading ? 'not-allowed' : 'pointer',
-            opacity: appleLoading ? 0.6 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            marginBottom: 8,
-          }}
-        >
-          {appleLoading ? <Loader2 size={16} className="animate-spin" /> : <AppleIcon />}
-          {appleLoading ? 'Connexion…' : 'Continuer avec Apple'}
-        </button>
 
         {/* Google */}
         <button
