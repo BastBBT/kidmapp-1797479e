@@ -27,7 +27,7 @@ const CriterionToggle = ({
 }) => (
   <div className="flex items-center justify-between py-3">
     <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}>
+      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'var(--primary-light)' }}>
         {icon}
       </div>
       <span className="font-semibold text-sm">{label}</span>
@@ -167,10 +167,10 @@ const ContributionModal = ({ location, open, onClose }: ContributionModalProps) 
             {/* Scrollable body */}
             <div style={{ overflowY: 'auto', flex: 1, padding: '0 20px' }}>
               <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-                <CriterionToggle label="Chaise haute" icon={<img src={EQUIP_ICONS.high_chair} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />} value={highChair} onChange={setHighChair} />
-                <CriterionToggle label="Table à langer" icon={<img src={EQUIP_ICONS.changing_table} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />} value={changingTable} onChange={setChangingTable} />
-                <CriterionToggle label="Espace jeux" icon={<img src={EQUIP_ICONS.kids_area} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />} value={kidsArea} onChange={setKidsArea} />
-                <CriterionToggle label="Menu enfant" icon={<img src={EQUIP_ICONS.kids_menu} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />} value={kidsMenu} onChange={setKidsMenu} />
+                <CriterionToggle label="Chaise haute" icon={<img src={EQUIP_ICONS.high_chair} alt="" style={{ width: 24, height: 24, objectFit: 'contain' }} />} value={highChair} onChange={setHighChair} />
+                <CriterionToggle label="Table à langer" icon={<img src={EQUIP_ICONS.changing_table} alt="" style={{ width: 24, height: 24, objectFit: 'contain' }} />} value={changingTable} onChange={setChangingTable} />
+                <CriterionToggle label="Espace jeux" icon={<img src={EQUIP_ICONS.kids_area} alt="" style={{ width: 24, height: 24, objectFit: 'contain' }} />} value={kidsArea} onChange={setKidsArea} />
+                <CriterionToggle label="Menu enfant" icon={<img src={EQUIP_ICONS.kids_menu} alt="" style={{ width: 24, height: 24, objectFit: 'contain' }} />} value={kidsMenu} onChange={setKidsMenu} />
               </div>
 
               {showBookable && (

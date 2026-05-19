@@ -5,6 +5,29 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import DeleteAccountSection from '@/components/DeleteAccountSection';
+import { EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
+
+const CategoryThumb = ({ category }: { category?: string | null }) => {
+  const src = category ? CATEGORY_ICONS[category] : undefined;
+  if (!src) return null;
+  return (
+    <div style={{
+      width: 26, height: 26, borderRadius: '50%',
+      background: 'var(--primary-light)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0,
+    }}>
+      <img src={src} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+    </div>
+  );
+};
+
+const EquipBadge = ({ icon, value }: { icon: string; value: boolean }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '11px', padding: '2px 8px', borderRadius: '100px', background: 'var(--bg)', color: 'var(--text-muted)' }}>
+    <img src={icon} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />
+    {value ? 'Oui' : 'Non'}
+  </span>
+);
 
 const JoinKidmappView = () => {
   const { openAuth } = useRequireAuth();
@@ -224,32 +247,21 @@ const AccountPage = () => {
             display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px'
           }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, marginBottom: '4px' }}>
-                {c.locations?.name}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '4px' }}>
+                <CategoryThumb category={c.locations?.category} />
+                <div style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500 }}>
+                  {c.locations?.name}
+                </div>
               </div>
               <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)' }}>
                 {new Date(c.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
               </div>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
-                {c.high_chair !== null && (
-                  <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '100px', background: 'var(--bg)', color: 'var(--text-muted)' }}>
-                    🪑 {c.high_chair ? 'Oui' : 'Non'}
-                  </span>
-                )}
-                {c.changing_table !== null && (
-                  <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '100px', background: 'var(--bg)', color: 'var(--text-muted)' }}>
-                    👶 {c.changing_table ? 'Oui' : 'Non'}
-                  </span>
-                )}
-                {c.kids_area !== null && (
-                  <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '100px', background: 'var(--bg)', color: 'var(--text-muted)' }}>
-                    🎨 {c.kids_area ? 'Oui' : 'Non'}
-                  </span>
-                )}
+                {c.high_chair !== null && <EquipBadge icon={EQUIP_ICONS.high_chair} value={c.high_chair} />}
+                {c.changing_table !== null && <EquipBadge icon={EQUIP_ICONS.changing_table} value={c.changing_table} />}
+                {c.kids_area !== null && <EquipBadge icon={EQUIP_ICONS.kids_area} value={c.kids_area} />}
                 {(c as any).kids_menu !== null && (c as any).kids_menu !== undefined && (
-                  <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '100px', background: 'var(--bg)', color: 'var(--text-muted)' }}>
-                    🍽️ {(c as any).kids_menu ? 'Oui' : 'Non'}
-                  </span>
+                  <EquipBadge icon={EQUIP_ICONS.kids_menu} value={(c as any).kids_menu} />
                 )}
               </div>
             </div>
@@ -287,8 +299,11 @@ const AccountPage = () => {
                   <img src={p.photo} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               )}
-              <div style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, marginBottom: '4px' }}>
-                {p.name}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '4px' }}>
+                {!p.photo && <CategoryThumb category={p.category} />}
+                <div style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500 }}>
+                  {p.name}
+                </div>
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
                 {p.address}

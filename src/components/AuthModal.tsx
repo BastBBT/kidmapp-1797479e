@@ -3,6 +3,7 @@ import { Loader2, X, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
+import { CATEGORY_ICONS } from '@/assets/icons';
 
 interface AuthModalProps {
   initialMode?: 'login' | 'signup';
@@ -304,15 +305,10 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
           Nantes pour les familles ✦
         </div>
 
-        <div style={{ display: 'flex', gap: 12, marginTop: 14, position: 'relative', zIndex: 1 }}>
-          {[
-            { stroke: '#D95F3B', paths: [<path key="1" d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2" />, <path key="2" d="M7 2v20" />, <path key="3" d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3z" />, <path key="4" d="M21 15v7" />] },
-            { stroke: '#3B7D6E', paths: [<path key="1" d="M18 8h1a4 4 0 010 8h-1" />, <path key="2" d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z" />] },
-            { stroke: '#5A9A56', paths: [<path key="1" d="M12 22V12" />, <path key="2" d="M8 12c0 0-4-2.5-4-6a8 8 0 0116 0c0 3.5-4 6-4 6" />] },
-            { stroke: '#C49A35', paths: [<path key="1" d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />, <line key="2" x1="3" y1="6" x2="21" y2="6" />, <path key="3" d="M16 10a4 4 0 01-8 0" />] },
-          ].map((icon, i) => (
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, position: 'relative', zIndex: 1 }}>
+          {(['restaurant', 'cafe', 'shop', 'public', 'coiffeur'] as const).map((cat) => (
             <div
-              key={i}
+              key={cat}
               style={{
                 width: 42,
                 height: 42,
@@ -324,9 +320,7 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
                 justifyContent: 'center',
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={icon.stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                {icon.paths}
-              </svg>
+              <img src={CATEGORY_ICONS[cat]} alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} />
             </div>
           ))}
         </div>

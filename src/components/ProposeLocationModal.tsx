@@ -5,7 +5,15 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useMealTypes } from '@/hooks/useMeals';
-import { MEAL_ICONS, EQUIP_ICONS } from '@/assets/icons';
+import { MEAL_ICONS, EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
+
+const CATEGORY_OPTIONS: { id: string; label: string }[] = [
+  { id: 'restaurant', label: 'Restaurant' },
+  { id: 'cafe', label: 'Café' },
+  { id: 'shop', label: 'Boutique' },
+  { id: 'public', label: 'Lieu public' },
+  { id: 'coiffeur', label: 'Coiffeur' },
+];
 
 interface ProposeLocationModalProps {
   open: boolean;
@@ -252,13 +260,38 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                     <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
                       Catégorie *
                     </label>
-                    <select value={form.category} onChange={(e) => updateForm('category', e.target.value)} style={inputStyle}>
-                      <option value="restaurant">🍽️ Restaurant</option>
-                      <option value="cafe">☕ Café</option>
-                      <option value="shop">🛍️ Boutique</option>
-                      <option value="public">🌳 Lieu public</option>
-                      <option value="coiffeur">✂️ Coiffeur</option>
-                    </select>
+                    <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6, marginLeft: -4, marginRight: -4, paddingLeft: 4, paddingRight: 4 }} className="scrollbar-hide">
+                      {CATEGORY_OPTIONS.map((c) => {
+                        const active = form.category === c.id;
+                        return (
+                          <button
+                            type="button"
+                            key={c.id}
+                            onClick={() => updateForm('category', c.id)}
+                            style={{
+                              flexShrink: 0, display: 'flex', flexDirection: 'column',
+                              alignItems: 'center', gap: 6, padding: '8px 4px',
+                              background: 'transparent', border: 'none', cursor: 'pointer',
+                            }}
+                          >
+                            <span style={{
+                              width: 56, height: 56, borderRadius: '50%',
+                              background: active ? 'var(--primary-light)' : 'var(--bg)',
+                              border: active ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all .15s',
+                            }}>
+                              <img src={CATEGORY_ICONS[c.id]} alt="" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+                            </span>
+                            <span style={{
+                              fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600,
+                              color: active ? 'var(--text)' : 'var(--text-muted)',
+                              whiteSpace: 'nowrap',
+                            }}>{c.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div>
                     <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
@@ -584,7 +617,7 @@ function ToggleRow({ label, checked, onChange, icon }: { label: string; checked:
             width: 30, height: 30, borderRadius: 8, padding: 4,
             background: '#EBF4F2', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <img src={icon} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+            <img src={icon} alt="" style={{ width: 24, height: 24, objectFit: 'contain' }} />
           </span>
         )}
         {label}

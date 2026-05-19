@@ -1,57 +1,27 @@
-## App accessible sans connexion + actions différées
+## Cohérence icônes illustrées
 
-Rendre Kidmapp navigable sans compte. La connexion ne sera demandée que pour les actions et pages qui en ont strictement besoin, et l'action que l'utilisateur essayait de faire sera rejouée automatiquement après login.
+Remplacer les emojis restants par les icônes PNG illustrées déjà importables depuis `src/assets/icons.ts` (`EQUIP_ICONS`, `CATEGORY_ICONS`, `MEAL_ICONS`).
 
-### 1. Routes publiques vs protégées (`src/App.tsx` + `src/components/AuthGate.tsx`)
+### 1. `src/components/ContributionModal.tsx` — équipements 24×24
+Dans `CriterionToggle`, l'icône est actuellement rendue dans un cercle 32×32 avec un `<img>` 16×16. Passer les `<img>` à **24×24** (cercle inchangé) et retirer le tint `color: var(--primary)` du conteneur pour laisser l'icône colorée s'exprimer (background reste `var(--primary-light)`).
 
-- Routes **publiques** (pas d'auth requise) : `/`, `/location/:id`, `/privacy`, `/support`, `*` (NotFound).
-- Routes **protégées** (auth requise — redirige vers AuthModal si pas connecté) : `/saved`, `/gestion-k1dm4p`.
-- Route **spéciale** : `/account` — toujours accessible, mais affiche une vue "Rejoindre Kidmapp" quand non-connecté (pas de redirection).
-- `AuthGate` devient un wrapper réutilisable qui prend les routes protégées en enfants, sans bloquer le reste.
-- L'onboarding (premier passage) reste affiché aux nouveaux visiteurs non-connectés, mais avec un nouveau bouton "Découvrir sans compte" en plus de Se connecter / Créer un compte.
-- `BottomNav` doit s'afficher pour **tous** les utilisateurs (connectés ou non) — actuellement conditionné à `!!user`.
+### 2. `src/components/ProposeLocationModal.tsx`
+- **Picker catégorie (Step 0)** : remplacer le `<select>` natif (`🍽️ Restaurant`, etc.) par une grille horizontale scrollable de 5 boutons cercle (style aligné avec `CategoryFilter`) : cercle 56×56 avec `CATEGORY_ICONS[cat]` 36×36 + label sous le cercle. État actif = bordure `var(--primary)` 1.5px + fond `var(--primary-light)`. Catégories : restaurant / cafe / shop / public / coiffeur.
+- **Équipements (Step 1)** : `ToggleRow` est déjà OK (vignette 30×30 avec icône 22×22). Aligner sur 24×24 pour cohérence avec ContributionModal et garder le fond `#EBF4F2`.
 
-### 2. Système d'action différée (nouveau hook + contexte)
+### 3. `src/pages/AccountPage.tsx` — historique
+Pour **chaque carte contribution** :
+- Ajouter une vignette catégorie **26×26** à gauche (cercle `var(--primary-light)` + `CATEGORY_ICONS[c.locations.category]` 20×20), à côté du nom du lieu.
+- Dans les badges équipements, remplacer les emojis `🪑👶🎨🍽️` par `<img src={EQUIP_ICONS.*}>` **14×14** inline (alignés verticalement avec le texte "Oui"/"Non").
 
-Créer `src/hooks/useRequireAuth.tsx` exposant :
-- Un `RequireAuthProvider` au-dessus de l'app
-- Un hook `useRequireAuth()` qui retourne `requireAuth(action: () => void, opts?: { message?: string })`
-- Si l'utilisateur est connecté → exécute l'action immédiatement.
-- Sinon → stocke l'action en mémoire (ref) + un message contextuel ("Connecte-toi pour liker ce lieu", etc.), puis ouvre `AuthModal` en mode signup.
-- Après login réussi (via `onAuthStateChange` SIGNED_IN), rejouer l'action stockée puis la nettoyer.
+Pour **chaque carte proposition** :
+- Ajouter la même vignette catégorie 26×26 à gauche du nom (sauf si une photo existe déjà — dans ce cas garder la photo en haut).
 
-L'`AuthModal` actuel est ouvert par `AuthGate` lorsqu'il n'y a pas de user. Pour le cas "action protégée depuis route publique", il faut une seconde instance contrôlée par le provider — montée en haut de l'app, fermable, avec un message d'intro personnalisable.
+### 4. `src/components/AuthModal.tsx` — header
+Remplacer le bloc actuel de 4 cercles SVG hand-drawn (lignes 307–332) par une rangée de **5 cercles 42×42** (gap 10px) avec `CATEGORY_ICONS` 26×26 pour : restaurant, cafe, shop, public, coiffeur. Garder fond `rgba(255,255,255,0.78)` + shadow.
 
-### 3. Points d'appel à protéger
-
-Remplacer les appels directs par `requireAuth(() => ...)` :
-- `src/pages/LocationPage.tsx` (ligne ~152) : bouton favori → `requireAuth(() => toggleFavorite.mutate(location.id), { message: "Connecte-toi pour sauvegarder ce lieu" })`.
-- `src/components/LocationCard.tsx` : si un bouton favori existe sur la carte (à vérifier), même traitement.
-- `src/components/ContributeSheet.tsx` (ouverture depuis `LocationPage`) : protéger le déclencheur d'ouverture.
-- `src/components/ContributionModal.tsx` : idem (déclencheur d'ouverture).
-- `src/pages/Index.tsx` (ligne ~309) : bouton "Proposer un lieu" → `requireAuth(() => setShowProposalModal(true), { message: "Connecte-toi pour proposer un lieu" })`.
-
-Les modals/sheets eux-mêmes restent inchangés (ils supposent un user existant, ce qui est garanti après login).
-
-### 4. Vue "Rejoindre Kidmapp" sur `/account`
-
-Dans `src/pages/AccountPage.tsx`, ajouter un early return quand `!user` :
-- Même hero coloré (dégradé corail/crème, blob SVG).
-- Titre Fraunces "Rejoindre Kidmapp", sous-titre Caveat "Sauvegarde tes lieux préférés, contribue, et plus encore ✦".
-- Liste de 3-4 bénéfices avec emojis : ❤️ Sauvegarder tes favoris · ✍️ Contribuer aux infos · 📍 Proposer un nouveau lieu · 👤 Suivre ton activité.
-- CTA primaire "Se connecter" (ouvre l'AuthModal du provider en mode login).
-- CTA secondaire texte "Créer un compte" (ouvre AuthModal en mode signup).
-- Footer Confidentialité · Support · © 2026 conservé.
-
-### 5. Détails techniques
-
-- Le provider expose aussi `openAuthModal(mode: 'login' | 'signup', message?)` utilisé par la vue Compte.
-- L'action stockée est une `useRef<() => void>` pour éviter les re-renders et le state stale.
-- Nettoyer l'action si l'utilisateur ferme le modal sans se connecter.
-- `useFavorites` reste tel quel (déjà `enabled: !!user`) — pas d'appel Supabase tant que pas connecté, et `isFavorite()` retourne `false` par défaut. ✓
-- L'AuthModal existant doit accepter une nouvelle prop optionnelle `onClose` et `headerMessage` (le bandeau contextuel "Connecte-toi pour…"). Quand monté par `AuthGate` (route protégée), il reste non-fermable comme aujourd'hui ; quand monté par `RequireAuthProvider`, il est fermable.
-
-### Hors scope
-- Aucune migration DB ni changement RLS (les policies actuelles sont déjà correctes : SELECT publié → public, mutations → authenticated).
-- Pas de changement sur le flux Apple/Google.
-- Pas de modification de l'admin URL.
+### Détails techniques
+- Import unique en haut de chaque fichier : `import { EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';`
+- `<img>` toujours avec `alt=""` (décoratif) et `objectFit: 'contain'`.
+- Aucune modif de logique métier ni de tokens.
+- Catégories ordre cohérent partout : restaurant, cafe, shop, public, coiffeur.
