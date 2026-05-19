@@ -1,5 +1,4 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import AuthModal from '@/components/AuthModal';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -48,20 +47,17 @@ export const RequireAuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Replay pending action after successful sign-in
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        setOpen(false);
-        const action = pendingAction.current;
-        pendingAction.current = null;
-        setMessage(undefined);
-        if (action) {
-          // Defer to next tick so React-Query / auth context can refresh
-          setTimeout(() => action(), 50);
-        }
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+    if (!user) return;
+
+    setOpen(false);
+    const action = pendingAction.current;
+    pendingAction.current = null;
+    setMessage(undefined);
+    if (action) {
+      // Defer to next tick so React-Query / auth context can refresh
+      setTimeout(() => action(), 50);
+    }
+  }, [user]);
 
   return (
     <RequireAuthContext.Provider value={{ requireAuth, openAuth }}>
