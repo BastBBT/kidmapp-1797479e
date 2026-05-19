@@ -12,8 +12,9 @@ import ProposeLocationModal from '@/components/ProposeLocationModal';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 
-const MEAL_CATEGORIES = new Set(['all', 'restaurant', 'cafe']);
+const MEAL_CATEGORIES = new Set(['restaurant', 'cafe']);
 const VALID_CATEGORIES = new Set<string>(['all', 'restaurant', 'cafe', 'shop', 'public', 'coiffeur']);
+
 const NANTES_CENTER: [number, number] = [47.1984, -1.5536];
 const DEFAULT_ZOOM = 12;
 
@@ -136,10 +137,18 @@ const Index = () => {
         onCategoryChange={setSelectedCategory}
       />
 
-      {/* Meal type filter (2nd row) — only for restaurant / cafe / all */}
-      {showMealFilter && (
+      {/* Meal type filter (2nd row) — only for restaurant / cafe */}
+      <div
+        style={{
+          overflow: 'hidden',
+          maxHeight: showMealFilter ? 80 : 0,
+          opacity: showMealFilter ? 1 : 0,
+          transition: 'max-height 200ms ease-in-out, opacity 200ms ease-in-out',
+        }}
+      >
         <MealFilter mealTypes={mealTypes} selected={selectedMeal} onChange={setSelectedMeal} />
-      )}
+      </div>
+
 
       {/* Compteur + Proposer */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 8px' }}>
