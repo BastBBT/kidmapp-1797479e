@@ -1,17 +1,19 @@
-## Objectif
+## Ajout du bouton Instagram dans "Mon compte"
 
-Retirer le bouton "Continuer avec Apple" du modal d'authentification web. Le Sign in with Apple restera disponible uniquement dans l'app iOS native (via Capacitor), où le flow ne passe pas par ce modal.
+Ajouter un bouton "Suivez-nous sur Instagram" dans `src/pages/AccountPage.tsx`, placé entre le bouton "Se déconnecter" et la section `<DeleteAccountSection />` (zone dangereuse).
 
-## Modifications (un seul fichier : `src/components/AuthModal.tsx`)
+### Comportement
+- Lien vers `https://instagram.com/kidmapp`
+- Ouverture dans un nouvel onglet (`target="_blank"`, `rel="noopener noreferrer"`)
+- Icône Instagram à gauche (icône `Instagram` de `lucide-react`)
+- Flèche ↗ (icône `ArrowUpRight` de `lucide-react`) à droite
 
-1. Supprimer le bloc JSX du bouton Apple (lignes ~511-537).
-2. Supprimer le handler `handleAppleSignIn` (lignes ~222-237).
-3. Supprimer l'état `appleLoading` (ligne ~201).
-4. Supprimer le composant `AppleIcon` (ligne ~11) devenu inutilisé.
-5. Nettoyer l'import de `lovable` s'il n'est plus utilisé ailleurs dans le fichier (à vérifier — Google passe probablement par le même import, donc à conserver dans ce cas).
+### Style
+- Même gabarit que le bouton "Se déconnecter" (full width, padding 14px, border-radius 100px, bordure 1.5px) pour rester cohérent
+- Variante visuelle légèrement plus engageante : fond `var(--surface)` (au lieu de transparent) avec accent couleur primaire sur le texte et l'icône Instagram, pour le distinguer du bouton de déconnexion neutre
+- Marge `marginTop` ~10px pour séparer du bouton précédent
+- Police DM Sans 14px, weight 600
 
-## Hors périmètre
-
-- Aucune modification de `src/integrations/lovable/index.ts` (toujours utilisé par Google et par le flow iOS natif).
-- Aucune modification de la config Supabase / Apple Developer (le provider Apple reste activé côté backend pour le flow natif iOS via `signInWithIdToken`).
-- Aucun changement sur le code Capacitor iOS.
+### Hors scope
+- Aucune modification backend, routing, ou autre page
+- Pas de page "À propos" dans ce lot (malgré le titre de la demande, seul le bouton Instagram est décrit)
