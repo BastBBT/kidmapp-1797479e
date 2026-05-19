@@ -19,6 +19,47 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const OAUTH_CALLBACK_KEYS = [
+  'access_token',
+  'refresh_token',
+  'expires_in',
+  'expires_at',
+  'token_type',
+  'type',
+  'state',
+  'provider_token',
+  'provider_refresh_token',
+];
+
+const getOAuthParamsFromUrl = () => {
+  if (typeof window === 'undefined') return null;
+
+  const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
+  const hashParams = new URLSearchParams(hash);
+  const searchParams = new URLSearchParams(window.location.search);
+  const params = hashParams.has('access_token') || hashParams.has('refresh_token') ? hashParams : searchParams;
+  const hasOAuthParams = OAUTH_CALLBACK_KEYS.some((key) => params.has(key));
+
+  if (!hasOAuthParams) return null;
+
+  return {
+    accessToken: params.get('access_token'),
+    refreshToken: params.get('refresh_token'),
+    fromHash: params === hashParams,
+  };
+};
+
+const cleanOAuthParamsFromUrl = (fromHash: boolean) => {
+  if (typeof window === 'undefined') return;
+
+  const url = new URL(window.location.href);
+  OAUTH_CALLBACK_KEYS.forEach((key) => url.searchParams.delete(key));
+  if (fromHash) url.hash = '';
+
+  const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState(window.history.state, '', nextUrl || '/');
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -45,42 +86,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let initialSessionHandled = false;
+    let isMounted = true;
+
+    const applySession = (currentUser: User | null) => {
+      if (!isMounted) return;
+      setUser(currentUser);
+      if (!currentUser) {
+        setProfile(null);
+      }
+      setIsLoading(false);
+      if (currentUser) {
+        fetchProfile(currentUser.id);
+      }
+    };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (!currentUser) {
-          setProfile(null);
-        }
-        setIsLoading(false);
-        // Fetch profile in background, don't block loading
-        if (currentUser) {
-          fetchProfile(currentUser.id);
-        }
+        applySession(session?.user ?? null);
         initialSessionHandled = true;
       }
     );
 
-    // Fallback in case onAuthStateChange doesn't fire
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!initialSessionHandled) {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (!currentUser) {
-          setProfile(null);
-        }
-        setIsLoading(false);
-        if (currentUser) {
-          fetchProfile(currentUser.id);
+    const initializeSession = async () => {
+      const oauthParams = getOAuthParamsFromUrl();
+
+      if (oauthParams?.refreshToken) {
+        try {
+          if (oauthParams.accessToken) {
+            const { error } = await supabase.auth.setSession({
+              access_token: oauthParams.accessToken,
+              refresh_token: oauthParams.refreshToken,
+            });
+            if (error) throw error;
+          } else {
+            const { error } = await supabase.auth.refreshSession({ refresh_token: oauthParams.refreshToken });
+            if (error) throw error;
+          }
+          cleanOAuthParamsFromUrl(oauthParams.fromHash);
+        } catch (e) {
+          console.error('OAuth callback session setup failed:', e);
+          cleanOAuthParamsFromUrl(oauthParams.fromHash);
         }
       }
-    }).catch((e) => {
-      console.error('Get session failed:', e);
-      setIsLoading(false);
-    });
 
-    return () => subscription.unsubscribe();
+      // Fallback in case onAuthStateChange doesn't fire
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!initialSessionHandled) {
+          applySession(session?.user ?? null);
+        }
+      }).catch((e) => {
+        console.error('Get session failed:', e);
+        if (isMounted) setIsLoading(false);
+      });
+    };
+
+    initializeSession();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [fetchProfile]);
 
   const signIn = async (email: string, password: string) => {
