@@ -47,6 +47,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let authEventHandled = false;
     let isMounted = true;
 
+    // Filet de sécurité : si l'OAuth callback atterrit ici avec les tokens dans
+    // le fragment d'URL (cas observé sur le domaine custom kidmapp.app quand le
+    // proxy Lovable n'intercepte pas /~oauth/callback), on consomme nous-mêmes
+    // les tokens et on nettoie l'URL. No-op si le hash ne contient pas de tokens.
+    try {
+      const rawHash = window.location.hash.startsWith('#')
+        ? window.location.hash.slice(1)
+        : '';
+      if (rawHash) {
+        const params = new URLSearchParams(rawHash);
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+        const oauthError = params.get('error_description') || params.get('error');
+
+        if (access_token && refresh_token) {
+          supabase.auth
+            .setSession({ access_token, refresh_token })
+            .then(({ error }) => {
+              if (error) {
+                console.error('OAuth setSession from URL fragment failed:', error);
+              } else {
+                window.history.replaceState(
+                  null,
+                  '',
+                  window.location.pathname + window.location.search
+                );
+              }
+            });
+        } else if (oauthError) {
+          console.error('OAuth error in URL fragment:', oauthError);
+          window.history.replaceState(
+            null,
+            '',
+            window.location.pathname + window.location.search
+          );
+        }
+      }
+    } catch (e) {
+      console.error('OAuth fragment handler failed:', e);
+    }
+
     const applySession = (currentUser: User | null) => {
       if (!isMounted) return;
       setUser(currentUser);
