@@ -120,10 +120,6 @@ const AccountPage = () => {
   const { user, signOut } = useAuth();
   const { favoriteIds } = useFavorites();
 
-  if (!user) return <JoinKidmappView />;
-
-
-
   const { data: myContributions = [] } = useQuery({
     queryKey: ['my-contributions', user?.id],
     enabled: !!user,
@@ -149,6 +145,8 @@ const AccountPage = () => {
       return data ?? [];
     }
   });
+
+  if (!user) return <JoinKidmappView />;
 
   return (
     <div style={{ paddingBottom: '120px' }}>
