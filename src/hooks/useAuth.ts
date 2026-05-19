@@ -19,48 +19,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const OAUTH_CALLBACK_KEYS = [
-  'access_token',
-  'refresh_token',
-  'expires_in',
-  'expires_at',
-  'token_type',
-  'type',
-  'state',
-  'provider_token',
-  'provider_refresh_token',
-];
-
-const getOAuthParamsFromUrl = () => {
-  if (typeof window === 'undefined') return null;
-
-  const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
-  const hashTokenIndex = hash.indexOf('access_token=') >= 0 ? hash.indexOf('access_token=') : hash.indexOf('refresh_token=');
-  const hashParams = new URLSearchParams(hashTokenIndex >= 0 ? hash.slice(hashTokenIndex) : hash);
-  const searchParams = new URLSearchParams(window.location.search);
-  const params = hashParams.has('access_token') || hashParams.has('refresh_token') ? hashParams : searchParams;
-  const hasOAuthParams = OAUTH_CALLBACK_KEYS.some((key) => params.has(key));
-
-  if (!hasOAuthParams) return null;
-
-  return {
-    accessToken: params.get('access_token'),
-    refreshToken: params.get('refresh_token'),
-    fromHash: params === hashParams,
-  };
-};
-
-const cleanOAuthParamsFromUrl = (fromHash: boolean) => {
-  if (typeof window === 'undefined') return;
-
-  const url = new URL(window.location.href);
-  OAUTH_CALLBACK_KEYS.forEach((key) => url.searchParams.delete(key));
-  if (fromHash) url.hash = '';
-
-  const nextUrl = `${url.pathname}${url.search}${url.hash}`;
-  window.history.replaceState(window.history.state, '', nextUrl || '/');
-};
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -86,7 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    let initialSessionHandled = false;
+    let authEventHandled = false;
     let isMounted = true;
 
     const applySession = (currentUser: User | null) => {
@@ -103,49 +61,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
+        authEventHandled = true;
         applySession(session?.user ?? null);
-        initialSessionHandled = true;
       }
     );
 
-    const initializeSession = async () => {
-      const oauthParams = getOAuthParamsFromUrl();
-
-      if (oauthParams?.refreshToken) {
-        try {
-          let callbackUser: User | null = null;
-          if (oauthParams.accessToken) {
-            const { data, error } = await supabase.auth.setSession({
-              access_token: oauthParams.accessToken,
-              refresh_token: oauthParams.refreshToken,
-            });
-            if (error) throw error;
-            callbackUser = data.session?.user ?? null;
-          } else {
-            const { data, error } = await supabase.auth.refreshSession({ refresh_token: oauthParams.refreshToken });
-            if (error) throw error;
-            callbackUser = data.session?.user ?? null;
-          }
-          cleanOAuthParamsFromUrl(oauthParams.fromHash);
-          if (callbackUser) applySession(callbackUser);
-        } catch (e) {
-          console.error('OAuth callback session setup failed:', e);
-          cleanOAuthParamsFromUrl(oauthParams.fromHash);
-        }
+    // Fallback in case onAuthStateChange doesn't fire.
+    // Do not overwrite a session already received from the auth listener.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!authEventHandled) {
+        applySession(session?.user ?? null);
       }
-
-      // Fallback in case onAuthStateChange doesn't fire
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!initialSessionHandled) {
-          applySession(session?.user ?? null);
-        }
-      }).catch((e) => {
-        console.error('Get session failed:', e);
-        if (isMounted) setIsLoading(false);
-      });
-    };
-
-    initializeSession();
+    }).catch((e) => {
+      console.error('Get session failed:', e);
+      if (isMounted) setIsLoading(false);
+    });
 
     return () => {
       isMounted = false;
