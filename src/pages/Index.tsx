@@ -118,15 +118,17 @@ const Index = () => {
 
   const activeMeal = mealTypes.find((m) => m.id === selectedMeal) || null;
 
-  const filteredLocations = locations.filter((loc) => {
-    const matchCategory = !selectedCategory || selectedCategory === 'all' || loc.category === selectedCategory;
-    const matchSearch =
-      !searchQuery ||
-      loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      loc.address?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchMeal = !locationIdsForMeal || locationIdsForMeal.has(loc.id);
-    return matchCategory && matchSearch && matchMeal;
-  });
+  const filteredLocations = locations
+    .filter((loc) => {
+      const matchCategory = !selectedCategory || selectedCategory === 'all' || loc.category === selectedCategory;
+      const matchSearch =
+        !searchQuery ||
+        loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        loc.address?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchMeal = !locationIdsForMeal || locationIdsForMeal.has(loc.id);
+      return matchCategory && matchSearch && matchMeal;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
 
   return (
     <div className="min-h-screen flex flex-col pb-20" style={{ background: 'var(--bg)' }}>
