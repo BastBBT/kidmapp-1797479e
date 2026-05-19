@@ -314,7 +314,19 @@ const Index = () => {
               boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
             }}>
               <CategoryFilter selected={selectedCategory} onChange={setSelectedCategory} />
+              <div
+                style={{
+                  overflow: 'hidden',
+                  maxHeight: showMealFilter ? 80 : 0,
+                  opacity: showMealFilter ? 1 : 0,
+                  transition: 'max-height 200ms ease-in-out, opacity 200ms ease-in-out',
+                  marginTop: showMealFilter ? 6 : 0,
+                }}
+              >
+                <MealFilter mealTypes={mealTypes} selected={selectedMeal} onChange={setSelectedMeal} />
+              </div>
             </div>
+
           </div>
         </div>
       )}
