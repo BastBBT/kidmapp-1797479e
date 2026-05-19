@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,37 +14,73 @@ import SupportPage from "./pages/SupportPage";
 import NotFound from "./pages/NotFound";
 import AuthGate from "./components/AuthGate";
 import BottomNav from "./components/BottomNav";
+import Onboarding from "./components/Onboarding";
 import { useAuth, AuthProvider } from "./hooks/useAuth";
+import { RequireAuthProvider, useRequireAuth } from "./hooks/useRequireAuth";
 
 const queryClient = new QueryClient();
+const ONBOARDING_KEY = 'kidmapp_hasSeenOnboarding';
 
-const ProtectedRoutes = () => (
-  <AuthGate>
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/location/:id" element={<LocationPage />} />
-      <Route path="/saved" element={<SavedPage />} />
-      <Route path="/account" element={<AccountPage />} />
-      <Route path="/gestion-k1dm4p" element={<AdminPage />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  </AuthGate>
-);
+const OnboardingOverlay = () => {
+  const { user, isLoading } = useAuth();
+  const { openAuth } = useRequireAuth();
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    if (isLoading || user) return;
+    try {
+      if (!localStorage.getItem(ONBOARDING_KEY)) setShow(true);
+    } catch {
+      // ignore
+    }
+  }, [isLoading, user]);
+
+  if (!show || user) return null;
+
+  return (
+    <Onboarding
+      onFinish={(mode) => {
+        setShow(false);
+        if (mode === 'browse') return;
+        openAuth(mode);
+      }}
+    />
+  );
+};
 
 const AppContent = () => {
-  const { user } = useAuth();
-  const showBottomNav = !!user;
-
   return (
     <>
       <Routes>
-        {/* Public routes — no auth required */}
+        {/* Public routes */}
+        <Route path="/" element={<Index />} />
+        <Route path="/location/:id" element={<LocationPage />} />
+        <Route path="/account" element={<AccountPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/support" element={<SupportPage />} />
-        {/* Everything else goes through AuthGate */}
-        <Route path="*" element={<ProtectedRoutes />} />
+
+        {/* Auth-required routes */}
+        <Route
+          path="/saved"
+          element={
+            <AuthGate>
+              <SavedPage />
+            </AuthGate>
+          }
+        />
+        <Route
+          path="/gestion-k1dm4p"
+          element={
+            <AuthGate>
+              <AdminPage />
+            </AuthGate>
+          }
+        />
+
+        <Route path="*" element={<NotFound />} />
       </Routes>
-      {showBottomNav && <BottomNav />}
+      <BottomNav />
+      <OnboardingOverlay />
     </>
   );
 };
@@ -55,7 +92,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AppContent />
+          <RequireAuthProvider>
+            <AppContent />
+          </RequireAuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
