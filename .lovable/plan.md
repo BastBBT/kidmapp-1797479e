@@ -1,27 +1,36 @@
-## Cohérence icônes illustrées
+## Problème
 
-Remplacer les emojis restants par les icônes PNG illustrées déjà importables depuis `src/assets/icons.ts` (`EQUIP_ICONS`, `CATEGORY_ICONS`, `MEAL_ICONS`).
+Le bouton "Continuer avec Google" dans `src/components/AuthModal.tsx` peut déclencher deux flows OAuth en parallèle (double-tap rapide, double event, ou re-render). Bien que le bouton soit `disabled={googleLoading}`, le handler `handleGoogleSignIn` ne vérifie pas l'état avant de lancer `lovable.auth.signInWithOAuth`, donc deux appels peuvent partir avant que React applique le `disabled`. Résultat : deux `state` OAuth différents, race condition, session non créée en prod.
 
-### 1. `src/components/ContributionModal.tsx` — équipements 24×24
-Dans `CriterionToggle`, l'icône est actuellement rendue dans un cercle 32×32 avec un `<img>` 16×16. Passer les `<img>` à **24×24** (cercle inchangé) et retirer le tint `color: var(--primary)` du conteneur pour laisser l'icône colorée s'exprimer (background reste `var(--primary-light)`).
+## Correction
 
-### 2. `src/components/ProposeLocationModal.tsx`
-- **Picker catégorie (Step 0)** : remplacer le `<select>` natif (`🍽️ Restaurant`, etc.) par une grille horizontale scrollable de 5 boutons cercle (style aligné avec `CategoryFilter`) : cercle 56×56 avec `CATEGORY_ICONS[cat]` 36×36 + label sous le cercle. État actif = bordure `var(--primary)` 1.5px + fond `var(--primary-light)`. Catégories : restaurant / cafe / shop / public / coiffeur.
-- **Équipements (Step 1)** : `ToggleRow` est déjà OK (vignette 30×30 avec icône 22×22). Aligner sur 24×24 pour cohérence avec ContributionModal et garder le fond `#EBF4F2`.
+Un seul fichier touché : `src/components/AuthModal.tsx`, fonction `handleGoogleSignIn` (lignes ~200-216).
 
-### 3. `src/pages/AccountPage.tsx` — historique
-Pour **chaque carte contribution** :
-- Ajouter une vignette catégorie **26×26** à gauche (cercle `var(--primary-light)` + `CATEGORY_ICONS[c.locations.category]` 20×20), à côté du nom du lieu.
-- Dans les badges équipements, remplacer les emojis `🪑👶🎨🍽️` par `<img src={EQUIP_ICONS.*}>` **14×14** inline (alignés verticalement avec le texte "Oui"/"Non").
+1. Utiliser un **ref** (`useRef<boolean>`) en plus du state `googleLoading`, pour bloquer **synchronement** un second appel — un state React n'est pas mis à jour avant le prochain render et ne protège donc pas contre les clics rapprochés.
+2. Au début du handler : `if (googleLockRef.current) return;` puis `googleLockRef.current = true`.
+3. Conserver `setGoogleLoading(true)` pour l'UI (spinner + bouton désactivé visuellement).
+4. Ne **pas** relâcher le lock en cas de succès (`result.redirected`) : la page va être rechargée par le redirect OAuth.
+5. Relâcher le lock (`googleLockRef.current = false` + `setGoogleLoading(false)`) uniquement dans les branches d'erreur (`result.error`, `catch`).
+6. Garder le `disabled={googleLoading}` existant sur le bouton.
 
-Pour **chaque carte proposition** :
-- Ajouter la même vignette catégorie 26×26 à gauche du nom (sauf si une photo existe déjà — dans ce cas garder la photo en haut).
+## Détails techniques
 
-### 4. `src/components/AuthModal.tsx` — header
-Remplacer le bloc actuel de 4 cercles SVG hand-drawn (lignes 307–332) par une rangée de **5 cercles 42×42** (gap 10px) avec `CATEGORY_ICONS` 26×26 pour : restaurant, cafe, shop, public, coiffeur. Garder fond `rgba(255,255,255,0.78)` + shadow.
+```text
+handleGoogleSignIn:
+  if (googleLockRef.current) return         ← garde synchrone
+  googleLockRef.current = true
+  setGoogleLoading(true)
+  try:
+    result = await lovable.auth.signInWithOAuth('google', { redirect_uri })
+    if result.error:
+      setError(...)
+      googleLockRef.current = false
+      setGoogleLoading(false)
+    // succès → on ne relâche rien, le navigateur redirige
+  catch err:
+    setError(...)
+    googleLockRef.current = false
+    setGoogleLoading(false)
+```
 
-### Détails techniques
-- Import unique en haut de chaque fichier : `import { EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';`
-- `<img>` toujours avec `alt=""` (décoratif) et `objectFit: 'contain'`.
-- Aucune modif de logique métier ni de tokens.
-- Catégories ordre cohérent partout : restaurant, cafe, shop, public, coiffeur.
+Aucun changement dans `useAuth.ts`, `src/integrations/lovable/index.ts`, ou ailleurs. Aucun changement de logique métier ni de design.
