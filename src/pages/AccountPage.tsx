@@ -1,13 +1,128 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import DeleteAccountSection from '@/components/DeleteAccountSection';
 
+const JoinKidmappView = () => {
+  const { openAuth } = useRequireAuth();
+  const benefits = [
+    { emoji: '❤️', label: 'Sauvegarder tes lieux préférés' },
+    { emoji: '✍️', label: 'Contribuer aux infos des lieux' },
+    { emoji: '📍', label: 'Proposer un nouveau lieu' },
+    { emoji: '👤', label: 'Suivre ton activité et tes contributions' },
+  ];
+  return (
+    <div style={{ paddingBottom: '120px', minHeight: '100vh', background: 'var(--bg)' }}>
+      <div style={{
+        background: 'linear-gradient(160deg, #FAF0EC 0%, #F0C4B4 100%)',
+        padding: '64px 24px 36px',
+        position: 'relative',
+        overflow: 'hidden',
+        textAlign: 'center',
+      }}>
+        <svg style={{ position: 'absolute', top: '-30px', right: '-40px', width: 200, height: 200, opacity: 0.5 }} viewBox="0 0 220 220">
+          <path d="M110,20 C155,15 200,55 210,100 C220,145 190,190 145,205 C100,220 50,200 25,160 C0,120 10,65 50,40 C70,27 85,22 110,20Z" fill="rgba(255,255,255,0.4)" />
+        </svg>
+        <svg style={{ position: 'absolute', bottom: '-30px', left: '-30px', width: 160, height: 160, opacity: 0.4 }} viewBox="0 0 160 160">
+          <path d="M80,10 C115,8 148,35 155,70 C162,105 145,140 112,152 C79,164 42,150 22,120 C2,90 8,50 35,28 C52,14 62,11 80,10Z" fill="rgba(255,255,255,0.4)" />
+        </svg>
+        <div style={{
+          width: 64, height: 64, borderRadius: '50%',
+          background: 'var(--primary)', color: '#fff',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 30, marginBottom: 14,
+          boxShadow: '0 6px 20px rgba(217,95,59,0.35)',
+          position: 'relative', zIndex: 1,
+        }}>✦</div>
+        <div style={{
+          fontFamily: 'Fraunces', fontSize: 28, fontWeight: 500,
+          letterSpacing: '-0.02em', color: 'var(--text)', position: 'relative', zIndex: 1,
+        }}>
+          Rejoindre Kidmapp
+        </div>
+        <div style={{
+          fontFamily: 'Caveat', fontSize: 17, color: 'var(--text-muted)',
+          marginTop: 6, position: 'relative', zIndex: 1,
+        }}>
+          Sauvegarde tes lieux préférés, contribue, et plus encore ✦
+        </div>
+      </div>
+
+      <div style={{ padding: '24px 20px 0' }}>
+        <div style={{
+          background: 'var(--surface)', borderRadius: 'var(--radius)',
+          boxShadow: 'var(--shadow)', padding: '6px 4px',
+        }}>
+          {benefits.map((b, i) => (
+            <div key={b.label} style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              padding: '14px 16px',
+              borderTop: i === 0 ? 'none' : '1px solid var(--border)',
+            }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: '50%',
+                background: 'var(--accent-light)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, flexShrink: 0,
+              }}>{b.emoji}</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text)' }}>
+                {b.label}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={() => openAuth('signup')}
+          style={{
+            width: '100%', marginTop: 24, padding: 15, borderRadius: 100,
+            border: 'none', background: 'var(--primary)', color: '#fff',
+            fontFamily: 'DM Sans', fontSize: 15, fontWeight: 600,
+            cursor: 'pointer', boxShadow: '0 8px 22px rgba(217,95,59,0.28)',
+          }}
+        >
+          Créer un compte 🎉
+        </button>
+        <button
+          onClick={() => openAuth('login')}
+          style={{
+            width: '100%', marginTop: 10, padding: 13, borderRadius: 100,
+            border: '1.5px solid var(--border)', background: 'transparent',
+            color: 'var(--text)', fontFamily: 'DM Sans', fontSize: 14,
+            fontWeight: 600, cursor: 'pointer',
+          }}
+        >
+          J'ai déjà un compte — Se connecter
+        </button>
+      </div>
+
+      <div style={{ padding: '32px 16px 0', textAlign: 'center' }}>
+        <div style={{
+          fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text-muted)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+        }}>
+          <Link to="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Confidentialité</Link>
+          <span aria-hidden="true">·</span>
+          <Link to="/support" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Support</Link>
+        </div>
+        <div style={{ fontFamily: 'Caveat, cursive', fontSize: 14, color: 'var(--text-muted)', marginTop: 8 }}>
+          © 2026 Kidmapp
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AccountPage = () => {
   const { user, signOut } = useAuth();
   const { favoriteIds } = useFavorites();
+
+  if (!user) return <JoinKidmappView />;
+
+
 
   const { data: myContributions = [] } = useQuery({
     queryKey: ['my-contributions', user?.id],
