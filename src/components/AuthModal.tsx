@@ -195,9 +195,12 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
   const [error, setError] = useState('');
   const [forgotOpen, setForgotOpen] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const googleLockRef = useRef(false);
   const { signIn, signUp } = useAuth();
 
   const handleGoogleSignIn = async () => {
+    if (googleLockRef.current) return;
+    googleLockRef.current = true;
     setError('');
     setGoogleLoading(true);
     try {
@@ -206,11 +209,13 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
       });
       if (result.error) {
         setError((result.error as Error)?.message || 'Connexion Google impossible');
+        googleLockRef.current = false;
         setGoogleLoading(false);
       }
-      // If redirected, browser will navigate away.
+      // On success/redirect, leave the lock engaged — the browser will navigate away.
     } catch (err: any) {
       setError(err?.message || 'Connexion Google impossible');
+      googleLockRef.current = false;
       setGoogleLoading(false);
     }
   };
