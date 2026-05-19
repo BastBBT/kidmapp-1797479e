@@ -1,8 +1,9 @@
 import { useState, useRef, TouchEvent } from 'react';
 
 interface OnboardingProps {
-  onFinish: (mode: 'signup' | 'login') => void;
+  onFinish: (mode: 'signup' | 'login' | 'browse') => void;
 }
+
 
 const SLIDES = [
   {
@@ -126,12 +127,13 @@ const Onboarding = ({ onFinish }: OnboardingProps) => {
   const [index, setIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
 
-  const finish = (mode: 'signup' | 'login') => {
+  const finish = (mode: 'signup' | 'login' | 'browse') => {
     try {
       localStorage.setItem('kidmapp_hasSeenOnboarding', '1');
     } catch {}
     onFinish(mode);
   };
+
 
   const next = () => {
     if (index < SLIDES.length - 1) setIndex(index + 1);
@@ -169,7 +171,7 @@ const Onboarding = ({ onFinish }: OnboardingProps) => {
       {/* Skip link */}
       {!isLast && (
         <button
-          onClick={() => finish('signup')}
+          onClick={() => finish('browse')}
           style={{
             position: 'absolute',
             top: 'env(safe-area-inset-top, 16px)',
@@ -190,6 +192,7 @@ const Onboarding = ({ onFinish }: OnboardingProps) => {
           Passer
         </button>
       )}
+
 
       {/* Decorative blobs */}
       <svg style={{ position: 'absolute', top: '-40px', right: '-50px', width: 240, height: 240, opacity: 0.4 }} viewBox="0 0 220 220">
@@ -310,7 +313,7 @@ const Onboarding = ({ onFinish }: OnboardingProps) => {
               style={{
                 width: '100%',
                 padding: '12px',
-                marginTop: 12,
+                marginTop: 10,
                 background: 'transparent',
                 border: 'none',
                 fontFamily: 'DM Sans',
@@ -324,6 +327,24 @@ const Onboarding = ({ onFinish }: OnboardingProps) => {
             >
               Déjà un compte ? Se connecter
             </button>
+            <button
+              onClick={() => finish('browse')}
+              style={{
+                width: '100%',
+                padding: '10px',
+                marginTop: 4,
+                background: 'transparent',
+                border: 'none',
+                fontFamily: 'DM Sans',
+                fontSize: 13,
+                color: 'rgba(28,25,23,0.55)',
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              Découvrir sans compte
+            </button>
+
           </>
         )}
       </div>
