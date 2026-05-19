@@ -35,7 +35,8 @@ const getOAuthParamsFromUrl = () => {
   if (typeof window === 'undefined') return null;
 
   const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
-  const hashParams = new URLSearchParams(hash);
+  const hashTokenIndex = hash.indexOf('access_token=') >= 0 ? hash.indexOf('access_token=') : hash.indexOf('refresh_token=');
+  const hashParams = new URLSearchParams(hashTokenIndex >= 0 ? hash.slice(hashTokenIndex) : hash);
   const searchParams = new URLSearchParams(window.location.search);
   const params = hashParams.has('access_token') || hashParams.has('refresh_token') ? hashParams : searchParams;
   const hasOAuthParams = OAUTH_CALLBACK_KEYS.some((key) => params.has(key));
@@ -112,17 +113,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (oauthParams?.refreshToken) {
         try {
+          let callbackUser: User | null = null;
           if (oauthParams.accessToken) {
-            const { error } = await supabase.auth.setSession({
+            const { data, error } = await supabase.auth.setSession({
               access_token: oauthParams.accessToken,
               refresh_token: oauthParams.refreshToken,
             });
             if (error) throw error;
+            callbackUser = data.session?.user ?? null;
           } else {
-            const { error } = await supabase.auth.refreshSession({ refresh_token: oauthParams.refreshToken });
+            const { data, error } = await supabase.auth.refreshSession({ refresh_token: oauthParams.refreshToken });
             if (error) throw error;
+            callbackUser = data.session?.user ?? null;
           }
           cleanOAuthParamsFromUrl(oauthParams.fromHash);
+          if (callbackUser) applySession(callbackUser);
         } catch (e) {
           console.error('OAuth callback session setup failed:', e);
           cleanOAuthParamsFromUrl(oauthParams.fromHash);
