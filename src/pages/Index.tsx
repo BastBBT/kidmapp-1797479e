@@ -9,6 +9,8 @@ import MealFilter from '@/components/MealFilter';
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
 import ProposeLocationModal from '@/components/ProposeLocationModal';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+
 
 const MEAL_CATEGORIES = new Set(['all', 'restaurant', 'cafe']);
 const VALID_CATEGORIES = new Set<string>(['all', 'restaurant', 'cafe', 'shop', 'public', 'coiffeur']);
@@ -41,6 +43,8 @@ const Index = () => {
   const [selectedMeal, setSelectedMeal] = useState<string | null>(initialMeal);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [showProposalModal, setShowProposalModal] = useState(false);
+  const { requireAuth } = useRequireAuth();
+
   const [mapExpanded, setMapExpanded] = useState(false);
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const mapViewRef = useRef<{ center: [number, number]; zoom: number }>({ center: initialCenter, zoom: initialZoom });
@@ -150,7 +154,7 @@ const Index = () => {
           )}
         </p>
         <button
-          onClick={() => setShowProposalModal(true)}
+          onClick={() => requireAuth(() => setShowProposalModal(true), { message: 'Connecte-toi pour proposer un nouveau lieu à la communauté ✦' })}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px',
             padding: '7px 14px', borderRadius: '100px',
