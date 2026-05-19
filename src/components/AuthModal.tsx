@@ -344,8 +344,27 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
           zIndex: 2,
         }}
       >
+        {headerMessage && (
+          <div
+            style={{
+              background: 'var(--accent-light)',
+              borderRadius: 14,
+              padding: '12px 14px',
+              marginBottom: 14,
+              fontFamily: 'DM Sans',
+              fontSize: 13,
+              color: 'var(--text)',
+              lineHeight: 1.5,
+              textAlign: 'center',
+            }}
+          >
+            {headerMessage}
+          </div>
+        )}
+
         {/* Underline tabs - centered */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 36, borderBottom: '1.5px solid var(--border)', marginBottom: 18 }}>
+
           {(['signup', 'login'] as const).map((m) => {
             const active = mode === m;
             return (
