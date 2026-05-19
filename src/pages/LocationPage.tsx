@@ -10,6 +10,8 @@ import { useLocation as useLocationData } from '@/hooks/useLocations';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useEquipmentVotes } from '@/hooks/useEquipmentVotes';
 import { useAuth } from '@/hooks/useAuth';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EQUIP_ICONS, EQUIP_LABELS, EquipKey } from '@/assets/icons';
@@ -75,7 +77,9 @@ const LocationPage = () => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { data: votes } = useEquipmentVotes(id ?? '');
   const { user } = useAuth();
+  const { requireAuth } = useRequireAuth();
   const favorite = location ? isFavorite(location.id) : false;
+
 
   const { data: pendingContribution } = useQuery({
     queryKey: ['my-contribution', location?.id, user?.id],
@@ -149,7 +153,7 @@ const LocationPage = () => {
 
         {/* Favorite button */}
         <button
-          onClick={() => location && toggleFavorite.mutate(location.id)}
+          onClick={() => location && requireAuth(() => toggleFavorite.mutate(location.id), { message: 'Connecte-toi pour sauvegarder ce lieu dans tes favoris ❤️' })}
           className="absolute z-10 flex items-center justify-center"
           style={{
             top: '52px', right: '16px',
@@ -382,7 +386,7 @@ const LocationPage = () => {
 
           {/* Single unified Contribute button */}
           <button
-            onClick={() => setShowContribute(true)}
+            onClick={() => requireAuth(() => setShowContribute(true), { message: 'Connecte-toi pour partager tes infos sur ce lieu ✦' })}
             style={{
               width: '100%', marginTop: 16,
               padding: '12px 16px', borderRadius: 100,

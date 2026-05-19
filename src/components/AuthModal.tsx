@@ -6,7 +6,9 @@ import { lovable } from '@/integrations/lovable';
 
 interface AuthModalProps {
   initialMode?: 'login' | 'signup';
+  headerMessage?: string;
 }
+
 
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24">
@@ -183,7 +185,7 @@ const ForgotPasswordSheet = ({ open, onClose }: { open: boolean; onClose: () => 
   );
 };
 
-const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
+const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) => {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -342,8 +344,27 @@ const AuthModal = ({ initialMode = 'signup' }: AuthModalProps) => {
           zIndex: 2,
         }}
       >
+        {headerMessage && (
+          <div
+            style={{
+              background: 'var(--accent-light)',
+              borderRadius: 14,
+              padding: '12px 14px',
+              marginBottom: 14,
+              fontFamily: 'DM Sans',
+              fontSize: 13,
+              color: 'var(--text)',
+              lineHeight: 1.5,
+              textAlign: 'center',
+            }}
+          >
+            {headerMessage}
+          </div>
+        )}
+
         {/* Underline tabs - centered */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 36, borderBottom: '1.5px solid var(--border)', marginBottom: 18 }}>
+
           {(['signup', 'login'] as const).map((m) => {
             const active = mode === m;
             return (
