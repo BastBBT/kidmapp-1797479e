@@ -1607,6 +1607,9 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   const [proposalManualLat, setProposalManualLat] = useState('47.2184');
   const [proposalManualLng, setProposalManualLng] = useState('-1.5536');
   const [searchProposals, setSearchProposals] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<any>(null);
+  const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
 
   const { data: proposals = [] } = useQuery({
     queryKey: ['proposals'],
@@ -1615,6 +1618,139 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
       return (data ?? []) as any[];
     },
   });
+
+  const proposalUserIds = useMemo(
+    () => Array.from(new Set((proposals as any[]).map((p) => p.user_id).filter(Boolean))),
+    [proposals]
+  );
+  const { data: proposalEmails = {} } = useUserEmails(proposalUserIds);
+
+  const startEdit = (proposal: any) => {
+    setEditingId(proposal.id);
+    setEditPhotoFile(null);
+    setEditDraft({
+      name: proposal.name ?? '',
+      category: proposal.category ?? 'restaurant',
+      address: proposal.address ?? '',
+      website: proposal.website ?? '',
+      instagram: proposal.instagram ?? '',
+      photo: proposal.photo ?? '',
+      note: proposal.note ?? '',
+      high_chair: !!proposal.high_chair,
+      changing_table: !!proposal.changing_table,
+      kids_area: !!proposal.kids_area,
+      kids_menu: !!proposal.kids_menu,
+      bookable: proposal.bookable ?? 'unknown',
+    });
+  };
+
+  const handleEditAndApprove = async (proposal: any) => {
+    if (!editDraft) return;
+    if (!editDraft.name || !editDraft.address) {
+      toast({ title: 'Erreur', description: 'Nom et adresse obligatoires', variant: 'destructive' });
+      return;
+    }
+    setProcessingId(proposal.id);
+    try {
+      // Upload new photo if provided
+      let photoUrl: string | null = editDraft.photo || null;
+      if (editPhotoFile) {
+        const ext = editPhotoFile.name.split('.').pop();
+        const fileName = `admin/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from('location-photos').upload(fileName, editPhotoFile);
+        if (upErr) throw upErr;
+        photoUrl = supabase.storage.from('location-photos').getPublicUrl(fileName).data.publicUrl;
+      }
+
+      const coords = await geocodeAddress(editDraft.address);
+      if (!coords) {
+        setManualCoordsProposal(proposal.id);
+        toast({ title: 'Adresse non trouvée', description: 'Ajustez les coordonnées manuellement, puis utilisez "Approuver".', variant: 'destructive' });
+        setProcessingId(null);
+        return;
+      }
+
+      const insertData: any = {
+        name: editDraft.name,
+        category: editDraft.category,
+        address: editDraft.address,
+        lat: coords.lat,
+        lng: coords.lng,
+        high_chair: editDraft.high_chair,
+        changing_table: editDraft.changing_table,
+        kids_area: editDraft.kids_area,
+        kids_menu: editDraft.kids_menu,
+        photo: photoUrl,
+        website: editDraft.website || null,
+        instagram: editDraft.instagram || null,
+        note: editDraft.note || null,
+        status: 'published',
+      };
+      if (editDraft.category === 'restaurant' || editDraft.category === 'cafe') {
+        insertData.bookable = editDraft.bookable;
+      }
+
+      const { data: insertedLocation, error: insErr } = await supabase
+        .from('locations')
+        .insert(insertData)
+        .select('id')
+        .single();
+      if (insErr) throw insErr;
+
+      // Carry meal_types from proposal metadata
+      const proposalMealTypes: string[] = (proposal.metadata as any)?.meal_types ?? [];
+      if (insertedLocation?.id && proposalMealTypes.length > 0) {
+        const { data: mealTypesData } = await supabase
+          .from('meal_types')
+          .select('id, default_time_start, default_time_end')
+          .in('id', proposalMealTypes);
+        const defaultsById = new Map<string, { start: string | null; end: string | null }>(
+          (mealTypesData ?? []).map((mt: any) => [mt.id, { start: mt.default_time_start, end: mt.default_time_end }])
+        );
+        const mealRows = proposalMealTypes.map((mid) => ({
+          location_id: insertedLocation.id,
+          meal_type_id: mid,
+          time_open: defaultsById.get(mid)?.start ?? null,
+          time_close: defaultsById.get(mid)?.end ?? null,
+          is_confirmed: false,
+          confirmed_count: 0,
+          created_by: proposal.user_id ?? null,
+        }));
+        await supabase.from('location_meals').upsert(mealRows, { onConflict: 'location_id,meal_type_id' });
+      }
+
+      // Track admin edits diff for traceability
+      const editedFields: string[] = [];
+      ['name','category','address','website','instagram','note','high_chair','changing_table','kids_area','kids_menu','bookable','photo'].forEach((k) => {
+        const before = (proposal as any)[k] ?? null;
+        const after = (editDraft as any)[k] ?? null;
+        if (JSON.stringify(before) !== JSON.stringify(after)) editedFields.push(k);
+      });
+      const newMetadata = {
+        ...(proposal.metadata ?? {}),
+        admin_edits: { edited_at: new Date().toISOString(), fields: editedFields },
+      };
+
+      const { error: upStatusErr } = await supabase
+        .from('location_proposals' as any)
+        .update({ status: 'approved', metadata: newMetadata })
+        .eq('id', proposal.id);
+      if (upStatusErr) throw upStatusErr;
+
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['all-locations'] });
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      toast({ title: 'Proposition modifiée & approuvée ✓', description: editedFields.length ? `Champs édités : ${editedFields.join(', ')}` : 'Aucune modification' });
+      setEditingId(null);
+      setEditDraft(null);
+      setEditPhotoFile(null);
+    } catch (err: any) {
+      toast({ title: 'Erreur', description: err?.message ?? 'Échec', variant: 'destructive' });
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   const handleApprove = async (proposal: any, useManualCoords = false) => {
     setProcessingId(proposal.id);
