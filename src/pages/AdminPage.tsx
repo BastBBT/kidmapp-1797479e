@@ -134,7 +134,7 @@ const AdminPage = () => {
         supabase.from('page_views' as any).select('user_id, created_at').gte('created_at', since),
       ]);
 
-      const views = (viewsRes.data ?? []) as { user_id: string | null; created_at: string }[];
+      const views = ((viewsRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[];
       const totalVisits = views.length;
       const loggedInUsers = new Set<string>();
       const userDays = new Map<string, Set<string>>();
