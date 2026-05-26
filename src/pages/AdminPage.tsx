@@ -1423,6 +1423,62 @@ function StatCard({ label, value, sub }: { label: string; value: number; sub: st
   );
 }
 
+function TopList({
+  title,
+  entries,
+  emails,
+  approvedLabel,
+}: {
+  title: string;
+  entries: { user_id: string; total: number; approved: number }[];
+  emails: Record<string, string>;
+  approvedLabel: string;
+}) {
+  return (
+    <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)' }}>
+      <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '10px' }}>
+        {title}
+      </div>
+      {entries.length === 0 ? (
+        <div style={{ fontFamily: 'DM Sans', fontSize: '13px', color: 'var(--text-muted)', padding: '8px 0' }}>
+          Aucune donnée
+        </div>
+      ) : (
+        <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {entries.map((e, i) => (
+            <li
+              key={e.user_id}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', fontFamily: 'DM Sans', fontSize: '13px' }}
+            >
+              <span
+                style={{
+                  flexShrink: 0,
+                  width: 22, height: 22, borderRadius: '50%',
+                  background: i === 0 ? 'var(--primary)' : 'var(--bg)',
+                  color: i === 0 ? 'white' : 'var(--text-muted)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 600, fontSize: '12px',
+                }}
+              >
+                {i + 1}
+              </span>
+              <span style={{ flex: 1, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {emails[e.user_id] ?? '…'}
+              </span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '12px', flexShrink: 0 }}>
+                <strong style={{ color: 'var(--text)' }}>{e.total}</strong>{' '}
+                <span>({e.approved} {approvedLabel})</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+
+
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, { bg: string; color: string; label: string }> = {
     published: { bg: '#EBF6EC', color: '#2E7D32', label: 'Publié' },
