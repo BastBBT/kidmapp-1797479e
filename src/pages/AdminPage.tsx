@@ -124,20 +124,42 @@ const AdminPage = () => {
     queryFn: async () => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const [locationsRes, contributionsRes, usersRes, dailyRes] = await Promise.all([
+      const since = thirtyDaysAgo.toISOString();
+      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, viewsRes] = await Promise.all([
         supabase.from('locations').select('id, status'),
         supabase.from('contributions').select('id, created_at, status'),
-        supabase.from('profiles').select('id, created_at').gte('created_at', thirtyDaysAgo.toISOString()),
+        supabase.from('profiles').select('id, created_at').gte('created_at', since),
         supabase.from('contributions').select('created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
+        supabase.from('location_proposals' as any).select('id, status'),
+        supabase.from('page_views' as any).select('user_id, created_at').gte('created_at', since),
       ]);
+
+      const views = (viewsRes.data ?? []) as { user_id: string | null; created_at: string }[];
+      const totalVisits = views.length;
+      const loggedInUsers = new Set<string>();
+      const userDays = new Map<string, Set<string>>();
+      for (const v of views) {
+        if (!v.user_id) continue;
+        loggedInUsers.add(v.user_id);
+        const day = v.created_at.slice(0, 10);
+        if (!userDays.has(v.user_id)) userDays.set(v.user_id, new Set());
+        userDays.get(v.user_id)!.add(day);
+      }
+      let recurring = 0;
+      userDays.forEach((days) => { if (days.size >= 2) recurring++; });
+
       return {
         totalLocations: locationsRes.data?.length ?? 0,
         publishedLocations: locationsRes.data?.filter((l) => l.status === 'published').length ?? 0,
         pendingLocations: locationsRes.data?.filter((l) => l.status === 'pending').length ?? 0,
         totalContributions: contributionsRes.data?.length ?? 0,
         pendingContributions: contributionsRes.data?.filter((c) => c.status === 'pending').length ?? 0,
+        pendingProposals: (proposalsRes.data as any[] | null)?.filter((p) => p.status === 'pending').length ?? 0,
         activeUsers30d: usersRes.data?.length ?? 0,
         contributionsLast7d: dailyRes.data ?? [],
+        totalVisits30d: totalVisits,
+        uniqueLoggedVisitors30d: loggedInUsers.size,
+        recurringVisitors30d: recurring,
       };
     },
   });
