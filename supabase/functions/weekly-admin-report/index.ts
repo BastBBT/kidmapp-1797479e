@@ -103,35 +103,50 @@ async function runReport(overrideWeekStart?: Date) {
     )
 
   const weekKey = lastMonday.toISOString().slice(0, 10)
-  const idempotencyKey = `weekly-admin-report-${weekKey}`
 
-  const sendRes = await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      apikey: SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify({
-      templateName: 'weekly-admin-report',
-      recipientEmail: ADMIN_EMAIL,
-      idempotencyKey,
-      templateData: { periodLabel, totalContributions, totalProposals, activeUsers, rows },
-    }),
-  })
-
-  if (!sendRes.ok) {
-    const text = await sendRes.text()
-    console.error('weekly-admin-report send error', sendRes.status, text)
-    throw new Error(`Failed to send admin report: ${sendRes.status} ${text}`)
+  // Fetch all admin recipients from profiles + auth.users
+  const { data: adminProfiles } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('role', 'admin')
+  const adminIds = (adminProfiles ?? []).map((p) => p.id as string)
+  const adminEmails: string[] = []
+  for (const u of usersList?.users ?? []) {
+    if (adminIds.includes(u.id) && u.email) adminEmails.push(u.email)
   }
-  await sendRes.text()
+  const recipients = adminEmails.length > 0 ? adminEmails : [FALLBACK_ADMIN_EMAIL]
+
+  for (const recipient of recipients) {
+    const idempotencyKey = `weekly-admin-report-${weekKey}-${recipient}`
+    const sendRes = await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        templateName: 'weekly-admin-report',
+        recipientEmail: recipient,
+        idempotencyKey,
+        templateData: { periodLabel, totalContributions, totalProposals, activeUsers, rows },
+      }),
+    })
+
+    if (!sendRes.ok) {
+      const text = await sendRes.text()
+      console.error('weekly-admin-report send error', recipient, sendRes.status, text)
+      continue
+    }
+    await sendRes.text()
+  }
 
   console.log('weekly-admin-report enqueued', {
     periodLabel,
     totalContributions,
     totalProposals,
     activeUsers,
+    recipients,
   })
 }
 
