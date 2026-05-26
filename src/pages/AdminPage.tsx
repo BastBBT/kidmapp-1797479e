@@ -494,11 +494,21 @@ const AdminPage = () => {
         {/* Dashboard */}
         {activeTab === 'dashboard' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
               <StatCard label="Lieux publiés" value={stats?.publishedLocations ?? 0} sub={`/ ${stats?.totalLocations ?? 0} total`} />
-              <StatCard label="En attente" value={stats?.pendingLocations ?? 0} sub="lieux à valider" />
-              <StatCard label="Users actifs 30j" value={stats?.activeUsers30d ?? 0} sub="nouveaux inscrits" />
+              <StatCard label="Lieux internes à valider" value={stats?.pendingLocations ?? 0} sub="status pending" />
+              <StatCard label="Propositions en attente" value={stats?.pendingProposals ?? 0} sub="ajouts utilisateurs" />
               <StatCard label="Contributions" value={stats?.pendingContributions ?? 0} sub="en attente" />
+              <StatCard label="Nouveaux inscrits 30j" value={stats?.activeUsers30d ?? 0} sub="comptes créés" />
+            </div>
+
+            <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 500 }}>
+              Audience — 30 derniers jours ✦
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+              <StatCard label="Visites" value={stats?.totalVisits30d ?? 0} sub="hits bruts" />
+              <StatCard label="Visiteurs connectés" value={stats?.uniqueLoggedVisitors30d ?? 0} sub="uniques (auth)" />
+              <StatCard label="Récurrents" value={stats?.recurringVisitors30d ?? 0} sub="≥ 2 jours" />
             </div>
 
             {/* Mini chart */}
