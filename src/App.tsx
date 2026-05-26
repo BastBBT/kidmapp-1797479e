@@ -50,6 +50,7 @@ const OnboardingOverlay = () => {
 };
 
 const AppContent = () => {
+  usePageviewTracker();
   return (
     <>
       <Routes>
