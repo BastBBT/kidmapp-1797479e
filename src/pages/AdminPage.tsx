@@ -754,8 +754,13 @@ const AdminPage = () => {
                     </div>
                     <StatusBadge status={contrib.status} />
                   </div>
-                  <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '8px' }}>
-                    {new Date(contrib.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                  <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '8px', display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                    <span>{new Date(contrib.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</span>
+                    {contrib.user_id && contribEmails[contrib.user_id] && (
+                      <a href={`mailto:${contribEmails[contrib.user_id]}`} style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--primary)', textDecoration: 'none' }}>
+                        ✉ {contribEmails[contrib.user_id]}
+                      </a>
+                    )}
                   </div>
                   {isMealContrib ? (
                     <div style={{ marginBottom: '10px' }}>
