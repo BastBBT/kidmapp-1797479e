@@ -549,6 +549,25 @@ const AdminPage = () => {
                 ))}
               </div>
             </div>
+
+            {/* Top contributeurs */}
+            <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)', marginTop: '24px', marginBottom: '8px', fontWeight: 500 }}>
+              Top contributeurs (hors admin) ✦
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+              <TopList
+                title="Propositions de lieux"
+                entries={topContributors?.proposals ?? []}
+                emails={topEmails}
+                approvedLabel="approuvées"
+              />
+              <TopList
+                title="Contributions équipements"
+                entries={topContributors?.contributions ?? []}
+                emails={topEmails}
+                approvedLabel="validées"
+              />
+            </div>
           </motion.div>
         )}
 
