@@ -1926,10 +1926,97 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                 "{proposal.note}"
               </div>
             )}
-            <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-              {new Date(proposal.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+            <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px', display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+              <span>{new Date(proposal.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+              {proposal.user_id && proposalEmails[proposal.user_id] && (
+                <a href={`mailto:${proposalEmails[proposal.user_id]}`} style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--primary)', textDecoration: 'none' }}>
+                  ✉ {proposalEmails[proposal.user_id]}
+                </a>
+              )}
             </div>
-            {proposal.status === 'pending' && (
+            {proposal.status === 'pending' && editingId === proposal.id && editDraft && (
+              <div style={{ background: 'var(--bg)', padding: 12, borderRadius: 12, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontFamily: 'Caveat', fontSize: 14, color: 'var(--text-muted)' }}>Édition avant approbation ✦</div>
+                <FormField label="Nom *" value={editDraft.name} onChange={(v) => setEditDraft({ ...editDraft, name: v })} />
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 6 }}>Catégorie</label>
+                  <select
+                    value={editDraft.category}
+                    onChange={(e) => setEditDraft({ ...editDraft, category: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 16 }}
+                  >
+                    {Object.entries(categoryLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+                <FormField label="Adresse *" value={editDraft.address} onChange={(v) => setEditDraft({ ...editDraft, address: v })} />
+                <FormField label="Site web" value={editDraft.website} onChange={(v) => setEditDraft({ ...editDraft, website: v })} />
+                <FormField label="Instagram" value={editDraft.instagram} onChange={(v) => setEditDraft({ ...editDraft, instagram: v })} />
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 6 }}>Note / description</label>
+                  <textarea
+                    value={editDraft.note}
+                    onChange={(e) => setEditDraft({ ...editDraft, note: e.target.value })}
+                    rows={3}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 16, resize: 'vertical' }}
+                  />
+                </div>
+                <PhotoUpload
+                  currentUrl={editDraft.photo || null}
+                  file={editPhotoFile}
+                  onFileChange={setEditPhotoFile}
+                  onUrlChange={(u) => setEditDraft({ ...editDraft, photo: u })}
+                  urlValue={editDraft.photo}
+                />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {[
+                    ['high_chair', '🪑 Chaise haute'],
+                    ['changing_table', '👶 Table à langer'],
+                    ['kids_area', '🌳 Espace jeux'],
+                    ['kids_menu', '🍽️ Menu enfant'],
+                  ].map(([k, label]) => (
+                    <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'DM Sans', fontSize: 13 }}>
+                      <input
+                        type="checkbox"
+                        checked={!!editDraft[k]}
+                        onChange={(e) => setEditDraft({ ...editDraft, [k]: e.target.checked })}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                {(editDraft.category === 'restaurant' || editDraft.category === 'cafe') && (
+                  <div>
+                    <label style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 6 }}>Réservation</label>
+                    <select
+                      value={editDraft.bookable}
+                      onChange={(e) => setEditDraft({ ...editDraft, bookable: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 16 }}
+                    >
+                      <option value="unknown">Inconnu</option>
+                      <option value="yes">Oui</option>
+                      <option value="no">Non</option>
+                    </select>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEditAndApprove(proposal)}
+                    disabled={isProcessing}
+                    style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, padding: 10, borderRadius: 100, border: 'none', background: 'var(--secondary)', color: '#fff', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}
+                  >
+                    {isProcessing ? 'En cours…' : '✓ Enregistrer & approuver'}
+                  </button>
+                  <button
+                    onClick={() => { setEditingId(null); setEditDraft(null); setEditPhotoFile(null); }}
+                    disabled={isProcessing}
+                    style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, padding: 10, borderRadius: 100, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            )}
+            {proposal.status === 'pending' && editingId !== proposal.id && (
               <>
                 {manualCoordsProposal === proposal.id && (
                   <div style={{
@@ -1968,24 +2055,37 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                     </div>
                   </div>
                 )}
-                <div className="flex gap-2">
+                <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
                   <button
                     onClick={() => handleApprove(proposal, manualCoordsProposal === proposal.id)}
                     disabled={isProcessing}
                     style={{
-                      flex: 1, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                      flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
                       padding: '8px', borderRadius: '100px', border: 'none',
                       background: 'var(--secondary)', color: '#fff', cursor: isProcessing ? 'not-allowed' : 'pointer',
                       opacity: isProcessing ? 0.6 : 1,
                     }}
                   >
-                    {isProcessing ? 'En cours…' : manualCoordsProposal === proposal.id ? '✓ Approuver avec ces coordonnées' : '✓ Approuver'}
+                    {isProcessing ? 'En cours…' : manualCoordsProposal === proposal.id ? '✓ Approuver (coords)' : '✓ Approuver'}
+                  </button>
+                  <button
+                    onClick={() => startEdit(proposal)}
+                    disabled={isProcessing}
+                    style={{
+                      flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                      padding: '8px', borderRadius: '100px',
+                      border: '1.5px solid var(--secondary)', background: 'transparent',
+                      color: 'var(--secondary)', cursor: isProcessing ? 'not-allowed' : 'pointer',
+                      opacity: isProcessing ? 0.6 : 1,
+                    }}
+                  >
+                    ✏️ Modifier & approuver
                   </button>
                   <button
                     onClick={() => handleReject(proposal)}
                     disabled={isProcessing}
                     style={{
-                      flex: 1, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                      flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
                       padding: '8px', borderRadius: '100px',
                       border: '1.5px solid var(--border)', background: 'transparent',
                       color: 'var(--text-muted)', cursor: isProcessing ? 'not-allowed' : 'pointer',
