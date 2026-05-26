@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useMealTypes, type MealType } from '@/hooks/useMeals';
 import PhotoUpload from '@/components/admin/PhotoUpload';
+import { useUserEmails } from '@/hooks/useUserEmails';
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals';
 
@@ -116,6 +117,11 @@ const AdminPage = () => {
 
   const { data: locations = [] } = useAllLocations();
   const { data: contributions = [] } = useContributions();
+  const contributionUserIds = useMemo(
+    () => Array.from(new Set((contributions as any[]).map((c) => c.user_id).filter(Boolean))),
+    [contributions]
+  );
+  const { data: contribEmails = {} } = useUserEmails(contributionUserIds, isAdmin);
 
   const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
@@ -123,20 +129,42 @@ const AdminPage = () => {
     queryFn: async () => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const [locationsRes, contributionsRes, usersRes, dailyRes] = await Promise.all([
+      const since = thirtyDaysAgo.toISOString();
+      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, viewsRes] = await Promise.all([
         supabase.from('locations').select('id, status'),
         supabase.from('contributions').select('id, created_at, status'),
-        supabase.from('profiles').select('id, created_at').gte('created_at', thirtyDaysAgo.toISOString()),
+        supabase.from('profiles').select('id, created_at').gte('created_at', since),
         supabase.from('contributions').select('created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
+        supabase.from('location_proposals' as any).select('id, status'),
+        supabase.from('page_views' as any).select('user_id, created_at').gte('created_at', since),
       ]);
+
+      const views = ((viewsRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[];
+      const totalVisits = views.length;
+      const loggedInUsers = new Set<string>();
+      const userDays = new Map<string, Set<string>>();
+      for (const v of views) {
+        if (!v.user_id) continue;
+        loggedInUsers.add(v.user_id);
+        const day = v.created_at.slice(0, 10);
+        if (!userDays.has(v.user_id)) userDays.set(v.user_id, new Set());
+        userDays.get(v.user_id)!.add(day);
+      }
+      let recurring = 0;
+      userDays.forEach((days) => { if (days.size >= 2) recurring++; });
+
       return {
         totalLocations: locationsRes.data?.length ?? 0,
         publishedLocations: locationsRes.data?.filter((l) => l.status === 'published').length ?? 0,
         pendingLocations: locationsRes.data?.filter((l) => l.status === 'pending').length ?? 0,
         totalContributions: contributionsRes.data?.length ?? 0,
         pendingContributions: contributionsRes.data?.filter((c) => c.status === 'pending').length ?? 0,
+        pendingProposals: (proposalsRes.data as any[] | null)?.filter((p) => p.status === 'pending').length ?? 0,
         activeUsers30d: usersRes.data?.length ?? 0,
         contributionsLast7d: dailyRes.data ?? [],
+        totalVisits30d: totalVisits,
+        uniqueLoggedVisitors30d: loggedInUsers.size,
+        recurringVisitors30d: recurring,
       };
     },
   });
@@ -471,11 +499,21 @@ const AdminPage = () => {
         {/* Dashboard */}
         {activeTab === 'dashboard' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
               <StatCard label="Lieux publiés" value={stats?.publishedLocations ?? 0} sub={`/ ${stats?.totalLocations ?? 0} total`} />
-              <StatCard label="En attente" value={stats?.pendingLocations ?? 0} sub="lieux à valider" />
-              <StatCard label="Users actifs 30j" value={stats?.activeUsers30d ?? 0} sub="nouveaux inscrits" />
+              <StatCard label="Lieux internes à valider" value={stats?.pendingLocations ?? 0} sub="status pending" />
+              <StatCard label="Propositions en attente" value={stats?.pendingProposals ?? 0} sub="ajouts utilisateurs" />
               <StatCard label="Contributions" value={stats?.pendingContributions ?? 0} sub="en attente" />
+              <StatCard label="Nouveaux inscrits 30j" value={stats?.activeUsers30d ?? 0} sub="comptes créés" />
+            </div>
+
+            <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 500 }}>
+              Audience — 30 derniers jours ✦
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+              <StatCard label="Visites" value={stats?.totalVisits30d ?? 0} sub="hits bruts" />
+              <StatCard label="Visiteurs connectés" value={stats?.uniqueLoggedVisitors30d ?? 0} sub="uniques (auth)" />
+              <StatCard label="Récurrents" value={stats?.recurringVisitors30d ?? 0} sub="≥ 2 jours" />
             </div>
 
             {/* Mini chart */}
@@ -716,8 +754,13 @@ const AdminPage = () => {
                     </div>
                     <StatusBadge status={contrib.status} />
                   </div>
-                  <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '8px' }}>
-                    {new Date(contrib.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                  <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '8px', display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                    <span>{new Date(contrib.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</span>
+                    {contrib.user_id && contribEmails[contrib.user_id] && (
+                      <a href={`mailto:${contribEmails[contrib.user_id]}`} style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--primary)', textDecoration: 'none' }}>
+                        ✉ {contribEmails[contrib.user_id]}
+                      </a>
+                    )}
                   </div>
                   {isMealContrib ? (
                     <div style={{ marginBottom: '10px' }}>
@@ -1564,6 +1607,9 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   const [proposalManualLat, setProposalManualLat] = useState('47.2184');
   const [proposalManualLng, setProposalManualLng] = useState('-1.5536');
   const [searchProposals, setSearchProposals] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<any>(null);
+  const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
 
   const { data: proposals = [] } = useQuery({
     queryKey: ['proposals'],
@@ -1572,6 +1618,139 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
       return (data ?? []) as any[];
     },
   });
+
+  const proposalUserIds = useMemo(
+    () => Array.from(new Set((proposals as any[]).map((p) => p.user_id).filter(Boolean))),
+    [proposals]
+  );
+  const { data: proposalEmails = {} } = useUserEmails(proposalUserIds);
+
+  const startEdit = (proposal: any) => {
+    setEditingId(proposal.id);
+    setEditPhotoFile(null);
+    setEditDraft({
+      name: proposal.name ?? '',
+      category: proposal.category ?? 'restaurant',
+      address: proposal.address ?? '',
+      website: proposal.website ?? '',
+      instagram: proposal.instagram ?? '',
+      photo: proposal.photo ?? '',
+      note: proposal.note ?? '',
+      high_chair: !!proposal.high_chair,
+      changing_table: !!proposal.changing_table,
+      kids_area: !!proposal.kids_area,
+      kids_menu: !!proposal.kids_menu,
+      bookable: proposal.bookable ?? 'unknown',
+    });
+  };
+
+  const handleEditAndApprove = async (proposal: any) => {
+    if (!editDraft) return;
+    if (!editDraft.name || !editDraft.address) {
+      toast({ title: 'Erreur', description: 'Nom et adresse obligatoires', variant: 'destructive' });
+      return;
+    }
+    setProcessingId(proposal.id);
+    try {
+      // Upload new photo if provided
+      let photoUrl: string | null = editDraft.photo || null;
+      if (editPhotoFile) {
+        const ext = editPhotoFile.name.split('.').pop();
+        const fileName = `admin/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from('location-photos').upload(fileName, editPhotoFile);
+        if (upErr) throw upErr;
+        photoUrl = supabase.storage.from('location-photos').getPublicUrl(fileName).data.publicUrl;
+      }
+
+      const coords = await geocodeAddress(editDraft.address);
+      if (!coords) {
+        setManualCoordsProposal(proposal.id);
+        toast({ title: 'Adresse non trouvée', description: 'Ajustez les coordonnées manuellement, puis utilisez "Approuver".', variant: 'destructive' });
+        setProcessingId(null);
+        return;
+      }
+
+      const insertData: any = {
+        name: editDraft.name,
+        category: editDraft.category,
+        address: editDraft.address,
+        lat: coords.lat,
+        lng: coords.lng,
+        high_chair: editDraft.high_chair,
+        changing_table: editDraft.changing_table,
+        kids_area: editDraft.kids_area,
+        kids_menu: editDraft.kids_menu,
+        photo: photoUrl,
+        website: editDraft.website || null,
+        instagram: editDraft.instagram || null,
+        note: editDraft.note || null,
+        status: 'published',
+      };
+      if (editDraft.category === 'restaurant' || editDraft.category === 'cafe') {
+        insertData.bookable = editDraft.bookable;
+      }
+
+      const { data: insertedLocation, error: insErr } = await supabase
+        .from('locations')
+        .insert(insertData)
+        .select('id')
+        .single();
+      if (insErr) throw insErr;
+
+      // Carry meal_types from proposal metadata
+      const proposalMealTypes: string[] = (proposal.metadata as any)?.meal_types ?? [];
+      if (insertedLocation?.id && proposalMealTypes.length > 0) {
+        const { data: mealTypesData } = await supabase
+          .from('meal_types')
+          .select('id, default_time_start, default_time_end')
+          .in('id', proposalMealTypes);
+        const defaultsById = new Map<string, { start: string | null; end: string | null }>(
+          (mealTypesData ?? []).map((mt: any) => [mt.id, { start: mt.default_time_start, end: mt.default_time_end }])
+        );
+        const mealRows = proposalMealTypes.map((mid) => ({
+          location_id: insertedLocation.id,
+          meal_type_id: mid,
+          time_open: defaultsById.get(mid)?.start ?? null,
+          time_close: defaultsById.get(mid)?.end ?? null,
+          is_confirmed: false,
+          confirmed_count: 0,
+          created_by: proposal.user_id ?? null,
+        }));
+        await supabase.from('location_meals').upsert(mealRows, { onConflict: 'location_id,meal_type_id' });
+      }
+
+      // Track admin edits diff for traceability
+      const editedFields: string[] = [];
+      ['name','category','address','website','instagram','note','high_chair','changing_table','kids_area','kids_menu','bookable','photo'].forEach((k) => {
+        const before = (proposal as any)[k] ?? null;
+        const after = (editDraft as any)[k] ?? null;
+        if (JSON.stringify(before) !== JSON.stringify(after)) editedFields.push(k);
+      });
+      const newMetadata = {
+        ...(proposal.metadata ?? {}),
+        admin_edits: { edited_at: new Date().toISOString(), fields: editedFields },
+      };
+
+      const { error: upStatusErr } = await supabase
+        .from('location_proposals' as any)
+        .update({ status: 'approved', metadata: newMetadata })
+        .eq('id', proposal.id);
+      if (upStatusErr) throw upStatusErr;
+
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['all-locations'] });
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      toast({ title: 'Proposition modifiée & approuvée ✓', description: editedFields.length ? `Champs édités : ${editedFields.join(', ')}` : 'Aucune modification' });
+      setEditingId(null);
+      setEditDraft(null);
+      setEditPhotoFile(null);
+    } catch (err: any) {
+      toast({ title: 'Erreur', description: err?.message ?? 'Échec', variant: 'destructive' });
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   const handleApprove = async (proposal: any, useManualCoords = false) => {
     setProcessingId(proposal.id);
@@ -1747,10 +1926,97 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                 "{proposal.note}"
               </div>
             )}
-            <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-              {new Date(proposal.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+            <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px', display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+              <span>{new Date(proposal.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+              {proposal.user_id && proposalEmails[proposal.user_id] && (
+                <a href={`mailto:${proposalEmails[proposal.user_id]}`} style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--primary)', textDecoration: 'none' }}>
+                  ✉ {proposalEmails[proposal.user_id]}
+                </a>
+              )}
             </div>
-            {proposal.status === 'pending' && (
+            {proposal.status === 'pending' && editingId === proposal.id && editDraft && (
+              <div style={{ background: 'var(--bg)', padding: 12, borderRadius: 12, marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontFamily: 'Caveat', fontSize: 14, color: 'var(--text-muted)' }}>Édition avant approbation ✦</div>
+                <FormField label="Nom *" value={editDraft.name} onChange={(v) => setEditDraft({ ...editDraft, name: v })} />
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 6 }}>Catégorie</label>
+                  <select
+                    value={editDraft.category}
+                    onChange={(e) => setEditDraft({ ...editDraft, category: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 16 }}
+                  >
+                    {Object.entries(categoryLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+                <FormField label="Adresse *" value={editDraft.address} onChange={(v) => setEditDraft({ ...editDraft, address: v })} />
+                <FormField label="Site web" value={editDraft.website} onChange={(v) => setEditDraft({ ...editDraft, website: v })} />
+                <FormField label="Instagram" value={editDraft.instagram} onChange={(v) => setEditDraft({ ...editDraft, instagram: v })} />
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 6 }}>Note / description</label>
+                  <textarea
+                    value={editDraft.note}
+                    onChange={(e) => setEditDraft({ ...editDraft, note: e.target.value })}
+                    rows={3}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 16, resize: 'vertical' }}
+                  />
+                </div>
+                <PhotoUpload
+                  currentUrl={editDraft.photo || null}
+                  file={editPhotoFile}
+                  onFileChange={setEditPhotoFile}
+                  onUrlChange={(u) => setEditDraft({ ...editDraft, photo: u })}
+                  urlValue={editDraft.photo}
+                />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {[
+                    ['high_chair', '🪑 Chaise haute'],
+                    ['changing_table', '👶 Table à langer'],
+                    ['kids_area', '🌳 Espace jeux'],
+                    ['kids_menu', '🍽️ Menu enfant'],
+                  ].map(([k, label]) => (
+                    <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'DM Sans', fontSize: 13 }}>
+                      <input
+                        type="checkbox"
+                        checked={!!editDraft[k]}
+                        onChange={(e) => setEditDraft({ ...editDraft, [k]: e.target.checked })}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                {(editDraft.category === 'restaurant' || editDraft.category === 'cafe') && (
+                  <div>
+                    <label style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 6 }}>Réservation</label>
+                    <select
+                      value={editDraft.bookable}
+                      onChange={(e) => setEditDraft({ ...editDraft, bookable: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 16 }}
+                    >
+                      <option value="unknown">Inconnu</option>
+                      <option value="yes">Oui</option>
+                      <option value="no">Non</option>
+                    </select>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEditAndApprove(proposal)}
+                    disabled={isProcessing}
+                    style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, padding: 10, borderRadius: 100, border: 'none', background: 'var(--secondary)', color: '#fff', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}
+                  >
+                    {isProcessing ? 'En cours…' : '✓ Enregistrer & approuver'}
+                  </button>
+                  <button
+                    onClick={() => { setEditingId(null); setEditDraft(null); setEditPhotoFile(null); }}
+                    disabled={isProcessing}
+                    style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, padding: 10, borderRadius: 100, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            )}
+            {proposal.status === 'pending' && editingId !== proposal.id && (
               <>
                 {manualCoordsProposal === proposal.id && (
                   <div style={{
@@ -1789,24 +2055,37 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                     </div>
                   </div>
                 )}
-                <div className="flex gap-2">
+                <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
                   <button
                     onClick={() => handleApprove(proposal, manualCoordsProposal === proposal.id)}
                     disabled={isProcessing}
                     style={{
-                      flex: 1, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                      flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
                       padding: '8px', borderRadius: '100px', border: 'none',
                       background: 'var(--secondary)', color: '#fff', cursor: isProcessing ? 'not-allowed' : 'pointer',
                       opacity: isProcessing ? 0.6 : 1,
                     }}
                   >
-                    {isProcessing ? 'En cours…' : manualCoordsProposal === proposal.id ? '✓ Approuver avec ces coordonnées' : '✓ Approuver'}
+                    {isProcessing ? 'En cours…' : manualCoordsProposal === proposal.id ? '✓ Approuver (coords)' : '✓ Approuver'}
+                  </button>
+                  <button
+                    onClick={() => startEdit(proposal)}
+                    disabled={isProcessing}
+                    style={{
+                      flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                      padding: '8px', borderRadius: '100px',
+                      border: '1.5px solid var(--secondary)', background: 'transparent',
+                      color: 'var(--secondary)', cursor: isProcessing ? 'not-allowed' : 'pointer',
+                      opacity: isProcessing ? 0.6 : 1,
+                    }}
+                  >
+                    ✏️ Modifier & approuver
                   </button>
                   <button
                     onClick={() => handleReject(proposal)}
                     disabled={isProcessing}
                     style={{
-                      flex: 1, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                      flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
                       padding: '8px', borderRadius: '100px',
                       border: '1.5px solid var(--border)', background: 'transparent',
                       color: 'var(--text-muted)', cursor: isProcessing ? 'not-allowed' : 'pointer',

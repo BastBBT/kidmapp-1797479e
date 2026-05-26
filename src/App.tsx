@@ -17,6 +17,7 @@ import BottomNav from "./components/BottomNav";
 import Onboarding from "./components/Onboarding";
 import { useAuth, AuthProvider } from "./hooks/useAuth";
 import { RequireAuthProvider, useRequireAuth } from "./hooks/useRequireAuth";
+import { usePageviewTracker } from "./hooks/usePageviewTracker";
 
 const queryClient = new QueryClient();
 const ONBOARDING_KEY = 'kidmapp_hasSeenOnboarding';
@@ -49,6 +50,7 @@ const OnboardingOverlay = () => {
 };
 
 const AppContent = () => {
+  usePageviewTracker();
   return (
     <>
       <Routes>
