@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useMealTypes, type MealType } from '@/hooks/useMeals';
 import PhotoUpload from '@/components/admin/PhotoUpload';
+import { useUserEmails } from '@/hooks/useUserEmails';
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals';
 
