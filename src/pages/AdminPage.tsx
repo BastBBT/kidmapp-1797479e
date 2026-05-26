@@ -124,6 +124,16 @@ const AdminPage = () => {
   );
   const { data: contribEmails = {} } = useUserEmails(contributionUserIds, isAdmin);
 
+  const { data: topContributors } = useTopContributors(isAdmin);
+  const topUserIds = useMemo(() => {
+    if (!topContributors) return [];
+    return [
+      ...topContributors.proposals.map((e) => e.user_id),
+      ...topContributors.contributions.map((e) => e.user_id),
+    ];
+  }, [topContributors]);
+  const { data: topEmails = {} } = useUserEmails(topUserIds, isAdmin);
+
   const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
     enabled: isAdmin,
