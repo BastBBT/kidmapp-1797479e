@@ -1,83 +1,64 @@
-## Contexte
+# Refonte de la page Admin
 
-Sur `kidmapp.app`, après le callback Google, le navigateur atterrit sur `https://kidmapp.app/#access_token=...&refresh_token=...&token_type=bearer`. Les tokens sont bien là, mais la session Supabase n'est jamais établie. Sur la preview `*.lovable.app`, ça marche.
+## 1. Correction des chiffres du dashboard
 
-## Diagnostic
+État réel en base (vérifié) :
+- Contributions : 1 en attente / 4 validées / 6 rejetées
+- Lieux internes : 91 publiés / 1 en attente / 2 dépubliés
+- Propositions utilisateurs : 0 en attente / 46 approuvées / 3 rejetées
 
-Le flow OAuth managé par Lovable Cloud passe normalement par un broker (`/~oauth/initiate` → Google → `/~oauth/callback`) intercepté par le proxy Lovable. Le SDK `@lovable.dev/cloud-auth-js` récupère ensuite les tokens en JSON et appelle `supabase.auth.setSession(tokens)` — sans jamais exposer les tokens dans l'URL.
+Le dashboard ne compte **pas** les propositions utilisateurs en attente, ce qui prête à confusion.
 
-Le fait qu'on voie les tokens dans le fragment d'URL sur `kidmapp.app` veut dire que **le callback du broker n'a pas été intercepté** sur le domaine custom : la redirection finit directement sur `window.location.origin` avec les tokens en hash, et personne ne les consomme côté client.
+**Fix** :
+- Ajout d'une carte « Propositions en attente » qui compte `location_proposals.status='pending'`.
+- Renommage de la carte existante en « Lieux internes à valider » pour lever l'ambiguïté.
+- Renommage de « Users actifs 30j » en « Nouveaux inscrits 30j ».
 
-Deux problèmes en parallèle :
-1. **Cause racine (platform)** : sur le domaine custom, le proxy Lovable ne semble pas intercepter `/~oauth/callback` correctement → à signaler au support Lovable / vérifier la config du custom domain.
-2. **Symptôme côté app** : aujourd'hui le code ne sait pas récupérer une session quand les tokens arrivent en hash, donc même si le broker se rétablit demain on n'a pas de filet.
+## 2. Audience — tracking mixte sans cookie
 
-## Contraintes
+Table `page_views` (path, referrer, user_id nullable, created_at). Aucun identifiant persistant côté visiteur anonyme → pas de bandeau RGPD.
 
-- `src/integrations/supabase/client.ts` est auto-généré : **interdiction de le modifier** (donc pas de `detectSessionInUrl`, `flowType`, etc. à toucher là-dedans).
-- `src/integrations/lovable/index.ts` est auto-généré aussi : on ne touche pas.
-- On reste donc en application code uniquement.
+- Hook `usePageviewTracker` monté dans `App.tsx` : log 1 ligne par changement de route, `user_id` rempli uniquement si l'utilisateur est connecté.
+- RLS : insert ouvert (anon + auth) ; select admin uniquement.
 
-## Fix proposé (filet de sécurité côté app)
+3 cartes « Audience » sur 30 j :
+- **Visites** — total brut de toutes les lignes
+- **Visiteurs connectés uniques** — distinct `user_id` non null
+- **Visiteurs récurrents** — connectés avec ≥ 2 jours distincts de visite
 
-Ajouter au montage de l'app un petit handler qui :
+## 3. Emails des contributeurs et proposants
 
-1. Lit `window.location.hash`.
-2. S'il contient `access_token` + `refresh_token` (cas OAuth implicit / fragment), appelle `supabase.auth.setSession({ access_token, refresh_token })`.
-3. Si setSession réussit, nettoie l'URL avec `history.replaceState` pour retirer les tokens du fragment (et éviter qu'ils traînent dans l'historique).
-4. Si une erreur est renvoyée dans le fragment (`error=...&error_description=...`), l'afficher via un toast et nettoyer l'URL.
+`contributions` et `location_proposals` ne stockent que `user_id`. Les emails vivent dans `auth.users`.
 
-Ce handler est tolérant : si le hash ne contient pas de tokens, il ne fait rien. Donc aucun impact sur le flow normal (mode offline, navigation publique, broker fonctionnel sur la preview, etc.).
+- Edge function `admin-list-user-emails` (vérifie le JWT + `is_admin`, renvoie `{user_id: email}` via `auth.admin.listUsers`).
+- Hook `useUserEmails(userIds[])` côté admin avec cache TanStack Query.
+- Affichage de l'email sous le titre de chaque contribution / proposition, avec lien `mailto:`.
 
-### Implémentation
+## 4. Modifier une proposition avant approbation
 
-Nouveau hook ou effet placé dans `AuthProvider` (`src/hooks/useAuth.ts`), exécuté **une seule fois** avant de souscrire à `onAuthStateChange` :
+Aujourd'hui : « Approuver » (copie brute) ou « Rejeter ». Nouveau bouton **« Modifier & approuver »** sur chaque proposition `pending`.
 
-```ts
-// pseudo-code
-useEffect(() => {
-  const hash = window.location.hash.startsWith('#')
-    ? window.location.hash.slice(1)
-    : '';
-  if (!hash) return;
-  const params = new URLSearchParams(hash);
-  const access_token = params.get('access_token');
-  const refresh_token = params.get('refresh_token');
-  const error = params.get('error_description') || params.get('error');
+- Au clic : bascule la carte en formulaire pré-rempli avec tous les champs (nom, catégorie, adresse, équipements, photo, site web, instagram, note, bookable).
+- L'admin peut éditer librement, remplacer la photo (composant `PhotoUpload` existant).
+- À la soumission :
+  1. Upload de la nouvelle photo si modifiée.
+  2. Géocodage de l'adresse (ou coordonnées manuelles si nécessaire).
+  3. Insertion dans `locations` (statut `published`).
+  4. Insertion des `location_meals` issus des `meal_types` portés par la proposition.
+  5. Update `location_proposals.status='approved'` + trace des édits dans `metadata.admin_edits`.
+- Bouton « Annuler » referme l'édition sans modifier le statut.
 
-  if (access_token && refresh_token) {
-    supabase.auth.setSession({ access_token, refresh_token })
-      .then(({ error }) => {
-        if (!error) {
-          history.replaceState(null, '', window.location.pathname + window.location.search);
-        }
-      });
-  } else if (error) {
-    // afficher l'erreur via toast existant
-    history.replaceState(null, '', window.location.pathname + window.location.search);
-  }
-}, []);
+## Détails techniques
+
+```text
++ migration: table page_views + RLS  [DÉJÀ APPLIQUÉE]
++ supabase/functions/admin-list-user-emails/index.ts
++ src/hooks/usePageviewTracker.ts
++ src/hooks/useUserEmails.ts
+~ src/App.tsx                 (mount tracker)
+~ src/pages/AdminPage.tsx
+   - étendre `admin-stats` (proposals pending + page_views aggregates)
+   - section "Audience" (3 cartes) + 5e carte propositions pending
+   - emails dans Contributions & Propositions
+   - <EditProposalForm /> inline dans ProposalsTab
 ```
-
-`onAuthStateChange` recevra ensuite l'évènement `SIGNED_IN` normalement et la suite du code (fetch profile, etc.) ne change pas.
-
-### Ce qu'on **ne fait pas**
-
-- Pas de modif de `client.ts` (auto-généré).
-- Pas de bascule sur un autre flow OAuth (Lovable gère).
-- Pas de changement du bouton Google ni du modal.
-- Pas de changement de la logique offline / `useRequireAuth`.
-
-## Test
-
-1. Sur `https://kidmapp.app`, cliquer « Continuer avec Google » → vérifier qu'après le retour Google la session est bien créée (badge user dans `/account`, plus de tokens dans l'URL).
-2. Sur la preview, vérifier que rien ne casse (le broker fournit directement la session, le handler n'a rien à faire).
-3. Vérifier que la navigation publique sans connexion (mode offline) fonctionne toujours.
-
-## Suivi platform
-
-En parallèle, signaler à Lovable que le proxy `/~oauth/callback` ne semble pas intercepté sur `kidmapp.app` / `www.kidmapp.app` — le filet ci-dessus est un workaround, pas la solution propre.
-
-## Question avant d'implémenter
-
-Tu confirmes que le custom domain `kidmapp.app` est bien actif/configuré côté Lovable (DNS OK, statut « actif ») ? Si oui, j'implémente le filet de sécurité tel que décrit.
