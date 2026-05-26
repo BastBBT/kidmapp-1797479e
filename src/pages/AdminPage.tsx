@@ -117,6 +117,11 @@ const AdminPage = () => {
 
   const { data: locations = [] } = useAllLocations();
   const { data: contributions = [] } = useContributions();
+  const contributionUserIds = useMemo(
+    () => Array.from(new Set((contributions as any[]).map((c) => c.user_id).filter(Boolean))),
+    [contributions]
+  );
+  const { data: contribEmails = {} } = useUserEmails(contributionUserIds, isAdmin);
 
   const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
