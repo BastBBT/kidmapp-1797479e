@@ -101,19 +101,27 @@ async function runReport(overrideWeekStart?: Date) {
   const weekKey = lastMonday.toISOString().slice(0, 10)
   const idempotencyKey = `weekly-admin-report-${weekKey}`
 
-  const { error: invokeError } = await supabase.functions.invoke('send-transactional-email', {
-    body: {
+  const sendRes = await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+    },
+    body: JSON.stringify({
       templateName: 'weekly-admin-report',
       recipientEmail: ADMIN_EMAIL,
       idempotencyKey,
       templateData: { periodLabel, totalContributions, totalProposals, activeUsers, rows },
-    },
+    }),
   })
 
-  if (invokeError) {
-    console.error('weekly-admin-report invoke error', invokeError)
-    throw new Error(`Failed to send admin report: ${invokeError.message}`)
+  if (!sendRes.ok) {
+    const text = await sendRes.text()
+    console.error('weekly-admin-report send error', sendRes.status, text)
+    throw new Error(`Failed to send admin report: ${sendRes.status} ${text}`)
   }
+  await sendRes.text()
 
   console.log('weekly-admin-report enqueued', {
     periodLabel,
