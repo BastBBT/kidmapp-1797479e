@@ -48,6 +48,20 @@ Aujourd'hui : « Approuver » (copie brute) ou « Rejeter ». Nouveau bouton **�
   5. Update `location_proposals.status='approved'` + trace des édits dans `metadata.admin_edits`.
 - Bouton « Annuler » referme l'édition sans modifier le statut.
 
+## 5. Top 5 contributeurs & proposants
+
+Deux mini-classements côte à côte sous la section Audience :
+
+**Top 5 — Propositions de lieux**
+- Rang, email, total de propositions, dont approuvées
+
+**Top 5 — Contributions d'équipements**
+- Rang, email, total de contributions, dont validées
+
+**Exclusion des comptes admin** : les lignes dont le `user_id` a le rôle `admin` dans `profiles` sont filtrées côté requête (ou côté JS après récupération des emails + rôles) afin que Julie et toi n'apparaissiez pas dans le classement.
+
+Implémentation : agrégation à la volée sur `location_proposals` et `contributions` (volumes faibles, pas besoin de vue matérialisée), puis appel à `useUserEmails()` pour les emails + requête sur `profiles` pour filtrer les `role='admin'`.
+
 ## Détails techniques
 
 ```text
@@ -61,4 +75,5 @@ Aujourd'hui : « Approuver » (copie brute) ou « Rejeter ». Nouveau bouton **�
    - section "Audience" (3 cartes) + 5e carte propositions pending
    - emails dans Contributions & Propositions
    - <EditProposalForm /> inline dans ProposalsTab
+   - section "Top contributeurs" (2 tableaux top 5)
 ```
