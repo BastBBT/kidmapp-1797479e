@@ -12,7 +12,21 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [
+    react(),
+    mode === "development" && componentTagger(),
+    {
+      name: "apple-app-site-association",
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url === "/.well-known/apple-app-site-association") {
+            res.setHeader("Content-Type", "application/json");
+          }
+          next();
+        });
+      },
+    },
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
