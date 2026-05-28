@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    mode === "development" && componentTagger(),
     {
       name: "apple-app-site-association",
       configureServer(server: { middlewares: { use: (handler: (req: { url?: string }, res: { setHeader: (k: string, v: string) => void }, next: () => void) => void) => void } }) {
@@ -24,8 +25,6 @@ export default defineConfig(({ mode }) => ({
           next();
         });
       },
-    },
-  ].filter(Boolean),
     },
   ].filter(Boolean),
   resolve: {
