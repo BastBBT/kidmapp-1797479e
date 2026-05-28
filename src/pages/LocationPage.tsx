@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { categoryIcons, categoryLabels } from '@/types/location';
-import { ArrowLeft, Share2 } from 'lucide-react';
+import { ArrowLeft, ArrowUpFromLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import LocationServicesSection from '@/components/LocationServicesSection';
@@ -161,15 +161,28 @@ const LocationPage = () => {
               text: "Découvre ce lieu kid-friendly sur Kidmapp !",
               url,
             };
-            try {
-              if (navigator.share) {
+            const canUseNative =
+              typeof navigator !== 'undefined' &&
+              typeof navigator.share === 'function' &&
+              (!navigator.canShare || navigator.canShare(shareData));
+
+            if (canUseNative) {
+              try {
                 await navigator.share(shareData);
-              } else {
-                await navigator.clipboard.writeText(url);
-                toast.success('Lien copié !');
+              } catch {
+                // user cancelled — no-op
               }
-            } catch (err) {
-              // user cancelled share — no-op
+              return;
+            }
+
+            try {
+              await navigator.clipboard.writeText(url);
+              toast.success('Lien copié !', {
+                description: 'Tu peux maintenant le coller où tu veux.',
+                duration: 2500,
+              });
+            } catch {
+              toast.error('Impossible de copier le lien');
             }
           }}
           className="absolute z-10 flex items-center justify-center"
@@ -182,8 +195,9 @@ const LocationPage = () => {
           }}
           aria-label="Partager ce lieu"
         >
-          <Share2 size={18} color="var(--primary)" strokeWidth={2} />
+          <ArrowUpFromLine size={18} color="var(--primary)" strokeWidth={2} />
         </button>
+
 
         {/* Favorite button */}
         <button
