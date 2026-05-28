@@ -196,7 +196,6 @@ const AdminPage = () => {
     },
   });
 
-  });
 
   // Chart data
   const chartData = useMemo(() => {
