@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { categoryIcons, categoryLabels } from '@/types/location';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useState } from 'react';
 import LocationServicesSection from '@/components/LocationServicesSection';
 import ContributeSheet from '@/components/ContributeSheet';
@@ -151,6 +152,39 @@ const LocationPage = () => {
           <ArrowLeft className="w-5 h-5 text-white" />
         </button>
 
+        {/* Share button */}
+        <button
+          onClick={async () => {
+            const url = window.location.href;
+            const shareData = {
+              title: location.name,
+              text: "Découvre ce lieu kid-friendly sur Kidmapp !",
+              url,
+            };
+            try {
+              if (navigator.share) {
+                await navigator.share(shareData);
+              } else {
+                await navigator.clipboard.writeText(url);
+                toast.success('Lien copié !');
+              }
+            } catch (err) {
+              // user cancelled share — no-op
+            }
+          }}
+          className="absolute z-10 flex items-center justify-center"
+          style={{
+            top: '52px', right: '60px',
+            width: '36px', height: '36px', borderRadius: '50%',
+            background: 'rgba(255,255,255,0.92)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            border: 'none', cursor: 'pointer',
+          }}
+          aria-label="Partager ce lieu"
+        >
+          <Share2 size={18} color="var(--primary)" strokeWidth={2} />
+        </button>
+
         {/* Favorite button */}
         <button
           onClick={() => location && requireAuth(() => toggleFavorite.mutate(location.id), { message: 'Connecte-toi pour sauvegarder ce lieu dans tes favoris ❤️' })}
@@ -167,7 +201,6 @@ const LocationPage = () => {
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
         </button>
-
         {/* Text over hero */}
         <div className="absolute bottom-6 left-5 z-10">
           <span className="font-hand italic text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
