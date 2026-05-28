@@ -108,6 +108,8 @@ const AdminPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [searchLocations, setSearchLocations] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'unpublished' | 'pending'>('published');
+  const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'name'>('recent');
   const [searchContributions, setSearchContributions] = useState('');
 
   useEffect(() => {
