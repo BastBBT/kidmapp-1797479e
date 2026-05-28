@@ -674,7 +674,12 @@ const AdminPage = () => {
                     <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }} className="truncate">
                       {loc.address ?? loc.city}
                     </div>
-                    <StatusBadge status={loc.status} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <StatusBadge status={loc.status} />
+                      <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--text-muted)' }}>
+                        Ajouté le {new Date(loc.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </span>
+                    </div>
                     <div className="flex gap-1 mt-1">
                       {(loc as any).website && (
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
