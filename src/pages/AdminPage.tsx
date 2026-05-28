@@ -143,16 +143,30 @@ const AdminPage = () => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const since = thirtyDaysAgo.toISOString();
+      const { data: adminProfiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', 'admin');
+      const adminIds = new Set<string>(((adminProfiles ?? []) as any[]).map((p) => p.id));
+      const notAdmin = (uid: string | null | undefined) => !!uid && !adminIds.has(uid);
+      const notAdminOrAnon = (uid: string | null | undefined) => !uid || !adminIds.has(uid);
+
       const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, viewsRes] = await Promise.all([
         supabase.from('locations').select('id, status'),
-        supabase.from('contributions').select('id, created_at, status'),
-        supabase.from('profiles').select('id, created_at').gte('created_at', since),
-        supabase.from('contributions').select('created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
-        supabase.from('location_proposals' as any).select('id, status'),
+        supabase.from('contributions').select('id, user_id, created_at, status'),
+        supabase.from('profiles').select('id, role, created_at').gte('created_at', since),
+        supabase.from('contributions').select('user_id, created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
+        supabase.from('location_proposals' as any).select('id, user_id, status'),
         supabase.from('page_views' as any).select('user_id, created_at').gte('created_at', since),
       ]);
 
-      const views = ((viewsRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[];
+      const contribs = (contributionsRes.data ?? []).filter((c: any) => notAdmin(c.user_id));
+      const proposals = ((proposalsRes.data ?? []) as any[]).filter((p) => notAdmin(p.user_id));
+      const newUsers = (usersRes.data ?? []).filter((u: any) => u.role !== 'admin');
+      const daily = (dailyRes.data ?? []).filter((c: any) => notAdmin(c.user_id));
+
+      const views = (((viewsRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[])
+        .filter((v) => notAdminOrAnon(v.user_id));
       const totalVisits = views.length;
       const loggedInUsers = new Set<string>();
       const userDays = new Map<string, Set<string>>();
@@ -170,16 +184,18 @@ const AdminPage = () => {
         totalLocations: locationsRes.data?.length ?? 0,
         publishedLocations: locationsRes.data?.filter((l) => l.status === 'published').length ?? 0,
         pendingLocations: locationsRes.data?.filter((l) => l.status === 'pending').length ?? 0,
-        totalContributions: contributionsRes.data?.length ?? 0,
-        pendingContributions: contributionsRes.data?.filter((c) => c.status === 'pending').length ?? 0,
-        pendingProposals: (proposalsRes.data as any[] | null)?.filter((p) => p.status === 'pending').length ?? 0,
-        activeUsers30d: usersRes.data?.length ?? 0,
-        contributionsLast7d: dailyRes.data ?? [],
+        totalContributions: contribs.length,
+        pendingContributions: contribs.filter((c: any) => c.status === 'pending').length,
+        pendingProposals: proposals.filter((p) => p.status === 'pending').length,
+        activeUsers30d: newUsers.length,
+        contributionsLast7d: daily,
         totalVisits30d: totalVisits,
         uniqueLoggedVisitors30d: loggedInUsers.size,
         recurringVisitors30d: recurring,
       };
     },
+  });
+
   });
 
   // Chart data
