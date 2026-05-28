@@ -14,10 +14,9 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === "development" && componentTagger(),
     {
       name: "apple-app-site-association",
-      configureServer(server) {
+      configureServer(server: { middlewares: { use: (handler: (req: { url?: string }, res: { setHeader: (k: string, v: string) => void }, next: () => void) => void) => void } }) {
         server.middlewares.use((req, res, next) => {
           if (req.url === "/.well-known/apple-app-site-association") {
             res.setHeader("Content-Type", "application/json");
@@ -25,6 +24,8 @@ export default defineConfig(({ mode }) => ({
           next();
         });
       },
+    },
+  ].filter(Boolean),
     },
   ].filter(Boolean),
   resolve: {
