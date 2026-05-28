@@ -92,6 +92,14 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange }: H
           </div>
         )}
       </div>
+
+      {/* Active category banner — persistent under pills */}
+      {selectedCategory !== undefined && onCategoryChange && (
+        <ActiveCategoryBanner
+          category={selectedCategory}
+          onClear={() => onCategoryChange('all')}
+        />
+      )}
     </header>
   );
 };
