@@ -5,7 +5,6 @@ import MapView from '@/components/MapView';
 import LocationCard from '@/components/LocationCard';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
-import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 import MealFilter from '@/components/MealFilter';
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
