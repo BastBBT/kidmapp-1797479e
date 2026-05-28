@@ -23,52 +23,48 @@ const ActiveCategoryBanner = ({ category, onClear }: Props) => {
     <div
       style={{
         overflow: 'hidden',
-        maxHeight: isActive ? 40 : 0,
+        maxHeight: isActive ? 36 : 0,
         opacity: isActive ? 1 : 0,
-        transition: 'max-height 200ms ease-in-out, opacity 200ms ease-in-out',
+        transition: 'max-height 200ms ease-in-out, opacity 200ms ease-in-out, padding 200ms ease-in-out',
+        padding: isActive ? '4px 16px 0' : '0 16px',
       }}
     >
       {isActive && colors && (
-        <div style={{ padding: '4px 16px 2px' }}>
-          <div
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '3px 6px 3px 10px',
+            borderRadius: 100,
+            background: colors.bg,
+            border: `1px solid ${colors.border}`,
+            color: colors.text,
+          }}
+        >
+          {CATEGORY_ICONS[category] && (
+            <img
+              src={CATEGORY_ICONS[category]}
+              alt=""
+              style={{ width: 14, height: 14, objectFit: 'contain', flexShrink: 0 }}
+            />
+          )}
+          <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600 }}>
+            {categoryLabels[category as LocationCategory]}
+          </span>
+          <button
+            onClick={onClear}
+            aria-label="Retirer le filtre"
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 6,
-              padding: '3px 8px 3px 10px',
-              borderRadius: 100,
-              background: colors.bg,
-              border: `1px solid ${colors.border}`,
-              color: colors.text,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 18, height: 18, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.6)',
+              border: 'none', cursor: 'pointer', color: colors.text,
+              flexShrink: 0, padding: 0,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-              {CATEGORY_ICONS[category] && (
-                <img
-                  src={CATEGORY_ICONS[category]}
-                  alt=""
-                  style={{ width: 14, height: 14, objectFit: 'contain', flexShrink: 0 }}
-                />
-              )}
-              <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600 }}>
-                {categoryLabels[category as LocationCategory]}
-              </span>
-            </div>
-            <button
-              onClick={onClear}
-              aria-label="Retirer le filtre"
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 20, height: 20, borderRadius: '50%',
-                background: 'rgba(255,255,255,0.6)',
-                border: 'none', cursor: 'pointer', color: colors.text,
-                flexShrink: 0,
-              }}
-            >
-              <X size={12} strokeWidth={2.5} />
-            </button>
-          </div>
+            <X size={11} strokeWidth={2.5} />
+          </button>
         </div>
       )}
     </div>

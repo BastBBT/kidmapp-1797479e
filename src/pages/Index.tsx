@@ -6,6 +6,8 @@ import LocationCard from '@/components/LocationCard';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
 import MealFilter from '@/components/MealFilter';
+import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
+
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
 import ProposeLocationModal from '@/components/ProposeLocationModal';
@@ -149,7 +151,14 @@ const Index = () => {
         }}
       >
         <MealFilter mealTypes={mealTypes} selected={selectedMeal} onChange={setSelectedMeal} />
+        <MealFilter mealTypes={mealTypes} selected={selectedMeal} onChange={setSelectedMeal} />
       </div>
+
+      <ActiveCategoryBanner
+        category={selectedCategory}
+        onClear={() => setSelectedCategory('all')}
+      />
+
 
 
       {/* Compteur + Proposer */}

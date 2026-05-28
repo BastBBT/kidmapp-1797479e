@@ -1,29 +1,37 @@
-## Onglet "Lieux" de l'admin — filtre statut, tri, date d'ajout
+## Objectif
 
-Modifications dans `src/pages/AdminPage.tsx`, section `activeTab === 'locations'`.
+Transformer la "bannière" de filtre actif en une simple pastille (pin) compacte, placée sous la rangée de filtres repas (beige, brunch, etc.), au lieu d'être collée sous les pills de catégorie dans le header.
 
-### 1. Filtre par statut
-Ajouter une rangée de pills sous la SearchBar :
-- **Tous**
-- **Publiés** (status = `published`)
-- **Masqués** (status = `unpublished`)
-- **À valider** (status = `pending`)
+## Changements
 
-Avec un compteur entre parenthèses (ex. "Publiés (124)"). Par défaut sélection sur **Publiés** (réponse directe au besoin "afficher les lieux publiés, pas encore masqués"). État local `statusFilter`.
+### 1. `src/components/ActiveCategoryBanner.tsx` — restyler en pin
 
-### 2. Tri
-Petit `<select>` à droite de la SearchBar avec les options :
-- **Plus récents** (created_at desc) — défaut
-- **Plus anciens** (created_at asc)
-- **Nom A→Z**
+- Supprimer le conteneur pleine largeur (plus de `justify-content: space-between` qui étire la pastille sur toute la largeur).
+- Rendre la pastille `display: inline-flex`, alignée à gauche, avec uniquement le contenu (icône + label + ×) — donc largeur intrinsèque, comme une pill de catégorie.
+- Garder les couleurs par catégorie (bg + bordure + texte), le border-radius arrondi, la transition d'apparition (opacity + max-height 200ms).
+- Wrapper extérieur conserve le padding horizontal (`16px`) et un petit padding vertical pour respirer sous le MealFilter.
 
-État local `sortBy`.
+### 2. `src/components/Header.tsx` — retirer la bannière du header
 
-### 3. Date d'ajout sur les cartes
-Sous l'adresse / à côté du `StatusBadge`, ajouter une petite ligne :
-`Ajouté le 12 mars 2026` (format `Intl.DateTimeFormat` fr-FR, comme déjà utilisé pour les contributions ligne 788), en `12px` `var(--text-muted)` DM Sans.
+- Supprimer l'import et le rendu de `<ActiveCategoryBanner />`.
+- Le header se termine donc après la rangée CategoryFilter.
 
-### Détails techniques
-- Le hook `useAllLocations()` retourne déjà `created_at` et `status` — aucune requête supplémentaire.
-- Le filtrage existant `matchSearch(...)` est combiné avec `statusFilter` puis trié par `sortBy` avant rendu.
-- Aucun changement DB, aucun changement d'autre page.
+### 3. `src/pages/Index.tsx` — afficher la pastille sous le MealFilter
+
+- Importer `ActiveCategoryBanner`.
+- L'insérer juste après le bloc `MealFilter` (ligne ~152), avant le compteur "X lieux trouvés".
+- Lui passer `category={selectedCategory}` et `onClear={() => setSelectedCategory('all')}`.
+
+## Résultat visuel attendu
+
+```
+[ Logo ............ Avatar ]
+[ Search ........................ ]
+[ 🍽 Restaurant  ☕ Café  🛍 …  ] (pills catégorie)
+─────────────────────────────────
+[ 🥐 Brunch  🍰 Goûter  …       ] (MealFilter, si resto/café)
+[ ● Restaurant  ×  ]               ← pastille filtre actif (compacte, alignée à gauche)
+[ 12 lieux trouvés      + Proposer ]
+```
+
+Aucun changement de logique métier — uniquement présentation et emplacement.
