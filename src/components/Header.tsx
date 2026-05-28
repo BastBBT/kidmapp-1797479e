@@ -2,8 +2,8 @@ import { LogOut, Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import CategoryFilter from '@/components/CategoryFilter';
-import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 import { LocationCategory } from '@/types/location';
+
 
 interface HeaderProps {
   onSearch?: (query: string) => void;
@@ -93,13 +93,7 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange }: H
         )}
       </div>
 
-      {/* Active category banner — persistent under pills */}
-      {selectedCategory !== undefined && onCategoryChange && (
-        <ActiveCategoryBanner
-          category={selectedCategory}
-          onClear={() => onCategoryChange('all')}
-        />
-      )}
+
     </header>
   );
 };
