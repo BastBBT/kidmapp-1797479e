@@ -582,9 +582,67 @@ const AdminPage = () => {
               placeholder="Rechercher par nom, adresse ou site web…"
             />
             {(() => {
-              const filtered = locations.filter((loc) =>
-                matchSearch(searchLocations, loc.name, loc.address, (loc as any).website)
+              const counts = {
+                all: locations.length,
+                published: locations.filter((l) => l.status === 'published').length,
+                unpublished: locations.filter((l) => l.status === 'unpublished').length,
+                pending: locations.filter((l) => l.status === 'pending').length,
+              };
+              const statusOptions: { key: typeof statusFilter; label: string }[] = [
+                { key: 'all', label: 'Tous' },
+                { key: 'published', label: 'Publiés' },
+                { key: 'unpublished', label: 'Masqués' },
+                { key: 'pending', label: 'À valider' },
+              ];
+              return (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+                    {statusOptions.map((o) => {
+                      const active = statusFilter === o.key;
+                      return (
+                        <button
+                          key={o.key}
+                          onClick={() => setStatusFilter(o.key)}
+                          style={{
+                            padding: '5px 12px', borderRadius: 100, fontSize: 12, fontWeight: 600,
+                            border: active ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
+                            background: active ? 'var(--primary)' : 'transparent',
+                            color: active ? 'white' : 'var(--text-muted)',
+                            fontFamily: 'DM Sans', cursor: 'pointer',
+                          }}
+                        >
+                          {o.label} ({counts[o.key]})
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                    style={{
+                      padding: '6px 10px', borderRadius: 10, border: '1px solid var(--border)',
+                      background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text)',
+                    }}
+                  >
+                    <option value="recent">Plus récents</option>
+                    <option value="oldest">Plus anciens</option>
+                    <option value="name">Nom A→Z</option>
+                  </select>
+                </div>
               );
+            })()}
+            {(() => {
+              const filtered = locations
+                .filter((loc) => statusFilter === 'all' || loc.status === statusFilter)
+                .filter((loc) =>
+                  matchSearch(searchLocations, loc.name, loc.address, (loc as any).website)
+                )
+                .sort((a, b) => {
+                  if (sortBy === 'name') return a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' });
+                  const da = new Date(a.created_at).getTime();
+                  const db = new Date(b.created_at).getTime();
+                  return sortBy === 'recent' ? db - da : da - db;
+                });
               return (
                 <>
                   <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
