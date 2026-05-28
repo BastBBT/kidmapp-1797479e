@@ -2,6 +2,7 @@ import { LogOut, Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import CategoryFilter from '@/components/CategoryFilter';
+import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 import { LocationCategory } from '@/types/location';
 
 interface HeaderProps {
