@@ -151,7 +151,7 @@ const Index = () => {
         }}
       >
         <MealFilter mealTypes={mealTypes} selected={selectedMeal} onChange={setSelectedMeal} />
-        <MealFilter mealTypes={mealTypes} selected={selectedMeal} onChange={setSelectedMeal} />
+
       </div>
 
       <ActiveCategoryBanner
