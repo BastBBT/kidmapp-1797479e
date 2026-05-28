@@ -17,6 +17,8 @@ const categoryColors: Record<LocationCategory, { bg: string; border: string; tex
 
 const ActiveCategoryBanner = ({ category, onClear }: Props) => {
   const isActive = category && category !== 'all';
+  const colors = isActive ? categoryColors[category as LocationCategory] : null;
+
   return (
     <div
       style={{
@@ -65,23 +67,6 @@ const ActiveCategoryBanner = ({ category, onClear }: Props) => {
               }}
             >
               <X size={12} strokeWidth={2.5} />
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-              onClick={onClear}
-              aria-label="Retirer le filtre"
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 24, height: 24, borderRadius: '50%',
-                background: 'rgba(255,255,255,0.6)',
-                border: 'none', cursor: 'pointer', color: colors.text,
-                flexShrink: 0,
-              }}
-            >
-              <X size={14} strokeWidth={2.5} />
             </button>
           </div>
         </div>
