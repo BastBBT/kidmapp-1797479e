@@ -30,6 +30,7 @@ Deno.serve(async (req) => {
     let userId: string | null = null
     let locationId: string | null = null
     let locationName: string | null = null
+    let locationCategory: string | null = null
     let templateName: string
     let contributionType: string | null = null
 
@@ -54,15 +55,16 @@ Deno.serve(async (req) => {
       if (locationId) {
         const { data: loc } = await supabase
           .from('locations')
-          .select('name')
+          .select('name, category')
           .eq('id', locationId)
           .single()
         locationName = loc?.name ?? null
+        locationCategory = loc?.category ?? null
       }
     } else {
       const { data, error } = await supabase
         .from('location_proposals')
-        .select('user_id, name')
+        .select('user_id, name, category')
         .eq('id', recordId)
         .single()
       if (error || !data) {
@@ -74,18 +76,20 @@ Deno.serve(async (req) => {
       }
       userId = data.user_id
       locationName = data.name
+      locationCategory = data.category
       templateName = 'proposal-approved'
 
       // Try to find the matching published location for the CTA link
       const { data: loc } = await supabase
         .from('locations')
-        .select('id')
+        .select('id, category')
         .eq('name', data.name)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
       locationId = loc?.id ?? null
+      if (loc?.category) locationCategory = loc.category
     }
 
     if (!userId) {
