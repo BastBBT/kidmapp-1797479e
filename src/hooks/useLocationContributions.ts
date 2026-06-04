@@ -26,13 +26,30 @@ export function useLocationContributions(locationId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('contributions')
-        .select('*, profiles(full_name)')
+        .select('*')
         .eq('location_id', locationId)
         .eq('status', 'validated')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      const contributions = (data ?? []) as unknown as ValidatedContribution[];
+      const rows = (data ?? []) as unknown as ValidatedContribution[];
+
+      const userIds = Array.from(new Set(rows.map((r) => r.user_id).filter((x): x is string => !!x)));
+      const profilesMap = new Map<string, { full_name: string | null }>();
+      if (userIds.length > 0) {
+        const { data: profs, error: pErr } = await supabase
+          .from('profiles')
+          .select('id, full_name' as any)
+          .in('id', userIds);
+        if (pErr) throw pErr;
+        for (const p of ((profs ?? []) as unknown as Array<{ id: string; full_name: string | null }>)) {
+          profilesMap.set(p.id, { full_name: p.full_name });
+        }
+      }
+      const contributions: ValidatedContribution[] = rows.map((r) => ({
+        ...r,
+        profiles: r.user_id ? profilesMap.get(r.user_id) ?? null : null,
+      }));
 
       const votes: EquipVoteCounts = {
         high_chair: { yes: 0, no: 0 },
