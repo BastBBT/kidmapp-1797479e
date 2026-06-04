@@ -215,6 +215,18 @@ const AdminPage = () => {
     return { counts, max };
   }, [stats?.contributionsLast7d]);
 
+  const visitsChartData = useMemo(() => {
+    const days = getLast7Days();
+    const counts = days.map((day) => {
+      const count = (stats?.visitsLast7d ?? []).filter(
+        (v: any) => v.created_at?.slice(0, 10) === day
+      ).length;
+      return { day, count, label: getDayLabel(day) };
+    });
+    const max = Math.max(...counts.map((c) => c.count), 1);
+    return { counts, max };
+  }, [stats?.visitsLast7d]);
+
   // Add location form
   const [form, setForm] = useState({
     name: '',
