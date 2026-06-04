@@ -596,9 +596,10 @@ const AdminPage = () => {
               <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '12px' }}>
                 Visites — 7 derniers jours
               </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '80px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '96px' }}>
                 {visitsChartData.counts.map((d, i) => (
                   <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ fontFamily: 'DM Sans', fontSize: '11px', fontWeight: 600, color: 'var(--text)' }}>{d.count}</span>
                     <div
                       style={{
                         width: '100%',
