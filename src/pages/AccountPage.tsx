@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -6,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import DeleteAccountSection from '@/components/DeleteAccountSection';
 import { EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
+
 
 const CategoryThumb = ({ category }: { category?: string | null }) => {
   const src = category ? CATEGORY_ICONS[category] : undefined;
