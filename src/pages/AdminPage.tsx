@@ -381,6 +381,32 @@ const AdminPage = () => {
     toast({ title: action === 'validated' ? 'Contribution validée ✓' : 'Contribution rejetée' });
   };
 
+  const hideContribution = async (contrib: any) => {
+    const { error } = await supabase.from('contributions').update({ status: 'rejected' }).eq('id', contrib.id);
+    if (error) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['contributions'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['location-contributions'] });
+    toast({ title: 'Contribution masquée' });
+  };
+
+  const deleteContribution = async (contrib: any) => {
+    if (!window.confirm('Supprimer définitivement cette contribution ? Cette action est irréversible.')) return;
+    const { error } = await supabase.from('contributions').delete().eq('id', contrib.id);
+    if (error) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['contributions'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['location-contributions'] });
+    toast({ title: 'Contribution supprimée' });
+  };
+
+
   const handleAddLocation = async () => {
     if (!form.name || !form.address) {
       toast({ title: 'Erreur', description: 'Remplissez tous les champs obligatoires', variant: 'destructive' });
@@ -1005,6 +1031,47 @@ const AdminPage = () => {
                       </button>
                     </div>
                   )}
+                  {contrib.status !== 'pending' && (
+                    <div className="flex gap-2">
+                      {contrib.status === 'validated' && (
+                        <button
+                          onClick={() => hideContribution(contrib)}
+                          style={{
+                            flex: 1,
+                            fontFamily: 'DM Sans',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            padding: '8px',
+                            borderRadius: '100px',
+                            border: '1.5px solid var(--border)',
+                            background: 'transparent',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          👁 Masquer
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteContribution(contrib)}
+                        style={{
+                          flex: 1,
+                          fontFamily: 'DM Sans',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          padding: '8px',
+                          borderRadius: '100px',
+                          border: '1.5px solid var(--primary)',
+                          background: 'transparent',
+                          color: 'var(--primary)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        🗑 Supprimer
+                      </button>
+                    </div>
+                  )}
+
                 </motion.div>
               );
             })}
