@@ -57,7 +57,12 @@ const ContributionValidatedEmail = ({
 
   return (
     <Html lang="fr" dir="ltr">
-      <Head />
+      <Head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap"
+          rel="stylesheet"
+        />
+      </Head>
       <Preview>Ta contribution sur {locationName} a été validée 🎉</Preview>
       <Body style={main}>
         <Container style={card}>
