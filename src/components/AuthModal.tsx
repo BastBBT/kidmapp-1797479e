@@ -242,7 +242,8 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
     setLoading(true);
     try {
       if (mode === 'login') await signIn(email, password);
-      else await signUp(email, password);
+      else await signUp(email, password, fullName);
+
     } catch (err: any) {
       const msg = err?.message || '';
       const mapped: Record<string, string> = {
