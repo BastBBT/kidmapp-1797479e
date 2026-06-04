@@ -191,6 +191,8 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [forgotOpen, setForgotOpen] = useState(false);
