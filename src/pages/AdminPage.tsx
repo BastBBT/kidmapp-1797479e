@@ -587,6 +587,30 @@ const AdminPage = () => {
               <StatCard label="Récurrents" value={stats?.recurringVisitors30d ?? 0} sub="≥ 2 jours" />
             </div>
 
+            {/* Visits chart */}
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)', marginBottom: '12px' }}>
+              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '12px' }}>
+                Visites — 7 derniers jours
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '80px' }}>
+                {visitsChartData.counts.map((d, i) => (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <div
+                      style={{
+                        width: '100%',
+                        height: `${Math.max((d.count / visitsChartData.max) * 60, 4)}px`,
+                        background: 'var(--accent)',
+                        borderRadius: '4px 4px 0 0',
+                        transition: 'height 0.3s ease',
+                      }}
+                      title={`${d.count} visite${d.count > 1 ? 's' : ''}`}
+                    />
+                    <span style={{ fontFamily: 'DM Sans', fontSize: '10px', color: 'var(--text-muted)' }}>{d.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Mini chart */}
             <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)' }}>
               <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '12px' }}>
