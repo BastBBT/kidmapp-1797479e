@@ -280,8 +280,8 @@ const footerBrand = {
   lineHeight: 1.4,
 }
 const footerNote = {
-  fontFamily: "'DM Sans', system-ui, sans-serif",
-  fontSize: '11px',
+  fontFamily: "'Caveat', cursive",
+  fontSize: '13px',
   color: '#A8A29E',
   margin: 0,
 }
