@@ -9,7 +9,8 @@ import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { useLocation as useLocationData } from '@/hooks/useLocations';
 import { useFavorites } from '@/hooks/useFavorites';
-import { useEquipmentVotes } from '@/hooks/useEquipmentVotes';
+import { useLocationContributions } from '@/hooks/useLocationContributions';
+import LocationContributionsSection from '@/components/LocationContributionsSection';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
@@ -76,7 +77,18 @@ const LocationPage = () => {
   const [showContribute, setShowContribute] = useState(false);
   const { data: location, isLoading } = useLocationData(id ?? '');
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { data: votes } = useEquipmentVotes(id ?? '');
+  const { data: contribData } = useLocationContributions(id ?? '');
+  const votes = contribData
+    ? {
+        high_chair: contribData.votes.high_chair.yes,
+        changing_table: contribData.votes.changing_table.yes,
+        kids_area: contribData.votes.kids_area.yes,
+        kids_menu: contribData.votes.kids_menu.yes,
+        bookable_yes: contribData.bookable_yes,
+      }
+    : undefined;
+  const equipVotes = contribData?.votes;
+  const contributorCount = contribData?.contributorCount ?? 0;
   const { user } = useAuth();
   const { requireAuth } = useRequireAuth();
   const favorite = location ? isFavorite(location.id) : false;
@@ -302,19 +314,34 @@ const LocationPage = () => {
             </div>
           )}
 
-          <h2 className="font-display text-base font-semibold mb-4" style={{ color: 'var(--text)' }}>
-            Équipements enfants
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h2 className="font-display text-base font-semibold" style={{ color: 'var(--text)' }}>
+              Équipements enfants
+            </h2>
+            {contributorCount > 0 && (
+              <span
+                style={{
+                  fontSize: 12, fontWeight: 600,
+                  padding: '4px 10px', borderRadius: 100,
+                  background: 'rgba(217,95,59,0.12)', color: 'var(--primary)',
+                }}
+              >
+                {contributorCount} famille{contributorCount > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
 
           {(() => {
-            const items: { key: EquipKey; active: boolean; voteCount?: number }[] = [
-              { key: 'high_chair', active: location.high_chair, voteCount: votes?.high_chair },
-              { key: 'changing_table', active: location.changing_table, voteCount: votes?.changing_table },
-              { key: 'kids_area', active: location.kids_area, voteCount: votes?.kids_area },
-              { key: 'kids_menu', active: (location as any).kids_menu, voteCount: (votes as any)?.kids_menu },
-            ];
-            const active = items.filter((i) => i.active);
-            if (active.length === 0) {
+            const items: { key: EquipKey; active: boolean; yes: number; no: number }[] = (
+              ['high_chair', 'changing_table', 'kids_area', 'kids_menu'] as EquipKey[]
+            ).map((key) => ({
+              key,
+              active: !!(location as any)[key],
+              yes: equipVotes?.[key]?.yes ?? 0,
+              no: equipVotes?.[key]?.no ?? 0,
+            }));
+            const visible = items.filter((i) => i.active || i.yes > 0 || i.no > 0);
+            if (visible.length === 0) {
               return (
                 <p style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text-muted)' }}>
                   Aucun équipement enfant renseigné — sois le premier à contribuer !
@@ -323,28 +350,53 @@ const LocationPage = () => {
             }
             return (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {active.map((it) => (
-                  <div key={it.key} style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '6px 12px 6px 6px', borderRadius: 100,
-                    background: '#EBF6EC',
-                  }}>
-                    <span style={{
-                      width: 28, height: 28, borderRadius: 6, padding: 4,
-                      background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <img src={EQUIP_ICONS[it.key]} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />
-                    </span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#2E7D32' }}>
-                      {EQUIP_LABELS[it.key]}
-                    </span>
-                    {it.voteCount != null && it.voteCount > 0 && (
-                      <span style={{ fontFamily: 'Caveat', fontSize: 12, color: '#2E7D32', fontWeight: 500 }}>
-                        ✓ {it.voteCount}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                {visible.map((it) => {
+                  const isActive = it.active;
+                  return (
+                    <div key={it.key} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '6px 12px 6px 6px', borderRadius: 100,
+                        background: isActive ? '#EBF6EC' : 'var(--bg)',
+                        border: isActive ? 'none' : '1px solid var(--border)',
+                        opacity: isActive ? 1 : 0.85,
+                      }}>
+                        <span style={{
+                          width: 28, height: 28, borderRadius: 6, padding: 4,
+                          background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <img src={EQUIP_ICONS[it.key]} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                        </span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: isActive ? '#2E7D32' : 'var(--text-muted)' }}>
+                          {EQUIP_LABELS[it.key]}{!isActive ? ' ?' : ''}
+                        </span>
+                      </div>
+                      {(it.yes > 0 || it.no > 0) && (
+                        <div style={{ display: 'flex', gap: 4, paddingLeft: 4 }}>
+                          {it.yes > 0 && (
+                            <span style={{
+                              fontSize: 11, fontWeight: 600,
+                              padding: '2px 8px', borderRadius: 100,
+                              background: '#EBF6EC', color: '#2E7D32',
+                            }}>
+                              {it.yes} ✓
+                            </span>
+                          )}
+                          {it.no > 0 && (
+                            <span style={{
+                              fontSize: 11, fontWeight: 600,
+                              padding: '2px 8px', borderRadius: 100,
+                              background: '#F2F2F2', color: '#6B6B6B',
+                              border: '1px solid var(--border)',
+                            }}>
+                              {it.no} ✗
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             );
           })()}
@@ -399,6 +451,9 @@ const LocationPage = () => {
               </div>
             </div>
           )}
+
+          {/* Avis des familles */}
+          <LocationContributionsSection locationId={location.id} />
 
           {/* Horaires & services (repas) */}
           <LocationServicesSection
