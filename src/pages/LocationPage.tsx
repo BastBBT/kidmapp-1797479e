@@ -77,7 +77,18 @@ const LocationPage = () => {
   const [showContribute, setShowContribute] = useState(false);
   const { data: location, isLoading } = useLocationData(id ?? '');
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { data: votes } = useEquipmentVotes(id ?? '');
+  const { data: contribData } = useLocationContributions(id ?? '');
+  const votes = contribData
+    ? {
+        high_chair: contribData.votes.high_chair.yes,
+        changing_table: contribData.votes.changing_table.yes,
+        kids_area: contribData.votes.kids_area.yes,
+        kids_menu: contribData.votes.kids_menu.yes,
+        bookable_yes: contribData.bookable_yes,
+      }
+    : undefined;
+  const equipVotes = contribData?.votes;
+  const contributorCount = contribData?.contributorCount ?? 0;
   const { user } = useAuth();
   const { requireAuth } = useRequireAuth();
   const favorite = location ? isFavorite(location.id) : false;
