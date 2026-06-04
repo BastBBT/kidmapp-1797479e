@@ -121,6 +121,7 @@ Deno.serve(async (req) => {
       userName,
       locationName: locationName ?? undefined,
       locationId: locationId ?? undefined,
+      locationCategory: locationCategory ?? undefined,
     }
     if (type === 'contribution' && contributionType) {
       templateData.contributionType = contributionType
