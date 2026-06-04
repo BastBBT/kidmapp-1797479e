@@ -15,24 +15,24 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'missing_auth' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userData.user) {
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsErr } = await admin.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) {
+      console.error('getClaims failed', claimsErr?.message);
       return new Response(JSON.stringify({ error: 'invalid_auth' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    const userId = claimsData.claims.sub as string;
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-    const { data: isAdminData, error: roleErr } = await admin.rpc('is_admin', { _user_id: userData.user.id });
+    const { data: isAdminData, error: roleErr } = await admin.rpc('is_admin', { _user_id: userId });
     if (roleErr || !isAdminData) {
       return new Response(JSON.stringify({ error: 'forbidden' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
