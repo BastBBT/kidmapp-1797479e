@@ -25,6 +25,7 @@ const CAPTURED_OAUTH = (() => {
 
 interface Profile {
   role: 'user' | 'admin';
+  full_name: string | null;
 }
 
 interface AuthContextValue {
@@ -33,9 +34,11 @@ interface AuthContextValue {
   isAdmin: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
+
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -48,20 +51,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, full_name' as any)
         .eq('id', userId)
         .single();
       if (error) {
         console.error('Error fetching profile:', error);
         setProfile(null);
       } else {
-        setProfile({ role: data.role as 'user' | 'admin' });
+        const row = data as unknown as { role: string; full_name: string | null };
+        setProfile({ role: row.role as 'user' | 'admin', full_name: row.full_name ?? null });
       }
     } catch (e) {
       console.error('Profile fetch failed:', e);
       setProfile(null);
     }
   }, []);
+
 
   useEffect(() => {
     let authEventHandled = false;
@@ -125,11 +130,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw error;
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, fullName?: string) => {
+    const trimmed = fullName?.trim();
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin },
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: trimmed ? { full_name: trimmed } : undefined,
+      },
     });
     if (error) throw error;
   };
@@ -137,6 +146,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+  };
+
+  const refreshProfile = async () => {
+    if (user?.id) await fetchProfile(user.id);
   };
 
   const value: AuthContextValue = {
@@ -147,7 +160,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signIn,
     signUp,
     signOut,
+    refreshProfile,
   };
+
 
   return React.createElement(AuthContext.Provider, { value }, children);
 };
