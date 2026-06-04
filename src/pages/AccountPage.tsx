@@ -261,8 +261,53 @@ const AccountPage = () => {
         ))}
       </div>
 
+      {/* Prénom */}
+      <div style={{ padding: '20px 16px 0' }}>
+        <div style={{ fontFamily: 'Fraunces', fontSize: '18px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: '12px' }}>
+          Mon prénom
+        </div>
+        <div style={{
+          background: 'var(--surface)', borderRadius: 'var(--radius-sm)',
+          padding: '14px', boxShadow: 'var(--shadow)',
+        }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+            Affiché à côté de tes contributions. Laisse vide pour rester anonyme.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="text"
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              placeholder="Ex. Camille"
+              maxLength={60}
+              autoComplete="given-name"
+              style={{
+                flex: 1, padding: '12px 14px', borderRadius: 10,
+                border: '1.5px solid var(--border)', background: 'var(--bg)',
+                fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text)', outline: 'none',
+              }}
+            />
+            <button
+              type="button"
+              onClick={saveName}
+              disabled={savingName || nameDraft.trim() === (profile?.full_name ?? '')}
+              style={{
+                padding: '0 18px', borderRadius: 10, border: 'none',
+                background: 'var(--primary)', color: '#fff',
+                fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
+                cursor: savingName ? 'wait' : 'pointer',
+                opacity: (savingName || nameDraft.trim() === (profile?.full_name ?? '')) ? 0.5 : 1,
+              }}
+            >
+              {savingName ? '…' : nameSaved ? '✓' : 'Enregistrer'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Contributions */}
       <div style={{ padding: '20px 16px 0' }}>
+
         <div style={{ fontFamily: 'Fraunces', fontSize: '18px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: '12px' }}>
           Mes contributions
         </div>
