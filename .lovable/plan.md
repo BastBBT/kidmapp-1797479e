@@ -1,64 +1,30 @@
 ## Objectif
 
-Sur la fiche lieu, exposer les contributions validées : compteurs ✓/✗ par équipement, badge "N familles", et nouvelle section avec les avis récents (prénom + date relative + chips équipements + commentaire).
+Ajouter dans l'onglet "Dashboard" de l'admin un mini-graphe "Visites — 7 derniers jours", placé **juste au-dessus** du graphe existant "Contributions — 7 derniers jours", avec le même style visuel (barres verticales, hauteur 80px, libellés jours sous chaque barre).
 
-## Migration (RLS uniquement)
+## Données
 
-`profiles.full_name` existe déjà — on skip l'ajout de colonne.
+Dans `src/pages/AdminPage.tsx`, dans la query `admin-stats` (vers la ligne 154) :
+- Ajouter un fetch parallèle `viewsLast7dRes` : `supabase.from('page_views').select('user_id, created_at').gte('created_at', <il y a 7 jours>)`.
+- Filtrer pour exclure les visites des admins (`notAdminOrAnon`), comme pour `views` 30j.
+- Retourner `visitsLast7d: viewsFiltered` dans l'objet stats.
 
-1. **RLS `contributions`** — nouvelle policy `contributions_select_validated_public` : `FOR SELECT USING (status = 'validated')`. Permet l'agrégation des votes et l'affichage des avis publics.
-2. **RLS `profiles`** — nouvelle policy `profiles_select_public_basic FOR SELECT USING (true)` pour joindre `full_name` à l'auteur d'une contribution validée. La table ne contient pas de PII sensible (juste `id`, `role`, `full_name`, `created_at`).
+## Chart data
 
-## Nouveau hook : `useLocationContributions(locationId)`
+Ajouter un second `useMemo` `visitsChartData` calqué sur `chartData` (lignes 201-211) qui agrège `stats?.visitsLast7d` par jour via `getLast7Days()` / `getDayLabel()`.
 
-Fichier : `src/hooks/useLocationContributions.ts`
+## Rendu
 
-- Query TanStack : `contributions` filtré sur `location_id` + `status = 'validated'`, joint `profiles(full_name)`, trié `created_at DESC`.
-- Retourne `{ contributions, votes, commentCount, contributorCount }` :
-  - `votes`: `{ high_chair: {yes, no}, changing_table: {yes,no}, kids_area: {yes,no}, kids_menu: {yes,no}, bookable_yes }`.
-  - `contributorCount`: nb de `user_id` distincts.
-  - `commentCount`: nb de contributions avec `content` non vide.
-- Remplace `useEquipmentVotes` sur `LocationPage` (consolidation, on garde le hook existant si utilisé ailleurs).
-
-## UI — `src/pages/LocationPage.tsx`
-
-### Section "Équipements enfants"
-
-- Header de section : titre à gauche, **badge pill** terracotta clair à droite : `N famille{s}` (visible si `contributorCount > 0`). Style : `background: rgba(217,95,59,0.12); color: var(--primary); border-radius: 100px; padding: 4px 10px; font-size: 12px`.
-- Sous chaque pill équipement actif, remplacer le compteur unique `✓ N` par **mini-pills compacts** :
-  - `X ✓` — `background: #EBF6EC; color: #2E7D32`
-  - `X ✗` — `background: #F2F2F2; color: #6B6B6B; border: 1px solid var(--border)`
-  - Affichés uniquement si > 0.
-- Si aucun équipement n'est marqué `true` sur le lieu mais que des votes existent, on liste quand même les équipements votés avec leurs mini-pills.
-
-### Nouveau composant : `LocationContributionsSection`
-
-Fichier : `src/components/LocationContributionsSection.tsx`
-
-- Props : `locationId: string`.
-- Utilise `useLocationContributions`. Ne rend rien si aucune contribution validée.
-- Header : `h2` "Ce que disent les familles" + pill terracotta `{commentCount} avis` (si > 0).
-- Liste : 3 cartes max (les plus récentes).
-- Carte :
-  - Ligne 1 : avatar circulaire 36px (`background: var(--accent-light)`, initiale du prénom ou icône famille) + prénom (premier mot de `full_name`, fallback "Une famille") + `·` + date relative FR (Aujourd'hui / Hier / Il y a N jours / Il y a N semaines / Il y a N mois).
-  - Ligne 2 : chips équipements renseignés : carré 24px icône (`EQUIP_ICONS`) + ✓ (vert) ou ✗ (gris).
-  - Ligne 3 (si `content`) : texte italique entre guillemets, `font-family: Caveat, fontSize: 16px`.
-- Style carte : `background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 10px`.
-- Insérée dans `LocationPage` après le bloc `Bookable` / avant `LocationServicesSection`.
-
-### Helper
-
-`src/lib/relativeDate.ts` — formate une date en français relatif.
+Dans le bloc dashboard (autour ligne 573), **avant** la div "Mini chart" contributions, insérer une div identique :
+- Même conteneur (`background: var(--surface)`, `border-radius: var(--radius)`, `padding: 16px`, `box-shadow: var(--shadow)`, `margin-bottom: 12px`).
+- Titre Caveat : `Visites — 7 derniers jours`.
+- Même boucle de barres mais utilisant `visitsChartData` et couleur `var(--accent)` (vert) pour différencier visuellement du graphe contributions (terracotta).
 
 ## Hors scope
 
-- Formulaire d'édition de `full_name` (les avis sans valeur affichent "Une famille").
-- Pagination ou "voir plus d'avis" (limite stricte à 3).
+- Pas de modifications BDD / RLS (la policy `page_views_select_admin` existe déjà).
+- Pas de séparation visiteurs connectés vs anonymes dans le graphe (compte brut, comme `totalVisits30d`).
 
-## Fichiers touchés
+## Fichier touché
 
-- Migration SQL (2 policies uniquement).
-- `src/hooks/useLocationContributions.ts` (nouveau).
-- `src/components/LocationContributionsSection.tsx` (nouveau).
-- `src/lib/relativeDate.ts` (nouveau).
-- `src/pages/LocationPage.tsx` (badge familles, mini-pills ✓/✗, intégration section).
+- `src/pages/AdminPage.tsx` uniquement.

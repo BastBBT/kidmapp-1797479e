@@ -151,13 +151,14 @@ const AdminPage = () => {
       const notAdmin = (uid: string | null | undefined) => !!uid && !adminIds.has(uid);
       const notAdminOrAnon = (uid: string | null | undefined) => !uid || !adminIds.has(uid);
 
-      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, viewsRes] = await Promise.all([
+      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, viewsRes, views7dRes] = await Promise.all([
         supabase.from('locations').select('id, status'),
         supabase.from('contributions').select('id, user_id, created_at, status'),
         supabase.from('profiles').select('id, role, created_at').gte('created_at', since),
         supabase.from('contributions').select('user_id, created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
         supabase.from('location_proposals' as any).select('id, user_id, status'),
         supabase.from('page_views' as any).select('user_id, created_at').gte('created_at', since),
+        supabase.from('page_views' as any).select('user_id, created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
       ]);
 
       const contribs = (contributionsRes.data ?? []).filter((c: any) => notAdmin(c.user_id));
@@ -180,6 +181,9 @@ const AdminPage = () => {
       let recurring = 0;
       userDays.forEach((days) => { if (days.size >= 2) recurring++; });
 
+      const visits7d = (((views7dRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[])
+        .filter((v) => notAdminOrAnon(v.user_id));
+
       return {
         totalLocations: locationsRes.data?.length ?? 0,
         publishedLocations: locationsRes.data?.filter((l) => l.status === 'published').length ?? 0,
@@ -189,6 +193,7 @@ const AdminPage = () => {
         pendingProposals: proposals.filter((p) => p.status === 'pending').length,
         activeUsers30d: newUsers.length,
         contributionsLast7d: daily,
+        visitsLast7d: visits7d,
         totalVisits30d: totalVisits,
         uniqueLoggedVisitors30d: loggedInUsers.size,
         recurringVisitors30d: recurring,
@@ -209,6 +214,18 @@ const AdminPage = () => {
     const max = Math.max(...counts.map((c) => c.count), 1);
     return { counts, max };
   }, [stats?.contributionsLast7d]);
+
+  const visitsChartData = useMemo(() => {
+    const days = getLast7Days();
+    const counts = days.map((day) => {
+      const count = (stats?.visitsLast7d ?? []).filter(
+        (v: any) => v.created_at?.slice(0, 10) === day
+      ).length;
+      return { day, count, label: getDayLabel(day) };
+    });
+    const max = Math.max(...counts.map((c) => c.count), 1);
+    return { counts, max };
+  }, [stats?.visitsLast7d]);
 
   // Add location form
   const [form, setForm] = useState({
@@ -568,6 +585,30 @@ const AdminPage = () => {
               <StatCard label="Visites" value={stats?.totalVisits30d ?? 0} sub="hits bruts" />
               <StatCard label="Visiteurs connectés" value={stats?.uniqueLoggedVisitors30d ?? 0} sub="uniques (auth)" />
               <StatCard label="Récurrents" value={stats?.recurringVisitors30d ?? 0} sub="≥ 2 jours" />
+            </div>
+
+            {/* Visits chart */}
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)', marginBottom: '12px' }}>
+              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '12px' }}>
+                Visites — 7 derniers jours
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '80px' }}>
+                {visitsChartData.counts.map((d, i) => (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <div
+                      style={{
+                        width: '100%',
+                        height: `${Math.max((d.count / visitsChartData.max) * 60, 4)}px`,
+                        background: 'var(--accent)',
+                        borderRadius: '4px 4px 0 0',
+                        transition: 'height 0.3s ease',
+                      }}
+                      title={`${d.count} visite${d.count > 1 ? 's' : ''}`}
+                    />
+                    <span style={{ fontFamily: 'DM Sans', fontSize: '10px', color: 'var(--text-muted)' }}>{d.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Mini chart */}
