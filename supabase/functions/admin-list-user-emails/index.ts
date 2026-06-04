@@ -49,18 +49,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    const wanted = new Set(ids);
     const emails: Record<string, string> = {};
-    for (let page = 1; page <= 2 && wanted.size > 0; page++) {
-      const { data: users } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-      for (const u of users?.users ?? []) {
-        if (wanted.has(u.id)) {
-          emails[u.id] = u.email ?? '';
-          wanted.delete(u.id);
+    // Fetch emails directly per id (reliable, avoids pagination edge cases)
+    await Promise.all(
+      ids.map(async (id) => {
+        const { data, error } = await admin.auth.admin.getUserById(id);
+        if (!error && data?.user?.email) {
+          emails[id] = data.user.email;
+        } else if (error) {
+          console.warn('getUserById failed', id, error.message);
         }
-      }
-      if ((users?.users ?? []).length < 1000) break;
-    }
+      })
+    );
 
     return new Response(JSON.stringify({ emails }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
