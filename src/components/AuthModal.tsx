@@ -396,6 +396,23 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {mode === 'signup' && (
+            <div>
+              <label style={labelStyle}>Prénom <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text-muted)', opacity: 0.7 }}>(optionnel)</span></label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Ex. Camille"
+                maxLength={60}
+                autoComplete="given-name"
+                style={inputStyle}
+                onFocus={(e) => (e.target.style.borderColor = 'var(--primary)')}
+                onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
+              />
+            </div>
+          )}
+
           <div>
             <label style={labelStyle}>Email</label>
             <input
@@ -409,6 +426,7 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
               onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
             />
           </div>
+
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
