@@ -57,7 +57,12 @@ const ContributionValidatedEmail = ({
 
   return (
     <Html lang="fr" dir="ltr">
-      <Head />
+      <Head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap"
+          rel="stylesheet"
+        />
+      </Head>
       <Preview>Ta contribution sur {locationName} a été validée 🎉</Preview>
       <Body style={main}>
         <Container style={card}>
@@ -275,8 +280,8 @@ const footerBrand = {
   lineHeight: 1.4,
 }
 const footerNote = {
-  fontFamily: "'DM Sans', system-ui, sans-serif",
-  fontSize: '11px',
+  fontFamily: "'Caveat', cursive",
+  fontSize: '13px',
   color: '#A8A29E',
   margin: 0,
 }
