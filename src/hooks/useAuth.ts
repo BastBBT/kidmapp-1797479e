@@ -51,20 +51,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, full_name' as any)
         .eq('id', userId)
         .single();
       if (error) {
         console.error('Error fetching profile:', error);
         setProfile(null);
       } else {
-        setProfile({ role: data.role as 'user' | 'admin' });
+        const row = data as unknown as { role: string; full_name: string | null };
+        setProfile({ role: row.role as 'user' | 'admin', full_name: row.full_name ?? null });
       }
     } catch (e) {
       console.error('Profile fetch failed:', e);
       setProfile(null);
     }
   }, []);
+
 
   useEffect(() => {
     let authEventHandled = false;
