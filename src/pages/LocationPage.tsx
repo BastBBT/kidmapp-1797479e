@@ -9,7 +9,8 @@ import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { useLocation as useLocationData } from '@/hooks/useLocations';
 import { useFavorites } from '@/hooks/useFavorites';
-import { useEquipmentVotes } from '@/hooks/useEquipmentVotes';
+import { useLocationContributions } from '@/hooks/useLocationContributions';
+import LocationContributionsSection from '@/components/LocationContributionsSection';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
