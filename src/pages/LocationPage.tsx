@@ -452,6 +452,9 @@ const LocationPage = () => {
             </div>
           )}
 
+          {/* Avis des familles */}
+          <LocationContributionsSection locationId={location.id} />
+
           {/* Horaires & services (repas) */}
           <LocationServicesSection
             locationId={location.id}
