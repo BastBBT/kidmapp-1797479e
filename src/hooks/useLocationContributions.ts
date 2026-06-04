@@ -39,10 +39,10 @@ export function useLocationContributions(locationId: string) {
       if (userIds.length > 0) {
         const { data: profs, error: pErr } = await supabase
           .from('profiles')
-          .select('id, full_name')
+          .select('id, full_name' as any)
           .in('id', userIds);
         if (pErr) throw pErr;
-        for (const p of (profs ?? []) as Array<{ id: string; full_name: string | null }>) {
+        for (const p of ((profs ?? []) as unknown as Array<{ id: string; full_name: string | null }>)) {
           profilesMap.set(p.id, { full_name: p.full_name });
         }
       }
