@@ -1031,6 +1031,47 @@ const AdminPage = () => {
                       </button>
                     </div>
                   )}
+                  {contrib.status !== 'pending' && (
+                    <div className="flex gap-2">
+                      {contrib.status === 'validated' && (
+                        <button
+                          onClick={() => hideContribution(contrib)}
+                          style={{
+                            flex: 1,
+                            fontFamily: 'DM Sans',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            padding: '8px',
+                            borderRadius: '100px',
+                            border: '1.5px solid var(--border)',
+                            background: 'transparent',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          👁 Masquer
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteContribution(contrib)}
+                        style={{
+                          flex: 1,
+                          fontFamily: 'DM Sans',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          padding: '8px',
+                          borderRadius: '100px',
+                          border: '1.5px solid var(--primary)',
+                          background: 'transparent',
+                          color: 'var(--primary)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        🗑 Supprimer
+                      </button>
+                    </div>
+                  )}
+
                 </motion.div>
               );
             })}
