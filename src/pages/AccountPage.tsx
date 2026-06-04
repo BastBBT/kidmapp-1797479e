@@ -142,8 +142,38 @@ const JoinKidmappView = () => {
 };
 
 const AccountPage = () => {
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut, refreshProfile } = useAuth();
   const { favoriteIds } = useFavorites();
+  const [nameDraft, setNameDraft] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [nameSaved, setNameSaved] = useState(false);
+
+  useEffect(() => {
+    setNameDraft(profile?.full_name ?? '');
+  }, [profile?.full_name]);
+
+  const saveName = async () => {
+    if (!user) return;
+    const trimmed = nameDraft.trim();
+    if (trimmed === (profile?.full_name ?? '')) return;
+    setSavingName(true);
+    setNameSaved(false);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: trimmed || null } as any)
+        .eq('id', user.id);
+      if (error) throw error;
+      await refreshProfile();
+      setNameSaved(true);
+      setTimeout(() => setNameSaved(false), 2000);
+    } catch (e) {
+      console.error('Update name failed:', e);
+    } finally {
+      setSavingName(false);
+    }
+  };
+
 
   const { data: myContributions = [] } = useQuery({
     queryKey: ['my-contributions', user?.id],
