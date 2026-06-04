@@ -53,10 +53,8 @@ export function useLocationContributions(locationId: string) {
       const userIds = Array.from(new Set(rows.map((r) => r.user_id).filter((x): x is string => !!x)));
       const profilesMap = new Map<string, { full_name: string | null }>();
       if (userIds.length > 0) {
-        const { data: profs, error: pErr } = await supabase
-          .from('profiles')
-          .select('id, full_name' as any)
-          .in('id', userIds);
+        const { data: profs, error: pErr } = await (supabase as any)
+          .rpc('get_contributor_names', { _ids: userIds });
         if (pErr) {
           console.warn('Impossible de récupérer les noms des contributeurs', pErr);
         }
