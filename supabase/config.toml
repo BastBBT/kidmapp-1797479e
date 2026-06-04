@@ -17,3 +17,7 @@ verify_jwt = false
 
 [functions.weekly-admin-report]
 verify_jwt = false
+
+[functions.notify-validation]
+verify_jwt = false
+
