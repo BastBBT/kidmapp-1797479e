@@ -181,6 +181,9 @@ const AdminPage = () => {
       let recurring = 0;
       userDays.forEach((days) => { if (days.size >= 2) recurring++; });
 
+      const visits7d = (((views7dRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[])
+        .filter((v) => notAdminOrAnon(v.user_id));
+
       return {
         totalLocations: locationsRes.data?.length ?? 0,
         publishedLocations: locationsRes.data?.filter((l) => l.status === 'published').length ?? 0,
@@ -190,6 +193,7 @@ const AdminPage = () => {
         pendingProposals: proposals.filter((p) => p.status === 'pending').length,
         activeUsers30d: newUsers.length,
         contributionsLast7d: daily,
+        visitsLast7d: visits7d,
         totalVisits30d: totalVisits,
         uniqueLoggedVisitors30d: loggedInUsers.size,
         recurringVisitors30d: recurring,
