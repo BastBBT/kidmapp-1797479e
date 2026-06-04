@@ -1,47 +1,64 @@
-# Amélioration du bouton partage (fiche lieu)
-
 ## Objectif
-Sur desktop, le bouton "Partager" doit copier l'URL dans le presse-papier avec une confirmation claire. Et l'icône doit être plus reconnaissable, dans le style iOS classique (carré avec flèche vers le haut).
 
-## Changements
+Sur la fiche lieu, exposer les contributions validées : compteurs ✓/✗ par équipement, badge "N familles", et nouvelle section avec les avis récents (prénom + date relative + chips équipements + commentaire).
 
-### 1. Icône iOS classique
-Dans `src/pages/LocationPage.tsx` :
-- Remplacer l'import `Share2` de `lucide-react` par `ArrowUpFromLine` (c'est l'icône Lucide la plus proche de l'icône partage native iOS — une flèche pointant vers le haut sortant d'une ligne horizontale).
-- Remplacer `<Share2 size={18} ... />` par `<ArrowUpFromLine size={18} color="var(--primary)" strokeWidth={2} />`.
+## Migration (RLS uniquement)
 
-### 2. Fallback desktop amélioré
-Comportement actuel : si `navigator.share` n'existe pas (cas desktop), on copie le lien + toast "Lien copié !".
+`profiles.full_name` existe déjà — on skip l'ajout de colonne.
 
-Améliorations :
-- **Détection plus fiable** : utiliser `navigator.share && navigator.canShare?.(shareData)` pour mieux distinguer mobile (menu natif) vs desktop (copie).
-- **Toast plus visible et explicite** : `toast.success('Lien copié !', { description: 'Tu peux maintenant le coller où tu veux.', duration: 2500 })`.
-- **Gestion d'erreur** : si `navigator.clipboard` échoue (contexte non sécurisé, vieux navigateur), afficher `toast.error('Impossible de copier le lien')`.
-- **AbortError silencieux** : si l'utilisateur ferme le menu natif iOS sans partager, ne rien afficher (comportement actuel, conservé).
+1. **RLS `contributions`** — nouvelle policy `contributions_select_validated_public` : `FOR SELECT USING (status = 'validated')`. Permet l'agrégation des votes et l'affichage des avis publics.
+2. **RLS `profiles`** — nouvelle policy `profiles_select_public_basic FOR SELECT USING (true)` pour joindre `full_name` à l'auteur d'une contribution validée. La table ne contient pas de PII sensible (juste `id`, `role`, `full_name`, `created_at`).
 
-## Détails techniques
+## Nouveau hook : `useLocationContributions(locationId)`
 
-Nouvelle logique dans le `onClick` :
+Fichier : `src/hooks/useLocationContributions.ts`
 
-```ts
-const url = window.location.href;
-const shareData = { title: location.name, text: "Découvre ce lieu kid-friendly sur Kidmapp !", url };
+- Query TanStack : `contributions` filtré sur `location_id` + `status = 'validated'`, joint `profiles(full_name)`, trié `created_at DESC`.
+- Retourne `{ contributions, votes, commentCount, contributorCount }` :
+  - `votes`: `{ high_chair: {yes, no}, changing_table: {yes,no}, kids_area: {yes,no}, kids_menu: {yes,no}, bookable_yes }`.
+  - `contributorCount`: nb de `user_id` distincts.
+  - `commentCount`: nb de contributions avec `content` non vide.
+- Remplace `useEquipmentVotes` sur `LocationPage` (consolidation, on garde le hook existant si utilisé ailleurs).
 
-const canUseNative = typeof navigator !== 'undefined'
-  && typeof navigator.share === 'function'
-  && (!navigator.canShare || navigator.canShare(shareData));
+## UI — `src/pages/LocationPage.tsx`
 
-if (canUseNative) {
-  try { await navigator.share(shareData); } catch { /* user cancelled */ }
-  return;
-}
+### Section "Équipements enfants"
 
-try {
-  await navigator.clipboard.writeText(url);
-  toast.success('Lien copié !', { description: 'Tu peux maintenant le coller où tu veux.' });
-} catch {
-  toast.error('Impossible de copier le lien');
-}
-```
+- Header de section : titre à gauche, **badge pill** terracotta clair à droite : `N famille{s}` (visible si `contributorCount > 0`). Style : `background: rgba(217,95,59,0.12); color: var(--primary); border-radius: 100px; padding: 4px 10px; font-size: 12px`.
+- Sous chaque pill équipement actif, remplacer le compteur unique `✓ N` par **mini-pills compacts** :
+  - `X ✓` — `background: #EBF6EC; color: #2E7D32`
+  - `X ✗` — `background: #F2F2F2; color: #6B6B6B; border: 1px solid var(--border)`
+  - Affichés uniquement si > 0.
+- Si aucun équipement n'est marqué `true` sur le lieu mais que des votes existent, on liste quand même les équipements votés avec leurs mini-pills.
 
-Aucune autre modification (position, taille, fond, ombre du bouton, ni bouton like) — uniquement l'icône et la logique de partage.
+### Nouveau composant : `LocationContributionsSection`
+
+Fichier : `src/components/LocationContributionsSection.tsx`
+
+- Props : `locationId: string`.
+- Utilise `useLocationContributions`. Ne rend rien si aucune contribution validée.
+- Header : `h2` "Ce que disent les familles" + pill terracotta `{commentCount} avis` (si > 0).
+- Liste : 3 cartes max (les plus récentes).
+- Carte :
+  - Ligne 1 : avatar circulaire 36px (`background: var(--accent-light)`, initiale du prénom ou icône famille) + prénom (premier mot de `full_name`, fallback "Une famille") + `·` + date relative FR (Aujourd'hui / Hier / Il y a N jours / Il y a N semaines / Il y a N mois).
+  - Ligne 2 : chips équipements renseignés : carré 24px icône (`EQUIP_ICONS`) + ✓ (vert) ou ✗ (gris).
+  - Ligne 3 (si `content`) : texte italique entre guillemets, `font-family: Caveat, fontSize: 16px`.
+- Style carte : `background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 10px`.
+- Insérée dans `LocationPage` après le bloc `Bookable` / avant `LocationServicesSection`.
+
+### Helper
+
+`src/lib/relativeDate.ts` — formate une date en français relatif.
+
+## Hors scope
+
+- Formulaire d'édition de `full_name` (les avis sans valeur affichent "Une famille").
+- Pagination ou "voir plus d'avis" (limite stricte à 3).
+
+## Fichiers touchés
+
+- Migration SQL (2 policies uniquement).
+- `src/hooks/useLocationContributions.ts` (nouveau).
+- `src/components/LocationContributionsSection.tsx` (nouveau).
+- `src/lib/relativeDate.ts` (nouveau).
+- `src/pages/LocationPage.tsx` (badge familles, mini-pills ✓/✗, intégration section).
