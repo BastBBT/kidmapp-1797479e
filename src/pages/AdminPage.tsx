@@ -104,7 +104,7 @@ function SearchBar({ value, onChange, placeholder }: { value: string; onChange: 
 const AdminPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin, isLoading: authLoading } = useAuth();
+  const { isAdmin, isLoading: authLoading, profile, user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [searchLocations, setSearchLocations] = useState('');
@@ -113,10 +113,14 @@ const AdminPage = () => {
   const [searchContributions, setSearchContributions] = useState('');
 
   useEffect(() => {
-    if (!authLoading && !isAdmin) {
+    // Wait until auth AND profile are resolved before deciding admin status
+    if (authLoading) return;
+    if (!user) return; // AuthGate handles unauthenticated state
+    if (profile === null) return; // profile still loading
+    if (!isAdmin) {
       navigate('/');
     }
-  }, [authLoading, isAdmin, navigate]);
+  }, [authLoading, isAdmin, profile, user, navigate]);
 
   const { data: locations = [] } = useAllLocations();
   const { data: contributions = [] } = useContributions();
