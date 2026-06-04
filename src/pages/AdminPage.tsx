@@ -381,6 +381,32 @@ const AdminPage = () => {
     toast({ title: action === 'validated' ? 'Contribution validée ✓' : 'Contribution rejetée' });
   };
 
+  const hideContribution = async (contrib: any) => {
+    const { error } = await supabase.from('contributions').update({ status: 'rejected' }).eq('id', contrib.id);
+    if (error) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['contributions'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['location-contributions'] });
+    toast({ title: 'Contribution masquée' });
+  };
+
+  const deleteContribution = async (contrib: any) => {
+    if (!window.confirm('Supprimer définitivement cette contribution ? Cette action est irréversible.')) return;
+    const { error } = await supabase.from('contributions').delete().eq('id', contrib.id);
+    if (error) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['contributions'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['location-contributions'] });
+    toast({ title: 'Contribution supprimée' });
+  };
+
+
   const handleAddLocation = async () => {
     if (!form.name || !form.address) {
       toast({ title: 'Erreur', description: 'Remplissez tous les champs obligatoires', variant: 'destructive' });
