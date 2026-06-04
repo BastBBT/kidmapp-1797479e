@@ -127,17 +127,32 @@ Deno.serve(async (req) => {
       templateData.contributionType = contributionType
     }
 
-    const { error: invokeErr } = await supabase.functions.invoke('send-transactional-email', {
-      body: {
-        templateName,
-        recipientEmail,
-        idempotencyKey: `${type}-${recordId}`,
-        templateData,
-      },
-    })
+    // Anon JWT — env-injected SUPABASE_ANON_KEY may be the new sb_publishable_* format
+    // which the gateway rejects with UNAUTHORIZED_INVALID_JWT_FORMAT.
+    const ANON_JWT =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjd2VwbnFqeW93bGJ0bWx0d3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODg5MTgsImV4cCI6MjA4NzI2NDkxOH0.S74s_DonPZniLVAASy4nlo0HTdlxA_RI9Dd2EfltpzE'
 
-    if (invokeErr) {
-      console.error('send-transactional-email failed', invokeErr)
+    const sendRes = await fetch(
+      `${Deno.env.get('SUPABASE_URL')!}/functions/v1/send-transactional-email`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${ANON_JWT}`,
+          apikey: ANON_JWT,
+        },
+        body: JSON.stringify({
+          templateName,
+          recipientEmail,
+          idempotencyKey: `${type}-${recordId}`,
+          templateData,
+        }),
+      },
+    )
+
+    if (!sendRes.ok) {
+      const text = await sendRes.text()
+      console.error('send-transactional-email failed', sendRes.status, text)
       return new Response(JSON.stringify({ error: 'Failed to enqueue email' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
