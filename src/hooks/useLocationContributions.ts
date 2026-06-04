@@ -19,6 +19,22 @@ export type ValidatedContribution = {
 
 export type EquipVoteCounts = Record<EquipKey, { yes: number; no: number }>;
 
+const parseContributionContent = (content: string | null) => {
+  if (!content) return null;
+  const trimmed = content.trim();
+  if (!trimmed) return null;
+
+  try {
+    const parsed = JSON.parse(trimmed) as { comment?: unknown; equipment?: Partial<Record<EquipKey, unknown>> };
+    return {
+      comment: typeof parsed.comment === 'string' ? parsed.comment.trim() || null : null,
+      equipment: parsed.equipment ?? {},
+    };
+  } catch {
+    return { comment: trimmed, equipment: {} };
+  }
+};
+
 export function useLocationContributions(locationId: string) {
   return useQuery({
     queryKey: ['location-contributions', locationId],
@@ -41,15 +57,25 @@ export function useLocationContributions(locationId: string) {
           .from('profiles')
           .select('id, full_name' as any)
           .in('id', userIds);
-        if (pErr) throw pErr;
+        if (pErr) {
+          console.warn('Impossible de récupérer les noms des contributeurs', pErr);
+        }
         for (const p of ((profs ?? []) as unknown as Array<{ id: string; full_name: string | null }>)) {
           profilesMap.set(p.id, { full_name: p.full_name });
         }
       }
-      const contributions: ValidatedContribution[] = rows.map((r) => ({
-        ...r,
-        profiles: r.user_id ? profilesMap.get(r.user_id) ?? null : null,
-      }));
+      const contributions: ValidatedContribution[] = rows.map((r) => {
+        const parsedContent = parseContributionContent(r.content);
+        return {
+          ...r,
+          content: parsedContent?.comment ?? null,
+          high_chair: r.high_chair ?? (typeof parsedContent?.equipment?.high_chair === 'boolean' ? parsedContent.equipment.high_chair : null),
+          changing_table: r.changing_table ?? (typeof parsedContent?.equipment?.changing_table === 'boolean' ? parsedContent.equipment.changing_table : null),
+          kids_area: r.kids_area ?? (typeof parsedContent?.equipment?.kids_area === 'boolean' ? parsedContent.equipment.kids_area : null),
+          kids_menu: r.kids_menu ?? (typeof parsedContent?.equipment?.kids_menu === 'boolean' ? parsedContent.equipment.kids_menu : null),
+          profiles: r.user_id ? profilesMap.get(r.user_id) ?? null : null,
+        };
+      });
 
       const votes: EquipVoteCounts = {
         high_chair: { yes: 0, no: 0 },
