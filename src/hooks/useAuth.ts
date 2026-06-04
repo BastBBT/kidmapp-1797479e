@@ -130,11 +130,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw error;
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, fullName?: string) => {
+    const trimmed = fullName?.trim();
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin },
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: trimmed ? { full_name: trimmed } : undefined,
+      },
     });
     if (error) throw error;
   };
@@ -142,6 +146,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+  };
+
+  const refreshProfile = async () => {
+    if (user?.id) await fetchProfile(user.id);
   };
 
   const value: AuthContextValue = {
@@ -152,7 +160,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signIn,
     signUp,
     signOut,
+    refreshProfile,
   };
+
 
   return React.createElement(AuthContext.Provider, { value }, children);
 };
