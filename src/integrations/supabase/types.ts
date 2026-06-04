@@ -546,6 +546,10 @@ export type Database = {
         }
         Returns: number
       }
+      notify_validation_async: {
+        Args: { record_id: string; record_type: string }
+        Returns: undefined
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
