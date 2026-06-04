@@ -25,6 +25,7 @@ const CAPTURED_OAUTH = (() => {
 
 interface Profile {
   role: 'user' | 'admin';
+  full_name: string | null;
 }
 
 interface AuthContextValue {
@@ -33,9 +34,11 @@ interface AuthContextValue {
   isAdmin: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
+
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
