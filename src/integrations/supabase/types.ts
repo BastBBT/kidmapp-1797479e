@@ -532,6 +532,13 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_contributor_names: {
+        Args: { _ids: string[] }
+        Returns: {
+          full_name: string
+          id: string
+        }[]
+      }
       increment_meal_confirmed_count: {
         Args: { p_location_id: string; p_meal_type_id: string }
         Returns: undefined
