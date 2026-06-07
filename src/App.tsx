@@ -13,6 +13,7 @@ import PrivacyPage from "./pages/PrivacyPage";
 import SupportPage from "./pages/SupportPage";
 import NotFound from "./pages/NotFound";
 import AuthGate from "./components/AuthGate";
+import IosAppBanner from "./components/IosAppBanner";
 import BottomNav from "./components/BottomNav";
 import Onboarding from "./components/Onboarding";
 import { useAuth, AuthProvider } from "./hooks/useAuth";
@@ -53,6 +54,7 @@ const AppContent = () => {
   usePageviewTracker();
   return (
     <>
+      <IosAppBanner />
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />
