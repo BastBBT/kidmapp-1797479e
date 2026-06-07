@@ -1,67 +1,48 @@
-## Objectif
+## Bandeau "Télécharge l'app iOS" pour iPhone
 
-Envoyer un email automatique à l'auteur quand un admin :
-- valide une contribution (`contributions.status` → `validated`)
-- approuve une proposition de lieu (`location_proposals.status` → `approved`)
+Ajout d'un bandeau discret en haut de la webapp pour proposer l'app iOS native aux utilisateurs sur iPhone Safari.
 
-Utilisation de l'infra email Lovable Cloud déjà en place (domaine `notify.kidmapp.app` vérifié, queue pgmq, `send-transactional-email` déployé).
+### Détection
 
-## 1. Templates React Email
+- iPhone via `navigator.userAgent`
+- Exclu si déjà installé en PWA standalone (`navigator.standalone` ou `display-mode: standalone`)
+- Exclu si fermé il y a moins de 7 jours (localStorage)
 
-Créer deux templates dans `supabase/functions/_shared/transactional-email-templates/` :
+### Design
 
-- **`contribution-validated.tsx`** — "Ta contribution a été validée 🎉"
-  - Props : `userName?`, `locationName`, `locationId` (UUID), `contributionType` (photo, équipement, repas, etc.)
-  - Brandé Kidmapp : Fraunces (titres), DM Sans (body), couleurs Coral `#D95F3B` / Green `#3B7D6E` / Cream `#FAF9F6`, radius 18px
-  - CTA bouton → `https://kidmapp.app/location/{locationId}`
+Style smart banner iOS adapté au design system Kidmapp (cream/coral, Fraunces/DM Sans) :
 
-- **`proposal-approved.tsx`** — "Ton lieu a été ajouté à Kidmapp 🗺️"
-  - Props : `userName?`, `locationName`, `locationId` (UUID)
-  - Même style, CTA vers `https://kidmapp.app/location/{locationId}`
+```text
+┌──────────────────────────────────────────────┐
+│ ×  [🐘icone] Kidmapp                [Ouvrir] │
+│            Disponible sur l'App Store        │
+└──────────────────────────────────────────────┘
+```
 
-Mise à jour de `registry.ts` pour enregistrer les deux templates.
+- Hauteur ~64px, en haut de la page (pousse le contenu, pas fixed → le Header sticky reste sous lui en flow)
+- Fond `var(--primary-light)` + bordure basse
+- **Icône** : l'éléphant orange au casque jaune fourni → uploadé via `lovable-assets` puis affiché en carré arrondi 44px
+- Titre "Kidmapp" en Fraunces 15px + sous-titre "Disponible sur l'App Store" DM Sans 12px muted
+- Bouton "Ouvrir" : pill coral 13px → `https://apps.apple.com/fr/app/kidmapp/id6763571262` (target `_blank`, `rel="noopener"`)
+- Croix de fermeture (×) à gauche, discrète
 
-## 2. Edge function de notification
+### Comportement
 
-Créer `supabase/functions/notify-validation/index.ts` :
+- localStorage clé `kidmapp_iosBannerDismissedAt` (timestamp)
+- Réapparition après 7 jours
+- Visible sur toutes les pages, masqué naturellement quand l'onboarding fullscreen est ouvert (z-index 2000 par dessus)
 
-- Reçoit `{ type: 'contribution' | 'proposal', recordId: string }` depuis les triggers DB
-- Résout l'email de l'auteur via `auth.admin.getUserById(user_id)` (service role)
-- Récupère le `full_name` depuis `profiles`, et le `name` du lieu depuis `locations`
-- Appelle `send-transactional-email` avec le bon template et `idempotencyKey = '{type}-{recordId}'`
-- `verify_jwt = false` dans `config.toml` (appelé depuis pg_net sans JWT utilisateur)
-- Validation Zod du body, CORS, logs propres
+### Fichiers
 
-## 3. Migration SQL — triggers async via pg_net
+**Nouveau** :
+- `src/assets/ios-app-icon.png.asset.json` — pointeur CDN vers l'éléphant uploadé
+- `src/components/IosAppBanner.tsx` — composant + détection iPhone/standalone/dismissed, retourne `null` sinon
 
-Une migration qui crée :
+**Modifié** :
+- `src/App.tsx` — ajout `<IosAppBanner />` dans `AppContent`, juste avant `<Routes>`
 
-- Fonction `notify_validation_async(record_type text, record_id uuid)` qui fait un `net.http_post` vers l'edge function `notify-validation` avec le service role key (depuis Vault, comme `email_queue_service_role_key`)
-- Trigger `on_contribution_validated` AFTER UPDATE sur `contributions` : se déclenche quand `OLD.status != 'validated' AND NEW.status = 'validated'`
-- Trigger `on_proposal_approved` AFTER UPDATE sur `location_proposals` : se déclenche quand `OLD.status != 'approved' AND NEW.status = 'approved'`
+### Détails techniques
 
-Non-bloquant : `pg_net` est asynchrone, aucun impact sur la performance de la requête admin. Si l'edge function échoue, la validation reste effective côté DB.
-
-## 4. Déploiement & test
-
-- Déployer `notify-validation` et `send-transactional-email` (rebuild après changement du registry)
-- Test manuel : valider une contribution depuis `/gestion-k1dm4p` → vérifier que l'email arrive
-- En cas de souci : inspecter `email_send_log` (status `pending`/`sent`/`failed`) et logs edge functions
-
-## Détails techniques
-
-- **Pas de RESEND_API_KEY** — tout passe par l'infra Lovable (Mailgun derrière)
-- **Pas de changement UI** — purement backend
-- **Suppression automatique** respectée (table `suppressed_emails`)
-- **Footer unsubscribe** ajouté automatiquement par l'infra
-- **iOS-friendly** : 100% serveur, l'app mobile n'envoie rien elle-même
-- **Liens CTA** : `https://kidmapp.app/location/{locationId}` (UUID, pas de slug — la table locations n'a pas de champ slug)
-
-## Fichiers
-
-- `supabase/functions/_shared/transactional-email-templates/contribution-validated.tsx` (nouveau)
-- `supabase/functions/_shared/transactional-email-templates/proposal-approved.tsx` (nouveau)
-- `supabase/functions/_shared/transactional-email-templates/registry.ts` (modifié)
-- `supabase/functions/notify-validation/index.ts` (nouveau)
-- `supabase/config.toml` (ajout bloc `[functions.notify-validation]`)
-- Nouvelle migration SQL (fonction + 2 triggers)
+- Aucune dépendance ajoutée, aucun changement backend
+- iPad volontairement exclu (l'app cible iPhone)
+- Image servie via le CDN Lovable Assets (pas de binaire dans le repo)
