@@ -1,44 +1,34 @@
-## Migration SQL — Système de points Kidmapp
+## Composant LevelCard sur la page Mon compte
 
-Migration unique qui ajoute la colonne `points` au profil, la table de log `point_events`, la fonction d'attribution, et deux triggers pour récompenser contributions validées et propositions approuvées.
+### 1. Fetch des points
+**`src/hooks/useAuth.ts`** — étendre la `Profile` interface avec `points: number`, ajouter `points` dans le `select` de `fetchProfile`, exposer dans le state. Le points est rechargé automatiquement via `refreshProfile` après une action.
 
-### 1. Colonne `points` sur `profiles`
-- `points INT NOT NULL DEFAULT 0`
-- Contrainte `CHECK (points >= 0 AND points <= 500)` (uniquement positif, plafonné à 500)
-- La fonction `award_points` clampera l'addition à 500 pour ne jamais dépasser le plafond.
+### 2. Constantes & helpers (dans le composant LevelCard)
+- Tableau `LEVELS` avec les 4 niveaux (Explorateur 0-24, Contributeur 25-74, Guide Kidmapp 75-149, Ambassadeur 150-500), chacun avec `color`, `bgFrom`, `bgTo`.
+- Helpers `getCurrentLevel`, `getNextLevel`, `getProgressPercent`.
 
-### 2. Table `point_events` (log immuable)
-Colonnes métier :
-- `user_id` (FK `auth.users`, cascade delete)
-- `amount` (INT, `CHECK (amount > 0)`)
-- `reason` (TEXT) — ex: `contribution_validated`, `first_contribution`, `proposal_approved`
-- `reference_id` (TEXT, nullable) — id de l'enregistrement source
+### 3. Nouveau composant `src/components/LevelCard.tsx`
+Props : `points: number`.
 
-Sécurité :
-- GRANT `SELECT` à `authenticated`, GRANT `ALL` à `service_role` (insertions via SECURITY DEFINER uniquement, pas de grant INSERT direct aux users).
-- RLS activée.
-- Policy : un utilisateur lit uniquement ses propres événements.
-- **Index** sur `(user_id, created_at DESC)` pour afficher l'historique chronologique rapidement.
+Structure :
+1. **Header** : placeholder coloré 62×62 radius 14 à gauche (cercle `bgFrom` + lettre `Niv.X` du niveau en `color`) + à droite : nom du niveau (Fraunces 18px), sous-titre "N points accumulés" (DM Sans 13px muted), barre de progression 7px avec fill dégradé `color`, sous la barre 2 labels : seuil actuel à gauche, "+X pts → NextLevel" à droite.
+   - Si Ambassadeur : barre à 100%, à la place des labels → "🏆 Niveau maximum atteint !" centré.
+   - Si 0 pt : afficher "+25 pts pour devenir Contributeur".
+2. **Frise 4 niveaux** : 4 chips égaux (grid 1fr×4), petite pastille ronde 24×24 (initiale du niveau), nom (12px), seuil "0+ pts" (10px muted). Le chip actif a `background: rgba(color, 0.12)` + `border: 1.5px solid color`. Les chips précédents montrent ✓.
+3. **Accordéon "Comment gagner des points ?"** : bouton avec chevron Lucide qui pivote 180° (animation 0.2s), 3 lignes :
+   - +10 pts • Contribution validée
+   - +5 pts • Premier sur un lieu
+   - +25 pts • Proposition approuvée
+   Pills colorées dans la couleur du niveau actuel.
+4. **Bouton partage** : texte muted "↗ Partager mon niveau" centré. Au clic → `navigator.share({ text: "Je suis [Niveau] sur Kidmapp avec [N] points ! 🐘 https://kidmapp.app" })` avec fallback `navigator.clipboard.writeText` + toast (utiliser `useToast`).
 
-### 3. Fonction `award_points(p_user_id, p_amount, p_reason, p_reference_id)`
-- `SECURITY DEFINER`, `search_path = public`.
-- Insère dans `point_events` puis met à jour `profiles.points` avec `LEAST(points + p_amount, 500)` pour respecter le plafond.
-- Si l'utilisateur est déjà à 500, l'événement est tout de même journalisé (traçabilité du gain "théorique") mais le total reste à 500.
+Style global : container `background: linear-gradient(135deg, bgFrom, bgTo)`, `border-radius: 18px`, `border: 1.5px solid rgba(color, 0.12)`, `box-shadow: 0 2px 8px rgba(0,0,0,0.04)`, padding 16px, sections séparées par `border-top: 1px solid rgba(color, 0.1)`.
 
-### 4. Trigger sur `contributions` → +10 pts (+5 si premier contributeur)
-- Fonction `handle_contribution_validated()` AFTER UPDATE OF status.
-- Déclenchée quand `status` passe à `validated`.
-- +10 pts `contribution_validated`.
-- +5 pts `first_contribution` si aucune autre contribution validée n'existe pour ce `location_id`.
-- Trigger nommé `on_contribution_validated_points` (distinct du `trg_contribution_validated` existant qui gère les emails).
+### 4. Intégration `src/pages/AccountPage.tsx`
+- Importer `LevelCard`.
+- L'insérer entre le bloc Stats (`/* Stats */`) et le bloc Prénom (`/* Prénom */`), wrappé dans `<div style={{ padding: '20px 16px 0' }}>`.
+- Ne pas afficher si `profile?.points === undefined`.
 
-### 5. Trigger sur `location_proposals` → +25 pts
-- Fonction `handle_proposal_approved()` AFTER UPDATE OF status.
-- Déclenchée quand `status` passe à `approved`.
-- +25 pts `proposal_approved`.
-- Trigger nommé `on_proposal_approved_points` (distinct du `trg_proposal_approved` existant).
-
-### Notes techniques
-- Les deux triggers existants (`trg_contribution_validated`, `trg_proposal_approved`) sont conservés tels quels ; les nouveaux triggers s'exécutent en parallèle.
-- Aucune modification du code frontend dans cette étape — UI à venir.
-- Les types TypeScript Supabase seront régénérés automatiquement après application.
+### Hors scope (étape 3)
+- Pas d'images éléphant (placeholders pour l'instant).
+- Pas d'écriture en base, pas de logique admin.

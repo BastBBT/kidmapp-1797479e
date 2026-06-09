@@ -6,6 +6,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import DeleteAccountSection from '@/components/DeleteAccountSection';
+import LevelCard from '@/components/LevelCard';
 import { EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
 
 
@@ -261,8 +262,16 @@ const AccountPage = () => {
         ))}
       </div>
 
+      {/* Niveau */}
+      {profile?.points !== undefined && (
+        <div style={{ padding: '20px 16px 0' }}>
+          <LevelCard points={profile.points} />
+        </div>
+      )}
+
       {/* Prénom */}
       <div style={{ padding: '20px 16px 0' }}>
+
         <div style={{ fontFamily: 'Fraunces', fontSize: '18px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: '12px' }}>
           Mon prénom
         </div>

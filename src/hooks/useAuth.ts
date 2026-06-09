@@ -26,6 +26,7 @@ const CAPTURED_OAUTH = (() => {
 interface Profile {
   role: 'user' | 'admin';
   full_name: string | null;
+  points: number;
 }
 
 interface AuthContextValue {
@@ -51,15 +52,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('role, full_name' as any)
+        .select('role, full_name, points' as any)
         .eq('id', userId)
         .single();
       if (error) {
         console.error('Error fetching profile:', error);
         setProfile(null);
       } else {
-        const row = data as unknown as { role: string; full_name: string | null };
-        setProfile({ role: row.role as 'user' | 'admin', full_name: row.full_name ?? null });
+        const row = data as unknown as { role: string; full_name: string | null; points: number | null };
+        setProfile({ role: row.role as 'user' | 'admin', full_name: row.full_name ?? null, points: row.points ?? 0 });
       }
     } catch (e) {
       console.error('Profile fetch failed:', e);
