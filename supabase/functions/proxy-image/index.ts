@@ -54,9 +54,78 @@ Deno.serve(async (req) => {
       });
     }
 
+    // SSRF protection: block private/link-local/loopback hosts (literal IPs
+    // and resolved DNS names). Refuses cloud metadata endpoints.
+    const isBlockedIPv4 = (ip: string): boolean => {
+      const parts = ip.split('.').map(Number);
+      if (parts.length !== 4 || parts.some((n) => Number.isNaN(n) || n < 0 || n > 255)) {
+        return true;
+      }
+      const [a, b] = parts;
+      if (a === 10) return true;
+      if (a === 127) return true;
+      if (a === 0) return true;
+      if (a === 169 && b === 254) return true; // link-local incl. 169.254.169.254
+      if (a === 172 && b >= 16 && b <= 31) return true;
+      if (a === 192 && b === 168) return true;
+      if (a >= 224) return true; // multicast / reserved
+      return false;
+    };
+    const isBlockedIPv6 = (ip: string): boolean => {
+      const lower = ip.toLowerCase();
+      if (lower === '::1' || lower === '::') return true;
+      if (lower.startsWith('fe80:') || lower.startsWith('fc') || lower.startsWith('fd')) return true;
+      if (lower.startsWith('::ffff:')) return isBlockedIPv4(lower.slice(7));
+      return false;
+    };
+    const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
+    const isIPv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
+    const isIPv6 = hostname.includes(':');
+    if (isIPv4 && isBlockedIPv4(hostname)) {
+      return new Response(JSON.stringify({ error: 'Blocked host' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (isIPv6 && isBlockedIPv6(hostname)) {
+      return new Response(JSON.stringify({ error: 'Blocked host' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (!isIPv4 && !isIPv6) {
+      const lowerHost = hostname.toLowerCase();
+      if (lowerHost === 'localhost' || lowerHost.endsWith('.localhost') || lowerHost.endsWith('.local') || lowerHost.endsWith('.internal')) {
+        return new Response(JSON.stringify({ error: 'Blocked host' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      try {
+        const records = await Deno.resolveDns(hostname, 'A').catch(() => [] as string[]);
+        const records6 = await Deno.resolveDns(hostname, 'AAAA').catch(() => [] as string[]);
+        for (const ip of records) {
+          if (isBlockedIPv4(ip)) {
+            return new Response(JSON.stringify({ error: 'Blocked host' }), {
+              status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+        for (const ip of records6) {
+          if (isBlockedIPv6(ip)) {
+            return new Response(JSON.stringify({ error: 'Blocked host' }), {
+              status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+      } catch {
+        return new Response(JSON.stringify({ error: 'DNS resolution failed' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     // Fetch image
     const imgRes = await fetch(parsed.toString(), {
       headers: { 'User-Agent': 'KidmappBot/1.0' },
+      redirect: 'error',
     });
     if (!imgRes.ok) {
       return new Response(JSON.stringify({ error: 'Fetch failed' }), {
@@ -89,7 +158,9 @@ Deno.serve(async (req) => {
     }
     if (ext === 'jpeg') ext = 'jpg';
 
-    const filename = `proposals/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+    // Scope upload path to the requesting user's folder so storage policies apply.
+    const filename = `proposals/${userData.user.id}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+
 
     const admin = createClient(supabaseUrl, serviceKey);
     const { error: uploadErr } = await admin.storage
