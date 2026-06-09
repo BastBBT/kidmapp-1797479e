@@ -374,8 +374,8 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                 </div>
               )}
 
-              {/* === STEP 2: Repas & horaires === */}
-              {step === 2 && (
+              {/* === STEP Repas & horaires (Café/Restaurant only) === */}
+              {isMealsStep && (
                 <div className="flex flex-col gap-4">
                   <div>
                     <h3 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
