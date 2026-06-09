@@ -26,6 +26,7 @@ const CAPTURED_OAUTH = (() => {
 interface Profile {
   role: 'user' | 'admin';
   full_name: string | null;
+  points: number;
 }
 
 interface AuthContextValue {
