@@ -6,6 +6,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import DeleteAccountSection from '@/components/DeleteAccountSection';
+import LevelCard from '@/components/LevelCard';
 import { EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
 
 
