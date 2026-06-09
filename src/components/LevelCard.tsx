@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { ChevronDown, Share2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import niv1Asset from '@/assets/levels/niv1.png.asset.json';
 import niv2Asset from '@/assets/levels/niv2.png.asset.json';
 import niv3Asset from '@/assets/levels/niv3.png.asset.json';
 import niv4Asset from '@/assets/levels/niv4.png.asset.json';
+import ShareLevelModal from './ShareLevelModal';
 
 type Level = {
   id: number;
@@ -60,27 +60,14 @@ interface LevelCardProps {
 
 const LevelCard = ({ points }: LevelCardProps) => {
   const [open, setOpen] = useState(false);
-  const { toast } = useToast();
+  const [shareOpen, setShareOpen] = useState(false);
 
   const current = getCurrentLevel(points);
   const next = getNextLevel(points);
   const progress = getProgressPercent(points);
   const isMax = !next;
 
-  const shareText = `Je suis ${current.name} sur Kidmapp avec ${points} points ! 🐘 https://kidmapp.app`;
-
-  const handleShare = async () => {
-    try {
-      if (typeof navigator !== 'undefined' && (navigator as any).share) {
-        await (navigator as any).share({ text: shareText });
-      } else if (navigator.clipboard) {
-        await navigator.clipboard.writeText(shareText);
-        toast({ description: 'Texte copié dans le presse-papier ✦' });
-      }
-    } catch (e) {
-      // user cancelled — ignore
-    }
-  };
+  const handleShare = () => setShareOpen(true);
 
   return (
     <div style={{
@@ -253,6 +240,13 @@ const LevelCard = ({ points }: LevelCardProps) => {
           Partager mon niveau
         </button>
       </div>
+
+      <ShareLevelModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        level={current}
+        points={points}
+      />
     </div>
   );
 };

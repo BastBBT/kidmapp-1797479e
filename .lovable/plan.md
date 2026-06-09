@@ -1,53 +1,62 @@
+# Partage visuel du niveau Kidmapp
+
 ## Objectif
-Rattraper rétroactivement tous les points qui auraient dû être attribués avant l'installation des triggers `handle_contribution_validated_points` et `handle_proposal_approved_points`.
+Au clic sur "Partager mon niveau" dans la `LevelCard`, ouvrir une modale présentant une carte visuelle 300×300 du niveau, téléchargeable en PNG et partageable vers Instagram Stories (mobile).
 
-## Migration one-shot (idempotente)
+## Architecture
 
-### 1. Backfill `point_events` pour les contributions validées
-Pour chaque ligne `contributions` avec `status = 'validated'` et `user_id IS NOT NULL` :
-- Insérer `(user_id, 10, 'contribution_validated', contributions.id::text, now())` dans `point_events`.
-- **Idempotence** : `WHERE NOT EXISTS (SELECT 1 FROM point_events WHERE reason = 'contribution_validated' AND reference_id = contributions.id::text)`.
+Deux nouveaux composants + modif minimale de `LevelCard.tsx` :
 
-### 2. Backfill du bonus `first_contribution`
-Identifier, par `location_id`, la **première contribution validée chronologiquement** (`ROW_NUMBER() OVER (PARTITION BY location_id ORDER BY created_at ASC)`).
-- Pour chacune (qui a un `user_id`), insérer `(user_id, 5, 'first_contribution', contributions.id::text, now())`.
-- Même garde idempotente sur `(reason, reference_id)`.
-
-### 3. Backfill `point_events` pour les propositions approuvées
-Pour chaque `location_proposals` avec `status = 'approved'` et `user_id IS NOT NULL` :
-- Insérer `(user_id, 25, 'proposal_approved', proposal.id::text, now())`.
-- Même garde idempotente.
-
-### 4. Recalcul `profiles.points`
-```sql
-UPDATE public.profiles p
-SET points = LEAST(COALESCE(s.total, 0), 500)
-FROM (
-  SELECT user_id, SUM(amount) AS total
-  FROM public.point_events
-  GROUP BY user_id
-) s
-WHERE p.id = s.user_id;
 ```
-Et remettre à 0 ceux sans events (sécurité) :
-```sql
-UPDATE public.profiles SET points = 0
-WHERE id NOT IN (SELECT DISTINCT user_id FROM public.point_events WHERE user_id IS NOT NULL);
+src/components/
+├── LevelCard.tsx          ← modifié (bouton ouvre la modale)
+├── ShareLevelCard.tsx     ← nouveau (visuel 300×300 à capturer)
+└── ShareLevelModal.tsx    ← nouveau (modale + boutons + logique)
 ```
 
 ## Détails techniques
-- Toute la migration tourne dans une transaction.
-- `created_at` = `now()` pour tous les events backfillés (acceptable car l'UI affichera "il y a quelques instants" sur les anciens — pas de page historique pour l'instant).
-- La fonction `award_points()` existante n'est pas utilisée ici : on insère directement pour pouvoir contrôler la garde idempotente sur `(reason, reference_id)` et grouper le recalcul à la fin.
-- Pas de modification de schéma, pas de nouveau trigger.
 
-## Vérification post-migration
-Re-lancer la requête de contrôle sur `bastien.boubat@gmail.com` :
-- 5 contribs validées → 5 events `contribution_validated` (+50 pts)
-- + bonus `first_contribution` selon nb de lieux distincts
-- 42 propositions approuvées → 42 events `proposal_approved` (+1050 pts)
-- Total cappé à **500 pts** dans `profiles.points`.
+### Dépendance
+- `html2canvas` (à installer via `bun add html2canvas`)
+
+### `ShareLevelCard.tsx`
+Composant pur visuel, props : `level`, `points`.
+- Container 300×300, `borderRadius: 20`, dégradé du niveau (mêmes couleurs que `LEVELS.bgFrom/bgTo` de LevelCard).
+- Centré vertical : image éléphant 150×150 (assets `niv1..niv4`).
+- Nom niveau Fraunces 22 bold, points DM Sans 15 semi-bold en couleur `level.color`.
+- Footer bas : favicon Kidmapp (`/favicon.ico` ou asset existant) + `kidmapp.app` 11px muted.
+- Exporté avec `forwardRef` pour permettre la capture html2canvas.
+
+### `ShareLevelModal.tsx`
+Utilise `Dialog` (shadcn) sur desktop, `Sheet side="bottom"` sur mobile (via `useIsMobile`). Fond blanc, `borderRadius: 20`.
+
+Contenu :
+1. `<ShareLevelCard ref={cardRef} ... />` centrée (non interactive, `pointer-events: none`).
+2. Tagline `"Partage ton niveau sur Instagram"` (Fraunces 18).
+3. Sous-titre `"N'oublie pas de nous taguer @kidmapp 🐘"` (DM Sans 13 muted).
+4. Bouton **"Enregistrer l'image"** :
+   - `html2canvas(cardRef.current, { scale: 2, backgroundColor: null })` → `toDataURL('image/png')` → `<a download>`.
+   - Style coral `#D95F3B`, label devient `"Image téléchargée ✓"` vert pendant 2s.
+5. Bouton **"Partager sur Instagram"** :
+   - Convertit canvas → `Blob` → `File('mon-niveau-kidmapp.png')`.
+   - Si `navigator.canShare?.({ files: [file] })` → `navigator.share({ files: [file], title: 'Mon niveau Kidmapp' })`.
+   - Sinon affiche une note discrète sous le bouton : `"Sur mobile : Instagram → Stories → ajoute depuis ta galerie"`.
+   - Style dégradé Instagram `linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)`.
+6. Fermeture : croix top-right (déjà incluse dans Dialog/Sheet) ou clic overlay.
+
+### Modif `LevelCard.tsx`
+- Ajouter un état `shareOpen`.
+- Le bouton "Partager mon niveau" existant : remplacer `handleShare` par `setShareOpen(true)`.
+- Calculer le `currentLevel` reste local ; on passe `{ level: current, points }` à la modale.
+- Suppression de l'ancien `navigator.share(text)` (remplacé par la modale).
+
+## Points d'attention
+- `html2canvas` capture des polices Google Fonts : s'assurer que Fraunces / DM Sans sont déjà chargées avant le clic (elles le sont, utilisées partout dans l'app).
+- `scale: 2` produit un PNG 600×600 net pour Stories.
+- Image éléphant servie via `/__l5e/...` (CORS OK car même origine du preview), passer `useCORS: true` par sécurité.
+- Modale : `z-index: 1000` conforme aux conventions du projet.
 
 ## Hors scope
-- Pas d'UI historique (déjà couverte par les badges +10/+25 sur AccountPage).
-- Pas de modification des triggers existants.
+- Pas de tracking analytics du partage.
+- Pas de génération côté serveur (purement client html2canvas).
+- Pas de modification des assets éléphants existants.
