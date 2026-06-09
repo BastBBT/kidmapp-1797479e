@@ -52,6 +52,37 @@ const BottomNav = () => {
     });
   };
 
+  const renderTab = (tab: typeof tabs[number]) => {
+    const isActive = location.pathname === tab.path;
+    return (
+      <button
+        key={tab.id}
+        onClick={() => navigate(tab.path)}
+        className="relative flex flex-col items-center gap-0.5 px-4 py-1 transition-colors"
+        style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)' }}
+      >
+        <div className="relative">
+          {tab.icon}
+          {tab.id === 'saved' && favoriteIds.length > 0 && (
+            <span
+              className="absolute -top-1.5 -right-2 min-w-[16px] h-4 flex items-center justify-center text-[10px] font-bold text-white rounded-full px-1"
+              style={{ background: '#D95F3B' }}
+            >
+              {favoriteIds.length}
+            </span>
+          )}
+        </div>
+        <span className="font-body text-[10px] uppercase font-semibold tracking-wide">
+          {tab.label}
+        </span>
+      </button>
+    );
+  };
+
+  const exploreTab = tabs.find((t) => t.id === 'explore')!;
+  const savedTab = tabs.find((t) => t.id === 'saved')!;
+  const accountTab = tabs.find((t) => t.id === 'account')!;
+
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around"
@@ -62,32 +93,7 @@ const BottomNav = () => {
         paddingTop: '8px',
       }}
     >
-      {tabs.map((tab) => {
-        const isActive = location.pathname === tab.path;
-        return (
-          <button
-            key={tab.id}
-            onClick={() => navigate(tab.path)}
-            className="relative flex flex-col items-center gap-0.5 px-4 py-1 transition-colors"
-            style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)' }}
-          >
-            <div className="relative">
-              {tab.icon}
-              {tab.id === 'saved' && favoriteIds.length > 0 && (
-                <span
-                  className="absolute -top-1.5 -right-2 min-w-[16px] h-4 flex items-center justify-center text-[10px] font-bold text-white rounded-full px-1"
-                  style={{ background: '#D95F3B' }}
-                >
-                  {favoriteIds.length}
-                </span>
-              )}
-            </div>
-            <span className="font-body text-[10px] uppercase font-semibold tracking-wide">
-              {tab.label}
-            </span>
-          </button>
-        );
-      })}
+      {renderTab(exploreTab)}
 
       {/* Bouton Proposer — action, pas une route */}
       <button
@@ -117,6 +123,9 @@ const BottomNav = () => {
           PROPOSER
         </span>
       </button>
+
+      {renderTab(savedTab)}
+      {renderTab(accountTab)}
     </nav>
   );
 };
