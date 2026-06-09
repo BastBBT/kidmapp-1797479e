@@ -10,6 +10,29 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Auth: this function is only called from a DB trigger via pg_net using the
+  // service role key. Reject any caller that doesn't present it.
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const expected = `Bearer ${serviceRoleKey}`
+  if (!serviceRoleKey || authHeader.length !== expected.length) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+  let mismatch = 0
+  for (let i = 0; i < expected.length; i++) {
+    mismatch |= authHeader.charCodeAt(i) ^ expected.charCodeAt(i)
+  }
+  if (mismatch !== 0) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+
   try {
     const body = await req.json()
     const type = body?.type as 'contribution' | 'proposal' | undefined

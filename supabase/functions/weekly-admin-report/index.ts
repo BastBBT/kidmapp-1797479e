@@ -155,6 +155,24 @@ declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void }
 
 Deno.serve(async (req) => {
   try {
+    // Auth: only the pg_cron job (service role) or an admin caller may trigger.
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const expected = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+    let authorized = false
+    if (SUPABASE_SERVICE_ROLE_KEY && authHeader.length === expected.length) {
+      let mismatch = 0
+      for (let i = 0; i < expected.length; i++) {
+        mismatch |= authHeader.charCodeAt(i) ^ expected.charCodeAt(i)
+      }
+      authorized = mismatch === 0
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
     let overrideWeekStart: Date | undefined
     try {
       const body = await req.json()
