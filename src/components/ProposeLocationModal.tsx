@@ -50,6 +50,15 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
 
   const updateForm = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
 
+  // Clamp step + reset meals if switching to a category without meals step
+  const handleCategoryChange = (newCategory: string) => {
+    setForm((p) => ({ ...p, category: newCategory }));
+    if (!hasMealsStep(newCategory)) {
+      setSelectedMeals([]);
+      setStep((s) => (s >= SHORT_STEPS.length ? SHORT_STEPS.length - 1 : s));
+    }
+  };
+
   const resetAll = () => {
     setForm({
       name: '', category: 'restaurant', address: '',
