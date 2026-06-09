@@ -1,62 +1,40 @@
-# Partage visuel du niveau Kidmapp
+# Améliorer « Partager sur Instagram » (desktop + Chrome mobile)
 
-## Objectif
-Au clic sur "Partager mon niveau" dans la `LevelCard`, ouvrir une modale présentant une carte visuelle 300×300 du niveau, téléchargeable en PNG et partageable vers Instagram Stories (mobile).
+## Problème
+- **Chrome desktop** : `navigator.canShare({ files })` renvoie `false` → seule une petite note discrète s'affiche.
+- **Chrome mobile (Android)** : même quand le partage natif marche, Instagram n'apparaît pas toujours dans la share sheet pour des fichiers PNG, ou l'utilisateur annule et n'a rien de concret pour finir le partage.
 
-## Architecture
+Dans les deux cas, l'utilisateur reste bloqué sans image utilisable.
 
-Deux nouveaux composants + modif minimale de `LevelCard.tsx` :
+## Solution
 
-```
-src/components/
-├── LevelCard.tsx          ← modifié (bouton ouvre la modale)
-├── ShareLevelCard.tsx     ← nouveau (visuel 300×300 à capturer)
-└── ShareLevelModal.tsx    ← nouveau (modale + boutons + logique)
-```
+Toujours **garantir que l'image atterrit chez l'utilisateur**, puis proposer une route directe vers Instagram.
 
-## Détails techniques
+### `src/components/ShareLevelModal.tsx`
 
-### Dépendance
-- `html2canvas` (à installer via `bun add html2canvas`)
+Refondre `handleInstagram` :
 
-### `ShareLevelCard.tsx`
-Composant pur visuel, props : `level`, `points`.
-- Container 300×300, `borderRadius: 20`, dégradé du niveau (mêmes couleurs que `LEVELS.bgFrom/bgTo` de LevelCard).
-- Centré vertical : image éléphant 150×150 (assets `niv1..niv4`).
-- Nom niveau Fraunces 22 bold, points DM Sans 15 semi-bold en couleur `level.color`.
-- Footer bas : favicon Kidmapp (`/favicon.ico` ou asset existant) + `kidmapp.app` 11px muted.
-- Exporté avec `forwardRef` pour permettre la capture html2canvas.
+1. Capturer le canvas → `Blob` → `File('mon-niveau-kidmapp.png')`.
+2. **Toujours déclencher le téléchargement du PNG** en arrière-plan (créer un `<a download>` avec un `URL.createObjectURL(blob)`, le cliquer, puis révoquer l'URL). C'est silencieux et garantit que l'image existe sur l'appareil.
+3. **Si `navigator.canShare?.({ files: [file] })`** : appeler `navigator.share({ files: [file], title: 'Mon niveau Kidmapp' })`. Si l'utilisateur annule (catch silencieux) → on retombe sur le message ci-dessous.
+4. **Sinon** : ouvrir Instagram dans un nouvel onglet.
+   - Desktop → `https://www.instagram.com/`
+   - Mobile → tenter le deep link `instagram://story-camera` via `window.location.href`, avec fallback `https://www.instagram.com/` après 800ms si l'app n'est pas installée (timer annulé si la page perd le focus).
+   - Détection mobile via `useIsMobile` déjà présent dans le projet.
+5. Afficher un encart visible (remplaçant la note discrète actuelle) sous les boutons :
+   - **Mobile** : « Image enregistrée dans ta galerie ✓ — Ouvre Instagram → Stories → ajoute-la depuis ta galerie. »
+   - **Desktop** : « Image téléchargée ✓ — Instagram s'ouvre dans un nouvel onglet. Termine le partage depuis ton mobile. »
+   - Style : fond `#FFF8F5`, bordure `1px solid rgba(217,95,59,0.2)`, padding 12, border-radius 12, fontSize 12.5, texte centré, couleur `var(--text)`.
 
-### `ShareLevelModal.tsx`
-Utilise `Dialog` (shadcn) sur desktop, `Sheet side="bottom"` sur mobile (via `useIsMobile`). Fond blanc, `borderRadius: 20`.
-
-Contenu :
-1. `<ShareLevelCard ref={cardRef} ... />` centrée (non interactive, `pointer-events: none`).
-2. Tagline `"Partage ton niveau sur Instagram"` (Fraunces 18).
-3. Sous-titre `"N'oublie pas de nous taguer @kidmapp 🐘"` (DM Sans 13 muted).
-4. Bouton **"Enregistrer l'image"** :
-   - `html2canvas(cardRef.current, { scale: 2, backgroundColor: null })` → `toDataURL('image/png')` → `<a download>`.
-   - Style coral `#D95F3B`, label devient `"Image téléchargée ✓"` vert pendant 2s.
-5. Bouton **"Partager sur Instagram"** :
-   - Convertit canvas → `Blob` → `File('mon-niveau-kidmapp.png')`.
-   - Si `navigator.canShare?.({ files: [file] })` → `navigator.share({ files: [file], title: 'Mon niveau Kidmapp' })`.
-   - Sinon affiche une note discrète sous le bouton : `"Sur mobile : Instagram → Stories → ajoute depuis ta galerie"`.
-   - Style dégradé Instagram `linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)`.
-6. Fermeture : croix top-right (déjà incluse dans Dialog/Sheet) ou clic overlay.
-
-### Modif `LevelCard.tsx`
-- Ajouter un état `shareOpen`.
-- Le bouton "Partager mon niveau" existant : remplacer `handleShare` par `setShareOpen(true)`.
-- Calculer le `currentLevel` reste local ; on passe `{ level: current, points }` à la modale.
-- Suppression de l'ancien `navigator.share(text)` (remplacé par la modale).
-
-## Points d'attention
-- `html2canvas` capture des polices Google Fonts : s'assurer que Fraunces / DM Sans sont déjà chargées avant le clic (elles le sont, utilisées partout dans l'app).
-- `scale: 2` produit un PNG 600×600 net pour Stories.
-- Image éléphant servie via `/__l5e/...` (CORS OK car même origine du preview), passer `useCORS: true` par sécurité.
-- Modale : `z-index: 1000` conforme aux conventions du projet.
+### Détails techniques
+- Pas de nouvelle dépendance.
+- Pas de modif de `ShareLevelCard.tsx` ni de `LevelCard.tsx`.
+- Garder le label « Partager sur Instagram » + dégradé Instagram du bouton.
+- Mutualiser la logique de download : extraire une petite fonction `triggerDownload(blob | dataUrl, filename)` interne au composant, réutilisée par `handleDownload` et `handleInstagram`.
+- `setBusy(false)` toujours appelé dans le callback `toBlob`, y compris en cas d'erreur.
 
 ## Hors scope
-- Pas de tracking analytics du partage.
-- Pas de génération côté serveur (purement client html2canvas).
-- Pas de modification des assets éléphants existants.
+- Pas de copie presse-papier.
+- Pas de QR code.
+- Pas de tracking analytics.
+- Pas de modif du flow « Enregistrer l'image » (inchangé).

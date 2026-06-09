@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { X, Download, Share2 } from 'lucide-react';
 import ShareLevelCard, { type ShareLevel } from './ShareLevelCard';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ShareLevelModalProps {
   open: boolean;
@@ -10,7 +11,19 @@ interface ShareLevelModalProps {
   points: number;
 }
 
+const FILENAME = 'mon-niveau-kidmapp.png';
+
+const triggerDownload = (href: string, filename: string) => {
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = href;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 const ShareLevelModal = ({ open, onClose, level, points }: ShareLevelModalProps) => {
+  const isMobile = useIsMobile();
   const cardRef = useRef<HTMLDivElement>(null);
   const [downloaded, setDownloaded] = useState(false);
   const [shareNote, setShareNote] = useState<string | null>(null);
@@ -34,10 +47,7 @@ const ShareLevelModal = ({ open, onClose, level, points }: ShareLevelModalProps)
     try {
       const canvas = await capture();
       if (!canvas) return;
-      const link = document.createElement('a');
-      link.download = 'mon-niveau-kidmapp.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      triggerDownload(canvas.toDataURL('image/png'), FILENAME);
       setDownloaded(true);
       setTimeout(() => setDownloaded(false), 2000);
     } catch (e) {
@@ -47,27 +57,86 @@ const ShareLevelModal = ({ open, onClose, level, points }: ShareLevelModalProps)
     }
   };
 
+  const openInstagram = () => {
+    if (isMobile) {
+      // Try deep link; fallback to web after a short delay
+      let didFallback = false;
+      const fallback = window.setTimeout(() => {
+        didFallback = true;
+        window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+      }, 800);
+      const onVisibility = () => {
+        if (document.visibilityState === 'hidden') {
+          window.clearTimeout(fallback);
+          document.removeEventListener('visibilitychange', onVisibility);
+        }
+      };
+      document.addEventListener('visibilitychange', onVisibility);
+      try {
+        window.location.href = 'instagram://story-camera';
+      } catch {
+        if (!didFallback) {
+          window.clearTimeout(fallback);
+          window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+        }
+      }
+    } else {
+      window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const showFallbackMessage = () => {
+    setShareNote(
+      isMobile
+        ? 'Image enregistrée dans ta galerie ✓ — Ouvre Instagram → Stories → ajoute-la depuis ta galerie.'
+        : "Image téléchargée ✓ — Instagram s'ouvre dans un nouvel onglet. Termine le partage depuis ton mobile."
+    );
+  };
+
   const handleInstagram = async () => {
     if (busy) return;
     setBusy(true);
     setShareNote(null);
     try {
       const canvas = await capture();
-      if (!canvas) return;
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        const file = new File([blob], 'mon-niveau-kidmapp.png', { type: 'image/png' });
-        const nav = navigator as any;
-        if (nav.canShare?.({ files: [file] })) {
-          try {
-            await nav.share({ files: [file], title: 'Mon niveau Kidmapp' });
-          } catch {
-            // user cancelled
-          }
-        } else {
-          setShareNote("Sur mobile : Instagram → Stories → ajoute depuis ta galerie");
-        }
+      if (!canvas) {
         setBusy(false);
+        return;
+      }
+      canvas.toBlob(async (blob) => {
+        try {
+          if (!blob) return;
+
+          // Always download the image so user has it on their device
+          const url = URL.createObjectURL(blob);
+          triggerDownload(url, FILENAME);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+          const file = new File([blob], FILENAME, { type: 'image/png' });
+          const nav = navigator as Navigator & {
+            canShare?: (data: { files: File[] }) => boolean;
+            share?: (data: { files?: File[]; title?: string }) => Promise<void>;
+          };
+
+          let shared = false;
+          if (nav.canShare?.({ files: [file] }) && nav.share) {
+            try {
+              await nav.share({ files: [file], title: 'Mon niveau Kidmapp' });
+              shared = true;
+            } catch {
+              // user cancelled or share failed
+            }
+          }
+
+          if (!shared) {
+            openInstagram();
+            showFallbackMessage();
+          }
+        } catch (e) {
+          console.error('share error', e);
+        } finally {
+          setBusy(false);
+        }
       }, 'image/png');
     } catch (e) {
       console.error('share error', e);
@@ -207,15 +276,22 @@ const ShareLevelModal = ({ open, onClose, level, points }: ShareLevelModalProps)
             </button>
 
             {shareNote && (
-              <p style={{
-                margin: 0,
-                fontSize: 12,
-                color: 'var(--text-muted)',
-                textAlign: 'center',
-                lineHeight: 1.4,
-              }}>
+              <div
+                role="status"
+                style={{
+                  margin: 0,
+                  padding: 12,
+                  background: '#FFF8F5',
+                  border: '1px solid rgba(217,95,59,0.2)',
+                  borderRadius: 12,
+                  fontSize: 12.5,
+                  color: 'var(--text)',
+                  textAlign: 'center',
+                  lineHeight: 1.45,
+                }}
+              >
                 {shareNote}
-              </p>
+              </div>
             )}
           </div>
         </div>
