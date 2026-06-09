@@ -562,11 +562,11 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
               {step < STEPS.length - 1 ? (
                 <button
                   onClick={goNext}
-                  disabled={step === 0 ? !canContinueStep0 : step === 2 ? selectedMeals.length === 0 : false}
+                  disabled={step === 0 ? !canContinueStep0 : isMealsStep ? selectedMeals.length === 0 : false}
                   className="w-full flex items-center justify-center gap-2 py-3 font-semibold text-sm disabled:opacity-40 transition-opacity"
                   style={{ borderRadius: '100px', background: 'var(--primary)', color: '#fff', border: 'none', fontFamily: 'DM Sans', cursor: 'pointer' }}
                 >
-                  {step === 2
+                  {isMealsStep
                     ? `Continuer (${selectedMeals.length} service${selectedMeals.length > 1 ? 's' : ''} sélectionné${selectedMeals.length > 1 ? 's' : ''})`
                     : 'Continuer'}
                 </button>
