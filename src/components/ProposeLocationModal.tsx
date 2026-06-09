@@ -70,6 +70,10 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
 
   const canContinueStep0 = form.name.trim() && form.address.trim();
 
+  const STEPS = hasMealsStep(form.category) ? FULL_STEPS : SHORT_STEPS;
+  const isPhotosStep = step === STEPS.length - 1;
+  const isMealsStep = hasMealsStep(form.category) && step === 2;
+
   const goNext = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
   const goPrev = () => setStep((s) => Math.max(s - 1, 0));
 
