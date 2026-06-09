@@ -1,23 +1,33 @@
-## Intégrer les illustrations éléphant dans la LevelCard
+## Contexte
+Ajouter un feedback visuel immédiat sur les gains de points dans la page profil (`/compte`), sans requête supplémentaire.
 
-### 1. Upload des 4 PNG via Lovable Assets (CDN)
-Plutôt que de poser les binaires dans `/public/levels/`, je passe par `lovable-assets` (politique projet : ne pas embarquer de gros binaires dans le repo). Les 4 fichiers sont uploadés depuis `/mnt/user-uploads/Niv{1..4}.png` et leurs pointeurs JSON sont écrits dans :
-- `src/assets/levels/niv1.png.asset.json`
-- `src/assets/levels/niv2.png.asset.json`
-- `src/assets/levels/niv3.png.asset.json`
-- `src/assets/levels/niv4.png.asset.json`
+## Modifications
 
-### 2. Mise à jour de `src/components/LevelCard.tsx`
-- Importer les 4 pointeurs en haut du fichier.
-- Ajouter un champ `img: string` sur le type `Level` et renseigner `img: niv1Asset.url` … pour chaque entrée de `LEVELS`.
-- **Grande image (62×62)** : remplacer le placeholder coloré (`NIV. / id`) par `<img src={current.img} alt={current.name} style={{ width: 62, height: 62, borderRadius: 14, objectFit: 'contain' }} loading="eager" />`. Pas de fond coloré derrière, le dégradé de la carte reste visible.
-- **Frise (chips 24×24)** : remplacer la pastille colorée par `<img src={lvl.img} alt="" width={24} height={24} style={{ width: 24, height: 24, objectFit: 'contain' }} />`. Pour le niveau actuel l'image est en pleine opacité ; pour les niveaux futurs (non encore atteints) ajout d'un `opacity: 0.4` + `filter: grayscale(0.4)` pour rester lisible et signaler qu'ils sont verrouillés. Les niveaux passés gardent leur image en pleine opacité (et le ✓ disparaît puisque l'éléphant est l'identité visuelle).
-- Conserver la bordure active / fond `rgba(color, 0.12)` du chip courant, qui sert de signal d'état.
-- Dimensions fixes (`width`/`height` numériques HTML + `style`) pour éviter le layout shift au chargement.
+### Fichier : `src/pages/AccountPage.tsx`
 
-### 3. Vérification
-Une fois en place : rechargement de `/account` à 390×844 et capture d'écran de la carte pour vérifier proportions, lisibilité des chips et cohérence niveau actuel / illustration affichée.
+1. **Badge "+10 pts" sur les contributions validées**
+   - Sur les lignes `myContributions` avec `status === 'validated'`, injecter un `<span>` inline entre le nom du lieu et le badge de statut (ou juste avant celui-ci).
+   - Style :
+     ```
+     fontSize: 11, fontWeight: 700,
+     background: 'rgba(217,95,59,0.08)',
+     color: '#D95F3B',
+     padding: '2px 8px',
+     borderRadius: 20,
+     flexShrink: 0
+     ```
+   - Texte : `+10 pts`
+   - Simplification : toujours +10 pts (le bonus first_contribution de +15 pts sera visible dans un futur historique détaillé).
 
-### Hors scope
-- Pas de modification de la logique de niveaux ni du fetch profile.
-- Pas d'animation supplémentaire.
+2. **Badge "+25 pts" sur les propositions approuvées**
+   - Sur les lignes `myProposals` avec `status === 'approved'`, même badge `+25 pts` au même emplacement relatif.
+
+3. **Positionnement**
+   - Les badges points s'affichent sur la même ligne flex que le badge de statut existant.
+   - Ordre suggéré : nom du lieu → badge points → badge statut.
+   - Discret : même hauteur environ que le badge statut, ne pas augmenter la hauteur de ligne.
+
+## Ce qu'on ne fait pas
+- Pas de requête BDD supplémentaire (les données `status` sont déjà chargées).
+- Pas de logique conditionnelle complexe (first_contribution bonus).
+- Pas de modification hors de `AccountPage.tsx`.

@@ -351,13 +351,23 @@ const AccountPage = () => {
                 )}
               </div>
             </div>
-            <div style={{
-              fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '100px', flexShrink: 0,
-              background: c.status === 'validated' ? '#EBF6EC' : c.status === 'rejected' ? '#FEF0EC' : 'var(--accent-light)',
-              color: c.status === 'validated' ? '#2E7D32' : c.status === 'rejected' ? 'var(--primary)' : '#C49A35'
-            }}>
-              {c.status === 'validated' ? '✓ Validée' : c.status === 'rejected' ? '✗ Refusée' : '⏳ En attente'}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+              {c.status === 'validated' && (
+                <div style={{
+                  fontSize: 11, fontWeight: 700,
+                  background: 'rgba(217,95,59,0.08)', color: '#D95F3B',
+                  padding: '2px 8px', borderRadius: 20,
+                }}>+10 pts</div>
+              )}
+              <div style={{
+                fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '100px',
+                background: c.status === 'validated' ? '#EBF6EC' : c.status === 'rejected' ? '#FEF0EC' : 'var(--accent-light)',
+                color: c.status === 'validated' ? '#2E7D32' : c.status === 'rejected' ? 'var(--primary)' : '#C49A35'
+              }}>
+                {c.status === 'validated' ? '✓ Validée' : c.status === 'rejected' ? '✗ Refusée' : '⏳ En attente'}
+              </div>
             </div>
+
           </div>
         ))}
       </div>
@@ -398,13 +408,23 @@ const AccountPage = () => {
                 {new Date(p.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
               </div>
             </div>
-            <div style={{
-              fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '100px', flexShrink: 0,
-              background: p.status === 'approved' ? '#EBF6EC' : p.status === 'rejected' ? '#FEF0EC' : 'var(--accent-light)',
-              color: p.status === 'approved' ? '#2E7D32' : p.status === 'rejected' ? 'var(--primary)' : '#C49A35'
-            }}>
-              {p.status === 'approved' ? '✓ Publiée' : p.status === 'rejected' ? '✗ Refusée' : '⏳ En attente'}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+              {p.status === 'approved' && (
+                <div style={{
+                  fontSize: 11, fontWeight: 700,
+                  background: 'rgba(217,95,59,0.08)', color: '#D95F3B',
+                  padding: '2px 8px', borderRadius: 20,
+                }}>+25 pts</div>
+              )}
+              <div style={{
+                fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '100px',
+                background: p.status === 'approved' ? '#EBF6EC' : p.status === 'rejected' ? '#FEF0EC' : 'var(--accent-light)',
+                color: p.status === 'approved' ? '#2E7D32' : p.status === 'rejected' ? 'var(--primary)' : '#C49A35'
+              }}>
+                {p.status === 'approved' ? '✓ Publiée' : p.status === 'rejected' ? '✗ Refusée' : '⏳ En attente'}
+              </div>
             </div>
+
           </div>
         ))}
       </div>
