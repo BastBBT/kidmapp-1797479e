@@ -1,6 +1,10 @@
 import { useState } from 'react';
-import { ChevronDown, Share2, Check } from 'lucide-react';
+import { ChevronDown, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import niv1Asset from '@/assets/levels/niv1.png.asset.json';
+import niv2Asset from '@/assets/levels/niv2.png.asset.json';
+import niv3Asset from '@/assets/levels/niv3.png.asset.json';
+import niv4Asset from '@/assets/levels/niv4.png.asset.json';
 
 type Level = {
   id: number;
@@ -10,13 +14,14 @@ type Level = {
   color: string;
   bgFrom: string;
   bgTo: string;
+  img: string;
 };
 
 const LEVELS: Level[] = [
-  { id: 1, name: 'Explorateur',   min: 0,   max: 24,  color: '#A8A29E', bgFrom: '#FAF9F6', bgTo: '#F5F0EC' },
-  { id: 2, name: 'Contributeur',  min: 25,  max: 74,  color: '#D95F3B', bgFrom: '#FFF8F5', bgTo: '#FFF0E8' },
-  { id: 3, name: 'Guide Kidmapp', min: 75,  max: 149, color: '#3B7D6E', bgFrom: '#F0FAF7', bgTo: '#E4F5F0' },
-  { id: 4, name: 'Ambassadeur',   min: 150, max: 500, color: '#C4882A', bgFrom: '#FFFBF0', bgTo: '#FFF4D4' },
+  { id: 1, name: 'Explorateur',   min: 0,   max: 24,  color: '#A8A29E', bgFrom: '#FAF9F6', bgTo: '#F5F0EC', img: niv1Asset.url },
+  { id: 2, name: 'Contributeur',  min: 25,  max: 74,  color: '#D95F3B', bgFrom: '#FFF8F5', bgTo: '#FFF0E8', img: niv2Asset.url },
+  { id: 3, name: 'Guide Kidmapp', min: 75,  max: 149, color: '#3B7D6E', bgFrom: '#F0FAF7', bgTo: '#E4F5F0', img: niv3Asset.url },
+  { id: 4, name: 'Ambassadeur',   min: 150, max: 500, color: '#C4882A', bgFrom: '#FFFBF0', bgTo: '#FFF4D4', img: niv4Asset.url },
 ];
 
 const getCurrentLevel = (points: number): Level =>
@@ -88,21 +93,17 @@ const LevelCard = ({ points }: LevelCardProps) => {
     }}>
       {/* Header */}
       <div style={{ display: 'flex', gap: 14, padding: 16, alignItems: 'center' }}>
-        <div style={{
-          width: 62, height: 62, borderRadius: 14,
-          background: rgba(current.color, 0.15),
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-          color: current.color,
-        }}>
-          <div style={{ fontFamily: 'Fraunces', fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', opacity: 0.8 }}>
-            NIV.
-          </div>
-          <div style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 600, lineHeight: 1, marginTop: 2 }}>
-            {current.id}
-          </div>
-        </div>
+        <img
+          src={current.img}
+          alt={current.name}
+          width={62}
+          height={62}
+          loading="eager"
+          style={{
+            width: 62, height: 62, borderRadius: 14,
+            objectFit: 'contain', flexShrink: 0,
+          }}
+        />
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
@@ -172,15 +173,17 @@ const LevelCard = ({ points }: LevelCardProps) => {
               border: isActive ? `1.5px solid ${lvl.color}` : '1.5px solid transparent',
               transition: 'all 0.2s ease',
             }}>
-              <div style={{
-                width: 24, height: 24, borderRadius: '50%',
-                background: isActive || isPast ? lvl.color : rgba(lvl.color, 0.18),
-                color: isActive || isPast ? '#fff' : lvl.color,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 11, fontWeight: 700, fontFamily: 'Fraunces',
-              }}>
-                {isPast ? <Check size={14} strokeWidth={3} /> : lvl.id}
-              </div>
+              <img
+                src={lvl.img}
+                alt=""
+                width={24}
+                height={24}
+                style={{
+                  width: 24, height: 24, objectFit: 'contain',
+                  opacity: isActive || isPast ? 1 : 0.45,
+                  filter: isActive || isPast ? 'none' : 'grayscale(0.5)',
+                }}
+              />
               <div style={{
                 fontSize: 10.5, fontWeight: 600,
                 color: isActive ? lvl.color : 'var(--text)',

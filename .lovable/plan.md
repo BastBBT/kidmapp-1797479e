@@ -1,34 +1,23 @@
-## Composant LevelCard sur la page Mon compte
+## Intégrer les illustrations éléphant dans la LevelCard
 
-### 1. Fetch des points
-**`src/hooks/useAuth.ts`** — étendre la `Profile` interface avec `points: number`, ajouter `points` dans le `select` de `fetchProfile`, exposer dans le state. Le points est rechargé automatiquement via `refreshProfile` après une action.
+### 1. Upload des 4 PNG via Lovable Assets (CDN)
+Plutôt que de poser les binaires dans `/public/levels/`, je passe par `lovable-assets` (politique projet : ne pas embarquer de gros binaires dans le repo). Les 4 fichiers sont uploadés depuis `/mnt/user-uploads/Niv{1..4}.png` et leurs pointeurs JSON sont écrits dans :
+- `src/assets/levels/niv1.png.asset.json`
+- `src/assets/levels/niv2.png.asset.json`
+- `src/assets/levels/niv3.png.asset.json`
+- `src/assets/levels/niv4.png.asset.json`
 
-### 2. Constantes & helpers (dans le composant LevelCard)
-- Tableau `LEVELS` avec les 4 niveaux (Explorateur 0-24, Contributeur 25-74, Guide Kidmapp 75-149, Ambassadeur 150-500), chacun avec `color`, `bgFrom`, `bgTo`.
-- Helpers `getCurrentLevel`, `getNextLevel`, `getProgressPercent`.
+### 2. Mise à jour de `src/components/LevelCard.tsx`
+- Importer les 4 pointeurs en haut du fichier.
+- Ajouter un champ `img: string` sur le type `Level` et renseigner `img: niv1Asset.url` … pour chaque entrée de `LEVELS`.
+- **Grande image (62×62)** : remplacer le placeholder coloré (`NIV. / id`) par `<img src={current.img} alt={current.name} style={{ width: 62, height: 62, borderRadius: 14, objectFit: 'contain' }} loading="eager" />`. Pas de fond coloré derrière, le dégradé de la carte reste visible.
+- **Frise (chips 24×24)** : remplacer la pastille colorée par `<img src={lvl.img} alt="" width={24} height={24} style={{ width: 24, height: 24, objectFit: 'contain' }} />`. Pour le niveau actuel l'image est en pleine opacité ; pour les niveaux futurs (non encore atteints) ajout d'un `opacity: 0.4` + `filter: grayscale(0.4)` pour rester lisible et signaler qu'ils sont verrouillés. Les niveaux passés gardent leur image en pleine opacité (et le ✓ disparaît puisque l'éléphant est l'identité visuelle).
+- Conserver la bordure active / fond `rgba(color, 0.12)` du chip courant, qui sert de signal d'état.
+- Dimensions fixes (`width`/`height` numériques HTML + `style`) pour éviter le layout shift au chargement.
 
-### 3. Nouveau composant `src/components/LevelCard.tsx`
-Props : `points: number`.
+### 3. Vérification
+Une fois en place : rechargement de `/account` à 390×844 et capture d'écran de la carte pour vérifier proportions, lisibilité des chips et cohérence niveau actuel / illustration affichée.
 
-Structure :
-1. **Header** : placeholder coloré 62×62 radius 14 à gauche (cercle `bgFrom` + lettre `Niv.X` du niveau en `color`) + à droite : nom du niveau (Fraunces 18px), sous-titre "N points accumulés" (DM Sans 13px muted), barre de progression 7px avec fill dégradé `color`, sous la barre 2 labels : seuil actuel à gauche, "+X pts → NextLevel" à droite.
-   - Si Ambassadeur : barre à 100%, à la place des labels → "🏆 Niveau maximum atteint !" centré.
-   - Si 0 pt : afficher "+25 pts pour devenir Contributeur".
-2. **Frise 4 niveaux** : 4 chips égaux (grid 1fr×4), petite pastille ronde 24×24 (initiale du niveau), nom (12px), seuil "0+ pts" (10px muted). Le chip actif a `background: rgba(color, 0.12)` + `border: 1.5px solid color`. Les chips précédents montrent ✓.
-3. **Accordéon "Comment gagner des points ?"** : bouton avec chevron Lucide qui pivote 180° (animation 0.2s), 3 lignes :
-   - +10 pts • Contribution validée
-   - +5 pts • Premier sur un lieu
-   - +25 pts • Proposition approuvée
-   Pills colorées dans la couleur du niveau actuel.
-4. **Bouton partage** : texte muted "↗ Partager mon niveau" centré. Au clic → `navigator.share({ text: "Je suis [Niveau] sur Kidmapp avec [N] points ! 🐘 https://kidmapp.app" })` avec fallback `navigator.clipboard.writeText` + toast (utiliser `useToast`).
-
-Style global : container `background: linear-gradient(135deg, bgFrom, bgTo)`, `border-radius: 18px`, `border: 1.5px solid rgba(color, 0.12)`, `box-shadow: 0 2px 8px rgba(0,0,0,0.04)`, padding 16px, sections séparées par `border-top: 1px solid rgba(color, 0.1)`.
-
-### 4. Intégration `src/pages/AccountPage.tsx`
-- Importer `LevelCard`.
-- L'insérer entre le bloc Stats (`/* Stats */`) et le bloc Prénom (`/* Prénom */`), wrappé dans `<div style={{ padding: '20px 16px 0' }}>`.
-- Ne pas afficher si `profile?.points === undefined`.
-
-### Hors scope (étape 3)
-- Pas d'images éléphant (placeholders pour l'instant).
-- Pas d'écriture en base, pas de logique admin.
+### Hors scope
+- Pas de modification de la logique de niveaux ni du fetch profile.
+- Pas d'animation supplémentaire.
