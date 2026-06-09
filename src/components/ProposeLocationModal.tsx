@@ -20,7 +20,9 @@ interface ProposeLocationModalProps {
   onClose: () => void;
 }
 
-const STEPS = ['Infos', 'Équipements', 'Repas & horaires', 'Photos'] as const;
+const FULL_STEPS = ['Infos', 'Équipements', 'Repas & horaires', 'Photos'] as const;
+const SHORT_STEPS = ['Infos', 'Équipements', 'Photos'] as const;
+const hasMealsStep = (category: string) => category === 'restaurant' || category === 'cafe';
 
 const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
   const { toast } = useToast();
