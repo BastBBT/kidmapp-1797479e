@@ -466,8 +466,8 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                 </div>
               )}
 
-              {/* === STEP 3: Photos === */}
-              {step === 3 && (
+              {/* === STEP Photos (toujours dernier) === */}
+              {isPhotosStep && (
                 <div className="flex flex-col gap-4">
                   <div>
                     <h3 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
