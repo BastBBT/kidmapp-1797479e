@@ -240,6 +240,13 @@ const LevelCard = ({ points }: LevelCardProps) => {
           Partager mon niveau
         </button>
       </div>
+
+      <ShareLevelModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        level={current}
+        points={points}
+      />
     </div>
   );
 };
