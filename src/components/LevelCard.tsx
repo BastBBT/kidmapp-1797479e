@@ -1,6 +1,10 @@
 import { useState } from 'react';
-import { ChevronDown, Share2, Check } from 'lucide-react';
+import { ChevronDown, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import niv1Asset from '@/assets/levels/niv1.png.asset.json';
+import niv2Asset from '@/assets/levels/niv2.png.asset.json';
+import niv3Asset from '@/assets/levels/niv3.png.asset.json';
+import niv4Asset from '@/assets/levels/niv4.png.asset.json';
 
 type Level = {
   id: number;
