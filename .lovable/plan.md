@@ -1,40 +1,41 @@
-# Améliorer « Partager sur Instagram » (desktop + Chrome mobile)
+# Fix partage mobile : enregistrement dans la pellicule
 
-## Problème
-- **Chrome desktop** : `navigator.canShare({ files })` renvoie `false` → seule une petite note discrète s'affiche.
-- **Chrome mobile (Android)** : même quand le partage natif marche, Instagram n'apparaît pas toujours dans la share sheet pour des fichiers PNG, ou l'utilisateur annule et n'a rien de concret pour finir le partage.
+## Problèmes constatés
+1. **Sur mobile, le bouton "Partager sur Instagram" renvoie direct vers Instagram sans télécharger** : soit `navigator.canShare({files})` est `false`, soit `navigator.share` a échoué/été annulé → on tombe sur le fallback `openInstagram()` + `<a download>` qui ne sauve rien dans la pellicule.
+2. **Le bouton "Enregistrer l'image" ne sauve pas dans la pellicule sur mobile** : `<a download>` sur iOS Safari ouvre juste l'image dans un nouvel onglet ; sur Android Chrome ça va dans Downloads, pas dans Photos.
 
-Dans les deux cas, l'utilisateur reste bloqué sans image utilisable.
+La seule manière fiable d'atterrir dans la pellicule sur mobile, c'est le **share sheet natif** (`navigator.share({ files })`) où l'utilisateur choisit « Enregistrer l'image » / « Save to Photos ».
 
 ## Solution
 
-Toujours **garantir que l'image atterrit chez l'utilisateur**, puis proposer une route directe vers Instagram.
+Adapter les deux boutons selon la plateforme via `useIsMobile` + détection de `canShare({files})`.
 
 ### `src/components/ShareLevelModal.tsx`
 
-Refondre `handleInstagram` :
+#### Bouton "Enregistrer l'image"
+- **Mobile + `canShare({files})` supporté** → appeler `navigator.share({ files: [file], title: 'Mon niveau Kidmapp' })`. L'utilisateur choisit "Enregistrer l'image" dans la share sheet → va dans Photos. Pas de redirection Instagram ici.
+- **Sinon (desktop, ou mobile sans Web Share API fichiers)** → comportement actuel `<a download>`.
+- Label adapté : sur mobile, "Enregistrer dans Photos" (plus explicite que "l'image"). Sur desktop : "Télécharger l'image".
 
-1. Capturer le canvas → `Blob` → `File('mon-niveau-kidmapp.png')`.
-2. **Toujours déclencher le téléchargement du PNG** en arrière-plan (créer un `<a download>` avec un `URL.createObjectURL(blob)`, le cliquer, puis révoquer l'URL). C'est silencieux et garantit que l'image existe sur l'appareil.
-3. **Si `navigator.canShare?.({ files: [file] })`** : appeler `navigator.share({ files: [file], title: 'Mon niveau Kidmapp' })`. Si l'utilisateur annule (catch silencieux) → on retombe sur le message ci-dessous.
-4. **Sinon** : ouvrir Instagram dans un nouvel onglet.
-   - Desktop → `https://www.instagram.com/`
-   - Mobile → tenter le deep link `instagram://story-camera` via `window.location.href`, avec fallback `https://www.instagram.com/` après 800ms si l'app n'est pas installée (timer annulé si la page perd le focus).
-   - Détection mobile via `useIsMobile` déjà présent dans le projet.
-5. Afficher un encart visible (remplaçant la note discrète actuelle) sous les boutons :
-   - **Mobile** : « Image enregistrée dans ta galerie ✓ — Ouvre Instagram → Stories → ajoute-la depuis ta galerie. »
-   - **Desktop** : « Image téléchargée ✓ — Instagram s'ouvre dans un nouvel onglet. Termine le partage depuis ton mobile. »
-   - Style : fond `#FFF8F5`, bordure `1px solid rgba(217,95,59,0.2)`, padding 12, border-radius 12, fontSize 12.5, texte centré, couleur `var(--text)`.
+#### Bouton "Partager sur Instagram"
+- **Mobile + `canShare({files})` supporté** → uniquement `navigator.share({ files, title })`. L'utilisateur choisit Instagram (ou "Enregistrer l'image" puis ouvre Insta manuellement). **Aucun fallback automatique vers `instagram://`** ni `<a download>` parallèle — c'était la source du bug.
+  - Si l'utilisateur annule (AbortError) → ne rien faire (pas de message d'erreur intrusif).
+  - Si `share` rejette pour autre raison → afficher le message fallback mobile.
+- **Mobile sans Web Share API fichiers** → afficher un encart visible : « Sur ton mobile, utilise d'abord "Enregistrer dans Photos" ci-dessus, puis ouvre Instagram → Stories. » + bouton secondaire "Ouvrir Instagram" qui fait `window.open('https://www.instagram.com/', '_blank')`.
+- **Desktop** → comportement actuel : download du PNG + ouverture nouvel onglet `instagram.com` + message « Image téléchargée ✓ — Termine le partage depuis ton mobile. »
+
+#### Code partagé
+- Garder `triggerDownload(href, filename)` pour desktop.
+- Nouvelle helper `shareFile(file): Promise<'shared' | 'cancelled' | 'unsupported' | 'error'>` pour centraliser la détection (`canShare` + try/catch sur AbortError).
+- Plus de deep link `instagram://story-camera` automatique : trop fragile sur iOS et inutile si la share sheet marche.
 
 ### Détails techniques
+- Détection mobile : `useIsMobile` déjà importé.
+- Détection Web Share API fichiers : utilitaire `canShareFiles(file)` qui check `typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })`.
+- Pas de modif de `ShareLevelCard.tsx` ni `LevelCard.tsx`.
 - Pas de nouvelle dépendance.
-- Pas de modif de `ShareLevelCard.tsx` ni de `LevelCard.tsx`.
-- Garder le label « Partager sur Instagram » + dégradé Instagram du bouton.
-- Mutualiser la logique de download : extraire une petite fonction `triggerDownload(blob | dataUrl, filename)` interne au composant, réutilisée par `handleDownload` et `handleInstagram`.
-- `setBusy(false)` toujours appelé dans le callback `toBlob`, y compris en cas d'erreur.
 
 ## Hors scope
 - Pas de copie presse-papier.
-- Pas de QR code.
-- Pas de tracking analytics.
-- Pas de modif du flow « Enregistrer l'image » (inchangé).
+- Pas de tracking.
+- Pas de génération côté serveur.
