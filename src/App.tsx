@@ -16,8 +16,10 @@ import AuthGate from "./components/AuthGate";
 import IosAppBanner from "./components/IosAppBanner";
 import BottomNav from "./components/BottomNav";
 import Onboarding from "./components/Onboarding";
+import ProposeLocationModal from "./components/ProposeLocationModal";
 import { useAuth, AuthProvider } from "./hooks/useAuth";
 import { RequireAuthProvider, useRequireAuth } from "./hooks/useRequireAuth";
+import { ProposalModalProvider, useProposalModal } from "./hooks/useProposalModal";
 import { usePageviewTracker } from "./hooks/usePageviewTracker";
 
 const queryClient = new QueryClient();
@@ -52,6 +54,7 @@ const OnboardingOverlay = () => {
 
 const AppContent = () => {
   usePageviewTracker();
+  const { isOpen: isProposalOpen, close: closeProposal } = useProposalModal();
   return (
     <>
       <IosAppBanner />
@@ -85,6 +88,7 @@ const AppContent = () => {
       </Routes>
       <BottomNav />
       <OnboardingOverlay />
+      <ProposeLocationModal open={isProposalOpen} onClose={closeProposal} />
     </>
   );
 };
@@ -96,9 +100,11 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <RequireAuthProvider>
-            <AppContent />
-          </RequireAuthProvider>
+          <ProposalModalProvider>
+            <RequireAuthProvider>
+              <AppContent />
+            </RequireAuthProvider>
+          </ProposalModalProvider>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
