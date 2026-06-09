@@ -474,23 +474,53 @@ export type Database = {
         }
         Relationships: []
       }
+      point_events: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          reason: string
+          reference_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          reason: string
+          reference_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          reason?: string
+          reference_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
           full_name: string | null
           id: string
+          points: number
           role: string
         }
         Insert: {
           created_at?: string
           full_name?: string | null
           id: string
+          points?: number
           role?: string
         }
         Update: {
           created_at?: string
           full_name?: string | null
           id?: string
+          points?: number
           role?: string
         }
         Relationships: []
@@ -524,6 +554,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_points: {
+        Args: {
+          p_amount: number
+          p_reason: string
+          p_reference_id?: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
