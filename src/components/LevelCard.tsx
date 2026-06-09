@@ -60,27 +60,14 @@ interface LevelCardProps {
 
 const LevelCard = ({ points }: LevelCardProps) => {
   const [open, setOpen] = useState(false);
-  const { toast } = useToast();
+  const [shareOpen, setShareOpen] = useState(false);
 
   const current = getCurrentLevel(points);
   const next = getNextLevel(points);
   const progress = getProgressPercent(points);
   const isMax = !next;
 
-  const shareText = `Je suis ${current.name} sur Kidmapp avec ${points} points ! 🐘 https://kidmapp.app`;
-
-  const handleShare = async () => {
-    try {
-      if (typeof navigator !== 'undefined' && (navigator as any).share) {
-        await (navigator as any).share({ text: shareText });
-      } else if (navigator.clipboard) {
-        await navigator.clipboard.writeText(shareText);
-        toast({ description: 'Texte copié dans le presse-papier ✦' });
-      }
-    } catch (e) {
-      // user cancelled — ignore
-    }
-  };
+  const handleShare = () => setShareOpen(true);
 
   return (
     <div style={{
