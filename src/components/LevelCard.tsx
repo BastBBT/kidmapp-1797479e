@@ -93,21 +93,17 @@ const LevelCard = ({ points }: LevelCardProps) => {
     }}>
       {/* Header */}
       <div style={{ display: 'flex', gap: 14, padding: 16, alignItems: 'center' }}>
-        <div style={{
-          width: 62, height: 62, borderRadius: 14,
-          background: rgba(current.color, 0.15),
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-          color: current.color,
-        }}>
-          <div style={{ fontFamily: 'Fraunces', fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', opacity: 0.8 }}>
-            NIV.
-          </div>
-          <div style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 600, lineHeight: 1, marginTop: 2 }}>
-            {current.id}
-          </div>
-        </div>
+        <img
+          src={current.img}
+          alt={current.name}
+          width={62}
+          height={62}
+          loading="eager"
+          style={{
+            width: 62, height: 62, borderRadius: 14,
+            objectFit: 'contain', flexShrink: 0,
+          }}
+        />
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
