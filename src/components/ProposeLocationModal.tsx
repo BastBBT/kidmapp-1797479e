@@ -20,7 +20,9 @@ interface ProposeLocationModalProps {
   onClose: () => void;
 }
 
-const STEPS = ['Infos', 'Équipements', 'Repas & horaires', 'Photos'] as const;
+const FULL_STEPS = ['Infos', 'Équipements', 'Repas & horaires', 'Photos'] as const;
+const SHORT_STEPS = ['Infos', 'Équipements', 'Photos'] as const;
+const hasMealsStep = (category: string) => category === 'restaurant' || category === 'cafe';
 
 const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
   const { toast } = useToast();
@@ -48,6 +50,15 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
 
   const updateForm = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
 
+  // Clamp step + reset meals if switching to a category without meals step
+  const handleCategoryChange = (newCategory: string) => {
+    setForm((p) => ({ ...p, category: newCategory }));
+    if (!hasMealsStep(newCategory)) {
+      setSelectedMeals([]);
+      setStep((s) => (s >= SHORT_STEPS.length ? SHORT_STEPS.length - 1 : s));
+    }
+  };
+
   const resetAll = () => {
     setForm({
       name: '', category: 'restaurant', address: '',
@@ -67,6 +78,10 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
   };
 
   const canContinueStep0 = form.name.trim() && form.address.trim();
+
+  const STEPS = hasMealsStep(form.category) ? FULL_STEPS : SHORT_STEPS;
+  const isPhotosStep = step === STEPS.length - 1;
+  const isMealsStep = hasMealsStep(form.category) && step === 2;
 
   const goNext = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
   const goPrev = () => setStep((s) => Math.max(s - 1, 0));
@@ -267,7 +282,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                           <button
                             type="button"
                             key={c.id}
-                            onClick={() => updateForm('category', c.id)}
+                            onClick={() => handleCategoryChange(c.id)}
                             style={{
                               flexShrink: 0, display: 'flex', flexDirection: 'column',
                               alignItems: 'center', gap: 6, padding: '8px 4px',
@@ -368,8 +383,8 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                 </div>
               )}
 
-              {/* === STEP 2: Repas & horaires === */}
-              {step === 2 && (
+              {/* === STEP Repas & horaires (Café/Restaurant only) === */}
+              {isMealsStep && (
                 <div className="flex flex-col gap-4">
                   <div>
                     <h3 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
@@ -460,8 +475,8 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                 </div>
               )}
 
-              {/* === STEP 3: Photos === */}
-              {step === 3 && (
+              {/* === STEP Photos (toujours dernier) === */}
+              {isPhotosStep && (
                 <div className="flex flex-col gap-4">
                   <div>
                     <h3 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
@@ -556,11 +571,11 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
               {step < STEPS.length - 1 ? (
                 <button
                   onClick={goNext}
-                  disabled={step === 0 ? !canContinueStep0 : step === 2 ? selectedMeals.length === 0 : false}
+                  disabled={step === 0 ? !canContinueStep0 : isMealsStep ? selectedMeals.length === 0 : false}
                   className="w-full flex items-center justify-center gap-2 py-3 font-semibold text-sm disabled:opacity-40 transition-opacity"
                   style={{ borderRadius: '100px', background: 'var(--primary)', color: '#fff', border: 'none', fontFamily: 'DM Sans', cursor: 'pointer' }}
                 >
-                  {step === 2
+                  {isMealsStep
                     ? `Continuer (${selectedMeals.length} service${selectedMeals.length > 1 ? 's' : ''} sélectionné${selectedMeals.length > 1 ? 's' : ''})`
                     : 'Continuer'}
                 </button>
