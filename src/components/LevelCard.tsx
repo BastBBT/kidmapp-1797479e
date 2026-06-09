@@ -173,15 +173,17 @@ const LevelCard = ({ points }: LevelCardProps) => {
               border: isActive ? `1.5px solid ${lvl.color}` : '1.5px solid transparent',
               transition: 'all 0.2s ease',
             }}>
-              <div style={{
-                width: 24, height: 24, borderRadius: '50%',
-                background: isActive || isPast ? lvl.color : rgba(lvl.color, 0.18),
-                color: isActive || isPast ? '#fff' : lvl.color,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 11, fontWeight: 700, fontFamily: 'Fraunces',
-              }}>
-                {isPast ? <Check size={14} strokeWidth={3} /> : lvl.id}
-              </div>
+              <img
+                src={lvl.img}
+                alt=""
+                width={24}
+                height={24}
+                style={{
+                  width: 24, height: 24, objectFit: 'contain',
+                  opacity: isActive || isPast ? 1 : 0.45,
+                  filter: isActive || isPast ? 'none' : 'grayscale(0.5)',
+                }}
+              />
               <div style={{
                 fontSize: 10.5, fontWeight: 600,
                 color: isActive ? lvl.color : 'var(--text)',
