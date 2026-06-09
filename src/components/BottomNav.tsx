@@ -1,5 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFavorites } from '@/hooks/useFavorites';
+import { useProposalModal } from '@/hooks/useProposalModal';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 const tabs = [
   {
@@ -41,6 +43,14 @@ const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { favoriteIds } = useFavorites();
+  const { open: openProposal } = useProposalModal();
+  const { requireAuth } = useRequireAuth();
+
+  const handleProposeClick = () => {
+    requireAuth(() => openProposal(), {
+      message: 'Connecte-toi pour proposer un nouveau lieu à la communauté ✦',
+    });
+  };
 
   return (
     <nav
@@ -78,6 +88,35 @@ const BottomNav = () => {
           </button>
         );
       })}
+
+      {/* Bouton Proposer — action, pas une route */}
+      <button
+        onClick={handleProposeClick}
+        className="relative flex flex-col items-center gap-1 px-3 py-1 transition-transform active:scale-95"
+        aria-label="Proposer un lieu"
+      >
+        <div
+          className="flex items-center justify-center rounded-full"
+          style={{
+            background: '#D95F3B',
+            width: 36,
+            height: 36,
+            boxShadow: '0 4px 12px rgba(217, 95, 59, 0.35)',
+            color: '#fff',
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </div>
+        <span
+          className="font-body text-[10px] uppercase font-semibold tracking-wide"
+          style={{ color: '#D95F3B' }}
+        >
+          PROPOSER
+        </span>
+      </button>
     </nav>
   );
 };

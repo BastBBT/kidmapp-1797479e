@@ -10,8 +10,6 @@ import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
-import ProposeLocationModal from '@/components/ProposeLocationModal';
-import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 
 const MEAL_CATEGORIES = new Set(['restaurant', 'cafe']);
@@ -45,8 +43,6 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>(initialCategory);
   const [selectedMeal, setSelectedMeal] = useState<string | null>(initialMeal);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const [showProposalModal, setShowProposalModal] = useState(false);
-  const { requireAuth } = useRequireAuth();
 
   const [mapExpanded, setMapExpanded] = useState(false);
   const [selectedId, setSelectedId] = useState<string | undefined>();
@@ -161,8 +157,8 @@ const Index = () => {
 
 
 
-      {/* Compteur + Proposer */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 8px' }}>
+      {/* Compteur */}
+      <div style={{ padding: '12px 16px 8px' }}>
         <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
           {isLoading
             ? 'Chargement…'
@@ -173,23 +169,6 @@ const Index = () => {
             </span>
           )}
         </p>
-        <button
-          onClick={() => requireAuth(() => setShowProposalModal(true), { message: 'Connecte-toi pour proposer un nouveau lieu à la communauté ✦' })}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '7px 14px', borderRadius: '100px',
-            border: '1.5px solid var(--primary)',
-            background: 'transparent', color: 'var(--primary)',
-            fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Proposer un lieu
-        </button>
       </div>
 
       {/* Carte compacte — isolation crée un nouveau contexte d'empilement */}
@@ -341,8 +320,6 @@ const Index = () => {
           </div>
         </div>
       )}
-
-      <ProposeLocationModal open={showProposalModal} onClose={() => setShowProposalModal(false)} />
     </div>
   );
 };
