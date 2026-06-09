@@ -14,13 +14,14 @@ type Level = {
   color: string;
   bgFrom: string;
   bgTo: string;
+  img: string;
 };
 
 const LEVELS: Level[] = [
-  { id: 1, name: 'Explorateur',   min: 0,   max: 24,  color: '#A8A29E', bgFrom: '#FAF9F6', bgTo: '#F5F0EC' },
-  { id: 2, name: 'Contributeur',  min: 25,  max: 74,  color: '#D95F3B', bgFrom: '#FFF8F5', bgTo: '#FFF0E8' },
-  { id: 3, name: 'Guide Kidmapp', min: 75,  max: 149, color: '#3B7D6E', bgFrom: '#F0FAF7', bgTo: '#E4F5F0' },
-  { id: 4, name: 'Ambassadeur',   min: 150, max: 500, color: '#C4882A', bgFrom: '#FFFBF0', bgTo: '#FFF4D4' },
+  { id: 1, name: 'Explorateur',   min: 0,   max: 24,  color: '#A8A29E', bgFrom: '#FAF9F6', bgTo: '#F5F0EC', img: niv1Asset.url },
+  { id: 2, name: 'Contributeur',  min: 25,  max: 74,  color: '#D95F3B', bgFrom: '#FFF8F5', bgTo: '#FFF0E8', img: niv2Asset.url },
+  { id: 3, name: 'Guide Kidmapp', min: 75,  max: 149, color: '#3B7D6E', bgFrom: '#F0FAF7', bgTo: '#E4F5F0', img: niv3Asset.url },
+  { id: 4, name: 'Ambassadeur',   min: 150, max: 500, color: '#C4882A', bgFrom: '#FFFBF0', bgTo: '#FFF4D4', img: niv4Asset.url },
 ];
 
 const getCurrentLevel = (points: number): Level =>
