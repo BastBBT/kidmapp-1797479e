@@ -282,7 +282,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                           <button
                             type="button"
                             key={c.id}
-                            onClick={() => updateForm('category', c.id)}
+                            onClick={() => handleCategoryChange(c.id)}
                             style={{
                               flexShrink: 0, display: 'flex', flexDirection: 'column',
                               alignItems: 'center', gap: 6, padding: '8px 4px',
