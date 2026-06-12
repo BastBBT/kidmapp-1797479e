@@ -503,6 +503,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          acquisition_detail: string | null
+          acquisition_source: string | null
+          acquisition_source_at: string | null
           created_at: string
           full_name: string | null
           id: string
@@ -510,6 +513,9 @@ export type Database = {
           role: string
         }
         Insert: {
+          acquisition_detail?: string | null
+          acquisition_source?: string | null
+          acquisition_source_at?: string | null
           created_at?: string
           full_name?: string | null
           id: string
@@ -517,6 +523,9 @@ export type Database = {
           role?: string
         }
         Update: {
+          acquisition_detail?: string | null
+          acquisition_source?: string | null
+          acquisition_source_at?: string | null
           created_at?: string
           full_name?: string | null
           id?: string

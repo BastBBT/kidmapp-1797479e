@@ -1,36 +1,63 @@
-# Fix UX partage mobile — Android Chrome en priorité
+# Questionnaire d'acquisition post-inscription
 
-## Constat
+## Migration DB
 
-Sur mobile, le bouton "Enregistrer dans Photos" déclenche en fait un téléchargement classique : sur Android Chrome le PNG atterrit dans `Téléchargements` (pas dans la galerie/pellicule), sur iOS Safari il s'ouvre dans un nouvel onglet. C'est trompeur et inutilisable pour poster en story.
+Ajouter à `public.profiles` :
+- `acquisition_source text`
+- `acquisition_detail text`
+- `acquisition_source_at timestamptz`
 
-Le web n'a aucun moyen d'écrire directement dans la pellicule. La seule voie fiable est la **feuille de partage native** (`navigator.share({ files })`) : l'utilisateur y choisit Instagram (cible principale) ou "Enregistrer l'image" s'il préfère.
+Pas de nouvelle policy : les policies update existantes sur `profiles` (user peut modifier son propre profil) couvrent déjà l'écriture. `prevent_role_self_escalation` reste actif.
 
-## Solution
+## Composant `src/components/AcquisitionModal.tsx` (nouveau)
 
-Sur mobile, on supprime la fausse promesse "Enregistrer dans Photos" et on pousse un parcours unique "Partager" qui ouvre directement la feuille système.
+Props : `open: boolean`, `onClose: () => void`.
 
-### `src/components/ShareLevelModal.tsx`
+Contenu :
+- Titre Fraunces 20px : « Une dernière chose ! »
+- Sous-titre DM Sans 13px muted : « Comment avez-vous découvert Kidmapp ? 🧡 »
+- 6 options en liste verticale (boutons radio personnalisés). Sélection unique :
+  - `social` 📱 Réseaux sociaux
+  - `word_of_mouth` 💬 Bouche à oreille
+  - `partner_place` 📍 Un lieu partenaire
+  - `search` 🔎 Recherche web / App Store
+  - `press` 📰 Presse ou blog
+  - `other` ✨ Autre…
+- État sélectionné : bordure `#D95F3B`, fond `#FFF8F5`, check ✓ à droite.
+- Si `other` sélectionné → textarea apparait (« Dites-nous en quelques mots… », maxLength 280, `font-size:16px` anti-zoom iOS).
+- Bouton principal « Valider » (coral, plein largeur, disabled tant que pas de sélection).
+- Lien « Passer » (texte gris souligné, centré, sous le bouton).
 
-**Sur mobile (`useIsMobile === true`)** :
-- **Un seul bouton principal** : "Partager mon niveau" (gradient Instagram conservé, icône `Share2`).
-  - Capture le canvas → `File` PNG → `navigator.share({ files, title, text: 'Mon niveau Kidmapp 🐘 @kidmapp' })`.
-  - Si `canShare({files})` est `true` → ouvre la feuille native (Instagram, Stories, WhatsApp, Enregistrer l'image… au choix de l'utilisateur). C'est le chemin nominal sur Android Chrome récent.
-  - Si annulation (`AbortError`) → silencieux.
-  - Si erreur ou `canShare({files})` est `false` (vieux Chrome, navigateurs in-app type Facebook/LinkedIn) → fallback : ouvre l'image dans un nouvel onglet (`window.open(blobUrl, '_blank')`) + message "Appui long sur l'image → Enregistrer l'image, puis ouvre Instagram." + bouton secondaire "Ouvrir Instagram".
-- **Pas de bouton "Télécharger" séparé sur mobile** : il créait la confusion (fichier vs pellicule). Le partage natif propose déjà "Enregistrer l'image" pour ceux qui veulent.
-- Petite ligne d'aide sous le bouton : "Choisis Instagram ou Enregistrer l'image dans le menu" (12.5px, gris).
+Style : bottom-sheet mobile (même structure que `ShareLevelModal` — overlay z-1000, `border-radius: 20px 20px 0 0`, slideUp anim, `maxWidth: 440`), centré sur desktop via `align-items: center` quand `!isMobile`.
 
-**Sur desktop** : comportement actuel inchangé (téléchargement PNG + ouverture instagram.com + message "Image téléchargée ✓").
+Comportements :
+- **Valider** → `supabase.from('profiles').update({ acquisition_source, acquisition_detail: detail.trim() || null, acquisition_source_at: new Date().toISOString() }).eq('id', user.id)`. Erreur silencieuse côté UI (console.error), on ferme et pose le flag quoi qu'il arrive pour ne pas re-spammer.
+- **Passer** → pose le flag, ferme. Aucune écriture.
+- Dans les deux cas : `localStorage.setItem('hasAnsweredAcquisition', 'true')` puis `onClose()`.
+- Pas de fermeture par clic backdrop ou croix → toujours via Valider/Passer (évite les fermetures accidentelles tout en restant skippable).
 
-### Hors scope
-- Pas de tentative de deep link `instagram://` (cassé sur iOS récent, partage natif sert mieux le cas).
-- Pas de copie presse-papier.
-- Pas de modif de `ShareLevelCard`, `LevelCard`, ni autre composant.
-- Pas de nouvelle dépendance.
+## Wiring : `src/App.tsx`
+
+Nouveau composant `AcquisitionOverlay` (à côté de `OnboardingOverlay`) :
+- Hooks `useAuth()` (récupère `user`, `isLoading`).
+- Détecte la transition `prevUserId !== currentUserId && currentUserId != null` via un `useRef<string|null>`.
+- Sur transition non-connecté → connecté :
+  - Lit `localStorage.getItem('hasAnsweredAcquisition')`.
+  - Si absent → `setShow(true)`.
+- Rendu : `<AcquisitionModal open={show} onClose={() => setShow(false)} />`.
+- Monté dans `AppContent` à la suite de `<OnboardingOverlay />`.
+
+Note : utilisateurs déjà connectés au moment du déploiement → la transition n'a pas lieu, donc on déclenche aussi `setShow(true)` au premier render si `user && !isLoading && !flag`. C'est conforme à la consigne (« les utilisateurs déjà inscrits avant la feature le verront aussi une fois »).
+
+## Hors scope
+- Pas de modif de `AuthModal`, `Onboarding`, ni du flow signup (pas de friction).
+- Pas de stat admin / dashboard de cette donnée pour l'instant.
+- Pas de traduction multi-langue.
+- Pas de nouvelle policy RLS (les UPDATE existantes suffisent).
 
 ## Détails techniques
 
-- Helpers existants réutilisés : `captureBlob`, `shareFile`, `canShareFiles`, `triggerDownload`.
-- Le fallback "ouvrir l'image dans un onglet" évite la situation pire (fichier perdu dans Téléchargements sans feedback). L'appui long est un geste connu sur Android pour "Enregistrer l'image" → pellicule.
-- État `busy` et `shareNote` conservés. Suppression de l'état `downloaded` côté mobile (plus de bouton download).
+- Pas de nouvelle dépendance.
+- `useIsMobile` pour adapter centrage desktop vs bottom-sheet mobile.
+- Types Supabase régénérés après migration → champs nouveaux dispo dans `.update()`.
+- Flag localStorage volontairement device-local : si l'utilisateur change de navigateur il pourrait revoir la modale, mais c'est l'option la plus simple et conforme à la spec.
