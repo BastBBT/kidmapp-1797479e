@@ -16,6 +16,7 @@ import AuthGate from "./components/AuthGate";
 import IosAppBanner from "./components/IosAppBanner";
 import BottomNav from "./components/BottomNav";
 import Onboarding from "./components/Onboarding";
+import AcquisitionModal from "./components/AcquisitionModal";
 import ProposeLocationModal from "./components/ProposeLocationModal";
 import { useAuth, AuthProvider } from "./hooks/useAuth";
 import { RequireAuthProvider, useRequireAuth } from "./hooks/useRequireAuth";
