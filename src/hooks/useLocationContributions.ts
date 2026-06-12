@@ -40,9 +40,15 @@ export function useLocationContributions(locationId: string) {
     queryKey: ['location-contributions', locationId],
     enabled: !!locationId,
     queryFn: async () => {
+      // user_id is not exposed to anonymous visitors (column-level GRANT excludes
+      // it from the `anon` role) — selecting it would fail without an auth session.
+      const isAuthed = !!(await supabase.auth.getSession()).data.session;
+      const projection = isAuthed
+        ? 'id, location_id, user_id, content, high_chair, changing_table, kids_area, kids_menu, bookable, status, created_at'
+        : 'id, location_id, content, high_chair, changing_table, kids_area, kids_menu, bookable, status, created_at';
       const { data, error } = await supabase
         .from('contributions')
-        .select('*')
+        .select(projection)
         .eq('location_id', locationId)
         .eq('status', 'validated')
         .order('created_at', { ascending: false });
