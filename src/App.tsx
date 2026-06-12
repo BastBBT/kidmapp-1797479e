@@ -25,6 +25,26 @@ import { usePageviewTracker } from "./hooks/usePageviewTracker";
 
 const queryClient = new QueryClient();
 const ONBOARDING_KEY = 'kidmapp_hasSeenOnboarding';
+const ACQUISITION_FLAG = 'hasAnsweredAcquisition';
+
+const AcquisitionOverlay = () => {
+  const { user, isLoading } = useAuth();
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    if (isLoading || !user) return;
+    try {
+      if (!localStorage.getItem(ACQUISITION_FLAG)) {
+        setShow(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, [isLoading, user]);
+
+  if (!user) return null;
+  return <AcquisitionModal open={show} onClose={() => setShow(false)} />;
+};
 
 const OnboardingOverlay = () => {
   const { user, isLoading } = useAuth();
