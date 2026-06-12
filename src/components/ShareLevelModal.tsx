@@ -12,6 +12,7 @@ interface ShareLevelModalProps {
 }
 
 const FILENAME = 'mon-niveau-kidmapp.png';
+const SHARE_TEXT = 'Mon niveau Kidmapp 🐘 @kidmapp';
 
 const triggerDownload = (href: string, filename: string) => {
   const link = document.createElement('a');
@@ -35,10 +36,10 @@ type ShareResult = 'shared' | 'cancelled' | 'unsupported' | 'error';
 const shareFile = async (file: File): Promise<ShareResult> => {
   if (!canShareFiles(file)) return 'unsupported';
   const nav = navigator as Navigator & {
-    share: (data: { files?: File[]; title?: string }) => Promise<void>;
+    share: (data: { files?: File[]; title?: string; text?: string }) => Promise<void>;
   };
   try {
-    await nav.share({ files: [file], title: 'Mon niveau Kidmapp' });
+    await nav.share({ files: [file], title: 'Mon niveau Kidmapp', text: SHARE_TEXT });
     return 'shared';
   } catch (e) {
     if (e instanceof DOMException && e.name === 'AbortError') return 'cancelled';
@@ -70,7 +71,8 @@ const ShareLevelModal = ({ open, onClose, level, points }: ShareLevelModalProps)
     );
   };
 
-  const handleDownload = async () => {
+  // Desktop only
+  const handleDesktopDownload = async () => {
     if (busy) return;
     setBusy(true);
     setShareNote(null);
@@ -78,30 +80,11 @@ const ShareLevelModal = ({ open, onClose, level, points }: ShareLevelModalProps)
     try {
       const blob = await captureBlob();
       if (!blob) return;
-      const file = new File([blob], FILENAME, { type: 'image/png' });
-
-      if (isMobile && canShareFiles(file)) {
-        // Use share sheet so user can "Save to Photos"
-        const result = await shareFile(file);
-        if (result === 'shared') {
-          setDownloaded(true);
-          setTimeout(() => setDownloaded(false), 2000);
-        } else if (result === 'unsupported' || result === 'error') {
-          // Fallback to <a download>
-          const url = URL.createObjectURL(blob);
-          triggerDownload(url, FILENAME);
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-          setDownloaded(true);
-          setTimeout(() => setDownloaded(false), 2000);
-        }
-        // 'cancelled' → silent
-      } else {
-        const url = URL.createObjectURL(blob);
-        triggerDownload(url, FILENAME);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        setDownloaded(true);
-        setTimeout(() => setDownloaded(false), 2000);
-      }
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, FILENAME);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setDownloaded(true);
+      setTimeout(() => setDownloaded(false), 2000);
     } catch (e) {
       console.error('download error', e);
     } finally {
@@ -109,7 +92,8 @@ const ShareLevelModal = ({ open, onClose, level, points }: ShareLevelModalProps)
     }
   };
 
-  const handleInstagram = async () => {
+  // Mobile: open native share sheet. Desktop: download + open Instagram in new tab.
+  const handleShareAction = async () => {
     if (busy) return;
     setBusy(true);
     setShareNote(null);
@@ -123,21 +107,19 @@ const ShareLevelModal = ({ open, onClose, level, points }: ShareLevelModalProps)
       const file = new File([blob], FILENAME, { type: 'image/png' });
 
       if (isMobile) {
-        if (canShareFiles(file)) {
-          const result = await shareFile(file);
-          if (result === 'error') {
-            setShareNote(
-              'Le partage a échoué. Utilise "Enregistrer dans Photos" ci-dessus, puis ouvre Instagram → Stories.'
-            );
-            setShowWebInstaButton(true);
-          }
-          // 'shared' or 'cancelled' → silent close-friendly UX
-        } else {
-          setShareNote(
-            'Sur ton mobile : utilise d\'abord "Enregistrer dans Photos" ci-dessus, puis ouvre Instagram → Stories → ajoute depuis ta galerie.'
-          );
-          setShowWebInstaButton(true);
+        const result = await shareFile(file);
+        if (result === 'shared' || result === 'cancelled') {
+          // success or user cancellation → silent
+          return;
         }
+        // unsupported or error → open image in new tab so user can long-press → "Enregistrer l'image"
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank', 'noopener,noreferrer');
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        setShareNote(
+          "Appui long sur l'image → \"Enregistrer l'image\", puis ouvre Instagram → Stories."
+        );
+        setShowWebInstaButton(true);
       } else {
         // Desktop: download + open instagram.com
         const url = URL.createObjectURL(blob);
@@ -154,8 +136,6 @@ const ShareLevelModal = ({ open, onClose, level, points }: ShareLevelModalProps)
       setBusy(false);
     }
   };
-
-  const downloadLabel = isMobile ? 'Enregistrer dans Photos' : "Télécharger l'image";
 
   return (
     <div
@@ -237,35 +217,37 @@ const ShareLevelModal = ({ open, onClose, level, points }: ShareLevelModalProps)
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={busy}
-              style={{
-                width: '100%',
-                padding: '13px 16px',
-                border: 'none',
-                borderRadius: 100,
-                cursor: busy ? 'wait' : 'pointer',
-                background: downloaded ? '#3B7D6E' : '#D95F3B',
-                color: '#fff',
-                fontSize: 14,
-                fontWeight: 600,
-                fontFamily: 'DM Sans',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                transition: 'background 0.2s ease',
-              }}
-            >
-              <Download size={16} />
-              {downloaded ? 'Image enregistrée ✓' : downloadLabel}
-            </button>
+            {!isMobile && (
+              <button
+                type="button"
+                onClick={handleDesktopDownload}
+                disabled={busy}
+                style={{
+                  width: '100%',
+                  padding: '13px 16px',
+                  border: 'none',
+                  borderRadius: 100,
+                  cursor: busy ? 'wait' : 'pointer',
+                  background: downloaded ? '#3B7D6E' : '#D95F3B',
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  fontFamily: 'DM Sans',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  transition: 'background 0.2s ease',
+                }}
+              >
+                <Download size={16} />
+                {downloaded ? 'Image téléchargée ✓' : "Télécharger l'image"}
+              </button>
+            )}
 
             <button
               type="button"
-              onClick={handleInstagram}
+              onClick={handleShareAction}
               disabled={busy}
               style={{
                 width: '100%',
@@ -285,8 +267,20 @@ const ShareLevelModal = ({ open, onClose, level, points }: ShareLevelModalProps)
               }}
             >
               <Share2 size={16} />
-              Partager sur Instagram
+              {isMobile ? 'Partager mon niveau' : 'Partager sur Instagram'}
             </button>
+
+            {isMobile && !shareNote && (
+              <p style={{
+                margin: 0,
+                fontSize: 12.5,
+                color: 'var(--text-muted)',
+                textAlign: 'center',
+                lineHeight: 1.45,
+              }}>
+                Choisis Instagram ou « Enregistrer l'image » dans le menu.
+              </p>
+            )}
 
             {shareNote && (
               <div
