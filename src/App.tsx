@@ -109,6 +109,7 @@ const AppContent = () => {
       </Routes>
       <BottomNav />
       <OnboardingOverlay />
+      <AcquisitionOverlay />
       <ProposeLocationModal open={isProposalOpen} onClose={closeProposal} />
     </>
   );
