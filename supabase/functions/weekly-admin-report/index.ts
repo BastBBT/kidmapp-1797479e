@@ -2,10 +2,6 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-// Anon JWT (publishable) — used to invoke send-transactional-email through the gateway.
-// Env-injected SUPABASE_ANON_KEY may be the new sb_publishable_* format which the
-// gateway rejects with UNAUTHORIZED_INVALID_JWT_FORMAT, so we use the JWT explicitly.
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjd2VwbnFqeW93bGJ0bWx0d3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODg5MTgsImV4cCI6MjA4NzI2NDkxOH0.S74s_DonPZniLVAASy4nlo0HTdlxA_RI9Dd2EfltpzE'
 const FALLBACK_ADMIN_EMAIL = 'bastien.boubat@gmail.com'
 
 interface UserStats {
@@ -122,8 +118,8 @@ async function runReport(overrideWeekStart?: Date) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
       },
       body: JSON.stringify({
         templateName: 'weekly-admin-report',
