@@ -155,7 +155,7 @@ const AdminPage = () => {
       const notAdmin = (uid: string | null | undefined) => !!uid && !adminIds.has(uid);
       const notAdminOrAnon = (uid: string | null | undefined) => !uid || !adminIds.has(uid);
 
-      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, viewsRes, views7dRes] = await Promise.all([
+      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, viewsRes, views7dRes, acquisitionRes] = await Promise.all([
         supabase.from('locations').select('id, status'),
         supabase.from('contributions').select('id, user_id, created_at, status'),
         supabase.from('profiles').select('id, role, created_at').gte('created_at', since),
@@ -163,6 +163,7 @@ const AdminPage = () => {
         supabase.from('location_proposals' as any).select('id, user_id, status'),
         supabase.from('page_views' as any).select('user_id, created_at').gte('created_at', since),
         supabase.from('page_views' as any).select('user_id, created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
+        supabase.from('profiles').select('id, acquisition_source').not('acquisition_source', 'is', null),
       ]);
 
       const contribs = (contributionsRes.data ?? []).filter((c: any) => notAdmin(c.user_id));
@@ -188,6 +189,13 @@ const AdminPage = () => {
       const visits7d = (((views7dRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[])
         .filter((v) => notAdminOrAnon(v.user_id));
 
+      const acquisitionProfiles = (acquisitionRes.data ?? []).filter((p: any) => !adminIds.has(p.id));
+      const acquisitionCounts: Record<string, number> = {};
+      for (const p of acquisitionProfiles) {
+        const src = p.acquisition_source as string;
+        acquisitionCounts[src] = (acquisitionCounts[src] ?? 0) + 1;
+      }
+
       return {
         totalLocations: locationsRes.data?.length ?? 0,
         publishedLocations: locationsRes.data?.filter((l) => l.status === 'published').length ?? 0,
@@ -201,6 +209,8 @@ const AdminPage = () => {
         totalVisits30d: totalVisits,
         uniqueLoggedVisitors30d: loggedInUsers.size,
         recurringVisitors30d: recurring,
+        acquisitionDistribution: acquisitionCounts,
+        acquisitionTotal: acquisitionProfiles.length,
       };
     },
   });
@@ -648,6 +658,14 @@ const AdminPage = () => {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Acquisition sources */}
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)', marginBottom: '12px' }}>
+              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '12px' }}>
+                D'où nous connaissent-ils ? — {stats?.acquisitionTotal ?? 0} réponses
+              </div>
+              <AcquisitionChart distribution={stats?.acquisitionDistribution ?? {}} total={stats?.acquisitionTotal ?? 0} />
             </div>
 
             {/* Top contributeurs */}
@@ -1693,6 +1711,60 @@ function StatCard({ label, value, sub }: { label: string; value: number; sub: st
       <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>{label}</div>
       <div style={{ fontFamily: 'Fraunces', fontSize: '32px', fontWeight: 500, color: 'var(--primary)', letterSpacing: '-0.02em' }}>{value}</div>
       <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>{sub}</div>
+    </div>
+  );
+}
+
+const ACQUISITION_LABELS: Record<string, { label: string; emoji: string; color: string }> = {
+  social: { label: 'Réseaux sociaux', emoji: '📱', color: '#D95F3B' },
+  word_of_mouth: { label: 'Bouche à oreille', emoji: '💬', color: '#3B7D6E' },
+  partner_place: { label: 'Un lieu partenaire', emoji: '📍', color: '#E8A838' },
+  search: { label: 'Recherche web / App Store', emoji: '🔎', color: '#5B8DEF' },
+  press: { label: 'Presse ou blog', emoji: '📰', color: '#8B5CF6' },
+  other: { label: 'Autre', emoji: '✨', color: '#9CA3AF' },
+};
+
+function AcquisitionChart({ distribution, total }: { distribution: Record<string, number>; total: number }) {
+  if (total === 0) {
+    return (
+      <div style={{ fontFamily: 'DM Sans', fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>
+        Pas encore de réponses 😴
+      </div>
+    );
+  }
+  const entries = Object.entries(distribution)
+    .map(([key, count]) => ({ key, count, meta: ACQUISITION_LABELS[key] ?? { label: key, emoji: '❓', color: '#9CA3AF' } }))
+    .sort((a, b) => b.count - a.count);
+  const max = Math.max(...entries.map((e) => e.count), 1);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {entries.map((e) => {
+        const pct = Math.round((e.count / total) * 100);
+        return (
+          <div key={e.key} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontFamily: 'DM Sans', fontSize: '13px', color: 'var(--text)', fontWeight: 500 }}>
+                <span style={{ marginRight: 6 }}>{e.meta.emoji}</span>
+                {e.meta.label}
+              </span>
+              <span style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                {e.count} ({pct}%)
+              </span>
+            </div>
+            <div style={{ width: '100%', height: '8px', background: 'var(--bg)', borderRadius: '4px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${Math.max((e.count / max) * 100, 4)}%`,
+                  height: '100%',
+                  background: e.meta.color,
+                  borderRadius: '4px',
+                  transition: 'width 0.4s ease',
+                }}
+              />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
