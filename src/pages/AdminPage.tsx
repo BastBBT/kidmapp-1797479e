@@ -660,6 +660,14 @@ const AdminPage = () => {
               </div>
             </div>
 
+            {/* Acquisition sources */}
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)', marginBottom: '12px' }}>
+              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '12px' }}>
+                D'où nous connaissent-ils ? — {stats?.acquisitionTotal ?? 0} réponses
+              </div>
+              <AcquisitionChart distribution={stats?.acquisitionDistribution ?? {}} total={stats?.acquisitionTotal ?? 0} />
+            </div>
+
             {/* Top contributeurs */}
             <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)', marginTop: '24px', marginBottom: '8px', fontWeight: 500 }}>
               Top contributeurs (hors admin) ✦
