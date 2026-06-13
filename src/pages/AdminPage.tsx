@@ -269,6 +269,15 @@ const AdminPage = () => {
   const [manualLat, setManualLat] = useState('47.2184');
   const [manualLng, setManualLng] = useState('-1.5536');
 
+  // Edit-modal coordinates state
+  const [editOriginalAddress, setEditOriginalAddress] = useState('');
+  const [editOriginalLat, setEditOriginalLat] = useState<number | null>(null);
+  const [editOriginalLng, setEditOriginalLng] = useState<number | null>(null);
+  const [editManualLat, setEditManualLat] = useState('');
+  const [editManualLng, setEditManualLng] = useState('');
+  const [showEditManualCoords, setShowEditManualCoords] = useState(false);
+  const [editGeocoding, setEditGeocoding] = useState(false);
+
   const geocodeAddress = async (address: string): Promise<{lat: number, lng: number} | null> => {
     const cleaned = address
       .trim()
