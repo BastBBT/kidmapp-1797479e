@@ -820,6 +820,12 @@ const AdminPage = () => {
                         bookable: (loc as any).bookable ?? 'unknown',
                         status: loc.status,
                       });
+                      setEditOriginalAddress(loc.address ?? '');
+                      setEditOriginalLat(loc.lat ?? null);
+                      setEditOriginalLng(loc.lng ?? null);
+                      setEditManualLat(loc.lat != null ? String(loc.lat) : '');
+                      setEditManualLng(loc.lng != null ? String(loc.lng) : '');
+                      setShowEditManualCoords(false);
                       // Load existing meals for this location
                       const base = buildEmptyMealsState(mealTypes);
                       const { data: existing } = await supabase
