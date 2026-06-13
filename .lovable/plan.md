@@ -1,35 +1,56 @@
-## Problème
+## Objectif
 
-Sur la fiche d'un lieu, le pin de la carte est placé à partir de deux coordonnées stockées en base : `lat` (latitude) et `lng` (longitude). Le champ « Adresse » est juste du texte affiché — il n'a aucun effet sur la position du pin.
+Enrichir le mail hebdomadaire admin avec un bloc « Visites » sur 14 jours (semaine A vs B) et exclure toute l'activité des comptes admin (contributions, propositions **et** visites).
 
-Aujourd'hui, le formulaire **Création** d'un lieu dans l'admin convertit automatiquement l'adresse en coordonnées (via OpenStreetMap/Nominatim), et propose un fallback manuel si la conversion échoue. Mais le formulaire **Modification** ne fait ni l'un ni l'autre : il enregistre la nouvelle adresse texte et laisse les coordonnées intactes. Résultat : le pin ne bouge jamais quand tu modifies l'adresse.
+## Périodes
 
-## Ce qu'on va faire
+- **Semaine A** (mise en avant + graphique) : lundi J-7 → dimanche J-1.
+- **Semaine B** (comparatif) : lundi J-14 → dimanche J-8.
+- Variation : `(A - B) / B` en %. Badge vert si ≥ 0, rouge si < 0, masqué si B = 0 (affiché « nouveau »).
 
-Aligner l'édition sur la création, dans la modale « Modifier le lieu » :
+## Récap complet du mail après modif
 
-1. **Re-géocodage automatique si l'adresse a changé**
-   À l'enregistrement, si la nouvelle adresse est différente de l'ancienne, on relance Nominatim pour obtenir de nouvelles coordonnées et on les enregistre avec le reste.
-
-2. **Fallback coordonnées manuelles**
-   Si Nominatim ne trouve rien (ou retourne un point hors de la zone Nantes), on affiche deux petits champs « Latitude » / « Longitude » pré-remplis avec les coordonnées actuelles. L'admin peut les corriger à la main et valider.
-
-3. **Affichage des coordonnées actuelles**
-   Sous le champ « Adresse », on affiche en petit `📍 47.1984, -1.5536` pour que tu voies tout de suite où est placé le pin, et un lien « Modifier manuellement » qui ouvre les champs lat/lng même quand le géocodage a réussi (utile si Nominatim choisit le mauvais bâtiment).
-
-4. **Rafraîchissement de la carte côté app**
-   Après l'enregistrement, on invalide les caches React Query (`['locations']`, `['all-locations']`, `['location', id]`) pour que la carte affiche immédiatement la nouvelle position sans avoir à recharger la page.
-
-## Hors scope
-
-- Pas de Realtime Supabase pour propager les changements aux autres visiteurs en direct (on peut l'ajouter dans un second temps si tu veux).
-- Pas de carte mini-preview dans la modale d'édition pour cliquer-déplacer le pin (gros chantier, à proposer séparément).
-- Aucun changement à la création, aux propositions utilisateurs, à la base de données ou aux RLS.
+1. **En-tête** : « 📊 Rapport hebdomadaire » + sous-titre « Semaine du {periodLabel} ».
+2. **Bloc stats (4 cartes, nouvel ordre)** :
+   1. **Visites (7j)** — total Semaine A + badge variation vs Semaine B
+   2. **Utilisateurs actifs** (Semaine A, hors admins)
+   3. **Contributions** (Semaine A, hors admins)
+   4. **Propositions** (Semaine A, hors admins)
+3. **Mini graphique en barres** (nouveau, juste sous les stats) : 7 barres Lun→Dim de la Semaine A, vert `#3B7D6E` sur fond `#EDEAE3`, hauteur max ~80px, rendu HTML/CSS inline (compatible Gmail/Outlook). Chiffre au-dessus de chaque barre + label jour en dessous.
+4. **Détail par utilisateur** : contributeurs hors admins (contributions + propositions Semaine A). Vide → « Aucune activité cette semaine. »
+5. **Footer** inchangé.
 
 ## Détails techniques
 
-- Fichier touché : `src/pages/AdminPage.tsx` uniquement.
-- On réutilise la fonction `geocodeAddress` déjà présente (ligne 272) et le pattern `manualLat` / `manualLng` du formulaire de création (lignes 438-446).
-- Le `update` Supabase (ligne 1534) reçoit en plus `lat` et `lng` quand on a de nouvelles coordonnées ; sinon on n'envoie pas ces champs.
-- Validation : si l'adresse a changé et qu'on n'a ni géocodage réussi ni saisie manuelle valide, on bloque l'enregistrement avec un toast (même UX que la création).
-- Invalidation cache : `queryClient.invalidateQueries` sur les 3 query keys utilisées par la carte et la fiche.
+### `supabase/functions/weekly-admin-report/index.ts`
+
+- Récupérer `adminIds` (profiles.role = 'admin') **avant** les calculs.
+- Bornes UTC des 2 semaines. Fetch parallèle :
+  - `contributions` Semaine A
+  - `location_proposals` Semaine A
+  - `page_views` Semaine A (created_at, user_id)
+  - `page_views` Semaine B (created_at, user_id)
+- Exclure `user_id ∈ adminIds` partout (les visites anonymes `user_id IS NULL` sont conservées).
+- Bucketer la Semaine A par jour (Lun→Dim) → `[{label:'Lun', count:N}, ...]`.
+- Calculer `totalA`, `totalB`, `deltaPct` (null si `totalB === 0`).
+- Passer au template : `visits: { totalA, totalB, deltaPct, daily: [...] }`.
+
+### `supabase/functions/_shared/transactional-email-templates/weekly-admin-report.tsx`
+
+- Ajouter prop `visits`.
+- Réordonner les 4 `statBox` : Visites → Utilisateurs actifs → Contributions → Propositions.
+- Carte Visites avec badge de variation coloré.
+- Composant `BarChart` inline (`<table>` 7 colonnes, divs à hauteur proportionnelle, 100% inline-styles).
+- Étendre `previewData` avec un exemple `visits`.
+
+## Hors scope
+
+- Pas de migration SQL ni de modif RLS (fonction en service_role).
+- Pas de modif du cron, des destinataires, de l'infra email.
+- Pas de graphique image — barres HTML/CSS uniquement.
+- Pas de changement à `notify-validation` ni autres fonctions.
+
+## Fichiers touchés
+
+- `supabase/functions/weekly-admin-report/index.ts`
+- `supabase/functions/_shared/transactional-email-templates/weekly-admin-report.tsx`
