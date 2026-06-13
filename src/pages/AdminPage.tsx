@@ -1460,6 +1460,31 @@ const AdminPage = () => {
                 </select>
               </div>
               <FormField label="Adresse" value={editForm.address} onChange={(v) => setEditForm((f: any) => ({ ...f, address: v }))} />
+              <div style={{ marginTop: -8, marginBottom: 4, fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span>📍 {editOriginalLat != null && editOriginalLng != null ? `${editOriginalLat.toFixed(5)}, ${editOriginalLng.toFixed(5)}` : 'Aucune coordonnée'}</span>
+                {editForm.address !== editOriginalAddress && (
+                  <span style={{ color: 'var(--primary)', fontWeight: 600 }}>· adresse modifiée → re-géocodage à l'enregistrement</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowEditManualCoords((s) => !s)}
+                  style={{ background: 'none', border: 'none', padding: 0, color: 'var(--secondary)', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12, textDecoration: 'underline' }}
+                >
+                  {showEditManualCoords ? 'Masquer' : 'Modifier manuellement les coordonnées'}
+                </button>
+              </div>
+              {showEditManualCoords && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                  <div>
+                    <label style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Latitude</label>
+                    <input value={editManualLat} onChange={(e) => setEditManualLat(e.target.value)} placeholder="47.2184" style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 15 }} />
+                  </div>
+                  <div>
+                    <label style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Longitude</label>
+                    <input value={editManualLng} onChange={(e) => setEditManualLng(e.target.value)} placeholder="-1.5536" style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 15 }} />
+                  </div>
+                </div>
+              )}
               <FormField label="Site web" value={editForm.website} onChange={(v) => setEditForm((f: any) => ({ ...f, website: v }))} placeholder="https://..." />
               <div>
                 <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Instagram</label>
