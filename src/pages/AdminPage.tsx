@@ -1571,23 +1571,60 @@ const AdminPage = () => {
                     finalPhotoUrl = newUrl;
                   }
 
+                  // Resolve coordinates: manual override > re-geocode (if address changed) > keep originals
+                  let newLat: number | null = null;
+                  let newLng: number | null = null;
+                  const addressChanged = editForm.address.trim() !== editOriginalAddress.trim();
+
+                  if (showEditManualCoords) {
+                    const la = parseFloat(editManualLat);
+                    const ln = parseFloat(editManualLng);
+                    if (!isFinite(la) || !isFinite(ln) || la < -90 || la > 90 || ln < -180 || ln > 180) {
+                      toast({ title: 'Coordonnées invalides', description: 'Vérifie latitude et longitude.', variant: 'destructive' });
+                      return;
+                    }
+                    newLat = la;
+                    newLng = ln;
+                  } else if (addressChanged) {
+                    setEditGeocoding(true);
+                    const coords = await geocodeAddress(editForm.address);
+                    setEditGeocoding(false);
+                    if (!coords) {
+                      toast({
+                        title: 'Adresse introuvable',
+                        description: 'Saisis les coordonnées manuellement (lien sous le champ adresse).',
+                        variant: 'destructive',
+                      });
+                      setShowEditManualCoords(true);
+                      return;
+                    }
+                    newLat = coords.lat;
+                    newLng = coords.lng;
+                  }
+
+                  const updatePayload: any = {
+                    name: editForm.name,
+                    category: editForm.category,
+                    address: editForm.address,
+                    website: editForm.website || null,
+                    instagram: editForm.instagram || null,
+                    photo: finalPhotoUrl,
+                    note: editForm.note || null,
+                    high_chair: editForm.high_chair,
+                    changing_table: editForm.changing_table,
+                    kids_area: editForm.kids_area,
+                    kids_menu: !!editForm.kids_menu,
+                    bookable: editForm.bookable,
+                    status: editForm.status,
+                  };
+                  if (newLat != null && newLng != null) {
+                    updatePayload.lat = newLat;
+                    updatePayload.lng = newLng;
+                  }
+
                   const { error } = await supabase
                     .from('locations')
-                    .update({
-                      name: editForm.name,
-                      category: editForm.category,
-                      address: editForm.address,
-                      website: editForm.website || null,
-                      instagram: editForm.instagram || null,
-                      photo: finalPhotoUrl,
-                      note: editForm.note || null,
-                      high_chair: editForm.high_chair,
-                      changing_table: editForm.changing_table,
-                      kids_area: editForm.kids_area,
-                      kids_menu: !!editForm.kids_menu,
-                      bookable: editForm.bookable,
-                      status: editForm.status,
-                    } as any)
+                    .update(updatePayload)
                     .eq('id', editingId);
                   if (error) {
                     toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
