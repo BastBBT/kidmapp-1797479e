@@ -1715,6 +1715,60 @@ function StatCard({ label, value, sub }: { label: string; value: number; sub: st
   );
 }
 
+const ACQUISITION_LABELS: Record<string, { label: string; emoji: string; color: string }> = {
+  social: { label: 'Réseaux sociaux', emoji: '📱', color: '#D95F3B' },
+  word_of_mouth: { label: 'Bouche à oreille', emoji: '💬', color: '#3B7D6E' },
+  partner_place: { label: 'Un lieu partenaire', emoji: '📍', color: '#E8A838' },
+  search: { label: 'Recherche web / App Store', emoji: '🔎', color: '#5B8DEF' },
+  press: { label: 'Presse ou blog', emoji: '📰', color: '#8B5CF6' },
+  other: { label: 'Autre', emoji: '✨', color: '#9CA3AF' },
+};
+
+function AcquisitionChart({ distribution, total }: { distribution: Record<string, number>; total: number }) {
+  if (total === 0) {
+    return (
+      <div style={{ fontFamily: 'DM Sans', fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>
+        Pas encore de réponses 😴
+      </div>
+    );
+  }
+  const entries = Object.entries(distribution)
+    .map(([key, count]) => ({ key, count, meta: ACQUISITION_LABELS[key] ?? { label: key, emoji: '❓', color: '#9CA3AF' } }))
+    .sort((a, b) => b.count - a.count);
+  const max = Math.max(...entries.map((e) => e.count), 1);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {entries.map((e) => {
+        const pct = Math.round((e.count / total) * 100);
+        return (
+          <div key={e.key} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontFamily: 'DM Sans', fontSize: '13px', color: 'var(--text)', fontWeight: 500 }}>
+                <span style={{ marginRight: 6 }}>{e.meta.emoji}</span>
+                {e.meta.label}
+              </span>
+              <span style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                {e.count} ({pct}%)
+              </span>
+            </div>
+            <div style={{ width: '100%', height: '8px', background: 'var(--bg)', borderRadius: '4px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${Math.max((e.count / max) * 100, 4)}%`,
+                  height: '100%',
+                  background: e.meta.color,
+                  borderRadius: '4px',
+                  transition: 'width 0.4s ease',
+                }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function TopList({
   title,
   entries,
