@@ -189,6 +189,13 @@ const AdminPage = () => {
       const visits7d = (((views7dRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[])
         .filter((v) => notAdminOrAnon(v.user_id));
 
+      const acquisitionProfiles = (acquisitionRes.data ?? []).filter((p: any) => !adminIds.has(p.id));
+      const acquisitionCounts: Record<string, number> = {};
+      for (const p of acquisitionProfiles) {
+        const src = p.acquisition_source as string;
+        acquisitionCounts[src] = (acquisitionCounts[src] ?? 0) + 1;
+      }
+
       return {
         totalLocations: locationsRes.data?.length ?? 0,
         publishedLocations: locationsRes.data?.filter((l) => l.status === 'published').length ?? 0,
@@ -202,6 +209,8 @@ const AdminPage = () => {
         totalVisits30d: totalVisits,
         uniqueLoggedVisitors30d: loggedInUsers.size,
         recurringVisitors30d: recurring,
+        acquisitionDistribution: acquisitionCounts,
+        acquisitionTotal: acquisitionProfiles.length,
       };
     },
   });
