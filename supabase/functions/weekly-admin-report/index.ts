@@ -17,6 +17,8 @@ function formatDate(d: Date): string {
   })
 }
 
+const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+
 async function runReport(overrideWeekStart?: Date) {
   let lastMonday: Date
   let lastSunday: Date
@@ -36,10 +38,29 @@ async function runReport(overrideWeekStart?: Date) {
     lastMonday.setUTCHours(0, 0, 0, 0)
   }
 
+  // Previous week (B): Monday J-14 → Sunday J-8
+  const prevMonday = new Date(lastMonday)
+  prevMonday.setUTCDate(lastMonday.getUTCDate() - 7)
+  const prevSunday = new Date(lastSunday)
+  prevSunday.setUTCDate(lastSunday.getUTCDate() - 7)
+
   const periodLabel = `${formatDate(lastMonday)} → ${formatDate(lastSunday)}`
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-  const [{ data: contributions }, { data: proposals }] = await Promise.all([
+  // Fetch admin ids first to exclude their activity everywhere.
+  const { data: adminProfiles } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('role', 'admin')
+  const adminIds = new Set<string>((adminProfiles ?? []).map((p) => p.id as string))
+  const isAdmin = (uid: string | null) => !!uid && adminIds.has(uid)
+
+  const [
+    { data: rawContributions },
+    { data: rawProposals },
+    { data: rawVisitsA },
+    { data: rawVisitsB },
+  ] = await Promise.all([
     supabase
       .from('contributions')
       .select('id, user_id, created_at')
@@ -50,18 +71,48 @@ async function runReport(overrideWeekStart?: Date) {
       .select('id, user_id, created_at, name')
       .gte('created_at', lastMonday.toISOString())
       .lte('created_at', lastSunday.toISOString()),
+    supabase
+      .from('page_views')
+      .select('user_id, created_at')
+      .gte('created_at', lastMonday.toISOString())
+      .lte('created_at', lastSunday.toISOString()),
+    supabase
+      .from('page_views')
+      .select('user_id, created_at')
+      .gte('created_at', prevMonday.toISOString())
+      .lte('created_at', prevSunday.toISOString()),
   ])
 
+  // Exclude admins. Anonymous visits (user_id null) are kept.
+  const contributions = (rawContributions ?? []).filter((c) => !isAdmin(c.user_id as string | null))
+  const proposals = (rawProposals ?? []).filter((p) => !isAdmin(p.user_id as string | null))
+  const visitsA = (rawVisitsA ?? []).filter((v) => !isAdmin(v.user_id as string | null))
+  const visitsB = (rawVisitsB ?? []).filter((v) => !isAdmin(v.user_id as string | null))
+
+  // Bucket visits A by day-of-week (Mon=0 .. Sun=6) using UTC.
+  const daily = DAY_LABELS.map((label) => ({ label, count: 0 }))
+  for (const v of visitsA) {
+    const d = new Date(v.created_at as string)
+    // getUTCDay: Sun=0..Sat=6 → convert to Mon=0..Sun=6
+    const idx = (d.getUTCDay() + 6) % 7
+    daily[idx].count++
+  }
+
+  const totalVisitsA = visitsA.length
+  const totalVisitsB = visitsB.length
+  const deltaPct = totalVisitsB === 0 ? null : Math.round(((totalVisitsA - totalVisitsB) / totalVisitsB) * 100)
+
+  // Per-user breakdown (admins already excluded).
   const userStats: Record<string, UserStats> = {}
-  for (const c of contributions ?? []) {
+  for (const c of contributions) {
     if (!c.user_id) continue
     if (!userStats[c.user_id]) userStats[c.user_id] = { contributions: 0, proposals: [] }
     userStats[c.user_id].contributions++
   }
-  for (const p of proposals ?? []) {
+  for (const p of proposals) {
     if (!p.user_id) continue
     if (!userStats[p.user_id]) userStats[p.user_id] = { contributions: 0, proposals: [] }
-    userStats[p.user_id].proposals.push(p.name ?? 'Sans nom')
+    userStats[p.user_id].proposals.push((p as any).name ?? 'Sans nom')
   }
 
   const userIds = Object.keys(userStats)
@@ -79,8 +130,8 @@ async function runReport(overrideWeekStart?: Date) {
     }
   }
 
-  const totalContributions = (contributions ?? []).length
-  const totalProposals = (proposals ?? []).length
+  const totalContributions = contributions.length
+  const totalProposals = proposals.length
   const activeUsers = userIds.length
 
   const rows = Object.entries(userStats)
@@ -100,17 +151,14 @@ async function runReport(overrideWeekStart?: Date) {
 
   const weekKey = lastMonday.toISOString().slice(0, 10)
 
-  // Fetch all admin recipients from profiles + auth.users
-  const { data: adminProfiles } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('role', 'admin')
-  const adminIds = (adminProfiles ?? []).map((p) => p.id as string)
+  // Admin recipients (emails) — reuse adminIds.
   const adminEmails: string[] = []
   for (const u of usersList?.users ?? []) {
-    if (adminIds.includes(u.id) && u.email) adminEmails.push(u.email)
+    if (adminIds.has(u.id) && u.email) adminEmails.push(u.email)
   }
   const recipients = adminEmails.length > 0 ? adminEmails : [FALLBACK_ADMIN_EMAIL]
+
+  const visits = { totalA: totalVisitsA, totalB: totalVisitsB, deltaPct, daily }
 
   for (const recipient of recipients) {
     const idempotencyKey = `weekly-admin-report-${weekKey}-${recipient}`
@@ -125,7 +173,7 @@ async function runReport(overrideWeekStart?: Date) {
         templateName: 'weekly-admin-report',
         recipientEmail: recipient,
         idempotencyKey,
-        templateData: { periodLabel, totalContributions, totalProposals, activeUsers, rows },
+        templateData: { periodLabel, totalContributions, totalProposals, activeUsers, visits, rows },
       }),
     })
 
@@ -142,6 +190,7 @@ async function runReport(overrideWeekStart?: Date) {
     totalContributions,
     totalProposals,
     activeUsers,
+    visits,
     recipients,
   })
 }
@@ -151,7 +200,6 @@ declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void }
 
 Deno.serve(async (req) => {
   try {
-    // Auth: only the pg_cron job (service role) or an admin caller may trigger.
     const authHeader = req.headers.get('Authorization') ?? ''
     const expected = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
     let authorized = false
@@ -174,10 +222,9 @@ Deno.serve(async (req) => {
       const body = await req.json()
       if (body?.weekStart) overrideWeekStart = new Date(body.weekStart)
     } catch {
-      // no body / not JSON — use default (last week)
+      // no body
     }
 
-    // Run in background so we ACK fast (pg_cron net.http_post default timeout is 5s)
     // @ts-ignore
     EdgeRuntime.waitUntil(
       runReport(overrideWeekStart).catch((e) =>
