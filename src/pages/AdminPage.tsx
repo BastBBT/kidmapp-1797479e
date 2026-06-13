@@ -269,6 +269,15 @@ const AdminPage = () => {
   const [manualLat, setManualLat] = useState('47.2184');
   const [manualLng, setManualLng] = useState('-1.5536');
 
+  // Edit-modal coordinates state
+  const [editOriginalAddress, setEditOriginalAddress] = useState('');
+  const [editOriginalLat, setEditOriginalLat] = useState<number | null>(null);
+  const [editOriginalLng, setEditOriginalLng] = useState<number | null>(null);
+  const [editManualLat, setEditManualLat] = useState('');
+  const [editManualLng, setEditManualLng] = useState('');
+  const [showEditManualCoords, setShowEditManualCoords] = useState(false);
+  const [editGeocoding, setEditGeocoding] = useState(false);
+
   const geocodeAddress = async (address: string): Promise<{lat: number, lng: number} | null> => {
     const cleaned = address
       .trim()
@@ -811,6 +820,12 @@ const AdminPage = () => {
                         bookable: (loc as any).bookable ?? 'unknown',
                         status: loc.status,
                       });
+                      setEditOriginalAddress(loc.address ?? '');
+                      setEditOriginalLat(loc.lat ?? null);
+                      setEditOriginalLng(loc.lng ?? null);
+                      setEditManualLat(loc.lat != null ? String(loc.lat) : '');
+                      setEditManualLng(loc.lng != null ? String(loc.lng) : '');
+                      setShowEditManualCoords(false);
                       // Load existing meals for this location
                       const base = buildEmptyMealsState(mealTypes);
                       const { data: existing } = await supabase
@@ -1445,6 +1460,31 @@ const AdminPage = () => {
                 </select>
               </div>
               <FormField label="Adresse" value={editForm.address} onChange={(v) => setEditForm((f: any) => ({ ...f, address: v }))} />
+              <div style={{ marginTop: -8, marginBottom: 4, fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span>📍 {editOriginalLat != null && editOriginalLng != null ? `${editOriginalLat.toFixed(5)}, ${editOriginalLng.toFixed(5)}` : 'Aucune coordonnée'}</span>
+                {editForm.address !== editOriginalAddress && (
+                  <span style={{ color: 'var(--primary)', fontWeight: 600 }}>· adresse modifiée → re-géocodage à l'enregistrement</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowEditManualCoords((s) => !s)}
+                  style={{ background: 'none', border: 'none', padding: 0, color: 'var(--secondary)', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12, textDecoration: 'underline' }}
+                >
+                  {showEditManualCoords ? 'Masquer' : 'Modifier manuellement les coordonnées'}
+                </button>
+              </div>
+              {showEditManualCoords && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                  <div>
+                    <label style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Latitude</label>
+                    <input value={editManualLat} onChange={(e) => setEditManualLat(e.target.value)} placeholder="47.2184" style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 15 }} />
+                  </div>
+                  <div>
+                    <label style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Longitude</label>
+                    <input value={editManualLng} onChange={(e) => setEditManualLng(e.target.value)} placeholder="-1.5536" style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 15 }} />
+                  </div>
+                </div>
+              )}
               <FormField label="Site web" value={editForm.website} onChange={(v) => setEditForm((f: any) => ({ ...f, website: v }))} placeholder="https://..." />
               <div>
                 <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Instagram</label>
@@ -1531,23 +1571,60 @@ const AdminPage = () => {
                     finalPhotoUrl = newUrl;
                   }
 
+                  // Resolve coordinates: manual override > re-geocode (if address changed) > keep originals
+                  let newLat: number | null = null;
+                  let newLng: number | null = null;
+                  const addressChanged = editForm.address.trim() !== editOriginalAddress.trim();
+
+                  if (showEditManualCoords) {
+                    const la = parseFloat(editManualLat);
+                    const ln = parseFloat(editManualLng);
+                    if (!isFinite(la) || !isFinite(ln) || la < -90 || la > 90 || ln < -180 || ln > 180) {
+                      toast({ title: 'Coordonnées invalides', description: 'Vérifie latitude et longitude.', variant: 'destructive' });
+                      return;
+                    }
+                    newLat = la;
+                    newLng = ln;
+                  } else if (addressChanged) {
+                    setEditGeocoding(true);
+                    const coords = await geocodeAddress(editForm.address);
+                    setEditGeocoding(false);
+                    if (!coords) {
+                      toast({
+                        title: 'Adresse introuvable',
+                        description: 'Saisis les coordonnées manuellement (lien sous le champ adresse).',
+                        variant: 'destructive',
+                      });
+                      setShowEditManualCoords(true);
+                      return;
+                    }
+                    newLat = coords.lat;
+                    newLng = coords.lng;
+                  }
+
+                  const updatePayload: any = {
+                    name: editForm.name,
+                    category: editForm.category,
+                    address: editForm.address,
+                    website: editForm.website || null,
+                    instagram: editForm.instagram || null,
+                    photo: finalPhotoUrl,
+                    note: editForm.note || null,
+                    high_chair: editForm.high_chair,
+                    changing_table: editForm.changing_table,
+                    kids_area: editForm.kids_area,
+                    kids_menu: !!editForm.kids_menu,
+                    bookable: editForm.bookable,
+                    status: editForm.status,
+                  };
+                  if (newLat != null && newLng != null) {
+                    updatePayload.lat = newLat;
+                    updatePayload.lng = newLng;
+                  }
+
                   const { error } = await supabase
                     .from('locations')
-                    .update({
-                      name: editForm.name,
-                      category: editForm.category,
-                      address: editForm.address,
-                      website: editForm.website || null,
-                      instagram: editForm.instagram || null,
-                      photo: finalPhotoUrl,
-                      note: editForm.note || null,
-                      high_chair: editForm.high_chair,
-                      changing_table: editForm.changing_table,
-                      kids_area: editForm.kids_area,
-                      kids_menu: !!editForm.kids_menu,
-                      bookable: editForm.bookable,
-                      status: editForm.status,
-                    } as any)
+                    .update(updatePayload)
                     .eq('id', editingId);
                   if (error) {
                     toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
@@ -1589,14 +1666,16 @@ const AdminPage = () => {
 
                   queryClient.invalidateQueries({ queryKey: ['all-locations'] });
                   queryClient.invalidateQueries({ queryKey: ['locations'] });
+                  queryClient.invalidateQueries({ queryKey: ['location', editingId] });
                   queryClient.invalidateQueries({ queryKey: ['location_meals'] });
                   setEditingId(null);
                   setEditPhotoFile(null);
                   toast({ title: 'Lieu mis à jour ✓' });
                 }}
-                style={{ width: '100%', padding: '14px', borderRadius: '100px', border: 'none', background: 'var(--primary)', color: '#fff', fontFamily: 'DM Sans', fontSize: '15px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}
+                disabled={editGeocoding}
+                style={{ width: '100%', padding: '14px', borderRadius: '100px', border: 'none', background: 'var(--primary)', color: '#fff', fontFamily: 'DM Sans', fontSize: '15px', fontWeight: 600, cursor: editGeocoding ? 'wait' : 'pointer', marginTop: '8px', opacity: editGeocoding ? 0.6 : 1 }}
               >
-                Enregistrer
+                {editGeocoding ? 'Géocodage…' : 'Enregistrer'}
               </button>
             </div>
           </div>

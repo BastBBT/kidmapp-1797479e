@@ -1,63 +1,35 @@
-# Questionnaire d'acquisition post-inscription
+## Problème
 
-## Migration DB
+Sur la fiche d'un lieu, le pin de la carte est placé à partir de deux coordonnées stockées en base : `lat` (latitude) et `lng` (longitude). Le champ « Adresse » est juste du texte affiché — il n'a aucun effet sur la position du pin.
 
-Ajouter à `public.profiles` :
-- `acquisition_source text`
-- `acquisition_detail text`
-- `acquisition_source_at timestamptz`
+Aujourd'hui, le formulaire **Création** d'un lieu dans l'admin convertit automatiquement l'adresse en coordonnées (via OpenStreetMap/Nominatim), et propose un fallback manuel si la conversion échoue. Mais le formulaire **Modification** ne fait ni l'un ni l'autre : il enregistre la nouvelle adresse texte et laisse les coordonnées intactes. Résultat : le pin ne bouge jamais quand tu modifies l'adresse.
 
-Pas de nouvelle policy : les policies update existantes sur `profiles` (user peut modifier son propre profil) couvrent déjà l'écriture. `prevent_role_self_escalation` reste actif.
+## Ce qu'on va faire
 
-## Composant `src/components/AcquisitionModal.tsx` (nouveau)
+Aligner l'édition sur la création, dans la modale « Modifier le lieu » :
 
-Props : `open: boolean`, `onClose: () => void`.
+1. **Re-géocodage automatique si l'adresse a changé**
+   À l'enregistrement, si la nouvelle adresse est différente de l'ancienne, on relance Nominatim pour obtenir de nouvelles coordonnées et on les enregistre avec le reste.
 
-Contenu :
-- Titre Fraunces 20px : « Une dernière chose ! »
-- Sous-titre DM Sans 13px muted : « Comment avez-vous découvert Kidmapp ? 🧡 »
-- 6 options en liste verticale (boutons radio personnalisés). Sélection unique :
-  - `social` 📱 Réseaux sociaux
-  - `word_of_mouth` 💬 Bouche à oreille
-  - `partner_place` 📍 Un lieu partenaire
-  - `search` 🔎 Recherche web / App Store
-  - `press` 📰 Presse ou blog
-  - `other` ✨ Autre…
-- État sélectionné : bordure `#D95F3B`, fond `#FFF8F5`, check ✓ à droite.
-- Si `other` sélectionné → textarea apparait (« Dites-nous en quelques mots… », maxLength 280, `font-size:16px` anti-zoom iOS).
-- Bouton principal « Valider » (coral, plein largeur, disabled tant que pas de sélection).
-- Lien « Passer » (texte gris souligné, centré, sous le bouton).
+2. **Fallback coordonnées manuelles**
+   Si Nominatim ne trouve rien (ou retourne un point hors de la zone Nantes), on affiche deux petits champs « Latitude » / « Longitude » pré-remplis avec les coordonnées actuelles. L'admin peut les corriger à la main et valider.
 
-Style : bottom-sheet mobile (même structure que `ShareLevelModal` — overlay z-1000, `border-radius: 20px 20px 0 0`, slideUp anim, `maxWidth: 440`), centré sur desktop via `align-items: center` quand `!isMobile`.
+3. **Affichage des coordonnées actuelles**
+   Sous le champ « Adresse », on affiche en petit `📍 47.1984, -1.5536` pour que tu voies tout de suite où est placé le pin, et un lien « Modifier manuellement » qui ouvre les champs lat/lng même quand le géocodage a réussi (utile si Nominatim choisit le mauvais bâtiment).
 
-Comportements :
-- **Valider** → `supabase.from('profiles').update({ acquisition_source, acquisition_detail: detail.trim() || null, acquisition_source_at: new Date().toISOString() }).eq('id', user.id)`. Erreur silencieuse côté UI (console.error), on ferme et pose le flag quoi qu'il arrive pour ne pas re-spammer.
-- **Passer** → pose le flag, ferme. Aucune écriture.
-- Dans les deux cas : `localStorage.setItem('hasAnsweredAcquisition', 'true')` puis `onClose()`.
-- Pas de fermeture par clic backdrop ou croix → toujours via Valider/Passer (évite les fermetures accidentelles tout en restant skippable).
-
-## Wiring : `src/App.tsx`
-
-Nouveau composant `AcquisitionOverlay` (à côté de `OnboardingOverlay`) :
-- Hooks `useAuth()` (récupère `user`, `isLoading`).
-- Détecte la transition `prevUserId !== currentUserId && currentUserId != null` via un `useRef<string|null>`.
-- Sur transition non-connecté → connecté :
-  - Lit `localStorage.getItem('hasAnsweredAcquisition')`.
-  - Si absent → `setShow(true)`.
-- Rendu : `<AcquisitionModal open={show} onClose={() => setShow(false)} />`.
-- Monté dans `AppContent` à la suite de `<OnboardingOverlay />`.
-
-Note : utilisateurs déjà connectés au moment du déploiement → la transition n'a pas lieu, donc on déclenche aussi `setShow(true)` au premier render si `user && !isLoading && !flag`. C'est conforme à la consigne (« les utilisateurs déjà inscrits avant la feature le verront aussi une fois »).
+4. **Rafraîchissement de la carte côté app**
+   Après l'enregistrement, on invalide les caches React Query (`['locations']`, `['all-locations']`, `['location', id]`) pour que la carte affiche immédiatement la nouvelle position sans avoir à recharger la page.
 
 ## Hors scope
-- Pas de modif de `AuthModal`, `Onboarding`, ni du flow signup (pas de friction).
-- Pas de stat admin / dashboard de cette donnée pour l'instant.
-- Pas de traduction multi-langue.
-- Pas de nouvelle policy RLS (les UPDATE existantes suffisent).
+
+- Pas de Realtime Supabase pour propager les changements aux autres visiteurs en direct (on peut l'ajouter dans un second temps si tu veux).
+- Pas de carte mini-preview dans la modale d'édition pour cliquer-déplacer le pin (gros chantier, à proposer séparément).
+- Aucun changement à la création, aux propositions utilisateurs, à la base de données ou aux RLS.
 
 ## Détails techniques
 
-- Pas de nouvelle dépendance.
-- `useIsMobile` pour adapter centrage desktop vs bottom-sheet mobile.
-- Types Supabase régénérés après migration → champs nouveaux dispo dans `.update()`.
-- Flag localStorage volontairement device-local : si l'utilisateur change de navigateur il pourrait revoir la modale, mais c'est l'option la plus simple et conforme à la spec.
+- Fichier touché : `src/pages/AdminPage.tsx` uniquement.
+- On réutilise la fonction `geocodeAddress` déjà présente (ligne 272) et le pattern `manualLat` / `manualLng` du formulaire de création (lignes 438-446).
+- Le `update` Supabase (ligne 1534) reçoit en plus `lat` et `lng` quand on a de nouvelles coordonnées ; sinon on n'envoie pas ces champs.
+- Validation : si l'adresse a changé et qu'on n'a ni géocodage réussi ni saisie manuelle valide, on bloque l'enregistrement avec un toast (même UX que la création).
+- Invalidation cache : `queryClient.invalidateQueries` sur les 3 query keys utilisées par la carte et la fiche.
