@@ -1666,14 +1666,16 @@ const AdminPage = () => {
 
                   queryClient.invalidateQueries({ queryKey: ['all-locations'] });
                   queryClient.invalidateQueries({ queryKey: ['locations'] });
+                  queryClient.invalidateQueries({ queryKey: ['location', editingId] });
                   queryClient.invalidateQueries({ queryKey: ['location_meals'] });
                   setEditingId(null);
                   setEditPhotoFile(null);
                   toast({ title: 'Lieu mis à jour ✓' });
                 }}
-                style={{ width: '100%', padding: '14px', borderRadius: '100px', border: 'none', background: 'var(--primary)', color: '#fff', fontFamily: 'DM Sans', fontSize: '15px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}
+                disabled={editGeocoding}
+                style={{ width: '100%', padding: '14px', borderRadius: '100px', border: 'none', background: 'var(--primary)', color: '#fff', fontFamily: 'DM Sans', fontSize: '15px', fontWeight: 600, cursor: editGeocoding ? 'wait' : 'pointer', marginTop: '8px', opacity: editGeocoding ? 0.6 : 1 }}
               >
-                Enregistrer
+                {editGeocoding ? 'Géocodage…' : 'Enregistrer'}
               </button>
             </div>
           </div>
