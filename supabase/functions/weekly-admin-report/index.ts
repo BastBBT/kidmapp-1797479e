@@ -19,7 +19,7 @@ function formatDate(d: Date): string {
 
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 
-async function runReport(overrideWeekStart?: Date) {
+async function runReport(callerAuth: string, overrideWeekStart?: Date) {
   let lastMonday: Date
   let lastSunday: Date
   if (overrideWeekStart) {
