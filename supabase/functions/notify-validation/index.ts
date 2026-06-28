@@ -11,26 +11,30 @@ Deno.serve(async (req) => {
   }
 
   // Auth: this function is only called from a DB trigger via pg_net using the
-  // service role key. Reject any caller that doesn't present it.
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  // service role key. Accept any JWT whose role claim is service_role
+  // (byte equality breaks when Supabase rotates the key).
   const authHeader = req.headers.get('Authorization') ?? ''
-  const expected = `Bearer ${serviceRoleKey}`
-  if (!serviceRoleKey || authHeader.length !== expected.length) {
+  const parseJwtRole = (h: string): string | null => {
+    if (!h.startsWith('Bearer ')) return null
+    const token = h.slice(7)
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    try {
+      const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+      const padded = payload + '='.repeat((4 - (payload.length % 4)) % 4)
+      const json = JSON.parse(atob(padded))
+      return typeof json?.role === 'string' ? json.role : null
+    } catch {
+      return null
+    }
+  }
+  if (parseJwtRole(authHeader) !== 'service_role') {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
-  let mismatch = 0
-  for (let i = 0; i < expected.length; i++) {
-    mismatch |= authHeader.charCodeAt(i) ^ expected.charCodeAt(i)
-  }
-  if (mismatch !== 0) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
 
   try {
@@ -157,7 +161,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${serviceRoleKey}`,
+          Authorization: authHeader,
           apikey: serviceRoleKey,
         },
         body: JSON.stringify({

@@ -19,7 +19,7 @@ function formatDate(d: Date): string {
 
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 
-async function runReport(overrideWeekStart?: Date) {
+async function runReport(callerAuth: string, overrideWeekStart?: Date) {
   let lastMonday: Date
   let lastSunday: Date
   if (overrideWeekStart) {
@@ -166,7 +166,7 @@ async function runReport(overrideWeekStart?: Date) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        Authorization: callerAuth,
         apikey: SUPABASE_SERVICE_ROLE_KEY,
       },
       body: JSON.stringify({
@@ -198,19 +198,25 @@ async function runReport(overrideWeekStart?: Date) {
 // @ts-ignore EdgeRuntime is provided by Supabase runtime
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void }
 
+function parseJwtRole(authHeader: string | null): string | null {
+  if (!authHeader?.startsWith('Bearer ')) return null
+  const token = authHeader.slice(7)
+  const parts = token.split('.')
+  if (parts.length !== 3) return null
+  try {
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const padded = payload + '='.repeat((4 - (payload.length % 4)) % 4)
+    const json = JSON.parse(atob(padded))
+    return typeof json?.role === 'string' ? json.role : null
+  } catch {
+    return null
+  }
+}
+
 Deno.serve(async (req) => {
   try {
-    const authHeader = req.headers.get('Authorization') ?? ''
-    const expected = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-    let authorized = false
-    if (SUPABASE_SERVICE_ROLE_KEY && authHeader.length === expected.length) {
-      let mismatch = 0
-      for (let i = 0; i < expected.length; i++) {
-        mismatch |= authHeader.charCodeAt(i) ^ expected.charCodeAt(i)
-      }
-      authorized = mismatch === 0
-    }
-    if (!authorized) {
+    const auth = req.headers.get('Authorization') ?? ''
+    if (parseJwtRole(auth) !== 'service_role') {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
@@ -227,7 +233,7 @@ Deno.serve(async (req) => {
 
     // @ts-ignore
     EdgeRuntime.waitUntil(
-      runReport(overrideWeekStart).catch((e) =>
+      runReport(auth, overrideWeekStart).catch((e) =>
         console.error('weekly-admin-report background error', e),
       ),
     )
