@@ -166,7 +166,7 @@ async function runReport(callerAuth: string, overrideWeekStart?: Date) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        Authorization: callerAuth,
         apikey: SUPABASE_SERVICE_ROLE_KEY,
       },
       body: JSON.stringify({
