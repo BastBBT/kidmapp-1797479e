@@ -215,7 +215,8 @@ function parseJwtRole(authHeader: string | null): string | null {
 
 Deno.serve(async (req) => {
   try {
-    if (parseJwtRole(req.headers.get('Authorization')) !== 'service_role') {
+    const auth = req.headers.get('Authorization') ?? ''
+    if (parseJwtRole(auth) !== 'service_role') {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
@@ -232,7 +233,7 @@ Deno.serve(async (req) => {
 
     // @ts-ignore
     EdgeRuntime.waitUntil(
-      runReport(overrideWeekStart).catch((e) =>
+      runReport(auth, overrideWeekStart).catch((e) =>
         console.error('weekly-admin-report background error', e),
       ),
     )
