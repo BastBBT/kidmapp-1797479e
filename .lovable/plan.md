@@ -1,56 +1,74 @@
-## Objectif
+# Filtre "Âge de l'enfant" côté web
 
-Enrichir le mail hebdomadaire admin avec un bloc « Visites » sur 14 jours (semaine A vs B) et exclure toute l'activité des comptes admin (contributions, propositions **et** visites).
+## 1. Base de données (migration idempotente)
 
-## Périodes
+```sql
+ALTER TABLE public.locations
+  ADD COLUMN IF NOT EXISTS age_min int,
+  ADD COLUMN IF NOT EXISTS age_max int;
 
-- **Semaine A** (mise en avant + graphique) : lundi J-7 → dimanche J-1.
-- **Semaine B** (comparatif) : lundi J-14 → dimanche J-8.
-- Variation : `(A - B) / B` en %. Badge vert si ≥ 0, rouge si < 0, masqué si B = 0 (affiché « nouveau »).
+ALTER TABLE public.location_proposals
+  ADD COLUMN IF NOT EXISTS age_min int,
+  ADD COLUMN IF NOT EXISTS age_max int;
+```
 
-## Récap complet du mail après modif
+Les deux colonnes sont **nullables** — l'âge est totalement optionnel sur un lieu. `NULL` (min et/ou max) = « tous âges » : le lieu passe toutes les tranches et n'est jamais filtré. Aucun défaut, aucune contrainte NOT NULL, aucun backfill.
 
-1. **En-tête** : « 📊 Rapport hebdomadaire » + sous-titre « Semaine du {periodLabel} ».
-2. **Bloc stats (4 cartes, nouvel ordre)** :
-   1. **Visites (7j)** — total Semaine A + badge variation vs Semaine B
-   2. **Utilisateurs actifs** (Semaine A, hors admins)
-   3. **Contributions** (Semaine A, hors admins)
-   4. **Propositions** (Semaine A, hors admins)
-3. **Mini graphique en barres** (nouveau, juste sous les stats) : 7 barres Lun→Dim de la Semaine A, vert `#3B7D6E` sur fond `#EDEAE3`, hauteur max ~80px, rendu HTML/CSS inline (compatible Gmail/Outlook). Chiffre au-dessus de chaque barre + label jour en dessous.
-4. **Détail par utilisateur** : contributeurs hors admins (contributions + propositions Semaine A). Vide → « Aucune activité cette semaine. »
-5. **Footer** inchangé.
+## 2. Constantes & helpers partagés
 
-## Détails techniques
+Nouveau `src/lib/ageFilter.ts` :
+- `AGE_BUCKETS = { all, '0-2':[0,2], '3-5':[3,5], '6+':[6,99] }`.
+- `matchesAge(loc, bucket)` : `(age_min ?? 0) <= max && (age_max ?? 99) >= min`. Un lieu avec `age_min`/`age_max` NULL passe toujours.
+- `adequacyScore(loc, bucket)` :
+  - `0-2` : `changing_table` +1, `high_chair` +1
+  - `3-5` : `high_chair` +1, `kids_menu` +1, `kids_area` +1
+  - `6+`  : `kids_area` +1, `kids_menu` +1
+- `relevantEquipForBucket(bucket)` : ordre des `EquipKey` mis en avant.
 
-### `supabase/functions/weekly-admin-report/index.ts`
+## 3. Explorer (`Header` + `Index.tsx`)
 
-- Récupérer `adminIds` (profiles.role = 'admin') **avant** les calculs.
-- Bornes UTC des 2 semaines. Fetch parallèle :
-  - `contributions` Semaine A
-  - `location_proposals` Semaine A
-  - `page_views` Semaine A (created_at, user_id)
-  - `page_views` Semaine B (created_at, user_id)
-- Exclure `user_id ∈ adminIds` partout (les visites anonymes `user_id IS NULL` sont conservées).
-- Bucketer la Semaine A par jour (Lun→Dim) → `[{label:'Lun', count:N}, ...]`.
-- Calculer `totalA`, `totalB`, `deltaPct` (null si `totalB === 0`).
-- Passer au template : `visits: { totalA, totalB, deltaPct, daily: [...] }`.
+- Nouveau `src/components/AgeFilter.tsx` : 4 pills persistantes (Tous / 0-2 / 3-5 / 6+), style aligné sur `CategoryFilter`.
+- Placé sous la barre de catégories dans `Header` (toujours visible, indépendant de la catégorie), et dupliqué dans la carte plein écran comme `MealFilter`.
+- État `selectedAge` dans `Index.tsx`, synchro URL (`?age=`).
+- Client-only : après le filtre existant, appliquer `matchesAge` puis trier par `adequacyScore` DESC, tie-break alphabétique. Pas de refetch.
 
-### `supabase/functions/_shared/transactional-email-templates/weekly-admin-report.tsx`
+## 4. `LocationCard`
 
-- Ajouter prop `visits`.
-- Réordonner les 4 `statBox` : Visites → Utilisateurs actifs → Contributions → Propositions.
-- Carte Visites avec badge de variation coloré.
-- Composant `BarChart` inline (`<table>` 7 colonnes, divs à hauteur proportionnelle, 100% inline-styles).
-- Étendre `previewData` avec un exemple `visits`.
+- Prop `ageBucket?`. Si actif : équipements pertinents en tête + bord/teinte primaire renforcé ; autres en style neutre.
 
-## Hors scope
+## 5. Fiche lieu (`LocationServicesSection`)
 
-- Pas de migration SQL ni de modif RLS (fonction en service_role).
-- Pas de modif du cron, des destinataires, de l'infra email.
-- Pas de graphique image — barres HTML/CSS uniquement.
-- Pas de changement à `notify-validation` ni autres fonctions.
+- Sélecteur d'âge local (4 pills) au-dessus des équipements.
+- Verdict basé sur les équipements pertinents pour la tranche :
+  - tous présents → vert « Tout y est pour cet âge »
+  - au moins un → ambre « Bien adapté (X/Y besoins clés) »
+  - aucun → gris « Peu d'infos pour cet âge »
+  - verdict masqué si tranche = Tous.
+- Équipements pertinents affichés en tête + étoile/teinte primaire.
+
+## 6. Proposition & Admin
+
+- `ProposeLocationModal` : dans le step Détails, deux champs numériques **optionnels** : « Dès X ans » (`age_min`) et « Jusqu'à Y ans » (`age_max`). Aucun n'est requis. Validation légère : si les deux fournis, `age_max >= age_min` ; valeurs 0-99. Champs vides → `null` envoyé.
+- `AdminPage` : mêmes deux champs optionnels dans la modale édition location + affichage dans la revue des propositions. Un bouton « Effacer » (ou simple champ vide) permet de repasser à `null`.
+
+## 7. Renommage libellé
+
+Dans `src/assets/icons.ts` : `EQUIP_LABELS.high_chair = 'Chaise haute / réhausseur'`. `EQUIP_SHORT_LABELS.high_chair` reste `Chaise` (contrainte chips). Remplacer chaque occurrence en dur dans proposition/admin/fiche.
 
 ## Fichiers touchés
 
-- `supabase/functions/weekly-admin-report/index.ts`
-- `supabase/functions/_shared/transactional-email-templates/weekly-admin-report.tsx`
+- Migration Supabase (locations + location_proposals)
+- `src/lib/ageFilter.ts` (nouveau)
+- `src/components/AgeFilter.tsx` (nouveau)
+- `src/components/Header.tsx`, `src/pages/Index.tsx`
+- `src/components/LocationCard.tsx`
+- `src/components/LocationServicesSection.tsx` (+ `LocationPage.tsx` si besoin)
+- `src/components/ProposeLocationModal.tsx`
+- `src/pages/AdminPage.tsx`
+- `src/assets/icons.ts`
+
+## Notes
+
+- Filtre âge = 100% client, `useLocations` inchangé.
+- URL sync : ajouter `age` aux paramètres valides dans `Index.tsx`.
+- Un lieu sans âge renseigné (cas par défaut, majoritaire au départ) reste visible partout et prend uniquement le score équipement pour le tri.

@@ -837,6 +837,8 @@ const AdminPage = () => {
                         kids_menu: (loc as any).kids_menu ?? false,
                         bookable: (loc as any).bookable ?? 'unknown',
                         status: loc.status,
+                        age_min: (loc as any).age_min != null ? String((loc as any).age_min) : '',
+                        age_max: (loc as any).age_max != null ? String((loc as any).age_max) : '',
                       });
                       setEditOriginalAddress(loc.address ?? '');
                       setEditOriginalLat(loc.lat ?? null);
@@ -939,7 +941,7 @@ const AdminPage = () => {
                     }
                     const equipItems: { emoji: string; label: string; value: boolean | null | undefined }[] = jsonEquipment
                       ? [
-                          { emoji: '🪑', label: 'Chaise haute', value: jsonEquipment.high_chair },
+                          { emoji: '🪑', label: 'Chaise haute / réhausseur', value: jsonEquipment.high_chair },
                           { emoji: '👶', label: 'Table à langer', value: jsonEquipment.changing_table },
                           { emoji: '🎨', label: 'Espace jeux', value: jsonEquipment.kids_area },
                           { emoji: '🍽️', label: 'Menu enfant', value: (jsonEquipment as any).kids_menu },
@@ -1037,7 +1039,7 @@ const AdminPage = () => {
                   ) : (
                     <div style={{ marginBottom: '10px' }}>
                       <div className="flex gap-4 flex-wrap mb-2" style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {contrib.high_chair !== null && <span>🪑 Chaise haute {contrib.high_chair ? '✓' : '✗'}</span>}
+                        {contrib.high_chair !== null && <span>🪑 Chaise haute / réhausseur {contrib.high_chair ? '✓' : '✗'}</span>}
                         {contrib.changing_table !== null && <span>👶 Table à langer {contrib.changing_table ? '✓' : '✗'}</span>}
                         {contrib.kids_area !== null && <span>🎨 Espace jeux {contrib.kids_area ? '✓' : '✗'}</span>}
                         {(contrib as any).kids_menu !== null && (contrib as any).kids_menu !== undefined && <span>🍽️ Menu enfant {(contrib as any).kids_menu ? '✓' : '✗'}</span>}
@@ -1330,7 +1332,7 @@ const AdminPage = () => {
                 </div>
 
                 <div className="flex flex-col gap-3 mt-1">
-                  <Toggle label="Chaise haute" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
+                  <Toggle label="Chaise haute / réhausseur" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
                   <Toggle label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
                   <Toggle label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
                   <Toggle label="🍽️ Menu enfant" checked={form.kids_menu} onChange={(v) => updateForm('kids_menu', v)} />
@@ -1531,10 +1533,31 @@ const AdminPage = () => {
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>{(editForm.note || '').length}/500</div>
               </div>
               <div className="flex flex-col gap-3">
-                <Toggle label="Chaise haute" checked={editForm.high_chair} onChange={(v) => setEditForm((f: any) => ({ ...f, high_chair: v }))} />
+                <Toggle label="Chaise haute / réhausseur" checked={editForm.high_chair} onChange={(v) => setEditForm((f: any) => ({ ...f, high_chair: v }))} />
                 <Toggle label="Table à langer" checked={editForm.changing_table} onChange={(v) => setEditForm((f: any) => ({ ...f, changing_table: v }))} />
                 <Toggle label="Espace jeux" checked={editForm.kids_area} onChange={(v) => setEditForm((f: any) => ({ ...f, kids_area: v }))} />
                 <Toggle label="🍽️ Menu enfant" checked={!!editForm.kids_menu} onChange={(v) => setEditForm((f: any) => ({ ...f, kids_menu: v }))} />
+              </div>
+              <div>
+                <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                  Âge conseillé (optionnel)
+                </label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="number" min={0} max={99} inputMode="numeric"
+                    value={editForm.age_min ?? ''}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, age_min: e.target.value.replace(/[^\d]/g, '') }))}
+                    placeholder="Dès X ans"
+                    style={{ flex: 1, padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
+                  />
+                  <input
+                    type="number" min={0} max={99} inputMode="numeric"
+                    value={editForm.age_max ?? ''}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, age_max: e.target.value.replace(/[^\d]/g, '') }))}
+                    placeholder="Jusqu'à Y ans"
+                    style={{ flex: 1, padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
+                  />
+                </div>
               </div>
               {(editForm.category === 'restaurant' || editForm.category === 'cafe') && (
                 <div>
@@ -1634,6 +1657,8 @@ const AdminPage = () => {
                     kids_menu: !!editForm.kids_menu,
                     bookable: editForm.bookable,
                     status: editForm.status,
+                    age_min: (editForm.age_min ?? '').toString().trim() === '' ? null : Math.max(0, parseInt(editForm.age_min, 10)) || null,
+                    age_max: (editForm.age_max ?? '').toString().trim() === '' ? null : Math.max(0, parseInt(editForm.age_max, 10)) || null,
                   };
                   if (newLat != null && newLng != null) {
                     updatePayload.lat = newLat;
@@ -2116,6 +2141,8 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         website: editDraft.website || null,
         instagram: editDraft.instagram || null,
         note: editDraft.note || null,
+        age_min: (editDraft as any).age_min ?? null,
+        age_max: (editDraft as any).age_max ?? null,
         status: 'published',
       };
       if (editDraft.category === 'restaurant' || editDraft.category === 'cafe') {
@@ -2214,6 +2241,8 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         website: proposal.website ?? null,
         instagram: proposal.instagram ?? null,
         note: proposal.note ?? null,
+        age_min: proposal.age_min ?? null,
+        age_max: proposal.age_max ?? null,
         status: 'published',
       };
       if ((proposal.category === 'restaurant' || proposal.category === 'cafe') && proposal.bookable) {
@@ -2348,7 +2377,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
               📍 {proposal.address}
             </div>
             <div className="flex gap-3 mb-2" style={{ fontFamily: 'DM Sans', fontSize: '12px' }}>
-              {proposal.high_chair && <span style={{ color: '#2E7D32' }}>🪑 Chaise haute</span>}
+              {proposal.high_chair && <span style={{ color: '#2E7D32' }}>🪑 Chaise haute / réhausseur</span>}
               {proposal.changing_table && <span style={{ color: '#2E7D32' }}>👶 Table à langer</span>}
               {proposal.kids_area && <span style={{ color: '#2E7D32' }}>🌳 Espace jeux</span>}
               {proposal.kids_menu && <span style={{ color: '#2E7D32' }}>🍽️ Menu enfant</span>}
@@ -2401,7 +2430,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                 />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   {[
-                    ['high_chair', '🪑 Chaise haute'],
+                    ['high_chair', '🪑 Chaise haute / réhausseur'],
                     ['changing_table', '👶 Table à langer'],
                     ['kids_area', '🌳 Espace jeux'],
                     ['kids_menu', '🍽️ Menu enfant'],

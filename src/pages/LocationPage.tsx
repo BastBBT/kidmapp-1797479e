@@ -17,6 +17,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EQUIP_ICONS, EQUIP_LABELS, EquipKey } from '@/assets/icons';
+import { AGE_BUCKETS, AgeBucket, ageVerdict, getPriorityEquip } from '@/lib/ageFilter';
 
 const categoryGradients: Record<string, string> = {
   restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
@@ -75,6 +76,7 @@ const LocationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [showContribute, setShowContribute] = useState(false);
+  const [ageBucket, setAgeBucket] = useState<AgeBucket>('all');
   const { data: location, isLoading } = useLocationData(id ?? '');
   const { isFavorite, toggleFavorite } = useFavorites();
   const { data: contribData } = useLocationContributions(id ?? '');
@@ -314,7 +316,7 @@ const LocationPage = () => {
             </div>
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <h2 className="font-display text-base font-semibold" style={{ color: 'var(--text)' }}>
               Équipements enfants
             </h2>
@@ -331,16 +333,63 @@ const LocationPage = () => {
             )}
           </div>
 
+          {/* Age selector + verdict */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+              {AGE_BUCKETS.map((b) => {
+                const active = ageBucket === b.id;
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setAgeBucket(b.id)}
+                    style={{
+                      padding: '5px 12px', borderRadius: 100,
+                      border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
+                      background: active ? 'var(--primary-light)' : 'var(--surface)',
+                      color: active ? 'var(--primary)' : 'var(--text-muted)',
+                      fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    {b.label}
+                  </button>
+                );
+              })}
+            </div>
+            {ageBucket !== 'all' && (() => {
+              const v = ageVerdict(location as any, ageBucket);
+              const cfg = v.level === 'perfect'
+                ? { bg: '#EBF6EC', color: '#2E7D32', text: 'Tout y est pour cet âge' }
+                : v.level === 'good'
+                ? { bg: '#FEF5E7', color: '#B77400', text: `Bien adapté (${v.matched}/${v.total} besoins clés)` }
+                : { bg: 'var(--bg)', color: 'var(--text-muted)', text: 'Peu d’infos pour cet âge' };
+              return (
+                <div style={{
+                  padding: '8px 12px', borderRadius: 100,
+                  background: cfg.bg, color: cfg.color,
+                  fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
+                  display: 'inline-block',
+                }}>
+                  {cfg.text}
+                </div>
+              );
+            })()}
+          </div>
+
           {(() => {
-            const items: { key: EquipKey; active: boolean; yes: number; no: number }[] = (
+            const priority = new Set(getPriorityEquip(ageBucket));
+            const items: { key: EquipKey; active: boolean; yes: number; no: number; isPriority: boolean }[] = (
               ['high_chair', 'changing_table', 'kids_area', 'kids_menu'] as EquipKey[]
             ).map((key) => ({
               key,
               active: !!(location as any)[key],
               yes: equipVotes?.[key]?.yes ?? 0,
               no: equipVotes?.[key]?.no ?? 0,
+              isPriority: priority.has(key),
             }));
-            const visible = items.filter((i) => i.active || i.yes > 0 || i.no > 0);
+            const visible = items
+              .filter((i) => i.active || i.yes > 0 || i.no > 0)
+              .sort((a, b) => Number(b.isPriority) - Number(a.isPriority));
             if (visible.length === 0) {
               return (
                 <p style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text-muted)' }}>
@@ -352,22 +401,30 @@ const LocationPage = () => {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                 {visible.map((it) => {
                   const isActive = it.active;
+                  const highlight = it.isPriority && isActive;
                   return (
                     <div key={it.key} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: 8,
                         padding: '6px 12px 6px 6px', borderRadius: 100,
-                        background: isActive ? '#EBF6EC' : 'var(--bg)',
-                        border: isActive ? 'none' : '1px solid var(--border)',
+                        background: isActive ? (highlight ? '#D9F0EA' : '#EBF6EC') : 'var(--bg)',
+                        border: highlight ? '1.5px solid var(--secondary, #3B7D6E)' : (isActive ? 'none' : '1px solid var(--border)'),
                         opacity: isActive ? 1 : 0.85,
                       }}>
                         <span style={{
                           width: 28, height: 28, borderRadius: 6, padding: 4,
                           background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          position: 'relative',
                         }}>
                           <img src={EQUIP_ICONS[it.key]} alt="" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                          {highlight && (
+                            <span style={{
+                              position: 'absolute', top: -6, right: -6,
+                              fontSize: 11, lineHeight: 1,
+                            }}>★</span>
+                          )}
                         </span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: isActive ? '#2E7D32' : 'var(--text-muted)' }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: isActive ? (highlight ? '#1E5C4F' : '#2E7D32') : 'var(--text-muted)' }}>
                           {EQUIP_LABELS[it.key]}{!isActive ? ' ?' : ''}
                         </span>
                       </div>

@@ -6,14 +6,17 @@ import LocationCard from '@/components/LocationCard';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
 import MealFilter from '@/components/MealFilter';
+import AgeFilter from '@/components/AgeFilter';
 import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
+import { AgeBucket, matchesAgeBucket, ageAdequacyScore } from '@/lib/ageFilter';
 
 
 const MEAL_CATEGORIES = new Set(['restaurant', 'cafe']);
 const VALID_CATEGORIES = new Set<string>(['all', 'restaurant', 'cafe', 'shop', 'public', 'coiffeur']);
+const VALID_AGES = new Set<string>(['all', '0-2', '3-5', '6+']);
 
 const NANTES_CENTER: [number, number] = [47.1984, -1.5536];
 const DEFAULT_ZOOM = 12;
@@ -28,6 +31,10 @@ const Index = () => {
   })();
   const initialQuery = searchParams.get('q') ?? '';
   const initialMeal = searchParams.get('meal');
+  const initialAge = (() => {
+    const a = searchParams.get('age');
+    return a && VALID_AGES.has(a) ? (a as AgeBucket) : 'all';
+  })();
   const initialCenter = useMemo<[number, number]>(() => {
     const lat = parseFloat(searchParams.get('lat') ?? '');
     const lng = parseFloat(searchParams.get('lng') ?? '');
@@ -42,6 +49,7 @@ const Index = () => {
 
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>(initialCategory);
   const [selectedMeal, setSelectedMeal] = useState<string | null>(initialMeal);
+  const [selectedAge, setSelectedAge] = useState<AgeBucket>(initialAge);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
 
   const [mapExpanded, setMapExpanded] = useState(false);
@@ -74,6 +82,7 @@ const Index = () => {
     if (q) params.set('q', q);
     if (category && category !== 'all') params.set('category', category);
     if (meal) params.set('meal', meal);
+    if (selectedAge && selectedAge !== 'all') params.set('age', selectedAge);
     if (Number.isFinite(lat) && (lat !== NANTES_CENTER[0] || lng !== NANTES_CENTER[1])) {
       params.set('lat', lat.toFixed(4));
       params.set('lng', lng.toFixed(4));
@@ -82,13 +91,13 @@ const Index = () => {
       params.set('zoom', String(zoom));
     }
     setSearchParams(params, { replace: true });
-  }, [searchQuery, selectedCategory, selectedMeal, setSearchParams]);
+  }, [searchQuery, selectedCategory, selectedMeal, selectedAge, setSearchParams]);
 
   // Push filter changes to URL
   useEffect(() => {
     updateUrl();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, selectedCategory, selectedMeal]);
+  }, [searchQuery, selectedCategory, selectedMeal, selectedAge]);
 
   const handleMapViewChange = useCallback((center: [number, number], zoom: number) => {
     mapViewRef.current = { center, zoom };
@@ -124,9 +133,16 @@ const Index = () => {
         loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         loc.address?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchMeal = !locationIdsForMeal || locationIdsForMeal.has(loc.id);
-      return matchCategory && matchSearch && matchMeal;
+      const matchAge = matchesAgeBucket(loc as any, selectedAge);
+      return matchCategory && matchSearch && matchMeal && matchAge;
     })
-    .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+    .sort((a, b) => {
+      if (selectedAge !== 'all') {
+        const diff = ageAdequacyScore(b as any, selectedAge) - ageAdequacyScore(a as any, selectedAge);
+        if (diff !== 0) return diff;
+      }
+      return a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' });
+    });
 
   return (
     <div className="min-h-screen flex flex-col pb-20" style={{ background: 'var(--bg)' }}>
@@ -135,6 +151,8 @@ const Index = () => {
         searchValue={searchQuery}
         selectedCategory={selectedCategory}
         onCategoryChange={setSelectedCategory}
+        selectedAge={selectedAge}
+        onAgeChange={setSelectedAge}
       />
 
       {/* Meal type filter (2nd row) — only for restaurant / cafe */}
@@ -243,7 +261,7 @@ const Index = () => {
       }}>
         {filteredLocations.map((loc, i) => {
           const mealIds = mealsByLocation.get(loc.id) ?? [];
-          return <LocationCard key={loc.id} location={loc} index={i} mealIds={mealIds} />;
+          return <LocationCard key={loc.id} location={loc} index={i} mealIds={mealIds} ageBucket={selectedAge} />;
         })}
       </div>
 
@@ -304,6 +322,9 @@ const Index = () => {
               boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
             }}>
               <CategoryFilter selected={selectedCategory} onChange={setSelectedCategory} />
+              <div style={{ marginTop: 6 }}>
+                <AgeFilter selected={selectedAge} onChange={setSelectedAge} />
+              </div>
               <div
                 style={{
                   overflow: 'hidden',
