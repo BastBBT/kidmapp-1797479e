@@ -11,6 +11,7 @@ import { useMealTypes, type MealType } from '@/hooks/useMeals';
 import PhotoUpload from '@/components/admin/PhotoUpload';
 import { useUserEmails } from '@/hooks/useUserEmails';
 import { useTopContributors } from '@/hooks/useTopContributors';
+import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryHex, eventCategoryEmoji } from '@/types/event';
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals' | 'events';
 
