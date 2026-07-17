@@ -66,12 +66,17 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: 
   const { isFavorite } = useFavorites();
   const gradient = categoryGradients[location.category] || categoryGradients.public;
   const isMealCategory = location.category === 'restaurant' || location.category === 'cafe';
+  const activity = isActivity(location.category);
+  const duration = (location as any).duration as string | null;
+  const price = (location as any).price as string | null;
 
   const activeEquip: EquipKey[] = [];
-  if (location.high_chair) activeEquip.push('high_chair');
-  if (location.changing_table) activeEquip.push('changing_table');
-  if (location.kids_area) activeEquip.push('kids_area');
-  if ((location as any).kids_menu) activeEquip.push('kids_menu');
+  if (!activity) {
+    if (location.high_chair) activeEquip.push('high_chair');
+    if (location.changing_table) activeEquip.push('changing_table');
+    if (location.kids_area) activeEquip.push('kids_area');
+    if ((location as any).kids_menu) activeEquip.push('kids_menu');
+  }
 
   const priority = new Set(getPriorityEquip(ageBucket));
   const sortedEquip = [...activeEquip].sort((a, b) => {
@@ -138,10 +143,38 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: 
           )}
           <span className="truncate">{location.name}</span>
         </h3>
-        {sortedEquip.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {sortedEquip.map((k) => <EquipIcon key={k} equipKey={k} highlight={priority.has(k)} />)}
-          </div>
+        {activity ? (
+          (duration || price) && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {duration && (
+                <span style={{
+                  fontSize: 11, fontWeight: 600, fontFamily: 'DM Sans',
+                  padding: '2px 8px', borderRadius: 100,
+                  background: 'var(--bg)', color: 'var(--text-muted)',
+                  border: '1px solid var(--border)',
+                }}>
+                  ⏱ {duration}
+                </span>
+              )}
+              {price && (
+                <span style={{
+                  fontSize: 11, fontWeight: 600, fontFamily: 'DM Sans',
+                  padding: '2px 8px', borderRadius: 100,
+                  background: price === 'Gratuit' ? '#EBF6EC' : 'var(--bg)',
+                  color: price === 'Gratuit' ? '#2E7D32' : 'var(--text-muted)',
+                  border: price === 'Gratuit' ? 'none' : '1px solid var(--border)',
+                }}>
+                  {price}
+                </span>
+              )}
+            </div>
+          )
+        ) : (
+          sortedEquip.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {sortedEquip.map((k) => <EquipIcon key={k} equipKey={k} highlight={priority.has(k)} />)}
+            </div>
+          )
         )}
       </div>
     </motion.div>
