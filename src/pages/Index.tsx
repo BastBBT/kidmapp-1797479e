@@ -150,7 +150,10 @@ const Index = () => {
         loc.address?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchMeal = !locationIdsForMeal || locationIdsForMeal.has(loc.id);
       const matchAge = matchesAgeBucket(loc as any, selectedAge);
-      return matchCategory && matchSearch && matchMeal && matchAge;
+      const isActivityLoc = isActivity(loc.category);
+      const matchWeather = !isActivityLoc || matchesWeather((loc as any).weather, selectedWeather);
+      const matchDuration = !isActivityLoc || matchesDuration((loc as any).duration, selectedDuration);
+      return matchCategory && matchSearch && matchMeal && matchAge && matchWeather && matchDuration;
     })
     .sort((a, b) => {
       if (selectedAge !== 'all') {
