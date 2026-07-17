@@ -609,6 +609,35 @@ const AdminPage = () => {
               <StatCard label="Nouveaux inscrits 30j" value={stats?.activeUsers30d ?? 0} sub="comptes créés" />
             </div>
 
+            {(stats?.pendingEvents ?? 0) > 0 && (
+              <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)', marginBottom: '16px' }}>
+                <div className="flex items-center justify-between" style={{ marginBottom: '10px' }}>
+                  <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text)', fontWeight: 600 }}>
+                    Événements à valider ({stats?.pendingEvents})
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('events')}
+                    style={{ fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, padding: '6px 12px', borderRadius: '100px', border: '1.5px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer' }}
+                  >
+                    Voir tout
+                  </button>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {(stats?.pendingEventsList ?? []).map((ev: any) => (
+                    <div key={ev.id} className="flex items-center justify-between" style={{ padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--bg)' }}>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: '13px', color: 'var(--text)', fontWeight: 500 }}>
+                        {ev.name}
+                      </div>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {ev.user_id ? '👤 user' : '📰 sourcing'} · {new Date(ev.date_start).toLocaleDateString('fr-FR')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+
             <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 500 }}>
               Audience — 30 derniers jours ✦
             </div>
