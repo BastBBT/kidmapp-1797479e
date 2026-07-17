@@ -1558,6 +1558,7 @@ const AdminPage = () => {
                     style={{ flex: 1, padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
                   />
                 </div>
+              </div>
               {(editForm.category === 'restaurant' || editForm.category === 'cafe') && (
                 <div>
                   <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Réservation</label>
