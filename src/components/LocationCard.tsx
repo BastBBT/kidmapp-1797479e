@@ -133,9 +133,9 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: 
           )}
           <span className="truncate">{location.name}</span>
         </h3>
-        {activeEquip.length > 0 && (
+        {sortedEquip.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">
-            {activeEquip.map((k) => <EquipIcon key={k} equipKey={k} />)}
+            {sortedEquip.map((k) => <EquipIcon key={k} equipKey={k} highlight={priority.has(k)} />)}
           </div>
         )}
       </div>
