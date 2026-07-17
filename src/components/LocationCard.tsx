@@ -3,12 +3,14 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useFavorites } from '@/hooks/useFavorites';
 import { MEAL_ICONS, EQUIP_ICONS, EQUIP_SHORT_LABELS, EquipKey, CATEGORY_ICONS } from '@/assets/icons';
+import { AgeBucket, getPriorityEquip } from '@/lib/ageFilter';
 
 interface LocationCardProps {
   location: Location;
   index?: number;
   mealEmojis?: string[]; // legacy, kept for compatibility
   mealIds?: string[];
+  ageBucket?: AgeBucket;
 }
 
 const categoryGradients: Record<string, string> = {
@@ -19,12 +21,17 @@ const categoryGradients: Record<string, string> = {
   coiffeur: 'linear-gradient(145deg, #D7BDE2, #9B59B6)',
 };
 
-const EquipIcon = ({ equipKey }: { equipKey: EquipKey }) => (
+const EquipIcon = ({ equipKey, highlight = false }: { equipKey: EquipKey; highlight?: boolean }) => (
   <span
     title={EQUIP_SHORT_LABELS[equipKey]}
     style={{
-      width: 24, height: 24, borderRadius: 6, padding: 4,
-      background: '#EBF4F2', display: 'inline-flex',
+      width: highlight ? 26 : 24,
+      height: highlight ? 26 : 24,
+      borderRadius: 6,
+      padding: 4,
+      background: highlight ? '#D9F0EA' : '#EBF4F2',
+      border: highlight ? '1.5px solid var(--secondary, #3B7D6E)' : 'none',
+      display: 'inline-flex',
       alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     }}
   >
