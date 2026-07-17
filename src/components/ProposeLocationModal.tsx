@@ -26,13 +26,14 @@ const CATEGORY_OPTIONS: { id: string; label: string }[] = [
 interface ProposeLocationModalProps {
   open: boolean;
   onClose: () => void;
+  initialCategory?: string;
 }
 
 const FULL_STEPS = ['Infos', 'Équipements', 'Repas & horaires', 'Photos'] as const;
 const SHORT_STEPS = ['Infos', 'Équipements', 'Photos'] as const;
 const hasMealsStep = (category: string) => category === 'restaurant' || category === 'cafe';
 
-const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
+const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant' }: ProposeLocationModalProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { data: mealTypes = [] } = useMealTypes();
