@@ -202,6 +202,19 @@ const AccountPage = () => {
     }
   });
 
+  const { data: myEvents = [] } = useQuery({
+    queryKey: ['my-events', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('events' as any)
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+      return (data ?? []) as any[];
+    }
+  });
+
   if (!user) return <JoinKidmappView />;
 
   return (
