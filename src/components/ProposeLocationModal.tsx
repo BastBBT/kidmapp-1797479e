@@ -378,20 +378,39 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
               {/* === STEP 1: Équipements === */}
               {step === 1 && (
                 <div className="flex flex-col gap-4">
-                  <div>
-                    <h3 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
-                      Équipements pour les enfants
-                    </h3>
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
-                      Coche ce qui est disponible.
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    <ToggleRow icon={EQUIP_ICONS.high_chair} label="Chaise haute / réhausseur" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
-                    <ToggleRow icon={EQUIP_ICONS.changing_table} label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
-                    <ToggleRow icon={EQUIP_ICONS.kids_area} label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
-                    <ToggleRow icon={EQUIP_ICONS.kids_menu} label="Menu enfant" checked={form.kids_menu} onChange={(v) => updateForm('kids_menu', v)} />
-                  </div>
+                  {isActivity(form.category) ? (
+                    <>
+                      <div>
+                        <h3 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+                          Détails activité
+                        </h3>
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
+                          Aide les familles à choisir la bonne activité.
+                        </p>
+                      </div>
+                      <PillGroup label="Durée" options={DURATIONS as any} value={form.duration} onChange={(v) => updateForm('duration', v)} />
+                      <PillGroup label="Météo" options={WEATHERS as any} value={form.weather} onChange={(v) => updateForm('weather', v)} />
+                      <PillGroup label="Effort" options={EFFORTS as any} value={form.effort} onChange={(v) => updateForm('effort', v)} />
+                      <PillGroup label="Prix" options={PRICES as any} value={form.price} onChange={(v) => updateForm('price', v)} />
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <h3 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+                          Équipements pour les enfants
+                        </h3>
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
+                          Coche ce qui est disponible.
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <ToggleRow icon={EQUIP_ICONS.high_chair} label="Chaise haute / réhausseur" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
+                        <ToggleRow icon={EQUIP_ICONS.changing_table} label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
+                        <ToggleRow icon={EQUIP_ICONS.kids_area} label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
+                        <ToggleRow icon={EQUIP_ICONS.kids_menu} label="Menu enfant" checked={form.kids_menu} onChange={(v) => updateForm('kids_menu', v)} />
+                      </div>
+                    </>
+                  )}
 
                   {/* Age range (optional) */}
                   <div>
