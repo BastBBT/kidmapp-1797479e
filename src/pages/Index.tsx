@@ -187,6 +187,22 @@ const Index = () => {
 
       </div>
 
+      {/* Activity filters (contextual) — only for activity categories */}
+      <div
+        style={{
+          overflow: 'hidden',
+          maxHeight: showActivityFilter ? 120 : 0,
+          opacity: showActivityFilter ? 1 : 0,
+          transition: 'max-height 200ms ease-in-out, opacity 200ms ease-in-out',
+        }}
+      >
+        <ActivityFilter
+          weather={selectedWeather}
+          duration={selectedDuration}
+          onWeatherChange={setSelectedWeather}
+          onDurationChange={setSelectedDuration}
+        />
+
       <ActiveCategoryBanner
         category={selectedCategory}
         onClear={() => setSelectedCategory('all')}
