@@ -735,4 +735,35 @@ function ToggleRow({ label, checked, onChange, icon }: { label: string; checked:
   );
 }
 
+function PillGroup({ label, options, value, onChange }: { label: string; options: readonly string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 6 }}>
+        {label}
+      </label>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {options.map((opt) => {
+          const active = value === opt;
+          return (
+            <button
+              type="button"
+              key={opt}
+              onClick={() => onChange(active ? '' : opt)}
+              style={{
+                padding: '6px 14px', borderRadius: 100,
+                border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
+                background: active ? 'var(--primary-light)' : 'var(--surface)',
+                color: active ? 'var(--primary)' : 'var(--text-muted)',
+                fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default ProposeLocationModal;
