@@ -82,6 +82,7 @@ const Index = () => {
     if (q) params.set('q', q);
     if (category && category !== 'all') params.set('category', category);
     if (meal) params.set('meal', meal);
+    if (selectedAge && selectedAge !== 'all') params.set('age', selectedAge);
     if (Number.isFinite(lat) && (lat !== NANTES_CENTER[0] || lng !== NANTES_CENTER[1])) {
       params.set('lat', lat.toFixed(4));
       params.set('lng', lng.toFixed(4));
@@ -90,13 +91,13 @@ const Index = () => {
       params.set('zoom', String(zoom));
     }
     setSearchParams(params, { replace: true });
-  }, [searchQuery, selectedCategory, selectedMeal, setSearchParams]);
+  }, [searchQuery, selectedCategory, selectedMeal, selectedAge, setSearchParams]);
 
   // Push filter changes to URL
   useEffect(() => {
     updateUrl();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, selectedCategory, selectedMeal]);
+  }, [searchQuery, selectedCategory, selectedMeal, selectedAge]);
 
   const handleMapViewChange = useCallback((center: [number, number], zoom: number) => {
     mapViewRef.current = { center, zoom };
