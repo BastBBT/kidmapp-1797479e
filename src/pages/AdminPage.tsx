@@ -941,7 +941,7 @@ const AdminPage = () => {
                     }
                     const equipItems: { emoji: string; label: string; value: boolean | null | undefined }[] = jsonEquipment
                       ? [
-                          { emoji: '🪑', label: 'Chaise haute', value: jsonEquipment.high_chair },
+                          { emoji: '🪑', label: 'Chaise haute / réhausseur', value: jsonEquipment.high_chair },
                           { emoji: '👶', label: 'Table à langer', value: jsonEquipment.changing_table },
                           { emoji: '🎨', label: 'Espace jeux', value: jsonEquipment.kids_area },
                           { emoji: '🍽️', label: 'Menu enfant', value: (jsonEquipment as any).kids_menu },
@@ -1039,7 +1039,7 @@ const AdminPage = () => {
                   ) : (
                     <div style={{ marginBottom: '10px' }}>
                       <div className="flex gap-4 flex-wrap mb-2" style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {contrib.high_chair !== null && <span>🪑 Chaise haute {contrib.high_chair ? '✓' : '✗'}</span>}
+                        {contrib.high_chair !== null && <span>🪑 Chaise haute / réhausseur {contrib.high_chair ? '✓' : '✗'}</span>}
                         {contrib.changing_table !== null && <span>👶 Table à langer {contrib.changing_table ? '✓' : '✗'}</span>}
                         {contrib.kids_area !== null && <span>🎨 Espace jeux {contrib.kids_area ? '✓' : '✗'}</span>}
                         {(contrib as any).kids_menu !== null && (contrib as any).kids_menu !== undefined && <span>🍽️ Menu enfant {(contrib as any).kids_menu ? '✓' : '✗'}</span>}
@@ -2377,7 +2377,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
               📍 {proposal.address}
             </div>
             <div className="flex gap-3 mb-2" style={{ fontFamily: 'DM Sans', fontSize: '12px' }}>
-              {proposal.high_chair && <span style={{ color: '#2E7D32' }}>🪑 Chaise haute</span>}
+              {proposal.high_chair && <span style={{ color: '#2E7D32' }}>🪑 Chaise haute / réhausseur</span>}
               {proposal.changing_table && <span style={{ color: '#2E7D32' }}>👶 Table à langer</span>}
               {proposal.kids_area && <span style={{ color: '#2E7D32' }}>🌳 Espace jeux</span>}
               {proposal.kids_menu && <span style={{ color: '#2E7D32' }}>🍽️ Menu enfant</span>}
@@ -2430,7 +2430,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                 />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   {[
-                    ['high_chair', '🪑 Chaise haute'],
+                    ['high_chair', '🪑 Chaise haute / réhausseur'],
                     ['changing_table', '👶 Table à langer'],
                     ['kids_area', '🌳 Espace jeux'],
                     ['kids_menu', '🍽️ Menu enfant'],
