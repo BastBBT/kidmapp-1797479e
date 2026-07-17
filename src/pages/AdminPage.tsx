@@ -605,6 +605,7 @@ const AdminPage = () => {
               <StatCard label="Lieux internes à valider" value={stats?.pendingLocations ?? 0} sub="status pending" />
               <StatCard label="Propositions en attente" value={stats?.pendingProposals ?? 0} sub="ajouts utilisateurs" />
               <StatCard label="Contributions" value={stats?.pendingContributions ?? 0} sub="en attente" />
+              <StatCard label="Événements à valider" value={stats?.pendingEvents ?? 0} sub="propositions" />
               <StatCard label="Nouveaux inscrits 30j" value={stats?.activeUsers30d ?? 0} sub="comptes créés" />
             </div>
 
