@@ -7,12 +7,20 @@ import { useAuth } from '@/hooks/useAuth';
 import { useMealTypes } from '@/hooks/useMeals';
 import { MEAL_ICONS, EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
 
+import { DURATIONS, WEATHERS, EFFORTS, PRICES } from '@/lib/activity';
+import { isActivity } from '@/types/location';
+
 const CATEGORY_OPTIONS: { id: string; label: string }[] = [
   { id: 'restaurant', label: 'Restaurant' },
   { id: 'cafe', label: 'Café' },
   { id: 'shop', label: 'Boutique' },
   { id: 'public', label: 'Lieu public' },
   { id: 'coiffeur', label: 'Coiffeur' },
+  { id: 'nature', label: 'Nature' },
+  { id: 'sport', label: 'Sport' },
+  { id: 'creatif', label: 'Créatif' },
+  { id: 'culture', label: 'Culture' },
+  { id: 'jeux', label: 'Jeux' },
 ];
 
 interface ProposeLocationModalProps {
