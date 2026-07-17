@@ -316,7 +316,7 @@ const LocationPage = () => {
             </div>
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <h2 className="font-display text-base font-semibold" style={{ color: 'var(--text)' }}>
               Équipements enfants
             </h2>
@@ -331,6 +331,49 @@ const LocationPage = () => {
                 {contributorCount} famille{contributorCount > 1 ? 's' : ''}
               </span>
             )}
+          </div>
+
+          {/* Age selector + verdict */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+              {AGE_BUCKETS.map((b) => {
+                const active = ageBucket === b.id;
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setAgeBucket(b.id)}
+                    style={{
+                      padding: '5px 12px', borderRadius: 100,
+                      border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
+                      background: active ? 'var(--primary-light)' : 'var(--surface)',
+                      color: active ? 'var(--primary)' : 'var(--text-muted)',
+                      fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    {b.label}
+                  </button>
+                );
+              })}
+            </div>
+            {ageBucket !== 'all' && (() => {
+              const v = ageVerdict(location as any, ageBucket);
+              const cfg = v.level === 'perfect'
+                ? { bg: '#EBF6EC', color: '#2E7D32', text: 'Tout y est pour cet âge' }
+                : v.level === 'good'
+                ? { bg: '#FEF5E7', color: '#B77400', text: `Bien adapté (${v.matched}/${v.total} besoins clés)` }
+                : { bg: 'var(--bg)', color: 'var(--text-muted)', text: 'Peu d’infos pour cet âge' };
+              return (
+                <div style={{
+                  padding: '8px 12px', borderRadius: 100,
+                  background: cfg.bg, color: cfg.color,
+                  fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
+                  display: 'inline-block',
+                }}>
+                  {cfg.text}
+                </div>
+              );
+            })()}
           </div>
 
           {(() => {
