@@ -175,6 +175,12 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
       if (form.category === 'restaurant' || form.category === 'cafe') {
         insertData.bookable = form.bookable;
       }
+      if (isActivity(form.category)) {
+        insertData.duration = form.duration || null;
+        insertData.weather = form.weather || null;
+        insertData.effort = form.effort || null;
+        insertData.price = form.price || null;
+      }
       const { error } = await supabase.from('location_proposals' as any).insert(insertData);
       if (error) throw error;
       toast({
