@@ -202,6 +202,110 @@ export type Database = {
         }
         Relationships: []
       }
+      event_favorites: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_favorites_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          address: string | null
+          age_max: number | null
+          age_min: number | null
+          category: string
+          created_at: string
+          date_end: string | null
+          date_start: string
+          duration: string | null
+          id: string
+          instagram: string | null
+          lat: number | null
+          lng: number | null
+          name: string
+          note: string | null
+          photo: string | null
+          price: string | null
+          status: string
+          time: string | null
+          updated_at: string
+          user_id: string | null
+          weather: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          age_max?: number | null
+          age_min?: number | null
+          category: string
+          created_at?: string
+          date_end?: string | null
+          date_start: string
+          duration?: string | null
+          id?: string
+          instagram?: string | null
+          lat?: number | null
+          lng?: number | null
+          name: string
+          note?: string | null
+          photo?: string | null
+          price?: string | null
+          status?: string
+          time?: string | null
+          updated_at?: string
+          user_id?: string | null
+          weather?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          age_max?: number | null
+          age_min?: number | null
+          category?: string
+          created_at?: string
+          date_end?: string | null
+          date_start?: string
+          duration?: string | null
+          id?: string
+          instagram?: string | null
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          note?: string | null
+          photo?: string | null
+          price?: string | null
+          status?: string
+          time?: string | null
+          updated_at?: string
+          user_id?: string | null
+          weather?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       favorites: {
         Row: {
           created_at: string | null

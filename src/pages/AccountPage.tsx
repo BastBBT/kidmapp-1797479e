@@ -202,6 +202,19 @@ const AccountPage = () => {
     }
   });
 
+  const { data: myEvents = [] } = useQuery({
+    queryKey: ['my-events', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('events' as any)
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+      return (data ?? []) as any[];
+    }
+  });
+
   if (!user) return <JoinKidmappView />;
 
   return (
@@ -425,6 +438,54 @@ const AccountPage = () => {
               </div>
             </div>
 
+          </div>
+        ))}
+      </div>
+
+      {/* Mes événements proposés */}
+      <div style={{ padding: '20px 16px 0' }}>
+        <div style={{ fontFamily: 'Fraunces', fontSize: '18px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: '12px' }}>
+          Mes événements
+        </div>
+        {myEvents.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '24px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)' }}>
+            <div style={{ fontFamily: 'Caveat', fontSize: '16px', color: 'var(--text-muted)' }}>
+              Tu n'as pas encore proposé d'événement ✦
+            </div>
+          </div>
+        ) : myEvents.map((e: any) => (
+          <div key={e.id} style={{
+            background: 'var(--surface)', borderRadius: 'var(--radius-sm)',
+            padding: '14px', marginBottom: '10px', boxShadow: 'var(--shadow)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px'
+          }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, marginBottom: 4 }}>
+                {e.name}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                {e.category} · {new Date(e.date_start).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </div>
+              <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)' }}>
+                Proposé le {new Date(e.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+              {e.status === 'published' && (
+                <div style={{
+                  fontSize: 11, fontWeight: 700,
+                  background: 'rgba(217,95,59,0.08)', color: '#D95F3B',
+                  padding: '2px 8px', borderRadius: 20,
+                }}>+25 pts</div>
+              )}
+              <div style={{
+                fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '100px',
+                background: e.status === 'published' ? '#EBF6EC' : e.status === 'rejected' ? '#FEF0EC' : 'var(--accent-light)',
+                color: e.status === 'published' ? '#2E7D32' : e.status === 'rejected' ? 'var(--primary)' : '#C49A35'
+              }}>
+                {e.status === 'published' ? '✓ Publié' : e.status === 'rejected' ? '✗ Refusé' : '⏳ En attente'}
+              </div>
+            </div>
           </div>
         ))}
       </div>

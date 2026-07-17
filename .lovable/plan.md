@@ -1,121 +1,120 @@
-# Activités sur Kidmapp (web, miroir app iOS)
+## Plan — Événements datés (nouvel onglet Sorties)
 
-Ajouter 5 catégories "activité" (nature, sport, creatif, culture, jeux) à `locations`, avec 4 nouveaux attributs (`duration`, `weather`, `effort`, `price`) et une expérience adaptée dans l'explorer, la fiche, la proposition et l'admin.
+Table `events` indépendante (miroir app iOS), géocodage à l'approbation admin, favoris privés, gamification +25 pts à la publication, nouvel onglet "Sorties" avec carte week-end, fiche event, flow de proposition et intégration admin.
 
-## 1. Base de données (migration idempotente)
+### 1. Base de données (migration Supabase)
 
-```sql
-ALTER TABLE locations
-  ADD COLUMN IF NOT EXISTS duration text,
-  ADD COLUMN IF NOT EXISTS weather  text,
-  ADD COLUMN IF NOT EXISTS effort   text,
-  ADD COLUMN IF NOT EXISTS price    text;
-ALTER TABLE location_proposals
-  ADD COLUMN IF NOT EXISTS duration text,
-  ADD COLUMN IF NOT EXISTS weather  text,
-  ADD COLUMN IF NOT EXISTS effort   text,
-  ADD COLUMN IF NOT EXISTS price    text;
+**Table `public.events`** :
+- Colonnes : `id uuid pk default gen_random_uuid()`, `name text not null`, `category text not null` (Spectacle/Atelier/Festival/Fête/Marché/Autre), `address text`, `lat float8`, `lng float8`, `date_start date not null`, `date_end date`, `time text`, `age_min int`, `age_max int`, `duration text`, `weather text` (**"En intérieur" / "En extérieur" / "Les deux"** — libellés FR, jamais indoor/outdoor/both, pour parité iOS qui affiche `event.weather` tel quel), `price text`, `website text`, `instagram text`, `photo text`, `note text` (description), `status text not null default 'pending'` (pending/published/rejected), `user_id uuid references auth.users on delete set null`, `created_at timestamptz default now()`, `updated_at timestamptz default now()`.
+- GRANT SELECT à `anon`+`authenticated` ; GRANT INSERT/UPDATE/DELETE à `authenticated` ; GRANT ALL à `service_role` (pour les agents Cowork).
+- Trigger `update_updated_at_column`.
+- RLS :
+  - SELECT public : `status = 'published'`.
+  - SELECT propriétaire : `user_id = auth.uid()`.
+  - SELECT admin : `is_admin(auth.uid())`.
+  - INSERT `authenticated` : `user_id = auth.uid() AND status = 'pending'` (WITH CHECK).
+  - UPDATE admin : tout. UPDATE propriétaire : uniquement si `status = 'pending'` (avant + après) et sans changer `user_id`/`status`.
+  - DELETE admin ou propriétaire (pending).
 
-ALTER TABLE locations         DROP CONSTRAINT IF EXISTS locations_category_check;
-ALTER TABLE locations         ADD  CONSTRAINT locations_category_check
-  CHECK (category IN ('restaurant','cafe','shop','public','coiffeur','nature','sport','creatif','culture','jeux'));
-ALTER TABLE location_proposals DROP CONSTRAINT IF EXISTS location_proposals_category_check;
-ALTER TABLE location_proposals ADD  CONSTRAINT location_proposals_category_check
-  CHECK (category IN ('restaurant','cafe','shop','public','coiffeur','nature','sport','creatif','culture','jeux'));
-```
+**Table `public.event_favorites`** :
+- `user_id uuid`, `event_id uuid references events on delete cascade`, `created_at`, unique (user_id, event_id).
+- RLS : `user_id = auth.uid()` sur toutes opérations. GRANT à `authenticated` + `service_role`.
 
-Colonnes nullables (pas de défaut, pas de backfill). Types Supabase régénérés automatiquement.
+**Gamification** :
+- Trigger AFTER UPDATE OF status : quand `NEW.status='published' AND OLD.status<>'published' AND user_id IS NOT NULL` → `award_points(user_id, 25, 'event_published', id::text)`. Réutilise la fonction existante.
 
-Valeurs applicatives (non contraintes SQL — cohérence côté client) :
-- `duration` ∈ {1h, 2-3h, Demi-journée, Journée}
-- `weather` ∈ {Soleil, Pluie, Tout temps}
-- `effort` ∈ {Tranquille, Modéré, Sportif}
-- `price` ∈ {Gratuit, Payant}
+**Index** : `date_start`, `status`, `user_id`.
 
-## 2. Constantes partagées
+### 2. Sourcing externe (agents Cowork)
 
-- `src/types/location.ts` : étendre `LocationCategory` avec `nature | sport | creatif | culture | jeux`, compléter `categoryLabels` (Nature / Sport / Créatif / Culture / Jeux).
-- Nouveau `src/lib/activity.ts` :
-  - `ACTIVITY_CATEGORIES = ['nature','sport','creatif','culture','jeux']` + `isActivity(cat)`.
-  - Enums `DURATIONS`, `WEATHERS`, `EFFORTS`, `PRICES = ['Gratuit','Payant']`.
-  - `matchesDuration(loc, sel)` / `matchesWeather(loc, sel)` : un lieu sans valeur passe toujours (idem age filter).
-- `src/assets/icons.ts` : ajouter 5 entrées dans `CATEGORY_ICONS` pour les nouvelles catégories, plus 5 gradients dans `LocationCard.categoryGradients`. En attendant des PNG dédiés, réutiliser des glyphes Lucide (TreePine, Dumbbell, Palette, Landmark, Puzzle) en fallback.
+Les agents Cowork écrivent via REST Supabase avec `service_role` directement dans `events` (Notion abandonné). Les RLS ne s'appliquent pas au service role ; le trigger points ne s'active pas car `user_id` sera null pour ces insertions.
 
-## 3. Barre de catégories en 2 groupes
+### 3. Géocodage admin
 
-`src/components/CategoryFilter.tsx` : deux sous-groupes visuels séparés par un divider vertical.
+Réutilise le pattern existant de l'admin (Nominatim côté client dans `AdminPage.tsx`). À l'approbation : géocode `address` → `lat/lng` puis `UPDATE status='published'` (trigger +25 pts). Aucun géocodage côté proposition utilisateur.
 
-```text
-[ Tout ] | Lieux: [Resto][Café][Boutique][Public][Coiffeur] | Activités: [Nature][Sport][Créatif][Culture][Jeux]
-```
+### 4. Couleurs & catégories (parité iOS)
 
-Un seul état actif, scroll horizontal conservé.
+Tokens ajoutés dans `src/index.css` :
+- `--event-spectacle: #EF9F27` (ambre)
+- `--event-atelier: #7F5BB5` (violet)
+- `--event-festival: #C64B7A` (rose)
+- `--event-fete: #D95F3B` (terracotta)
+- `--event-marche: #3B7D6E` (teal)
+- `--event-autre: #EF9F27` (défaut = ambre)
 
-## 4. Filtres secondaires activité (Explorer)
+Utilisés via `var(--event-*)` dans hero, chips, pins carte. Aucun hex hardcodé dans les composants.
 
-- Nouveaux composants `ActivityWeatherFilter` et `ActivityDurationFilter` calqués sur `MealFilter` (pills, désélection au 2e clic).
-- Dans `Index.tsx` :
-  - états `selectedWeather` et `selectedDuration` + sync URL (`weather`, `duration`).
-  - visibles uniquement si `isActivity(selectedCategory)`, animation `max-height` comme `MealFilter`.
-  - filtrage 100% client : `matchesWeather` + `matchesDuration` uniquement quand la catégorie active est une activité.
-  - reset auto quand on quitte une catégorie activité.
-- Pas de filtre `price` dans l'explorer pour l'instant (à ajouter plus tard si besoin ; garde la barre lisible).
+Icônes catégories events : emoji SVG data URIs dans `src/assets/icons.ts` (🎭 Spectacle, 🎨 Atelier, 🎉 Festival, 🎊 Fête, 🛍️ Marché, ✨ Autre).
 
-## 5. Carte lieu (grille) — durée + prix
+### 5. Nouvelle page "Sorties" (`/sorties`)
 
-`LocationCard.tsx` :
-- Si `isActivity(location.category)` :
-  - masquer les badges équipement.
-  - afficher deux petits chips en bas : **durée** (`⏱ 2-3h`) et **prix** (`Gratuit` teinté vert / `Payant` teinté neutre). L'effort n'apparaît pas sur la carte (place limitée) — il reste visible sur la fiche.
-  - chaque chip masqué si la valeur est absente.
-- Ajouter les 5 gradients pour les nouvelles catégories.
+- Route ajoutée dans `src/App.tsx`.
+- `BottomNav.tsx` : 4 onglets (Explorer, Sorties, Sauvés, Compte) + bouton central "Proposer" — aligné iOS.
+- Composants :
+  - `AgeFilter` réutilisé (`(age_min ?? 0) ≤ max ET (age_max ?? 99) ≥ min`).
+  - `WeekendPicker` : sélecteur de week-ends (samedi/dimanche) sur ~8 semaines glissantes. Label "Ce week-end" pour la semaine courante.
+  - `EventsMap` (Leaflet) : inspiré de `MapView`, pins colorés par catégorie (tokens ci-dessus).
+  - Liste groupée par week-end, triée chronologiquement. Filtre `date_start >= today` côté client (et requête `.gte('date_start', today)`).
+- Hook `useEvents({ from, to, ageBucket })` (TanStack Query, `status='published'`).
 
-## 6. Fiche lieu — Infos activité
+### 6. Fiche événement (`/event/:id`)
 
-`src/pages/LocationPage.tsx` : si `isActivity(location.category)`, remplacer la section "Équipements enfants" par **Infos activité** : grille 2×2 (Âge / Durée / Météo / Effort), valeurs manquantes → "—". Sous la grille, une **pastille prix** (verte si `Gratuit`, neutre si `Payant`, masquée si null). Reste de la fiche (photos, favoris, contribution, avis, liens, admin) inchangé.
+- Hero coloré par catégorie (token `--event-<cat>`), bloc date en évidence (`date_start → date_end`, `time`).
+- Grille Âge / Durée / Prix / Météo.
+- Mini-carte Leaflet centrée sur lat/lng.
+- Description (`note`), photo optionnelle.
+- CTA 1 « Voir plus de détails » → `website` (nouvel onglet).
+- CTA 2 « Ajouter à mon calendrier » → génération `.ics` client (blob download).
+- Bouton ♥ favori (event_favorites).
 
-## 7. Proposition (`ProposeLocationModal.tsx`)
+### 7. Favoris
 
-- Sélecteur catégorie : 10 catégories groupées visuellement (Lieux / Activités).
-- Step 1 adaptatif :
-  - Catégorie lieu : inchangée.
-  - Catégorie activité : masquer toggles équipement + `bookable`. Afficher **4 sélecteurs pills** (single-select, optionnels) : Durée, Météo, Effort, **Prix** (Gratuit / Payant). Âges (`age_min`/`age_max`) restent visibles.
-- Step 2 (horaires / repas) : masqué pour les activités (déjà masqué hors resto/café).
-- Submit : ajouter `duration`, `weather`, `effort`, `price` au payload (chaîne vide → `null`).
-- Reset auto de ces 4 champs si l'utilisateur bascule vers une catégorie lieu.
+- Nouveau `useEventFavorites` (miroir de `useFavorites`).
+- `SavedPage` : sélecteur segmenté "Lieux & activités" ↔ "Événements". Events avec `date_start < today` grisés + label "Passé".
 
-## 8. Compte — historique propositions
+### 8. Proposition — 3 chemins
 
-`src/pages/AccountPage.tsx` : dans la liste des propositions, si catégorie activité :
-- badge catégorie activité (couleur dédiée).
-- afficher `duration • effort • weather • price` (valeurs présentes seulement) au lieu des équipements.
+Le modal d'entrée `useProposalModal`/`ProposeLocationModal` propose 3 cartes de départ :
 
-## 9. Admin (`AdminPage.tsx`)
+1. **Un lieu** → form existant, catégories lieux.
+2. **Une activité** → même form lieu, catégorie pré-réglée sur une activité (Nature/Sport/Créatif/Culture/Jeux), champs activité visibles (déjà en place).
+3. **Un événement** → nouveau `ProposeEventModal.tsx` :
+   - Champs : nom, catégorie (Spectacle/Atelier/Festival/Fête/Marché/Autre), adresse, date_start, time, date_end (optionnel), age_min/age_max, duration, **weather (En intérieur / En extérieur / Les deux)**, price (texte libre détaillé), website (billetterie), instagram optionnel, photo optionnelle (bucket `location-photos`, préfixe `events/`), description.
+   - Submit : insert `events` avec `status='pending'`, `user_id=auth.uid()`, pas de lat/lng.
 
-- Modale édition lieu :
-  - `category` : 10 catégories groupées (Lieux / Activités).
-  - 4 nouveaux `<select>` : `duration`, `weather`, `effort`, `price` (valeurs des enums + option vide).
-  - Toujours visibles pour rester simple ; save → `null` si vide.
-- Revue des propositions : afficher `duration / weather / effort / price` quand présents, badge de catégorie pour les nouvelles catégories.
-- Filtre catégorie du dashboard (s'il existe) : ajouter les 5 nouvelles catégories.
+Photo upload : réutilise `location-photos` avec préfixe `events/<uuid>.jpg` — pas de nouveau bucket.
 
-## Détails techniques
+### 9. Admin
 
-- Aucun refetch supplémentaire : filtres météo/durée = 100% client, comme âge et repas.
-- Sync URL dans `Index.tsx` : ajouter `weather` et `duration` aux paramètres valides ; nettoyer lors du changement vers une catégorie non-activité.
-- Types : `Location`/`Contribution` dérivés des types générés Supabase → les 4 nouvelles colonnes disponibles automatiquement après régénération. Repli `as any` possible tant que les types ne sont pas régénérés.
-- Contraintes CHECK idempotentes via `DROP … IF EXISTS` + `ADD` avec nom explicite.
-- Aucune modification RLS/GRANT nécessaire.
+- Nouvel onglet "Événements" dans `AdminPage.tsx` : liste `status='pending'` puis publiés.
+- Approbation : géocode `address` (Nominatim) → écrit `lat/lng` + `status='published'` (trigger +25 pts).
+- Rejet : `status='rejected'`.
+- Édition libre des events publiés (comme les lieux).
 
-## Fichiers touchés
+### 10. Compte utilisateur
 
-- Migration Supabase (locations + location_proposals : colonnes + CHECK).
-- `src/types/location.ts`, `src/lib/activity.ts` (nouveau), `src/assets/icons.ts`.
-- `src/components/CategoryFilter.tsx`, `src/components/Header.tsx`.
-- Nouveaux `src/components/ActivityWeatherFilter.tsx`, `src/components/ActivityDurationFilter.tsx`.
-- `src/pages/Index.tsx` (état, URL, filtres, rendu conditionnel).
-- `src/components/LocationCard.tsx` (chips durée + prix + gradients).
-- `src/pages/LocationPage.tsx` (section Infos activité + pastille prix).
-- `src/components/ProposeLocationModal.tsx` (form adaptatif avec 4 pills).
-- `src/pages/AccountPage.tsx` (affichage propositions activité).
-- `src/pages/AdminPage.tsx` (édition + revue).
+Section "Mes événements proposés" dans `AccountPage.tsx` à côté de "Mes propositions de lieux", avec badges statut (En attente / Publié / Rejeté).
+
+### Détails techniques
+
+- Types : `src/types/event.ts` (`EventCategory`, `EventWeather = 'En intérieur' | 'En extérieur' | 'Les deux'`, `EventItem`).
+- Helpers : `src/lib/weekend.ts` (calcul samedi/dimanche + label "Ce week-end"), `src/lib/ics.ts` (génération .ics minimal).
+- Aucun hex hardcodé — tout passe par tokens CSS `--event-*`.
+- Types Supabase régénérés automatiquement après migration.
+
+### Fichiers touchés / créés
+
+- Migration Supabase (events + event_favorites + trigger points).
+- `src/types/event.ts` (nouveau).
+- `src/lib/weekend.ts`, `src/lib/ics.ts` (nouveaux).
+- `src/hooks/useEvents.ts`, `src/hooks/useEventFavorites.ts` (nouveaux).
+- `src/components/WeekendPicker.tsx`, `src/components/EventsMap.tsx`, `src/components/EventCard.tsx`, `src/components/ProposeEventModal.tsx` (nouveaux).
+- `src/pages/SortiesPage.tsx`, `src/pages/EventPage.tsx` (nouveaux).
+- `src/App.tsx` (routes + modale event).
+- `src/components/BottomNav.tsx` (onglet Sorties).
+- `src/components/ProposeLocationModal.tsx` (écran d'entrée 3 chemins) ou wrapper amont.
+- `src/pages/SavedPage.tsx` (segmented "Lieux/Événements").
+- `src/pages/AccountPage.tsx` (mes events).
+- `src/pages/AdminPage.tsx` (onglet events + géocodage).
+- `src/index.css` (tokens couleurs), `src/assets/icons.ts` (icônes catégories events).

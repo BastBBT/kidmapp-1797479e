@@ -17,6 +17,19 @@ const tabs = [
     ),
   },
   {
+    id: 'sorties',
+    label: 'SORTIES',
+    path: '/sorties',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <line x1="16" y1="3" x2="16" y2="7" />
+        <line x1="8" y1="3" x2="8" y2="7" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+      </svg>
+    ),
+  },
+  {
     id: 'saved',
     label: 'SAUVEGARDÉS',
     path: '/saved',
@@ -80,6 +93,7 @@ const BottomNav = () => {
   };
 
   const exploreTab = tabs.find((t) => t.id === 'explore')!;
+  const sortiesTab = tabs.find((t) => t.id === 'sorties')!;
   const savedTab = tabs.find((t) => t.id === 'saved')!;
   const accountTab = tabs.find((t) => t.id === 'account')!;
 
@@ -94,12 +108,13 @@ const BottomNav = () => {
       }}
     >
       {renderTab(exploreTab)}
+      {renderTab(sortiesTab)}
 
       {/* Bouton Proposer — action, pas une route */}
       <button
         onClick={handleProposeClick}
         className="relative flex flex-col items-center gap-1 px-3 py-1 transition-transform active:scale-95"
-        aria-label="Proposer un lieu"
+        aria-label="Proposer"
       >
         <div
           className="flex items-center justify-center rounded-full"

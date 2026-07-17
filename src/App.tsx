@@ -9,6 +9,8 @@ import LocationPage from "./pages/LocationPage";
 import AdminPage from "./pages/AdminPage";
 import SavedPage from "./pages/SavedPage";
 import AccountPage from "./pages/AccountPage";
+import SortiesPage from "./pages/SortiesPage";
+import EventPage from "./pages/EventPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import SupportPage from "./pages/SupportPage";
 import NotFound from "./pages/NotFound";
@@ -18,6 +20,8 @@ import BottomNav from "./components/BottomNav";
 import Onboarding from "./components/Onboarding";
 import AcquisitionModal from "./components/AcquisitionModal";
 import ProposeLocationModal from "./components/ProposeLocationModal";
+import ProposeEventModal from "./components/ProposeEventModal";
+import ProposalTypeChooser from "./components/ProposalTypeChooser";
 import { useAuth, AuthProvider } from "./hooks/useAuth";
 import { RequireAuthProvider, useRequireAuth } from "./hooks/useRequireAuth";
 import { ProposalModalProvider, useProposalModal } from "./hooks/useProposalModal";
@@ -75,7 +79,9 @@ const OnboardingOverlay = () => {
 
 const AppContent = () => {
   usePageviewTracker();
-  const { isOpen: isProposalOpen, close: closeProposal } = useProposalModal();
+  const { isOpen: isProposalOpen, mode: proposalMode, close: closeProposal } = useProposalModal();
+  const locationModalOpen = isProposalOpen && (proposalMode === 'location' || proposalMode === 'activity');
+  const initialCategory = proposalMode === 'activity' ? 'nature' : 'restaurant';
   return (
     <>
       <IosAppBanner />
@@ -83,6 +89,8 @@ const AppContent = () => {
         {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/location/:id" element={<LocationPage />} />
+        <Route path="/sorties" element={<SortiesPage />} />
+        <Route path="/event/:id" element={<EventPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/support" element={<SupportPage />} />
@@ -110,7 +118,9 @@ const AppContent = () => {
       <BottomNav />
       <OnboardingOverlay />
       <AcquisitionOverlay />
-      <ProposeLocationModal open={isProposalOpen} onClose={closeProposal} />
+      <ProposalTypeChooser />
+      <ProposeLocationModal open={locationModalOpen} onClose={closeProposal} initialCategory={initialCategory} />
+      <ProposeEventModal />
     </>
   );
 };

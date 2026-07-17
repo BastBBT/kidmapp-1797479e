@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { X, Send, Loader2, ChevronLeft, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
@@ -26,13 +26,14 @@ const CATEGORY_OPTIONS: { id: string; label: string }[] = [
 interface ProposeLocationModalProps {
   open: boolean;
   onClose: () => void;
+  initialCategory?: string;
 }
 
 const FULL_STEPS = ['Infos', 'Équipements', 'Repas & horaires', 'Photos'] as const;
 const SHORT_STEPS = ['Infos', 'Équipements', 'Photos'] as const;
 const hasMealsStep = (category: string) => category === 'restaurant' || category === 'cafe';
 
-const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
+const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant' }: ProposeLocationModalProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { data: mealTypes = [] } = useMealTypes();
@@ -44,7 +45,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
   const [selectedMeals, setSelectedMeals] = useState<string[]>([]);
   const [form, setForm] = useState({
     name: '',
-    category: 'restaurant',
+    category: initialCategory,
     address: '',
     high_chair: false,
     changing_table: false,
@@ -61,6 +62,14 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     effort: '' as string,
     price: '' as string,
   });
+
+  // Sync initialCategory when modal re-opens with a different context (e.g. from proposal chooser)
+  useEffect(() => {
+    if (open) {
+      setForm((p) => ({ ...p, category: initialCategory }));
+    }
+     
+  }, [open, initialCategory]);
 
   const updateForm = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
 
