@@ -2620,4 +2620,406 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   );
 }
 
+function EventsTab({ geocodeAddress, queryClient, toast }: {
+  geocodeAddress: (address: string) => Promise<{lat: number; lng: number} | null>;
+  queryClient: any;
+  toast: any;
+}) {
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'published' | 'rejected'>('pending');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'user' | 'sourcing'>('all');
+  const [search, setSearch] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<any>(null);
+  const [manualCoordsFor, setManualCoordsFor] = useState<string | null>(null);
+  const [manualLat, setManualLat] = useState('47.2184');
+  const [manualLng, setManualLng] = useState('-1.5536');
+
+  const { data: events = [] } = useQuery({
+    queryKey: ['admin-events'],
+    queryFn: async () => {
+      const { data } = await supabase.from('events' as any).select('*').order('created_at', { ascending: false });
+      return (data ?? []) as any[];
+    },
+  });
+
+  const userIds = useMemo(
+    () => Array.from(new Set((events as any[]).map((e) => e.user_id).filter(Boolean))),
+    [events]
+  );
+  const { data: emails = {} } = useUserEmails(userIds);
+
+  const startEdit = (ev: any) => {
+    setEditingId(ev.id);
+    setEditDraft({
+      name: ev.name ?? '',
+      category: ev.category ?? 'Spectacle',
+      address: ev.address ?? '',
+      date_start: ev.date_start ?? '',
+      date_end: ev.date_end ?? '',
+      time: ev.time ?? '',
+      age_min: ev.age_min ?? '',
+      age_max: ev.age_max ?? '',
+      duration: ev.duration ?? '',
+      weather: ev.weather ?? '',
+      price: ev.price ?? '',
+      website: ev.website ?? '',
+      instagram: ev.instagram ?? '',
+      photo: ev.photo ?? '',
+      note: ev.note ?? '',
+      lat: ev.lat,
+      lng: ev.lng,
+    });
+  };
+
+  const geocodeEditAddress = async () => {
+    if (!editDraft?.address) return;
+    setProcessingId(editingId);
+    try {
+      const coords = await geocodeAddress(editDraft.address);
+      if (coords) {
+        setEditDraft({ ...editDraft, lat: coords.lat, lng: coords.lng });
+        toast({ title: 'Coordonnées trouvées ✓', description: `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` });
+      } else {
+        toast({ title: 'Adresse non trouvée', variant: 'destructive' });
+      }
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editDraft) return;
+    setProcessingId(editingId);
+    try {
+      const update: any = {
+        name: editDraft.name,
+        category: editDraft.category,
+        address: editDraft.address || null,
+        date_start: editDraft.date_start,
+        date_end: editDraft.date_end || null,
+        time: editDraft.time || null,
+        age_min: editDraft.age_min === '' ? null : Number(editDraft.age_min),
+        age_max: editDraft.age_max === '' ? null : Number(editDraft.age_max),
+        duration: editDraft.duration || null,
+        weather: editDraft.weather || null,
+        price: editDraft.price || null,
+        website: editDraft.website || null,
+        instagram: editDraft.instagram || null,
+        photo: editDraft.photo || null,
+        note: editDraft.note || null,
+        lat: editDraft.lat ?? null,
+        lng: editDraft.lng ?? null,
+      };
+      const { error } = await supabase.from('events' as any).update(update).eq('id', editingId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['admin-events'] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      toast({ title: 'Événement modifié ✓' });
+      setEditingId(null);
+      setEditDraft(null);
+    } catch (err: any) {
+      toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleApprove = async (ev: any, useManual = false) => {
+    setProcessingId(ev.id);
+    try {
+      let lat = ev.lat;
+      let lng = ev.lng;
+      if (useManual) {
+        lat = parseFloat(manualLat);
+        lng = parseFloat(manualLng);
+      } else if ((lat == null || lng == null) && ev.address) {
+        const coords = await geocodeAddress(ev.address);
+        if (!coords) {
+          setManualCoordsFor(ev.id);
+          toast({ title: 'Adresse non trouvée', description: 'Ajustez les coordonnées manuellement.', variant: 'destructive' });
+          setProcessingId(null);
+          return;
+        }
+        lat = coords.lat;
+        lng = coords.lng;
+      }
+      const { error } = await supabase.from('events' as any).update({ status: 'published', lat, lng }).eq('id', ev.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['admin-events'] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      toast({ title: 'Événement publié ✓', description: ev.name });
+      setManualCoordsFor(null);
+    } catch (err: any) {
+      toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleReject = async (ev: any) => {
+    setProcessingId(ev.id);
+    try {
+      const { error } = await supabase.from('events' as any).update({ status: 'rejected' }).eq('id', ev.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['admin-events'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      toast({ title: 'Événement rejeté' });
+    } catch (err: any) {
+      toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDelete = async (ev: any) => {
+    if (!confirm(`Supprimer définitivement "${ev.name}" ?`)) return;
+    setProcessingId(ev.id);
+    try {
+      const { error } = await supabase.from('events' as any).delete().eq('id', ev.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['admin-events'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      toast({ title: 'Événement supprimé' });
+    } catch (err: any) {
+      toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const filtered = events.filter((ev: any) => {
+    if (statusFilter !== 'all' && ev.status !== statusFilter) return false;
+    if (sourceFilter === 'user' && !ev.user_id) return false;
+    if (sourceFilter === 'sourcing' && ev.user_id) return false;
+    return matchSearch(search, ev.name, ev.address, ev.website);
+  });
+
+  const pillStyle = (active: boolean) => ({
+    fontFamily: 'DM Sans',
+    fontSize: '12px',
+    fontWeight: 600,
+    padding: '6px 12px',
+    borderRadius: '100px',
+    border: `1.5px solid ${active ? 'var(--primary)' : 'var(--border)'}`,
+    background: active ? 'var(--primary)' : 'transparent',
+    color: active ? 'white' : 'var(--text-muted)',
+    cursor: 'pointer',
+  } as React.CSSProperties);
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
+      <SearchBar value={search} onChange={setSearch} placeholder="Rechercher par nom, adresse ou site web…" />
+
+      <div className="flex flex-wrap gap-2">
+        {(['pending', 'published', 'rejected', 'all'] as const).map((s) => (
+          <button key={s} onClick={() => setStatusFilter(s)} style={pillStyle(statusFilter === s)}>
+            {s === 'pending' ? 'À valider' : s === 'published' ? 'Publiés' : s === 'rejected' ? 'Rejetés' : 'Tous'}
+          </button>
+        ))}
+        <div style={{ width: '1px', background: 'var(--border)', margin: '0 4px' }} />
+        {(['all', 'user', 'sourcing'] as const).map((s) => (
+          <button key={s} onClick={() => setSourceFilter(s)} style={pillStyle(sourceFilter === s)}>
+            {s === 'all' ? 'Toutes provenances' : s === 'user' ? '👤 Utilisateurs' : '📰 Sourcing'}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
+        {filtered.length} {filtered.length > 1 ? 'événements affichés' : 'événement affiché'}
+      </div>
+
+      {filtered.length === 0 && (
+        <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
+          Aucun événement
+        </p>
+      )}
+
+      {filtered.map((ev: any, i: number) => {
+        const isProcessing = processingId === ev.id;
+        const isEditing = editingId === ev.id;
+        const catHex = eventCategoryHex(ev.category);
+        return (
+          <motion.div
+            key={ev.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.02 }}
+            style={{ background: 'var(--surface)', borderRadius: 'var(--radius-sm)', padding: '14px', boxShadow: 'var(--shadow)' }}
+          >
+            <div className="flex items-start justify-between mb-2 gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {ev.photo && (
+                  <img src={ev.photo} alt={ev.name} style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                )}
+                <span style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, color: 'var(--text)' }}>
+                  {eventCategoryEmoji(ev.category)} {ev.name}
+                </span>
+                <span style={{
+                  display: 'inline-block', padding: '2px 8px', borderRadius: '100px',
+                  fontSize: '10px', fontWeight: 600, fontFamily: 'DM Sans',
+                  background: catHex, color: 'white',
+                }}>
+                  {ev.category}
+                </span>
+                <span style={{
+                  display: 'inline-block', padding: '2px 8px', borderRadius: '100px',
+                  fontSize: '10px', fontWeight: 600, fontFamily: 'DM Sans',
+                  background: ev.user_id ? '#E8F1FF' : '#F3E8FF',
+                  color: ev.user_id ? '#1B4B8F' : '#6B2FA6',
+                }}>
+                  {ev.user_id ? '👤 Utilisateur' : '📰 Sourcing'}
+                </span>
+              </div>
+              <StatusBadge status={ev.status === 'published' ? 'validated' : ev.status} />
+            </div>
+
+            {ev.address && (
+              <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                📍 {ev.address}
+                {ev.lat != null && ev.lng != null && (
+                  <span style={{ marginLeft: 6, color: '#3B7D6E' }}>✓ géocodé</span>
+                )}
+              </div>
+            )}
+            <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+              📅 {new Date(ev.date_start).toLocaleDateString('fr-FR')}
+              {ev.date_end && ` → ${new Date(ev.date_end).toLocaleDateString('fr-FR')}`}
+              {ev.time && ` · ⏰ ${ev.time}`}
+            </div>
+            <div className="flex gap-3 flex-wrap mb-2" style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)' }}>
+              {(ev.age_min != null || ev.age_max != null) && <span>👶 {ev.age_min ?? 0}-{ev.age_max ?? '∞'} ans</span>}
+              {ev.duration && <span>⏱️ {ev.duration}</span>}
+              {ev.weather && <span>🌤️ {ev.weather}</span>}
+              {ev.price && <span>💶 {ev.price}</span>}
+            </div>
+            {ev.note && (
+              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '6px' }}>
+                "{ev.note}"
+              </div>
+            )}
+            <div style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              {ev.user_id ? `Proposé par : ${emails[ev.user_id] ?? ev.user_id.slice(0, 8)}` : 'Sourcing interne'}
+              {' · '}Créé le {new Date(ev.created_at).toLocaleDateString('fr-FR')}
+            </div>
+
+            {isEditing && editDraft && (
+              <div style={{ padding: '12px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', marginBottom: '10px' }}>
+                <div className="flex flex-col gap-2">
+                  <input value={editDraft.name} onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })}
+                    placeholder="Nom" style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                  <select value={editDraft.category} onChange={(e) => setEditDraft({ ...editDraft, category: e.target.value })}
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px', background: 'white' }}>
+                    {EVENT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <input value={editDraft.address} onChange={(e) => setEditDraft({ ...editDraft, address: e.target.value })}
+                    placeholder="Adresse" style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                  <div className="flex gap-2">
+                    <input type="date" value={editDraft.date_start?.slice(0,10) ?? ''} onChange={(e) => setEditDraft({ ...editDraft, date_start: e.target.value })}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                    <input type="date" value={editDraft.date_end?.slice(0,10) ?? ''} onChange={(e) => setEditDraft({ ...editDraft, date_end: e.target.value })}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                  </div>
+                  <div className="flex gap-2">
+                    <input placeholder="Heure" value={editDraft.time} onChange={(e) => setEditDraft({ ...editDraft, time: e.target.value })}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                    <input placeholder="Durée" value={editDraft.duration} onChange={(e) => setEditDraft({ ...editDraft, duration: e.target.value })}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                  </div>
+                  <div className="flex gap-2">
+                    <input placeholder="Âge min" type="number" value={editDraft.age_min} onChange={(e) => setEditDraft({ ...editDraft, age_min: e.target.value })}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                    <input placeholder="Âge max" type="number" value={editDraft.age_max} onChange={(e) => setEditDraft({ ...editDraft, age_max: e.target.value })}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                    <input placeholder="Prix" value={editDraft.price} onChange={(e) => setEditDraft({ ...editDraft, price: e.target.value })}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                  </div>
+                  <select value={editDraft.weather ?? ''} onChange={(e) => setEditDraft({ ...editDraft, weather: e.target.value })}
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px', background: 'white' }}>
+                    <option value="">Météo…</option>
+                    {EVENT_WEATHERS.map((w) => <option key={w} value={w}>{w}</option>)}
+                  </select>
+                  <input placeholder="Site web" value={editDraft.website} onChange={(e) => setEditDraft({ ...editDraft, website: e.target.value })}
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                  <input placeholder="Instagram" value={editDraft.instagram} onChange={(e) => setEditDraft({ ...editDraft, instagram: e.target.value })}
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                  <input placeholder="Photo URL" value={editDraft.photo} onChange={(e) => setEditDraft({ ...editDraft, photo: e.target.value })}
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                  <textarea placeholder="Note" value={editDraft.note} onChange={(e) => setEditDraft({ ...editDraft, note: e.target.value })}
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px', minHeight: 60 }} />
+                  <div className="flex gap-2 items-center">
+                    <input placeholder="Latitude" value={editDraft.lat ?? ''} onChange={(e) => setEditDraft({ ...editDraft, lat: e.target.value === '' ? null : Number(e.target.value) })}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                    <input placeholder="Longitude" value={editDraft.lng ?? ''} onChange={(e) => setEditDraft({ ...editDraft, lng: e.target.value === '' ? null : Number(e.target.value) })}
+                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                    <button onClick={geocodeEditAddress} disabled={isProcessing}
+                      style={{ padding: '8px 12px', borderRadius: 100, border: '1.5px solid var(--accent)', background: 'transparent', color: 'var(--accent)', fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                      🌍 Géocoder
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={saveEdit} disabled={isProcessing}
+                      style={{ flex: 1, padding: '10px', borderRadius: 100, border: 'none', background: 'var(--primary)', color: 'white', fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                      💾 Enregistrer
+                    </button>
+                    <button onClick={() => { setEditingId(null); setEditDraft(null); }}
+                      style={{ flex: 1, padding: '10px', borderRadius: 100, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {manualCoordsFor === ev.id && (
+              <div style={{ padding: 12, borderRadius: 'var(--radius-sm)', background: 'var(--accent-light)', border: '1px solid #F2C94C', marginBottom: 10 }}>
+                <div style={{ fontFamily: 'Caveat', fontSize: 14, color: '#C49A35', marginBottom: 8 }}>
+                  Adresse non reconnue — ajustez les coordonnées ✦
+                </div>
+                <div className="flex gap-2">
+                  <input value={manualLat} onChange={(e) => setManualLat(e.target.value)} placeholder="Lat"
+                    style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: 13 }} />
+                  <input value={manualLng} onChange={(e) => setManualLng(e.target.value)} placeholder="Lng"
+                    style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: 13 }} />
+                  <button onClick={() => handleApprove(ev, true)} disabled={isProcessing}
+                    style={{ padding: '8px 12px', borderRadius: 100, border: 'none', background: 'var(--primary)', color: 'white', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                    ✓ Publier
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!isEditing && (
+              <div className="flex gap-2 flex-wrap">
+                {ev.status === 'pending' && (
+                  <>
+                    <button onClick={() => handleApprove(ev)} disabled={isProcessing}
+                      style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: 'none', background: '#3B7D6E', color: 'white', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
+                      ✓ Approuver
+                    </button>
+                    <button onClick={() => handleReject(ev)} disabled={isProcessing}
+                      style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
+                      ✗ Rejeter
+                    </button>
+                  </>
+                )}
+                <button onClick={() => startEdit(ev)} disabled={isProcessing}
+                  style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer' }}>
+                  ✏️ Modifier
+                </button>
+                <button onClick={() => handleDelete(ev)} disabled={isProcessing}
+                  style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer' }}>
+                  🗑 Supprimer
+                </button>
+              </div>
+            )}
+          </motion.div>
+        );
+      })}
+    </motion.div>
+  );
+}
+
 export default AdminPage;
