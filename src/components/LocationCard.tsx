@@ -1,4 +1,4 @@
-import { Location, categoryLabels } from '@/types/location';
+import { Location, categoryLabels, isActivity } from '@/types/location';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -19,6 +19,11 @@ const categoryGradients: Record<string, string> = {
   public: 'linear-gradient(145deg, #B8D9A4, #72B05E)',
   shop: 'linear-gradient(145deg, #F5E0A0, #E0B848)',
   coiffeur: 'linear-gradient(145deg, #D7BDE2, #9B59B6)',
+  nature: 'linear-gradient(145deg, #C1E1A6, #5A9E4C)',
+  sport: 'linear-gradient(145deg, #A9D0EF, #3F82BF)',
+  creatif: 'linear-gradient(145deg, #F5C5D5, #D96A8E)',
+  culture: 'linear-gradient(145deg, #CFC0EA, #7E5FBF)',
+  jeux: 'linear-gradient(145deg, #F5D89A, #E0A040)',
 };
 
 const EquipIcon = ({ equipKey, highlight = false }: { equipKey: EquipKey; highlight?: boolean }) => (
