@@ -12,7 +12,7 @@ import PhotoUpload from '@/components/admin/PhotoUpload';
 import { useUserEmails } from '@/hooks/useUserEmails';
 import { useTopContributors } from '@/hooks/useTopContributors';
 
-type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals';
+type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals' | 'events';
 
 type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; confirmed_count: number }>;
 
