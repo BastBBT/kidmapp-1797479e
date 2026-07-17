@@ -2141,6 +2141,8 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         website: editDraft.website || null,
         instagram: editDraft.instagram || null,
         note: editDraft.note || null,
+        age_min: (editDraft as any).age_min ?? null,
+        age_max: (editDraft as any).age_max ?? null,
         status: 'published',
       };
       if (editDraft.category === 'restaurant' || editDraft.category === 'cafe') {
