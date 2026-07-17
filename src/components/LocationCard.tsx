@@ -56,7 +56,7 @@ const MealBubble = ({ mealId }: { mealId: string }) => {
   );
 };
 
-const LocationCard = ({ location, index = 0, mealIds = [] }: LocationCardProps) => {
+const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: LocationCardProps) => {
   const navigate = useNavigate();
   const { isFavorite } = useFavorites();
   const gradient = categoryGradients[location.category] || categoryGradients.public;
@@ -67,6 +67,13 @@ const LocationCard = ({ location, index = 0, mealIds = [] }: LocationCardProps) 
   if (location.changing_table) activeEquip.push('changing_table');
   if (location.kids_area) activeEquip.push('kids_area');
   if ((location as any).kids_menu) activeEquip.push('kids_menu');
+
+  const priority = new Set(getPriorityEquip(ageBucket));
+  const sortedEquip = [...activeEquip].sort((a, b) => {
+    const pa = priority.has(a) ? 0 : 1;
+    const pb = priority.has(b) ? 0 : 1;
+    return pa - pb;
+  });
 
   return (
     <motion.div
