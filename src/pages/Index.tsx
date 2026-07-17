@@ -6,14 +6,17 @@ import LocationCard from '@/components/LocationCard';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
 import MealFilter from '@/components/MealFilter';
+import AgeFilter from '@/components/AgeFilter';
 import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
+import { AgeBucket, matchesAgeBucket, ageAdequacyScore } from '@/lib/ageFilter';
 
 
 const MEAL_CATEGORIES = new Set(['restaurant', 'cafe']);
 const VALID_CATEGORIES = new Set<string>(['all', 'restaurant', 'cafe', 'shop', 'public', 'coiffeur']);
+const VALID_AGES = new Set<string>(['all', '0-2', '3-5', '6+']);
 
 const NANTES_CENTER: [number, number] = [47.1984, -1.5536];
 const DEFAULT_ZOOM = 12;
