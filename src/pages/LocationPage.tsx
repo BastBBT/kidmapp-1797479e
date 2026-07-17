@@ -492,6 +492,7 @@ const LocationPage = () => {
               </div>
             );
           })()}
+          </>)}
 
           {/* Bookable - only for restaurant & cafe */}
           {(location.category === 'restaurant' || location.category === 'cafe') && (
