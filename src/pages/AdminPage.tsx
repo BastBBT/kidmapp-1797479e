@@ -1657,6 +1657,8 @@ const AdminPage = () => {
                     kids_menu: !!editForm.kids_menu,
                     bookable: editForm.bookable,
                     status: editForm.status,
+                    age_min: (editForm.age_min ?? '').toString().trim() === '' ? null : Math.max(0, parseInt(editForm.age_min, 10)) || null,
+                    age_max: (editForm.age_max ?? '').toString().trim() === '' ? null : Math.max(0, parseInt(editForm.age_max, 10)) || null,
                   };
                   if (newLat != null && newLng != null) {
                     updatePayload.lat = newLat;
