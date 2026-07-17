@@ -151,6 +151,8 @@ const Index = () => {
         searchValue={searchQuery}
         selectedCategory={selectedCategory}
         onCategoryChange={setSelectedCategory}
+        selectedAge={selectedAge}
+        onAgeChange={setSelectedAge}
       />
 
       {/* Meal type filter (2nd row) — only for restaurant / cafe */}
