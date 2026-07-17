@@ -1,4 +1,4 @@
-import { Location, categoryLabels } from '@/types/location';
+import { Location, categoryLabels, isActivity } from '@/types/location';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -19,6 +19,11 @@ const categoryGradients: Record<string, string> = {
   public: 'linear-gradient(145deg, #B8D9A4, #72B05E)',
   shop: 'linear-gradient(145deg, #F5E0A0, #E0B848)',
   coiffeur: 'linear-gradient(145deg, #D7BDE2, #9B59B6)',
+  nature: 'linear-gradient(145deg, #C1E1A6, #5A9E4C)',
+  sport: 'linear-gradient(145deg, #A9D0EF, #3F82BF)',
+  creatif: 'linear-gradient(145deg, #F5C5D5, #D96A8E)',
+  culture: 'linear-gradient(145deg, #CFC0EA, #7E5FBF)',
+  jeux: 'linear-gradient(145deg, #F5D89A, #E0A040)',
 };
 
 const EquipIcon = ({ equipKey, highlight = false }: { equipKey: EquipKey; highlight?: boolean }) => (
@@ -61,12 +66,17 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: 
   const { isFavorite } = useFavorites();
   const gradient = categoryGradients[location.category] || categoryGradients.public;
   const isMealCategory = location.category === 'restaurant' || location.category === 'cafe';
+  const activity = isActivity(location.category);
+  const duration = (location as any).duration as string | null;
+  const price = (location as any).price as string | null;
 
   const activeEquip: EquipKey[] = [];
-  if (location.high_chair) activeEquip.push('high_chair');
-  if (location.changing_table) activeEquip.push('changing_table');
-  if (location.kids_area) activeEquip.push('kids_area');
-  if ((location as any).kids_menu) activeEquip.push('kids_menu');
+  if (!activity) {
+    if (location.high_chair) activeEquip.push('high_chair');
+    if (location.changing_table) activeEquip.push('changing_table');
+    if (location.kids_area) activeEquip.push('kids_area');
+    if ((location as any).kids_menu) activeEquip.push('kids_menu');
+  }
 
   const priority = new Set(getPriorityEquip(ageBucket));
   const sortedEquip = [...activeEquip].sort((a, b) => {
@@ -133,10 +143,38 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: 
           )}
           <span className="truncate">{location.name}</span>
         </h3>
-        {sortedEquip.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {sortedEquip.map((k) => <EquipIcon key={k} equipKey={k} highlight={priority.has(k)} />)}
-          </div>
+        {activity ? (
+          (duration || price) && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {duration && (
+                <span style={{
+                  fontSize: 11, fontWeight: 600, fontFamily: 'DM Sans',
+                  padding: '2px 8px', borderRadius: 100,
+                  background: 'var(--bg)', color: 'var(--text-muted)',
+                  border: '1px solid var(--border)',
+                }}>
+                  ⏱ {duration}
+                </span>
+              )}
+              {price && (
+                <span style={{
+                  fontSize: 11, fontWeight: 600, fontFamily: 'DM Sans',
+                  padding: '2px 8px', borderRadius: 100,
+                  background: price === 'Gratuit' ? '#EBF6EC' : 'var(--bg)',
+                  color: price === 'Gratuit' ? '#2E7D32' : 'var(--text-muted)',
+                  border: price === 'Gratuit' ? 'none' : '1px solid var(--border)',
+                }}>
+                  {price}
+                </span>
+              )}
+            </div>
+          )
+        ) : (
+          sortedEquip.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {sortedEquip.map((k) => <EquipIcon key={k} equipKey={k} highlight={priority.has(k)} />)}
+            </div>
+          )
         )}
       </div>
     </motion.div>

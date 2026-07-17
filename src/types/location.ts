@@ -1,6 +1,14 @@
 import { Tables } from '@/integrations/supabase/types';
 
-export type LocationCategory = 'restaurant' | 'cafe' | 'shop' | 'public' | 'coiffeur';
+export type PlaceCategory = 'restaurant' | 'cafe' | 'shop' | 'public' | 'coiffeur';
+export type ActivityCategory = 'nature' | 'sport' | 'creatif' | 'culture' | 'jeux';
+export type LocationCategory = PlaceCategory | ActivityCategory;
+
+export const PLACE_CATEGORIES: PlaceCategory[] = ['restaurant', 'cafe', 'shop', 'public', 'coiffeur'];
+export const ACTIVITY_CATEGORIES: ActivityCategory[] = ['nature', 'sport', 'creatif', 'culture', 'jeux'];
+
+export const isActivity = (cat?: string | null): cat is ActivityCategory =>
+  !!cat && (ACTIVITY_CATEGORIES as string[]).includes(cat);
 
 export type Location = Tables<'locations'> & {
   // Type narrowing helpers
@@ -14,6 +22,11 @@ export const categoryLabels: Record<LocationCategory, string> = {
   shop: 'Boutique',
   public: 'Lieu public',
   coiffeur: 'Coiffeur',
+  nature: 'Nature',
+  sport: 'Sport',
+  creatif: 'Créatif',
+  culture: 'Culture',
+  jeux: 'Jeux',
 };
 
 export const categoryIcons: Record<LocationCategory, string> = {
@@ -22,4 +35,9 @@ export const categoryIcons: Record<LocationCategory, string> = {
   shop: '🛍️',
   public: '🌳',
   coiffeur: '✂️',
+  nature: '🌿',
+  sport: '⚽',
+  creatif: '🎨',
+  culture: '🏛️',
+  jeux: '🎲',
 };

@@ -14,6 +14,11 @@ import catBoutique from './cat-boutique.png';
 import catLieuPublic from './cat-lieu-public.png';
 import catCoiffeur from './cat-coiffeur.png';
 
+const emojiIcon = (e: string) =>
+  `data:image/svg+xml;utf8,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><text x="16" y="24" font-size="24" text-anchor="middle">${e}</text></svg>`
+  )}`;
+
 export const CATEGORY_ICONS: Record<string, string> = {
   all: catTout,
   restaurant: catRestaurant,
@@ -21,6 +26,11 @@ export const CATEGORY_ICONS: Record<string, string> = {
   shop: catBoutique,
   public: catLieuPublic,
   coiffeur: catCoiffeur,
+  nature: emojiIcon('🌿'),
+  sport: emojiIcon('⚽'),
+  creatif: emojiIcon('🎨'),
+  culture: emojiIcon('🏛️'),
+  jeux: emojiIcon('🎲'),
 };
 
 export const MEAL_ICONS: Record<string, string> = {

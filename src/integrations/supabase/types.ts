@@ -291,6 +291,8 @@ export type Database = {
           category: string
           changing_table: boolean | null
           created_at: string | null
+          duration: string | null
+          effort: string | null
           high_chair: boolean | null
           id: string
           instagram: string | null
@@ -300,8 +302,10 @@ export type Database = {
           name: string
           note: string | null
           photo: string | null
+          price: string | null
           status: string | null
           user_id: string
+          weather: string | null
           website: string | null
         }
         Insert: {
@@ -312,6 +316,8 @@ export type Database = {
           category: string
           changing_table?: boolean | null
           created_at?: string | null
+          duration?: string | null
+          effort?: string | null
           high_chair?: boolean | null
           id?: string
           instagram?: string | null
@@ -321,8 +327,10 @@ export type Database = {
           name: string
           note?: string | null
           photo?: string | null
+          price?: string | null
           status?: string | null
           user_id: string
+          weather?: string | null
           website?: string | null
         }
         Update: {
@@ -333,6 +341,8 @@ export type Database = {
           category?: string
           changing_table?: boolean | null
           created_at?: string | null
+          duration?: string | null
+          effort?: string | null
           high_chair?: boolean | null
           id?: string
           instagram?: string | null
@@ -342,8 +352,10 @@ export type Database = {
           name?: string
           note?: string | null
           photo?: string | null
+          price?: string | null
           status?: string | null
           user_id?: string
+          weather?: string | null
           website?: string | null
         }
         Relationships: []
@@ -358,6 +370,8 @@ export type Database = {
           changing_table: boolean
           city: string
           created_at: string
+          duration: string | null
+          effort: string | null
           high_chair: boolean
           id: string
           instagram: string | null
@@ -368,8 +382,10 @@ export type Database = {
           name: string
           note: string | null
           photo: string | null
+          price: string | null
           status: string
           updated_at: string
+          weather: string | null
           website: string | null
         }
         Insert: {
@@ -381,6 +397,8 @@ export type Database = {
           changing_table?: boolean
           city?: string
           created_at?: string
+          duration?: string | null
+          effort?: string | null
           high_chair?: boolean
           id?: string
           instagram?: string | null
@@ -391,8 +409,10 @@ export type Database = {
           name: string
           note?: string | null
           photo?: string | null
+          price?: string | null
           status?: string
           updated_at?: string
+          weather?: string | null
           website?: string | null
         }
         Update: {
@@ -404,6 +424,8 @@ export type Database = {
           changing_table?: boolean
           city?: string
           created_at?: string
+          duration?: string | null
+          effort?: string | null
           high_chair?: boolean
           id?: string
           instagram?: string | null
@@ -414,8 +436,10 @@ export type Database = {
           name?: string
           note?: string | null
           photo?: string | null
+          price?: string | null
           status?: string
           updated_at?: string
+          weather?: string | null
           website?: string | null
         }
         Relationships: []

@@ -7,12 +7,20 @@ import { useAuth } from '@/hooks/useAuth';
 import { useMealTypes } from '@/hooks/useMeals';
 import { MEAL_ICONS, EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
 
+import { DURATIONS, WEATHERS, EFFORTS, PRICES } from '@/lib/activity';
+import { isActivity } from '@/types/location';
+
 const CATEGORY_OPTIONS: { id: string; label: string }[] = [
   { id: 'restaurant', label: 'Restaurant' },
   { id: 'cafe', label: 'Café' },
   { id: 'shop', label: 'Boutique' },
   { id: 'public', label: 'Lieu public' },
   { id: 'coiffeur', label: 'Coiffeur' },
+  { id: 'nature', label: 'Nature' },
+  { id: 'sport', label: 'Sport' },
+  { id: 'creatif', label: 'Créatif' },
+  { id: 'culture', label: 'Culture' },
+  { id: 'jeux', label: 'Jeux' },
 ];
 
 interface ProposeLocationModalProps {
@@ -48,6 +56,10 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     instagram: '',
     age_min: '' as string,
     age_max: '' as string,
+    duration: '' as string,
+    weather: '' as string,
+    effort: '' as string,
+    price: '' as string,
   });
 
   const updateForm = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
@@ -67,6 +79,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
       high_chair: false, changing_table: false, kids_area: false, kids_menu: false,
       bookable: 'unknown', note: '', website: '', instagram: '',
       age_min: '', age_max: '',
+      duration: '', weather: '', effort: '', price: '',
     });
     setSelectedMeals([]);
     setPhotoFile(null);
@@ -161,6 +174,12 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
       };
       if (form.category === 'restaurant' || form.category === 'cafe') {
         insertData.bookable = form.bookable;
+      }
+      if (isActivity(form.category)) {
+        insertData.duration = form.duration || null;
+        insertData.weather = form.weather || null;
+        insertData.effort = form.effort || null;
+        insertData.price = form.price || null;
       }
       const { error } = await supabase.from('location_proposals' as any).insert(insertData);
       if (error) throw error;
@@ -359,20 +378,39 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
               {/* === STEP 1: Équipements === */}
               {step === 1 && (
                 <div className="flex flex-col gap-4">
-                  <div>
-                    <h3 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
-                      Équipements pour les enfants
-                    </h3>
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
-                      Coche ce qui est disponible.
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    <ToggleRow icon={EQUIP_ICONS.high_chair} label="Chaise haute / réhausseur" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
-                    <ToggleRow icon={EQUIP_ICONS.changing_table} label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
-                    <ToggleRow icon={EQUIP_ICONS.kids_area} label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
-                    <ToggleRow icon={EQUIP_ICONS.kids_menu} label="Menu enfant" checked={form.kids_menu} onChange={(v) => updateForm('kids_menu', v)} />
-                  </div>
+                  {isActivity(form.category) ? (
+                    <>
+                      <div>
+                        <h3 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+                          Détails activité
+                        </h3>
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
+                          Aide les familles à choisir la bonne activité.
+                        </p>
+                      </div>
+                      <PillGroup label="Durée" options={DURATIONS as any} value={form.duration} onChange={(v) => updateForm('duration', v)} />
+                      <PillGroup label="Météo" options={WEATHERS as any} value={form.weather} onChange={(v) => updateForm('weather', v)} />
+                      <PillGroup label="Effort" options={EFFORTS as any} value={form.effort} onChange={(v) => updateForm('effort', v)} />
+                      <PillGroup label="Prix" options={PRICES as any} value={form.price} onChange={(v) => updateForm('price', v)} />
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <h3 style={{ fontFamily: 'Fraunces', fontSize: 18, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+                          Équipements pour les enfants
+                        </h3>
+                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
+                          Coche ce qui est disponible.
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <ToggleRow icon={EQUIP_ICONS.high_chair} label="Chaise haute / réhausseur" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
+                        <ToggleRow icon={EQUIP_ICONS.changing_table} label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
+                        <ToggleRow icon={EQUIP_ICONS.kids_area} label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
+                        <ToggleRow icon={EQUIP_ICONS.kids_menu} label="Menu enfant" checked={form.kids_menu} onChange={(v) => updateForm('kids_menu', v)} />
+                      </div>
+                    </>
+                  )}
 
                   {/* Age range (optional) */}
                   <div>
@@ -693,6 +731,37 @@ function ToggleRow({ label, checked, onChange, icon }: { label: string; checked:
           transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
         }} />
       </button>
+    </div>
+  );
+}
+
+function PillGroup({ label, options, value, onChange }: { label: string; options: readonly string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 6 }}>
+        {label}
+      </label>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {options.map((opt) => {
+          const active = value === opt;
+          return (
+            <button
+              type="button"
+              key={opt}
+              onClick={() => onChange(active ? '' : opt)}
+              style={{
+                padding: '6px 14px', borderRadius: 100,
+                border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
+                background: active ? 'var(--primary-light)' : 'var(--surface)',
+                color: active ? 'var(--primary)' : 'var(--text-muted)',
+                fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

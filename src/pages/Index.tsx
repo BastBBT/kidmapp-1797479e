@@ -1,21 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { LocationCategory } from '@/types/location';
+import { LocationCategory, isActivity } from '@/types/location';
 import MapView from '@/components/MapView';
 import LocationCard from '@/components/LocationCard';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
 import MealFilter from '@/components/MealFilter';
 import AgeFilter from '@/components/AgeFilter';
+import ActivityFilter from '@/components/ActivityFilter';
 import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
 import { AgeBucket, matchesAgeBucket, ageAdequacyScore } from '@/lib/ageFilter';
+import { matchesWeather, matchesDuration } from '@/lib/activity';
 
 
 const MEAL_CATEGORIES = new Set(['restaurant', 'cafe']);
-const VALID_CATEGORIES = new Set<string>(['all', 'restaurant', 'cafe', 'shop', 'public', 'coiffeur']);
+const VALID_CATEGORIES = new Set<string>([
+  'all', 'restaurant', 'cafe', 'shop', 'public', 'coiffeur',
+  'nature', 'sport', 'creatif', 'culture', 'jeux',
+]);
 const VALID_AGES = new Set<string>(['all', '0-2', '3-5', '6+']);
 
 const NANTES_CENTER: [number, number] = [47.1984, -1.5536];
@@ -50,6 +55,8 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>(initialCategory);
   const [selectedMeal, setSelectedMeal] = useState<string | null>(initialMeal);
   const [selectedAge, setSelectedAge] = useState<AgeBucket>(initialAge);
+  const [selectedWeather, setSelectedWeather] = useState<string | null>(null);
+  const [selectedDuration, setSelectedDuration] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
 
   const [mapExpanded, setMapExpanded] = useState(false);
@@ -61,6 +68,7 @@ const Index = () => {
   const { data: locationMeals = [] } = useAllLocationMeals();
 
   const showMealFilter = MEAL_CATEGORIES.has(selectedCategory);
+  const showActivityFilter = isActivity(selectedCategory);
 
   // Reset meal filter when switching to a non-meal category
   useEffect(() => {
@@ -68,6 +76,14 @@ const Index = () => {
       setSelectedMeal(null);
     }
   }, [showMealFilter, selectedMeal]);
+
+  // Reset activity sub-filters when leaving an activity category
+  useEffect(() => {
+    if (!showActivityFilter) {
+      if (selectedWeather !== null) setSelectedWeather(null);
+      if (selectedDuration !== null) setSelectedDuration(null);
+    }
+  }, [showActivityFilter, selectedWeather, selectedDuration]);
 
   // Sync URL params (replaceState — no history pollution)
   const updateUrl = useCallback((overrides: Partial<{ q: string; category: string; meal: string | null; lat: number; lng: number; zoom: number }> = {}) => {
@@ -134,7 +150,10 @@ const Index = () => {
         loc.address?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchMeal = !locationIdsForMeal || locationIdsForMeal.has(loc.id);
       const matchAge = matchesAgeBucket(loc as any, selectedAge);
-      return matchCategory && matchSearch && matchMeal && matchAge;
+      const isActivityLoc = isActivity(loc.category);
+      const matchWeather = !isActivityLoc || matchesWeather((loc as any).weather, selectedWeather);
+      const matchDuration = !isActivityLoc || matchesDuration((loc as any).duration, selectedDuration);
+      return matchCategory && matchSearch && matchMeal && matchAge && matchWeather && matchDuration;
     })
     .sort((a, b) => {
       if (selectedAge !== 'all') {
@@ -166,6 +185,23 @@ const Index = () => {
       >
         <MealFilter mealTypes={mealTypes} selected={selectedMeal} onChange={setSelectedMeal} />
 
+      </div>
+
+      {/* Activity filters (contextual) — only for activity categories */}
+      <div
+        style={{
+          overflow: 'hidden',
+          maxHeight: showActivityFilter ? 120 : 0,
+          opacity: showActivityFilter ? 1 : 0,
+          transition: 'max-height 200ms ease-in-out, opacity 200ms ease-in-out',
+        }}
+      >
+        <ActivityFilter
+          weather={selectedWeather}
+          duration={selectedDuration}
+          onWeatherChange={setSelectedWeather}
+          onDurationChange={setSelectedDuration}
+        />
       </div>
 
       <ActiveCategoryBanner
