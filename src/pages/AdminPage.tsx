@@ -198,6 +198,9 @@ const AdminPage = () => {
         acquisitionCounts[src] = (acquisitionCounts[src] ?? 0) + 1;
       }
 
+      const allEvents = ((eventsRes.data ?? []) as any[]);
+      const pendingEventsList = allEvents.filter((e) => e.status === 'pending');
+
       return {
         totalLocations: locationsRes.data?.length ?? 0,
         publishedLocations: locationsRes.data?.filter((l) => l.status === 'published').length ?? 0,
@@ -205,6 +208,8 @@ const AdminPage = () => {
         totalContributions: contribs.length,
         pendingContributions: contribs.filter((c: any) => c.status === 'pending').length,
         pendingProposals: proposals.filter((p) => p.status === 'pending').length,
+        pendingEvents: pendingEventsList.length,
+        pendingEventsList: pendingEventsList.slice(0, 5),
         activeUsers30d: newUsers.length,
         contributionsLast7d: daily,
         visitsLast7d: visits7d,
