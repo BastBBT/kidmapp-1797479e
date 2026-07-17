@@ -837,6 +837,8 @@ const AdminPage = () => {
                         kids_menu: (loc as any).kids_menu ?? false,
                         bookable: (loc as any).bookable ?? 'unknown',
                         status: loc.status,
+                        age_min: (loc as any).age_min != null ? String((loc as any).age_min) : '',
+                        age_max: (loc as any).age_max != null ? String((loc as any).age_max) : '',
                       });
                       setEditOriginalAddress(loc.address ?? '');
                       setEditOriginalLat(loc.lat ?? null);
@@ -1531,11 +1533,31 @@ const AdminPage = () => {
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>{(editForm.note || '').length}/500</div>
               </div>
               <div className="flex flex-col gap-3">
-                <Toggle label="Chaise haute" checked={editForm.high_chair} onChange={(v) => setEditForm((f: any) => ({ ...f, high_chair: v }))} />
+                <Toggle label="Chaise haute / réhausseur" checked={editForm.high_chair} onChange={(v) => setEditForm((f: any) => ({ ...f, high_chair: v }))} />
                 <Toggle label="Table à langer" checked={editForm.changing_table} onChange={(v) => setEditForm((f: any) => ({ ...f, changing_table: v }))} />
                 <Toggle label="Espace jeux" checked={editForm.kids_area} onChange={(v) => setEditForm((f: any) => ({ ...f, kids_area: v }))} />
                 <Toggle label="🍽️ Menu enfant" checked={!!editForm.kids_menu} onChange={(v) => setEditForm((f: any) => ({ ...f, kids_menu: v }))} />
               </div>
+              <div>
+                <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                  Âge conseillé (optionnel)
+                </label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="number" min={0} max={99} inputMode="numeric"
+                    value={editForm.age_min ?? ''}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, age_min: e.target.value.replace(/[^\d]/g, '') }))}
+                    placeholder="Dès X ans"
+                    style={{ flex: 1, padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
+                  />
+                  <input
+                    type="number" min={0} max={99} inputMode="numeric"
+                    value={editForm.age_max ?? ''}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, age_max: e.target.value.replace(/[^\d]/g, '') }))}
+                    placeholder="Jusqu'à Y ans"
+                    style={{ flex: 1, padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
+                  />
+                </div>
               {(editForm.category === 'restaurant' || editForm.category === 'cafe') && (
                 <div>
                   <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Réservation</label>
