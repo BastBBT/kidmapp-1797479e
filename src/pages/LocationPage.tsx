@@ -350,7 +350,7 @@ const LocationPage = () => {
                 ))}
               </div>
             </div>
-          ) : (
+          ) : (<>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <h2 className="font-display text-base font-semibold" style={{ color: 'var(--text)' }}>
               Équipements enfants
