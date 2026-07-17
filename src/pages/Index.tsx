@@ -55,6 +55,8 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>(initialCategory);
   const [selectedMeal, setSelectedMeal] = useState<string | null>(initialMeal);
   const [selectedAge, setSelectedAge] = useState<AgeBucket>(initialAge);
+  const [selectedWeather, setSelectedWeather] = useState<string | null>(null);
+  const [selectedDuration, setSelectedDuration] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
 
   const [mapExpanded, setMapExpanded] = useState(false);
@@ -66,6 +68,7 @@ const Index = () => {
   const { data: locationMeals = [] } = useAllLocationMeals();
 
   const showMealFilter = MEAL_CATEGORIES.has(selectedCategory);
+  const showActivityFilter = isActivity(selectedCategory);
 
   // Reset meal filter when switching to a non-meal category
   useEffect(() => {
@@ -73,6 +76,14 @@ const Index = () => {
       setSelectedMeal(null);
     }
   }, [showMealFilter, selectedMeal]);
+
+  // Reset activity sub-filters when leaving an activity category
+  useEffect(() => {
+    if (!showActivityFilter) {
+      if (selectedWeather !== null) setSelectedWeather(null);
+      if (selectedDuration !== null) setSelectedDuration(null);
+    }
+  }, [showActivityFilter, selectedWeather, selectedDuration]);
 
   // Sync URL params (replaceState — no history pollution)
   const updateUrl = useCallback((overrides: Partial<{ q: string; category: string; meal: string | null; lat: number; lng: number; zoom: number }> = {}) => {
