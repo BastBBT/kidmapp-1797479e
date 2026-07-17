@@ -79,7 +79,9 @@ const OnboardingOverlay = () => {
 
 const AppContent = () => {
   usePageviewTracker();
-  const { isOpen: isProposalOpen, close: closeProposal } = useProposalModal();
+  const { isOpen: isProposalOpen, mode: proposalMode, close: closeProposal } = useProposalModal();
+  const locationModalOpen = isProposalOpen && (proposalMode === 'location' || proposalMode === 'activity');
+  const initialCategory = proposalMode === 'activity' ? 'nature' : 'restaurant';
   return (
     <>
       <IosAppBanner />
@@ -87,6 +89,8 @@ const AppContent = () => {
         {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/location/:id" element={<LocationPage />} />
+        <Route path="/sorties" element={<SortiesPage />} />
+        <Route path="/event/:id" element={<EventPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/support" element={<SupportPage />} />
@@ -114,7 +118,9 @@ const AppContent = () => {
       <BottomNav />
       <OnboardingOverlay />
       <AcquisitionOverlay />
-      <ProposeLocationModal open={isProposalOpen} onClose={closeProposal} />
+      <ProposalTypeChooser />
+      <ProposeLocationModal open={locationModalOpen} onClose={closeProposal} initialCategory={initialCategory} />
+      <ProposeEventModal />
     </>
   );
 };
