@@ -261,7 +261,7 @@ const Index = () => {
       }}>
         {filteredLocations.map((loc, i) => {
           const mealIds = mealsByLocation.get(loc.id) ?? [];
-          return <LocationCard key={loc.id} location={loc} index={i} mealIds={mealIds} />;
+          return <LocationCard key={loc.id} location={loc} index={i} mealIds={mealIds} ageBucket={selectedAge} />;
         })}
       </div>
 
@@ -322,6 +322,9 @@ const Index = () => {
               boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
             }}>
               <CategoryFilter selected={selectedCategory} onChange={setSelectedCategory} />
+              <div style={{ marginTop: 6 }}>
+                <AgeFilter selected={selectedAge} onChange={setSelectedAge} />
+              </div>
               <div
                 style={{
                   overflow: 'hidden',
