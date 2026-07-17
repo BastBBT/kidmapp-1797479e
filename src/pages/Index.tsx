@@ -31,6 +31,10 @@ const Index = () => {
   })();
   const initialQuery = searchParams.get('q') ?? '';
   const initialMeal = searchParams.get('meal');
+  const initialAge = (() => {
+    const a = searchParams.get('age');
+    return a && VALID_AGES.has(a) ? (a as AgeBucket) : 'all';
+  })();
   const initialCenter = useMemo<[number, number]>(() => {
     const lat = parseFloat(searchParams.get('lat') ?? '');
     const lng = parseFloat(searchParams.get('lng') ?? '');
@@ -45,6 +49,7 @@ const Index = () => {
 
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>(initialCategory);
   const [selectedMeal, setSelectedMeal] = useState<string | null>(initialMeal);
+  const [selectedAge, setSelectedAge] = useState<AgeBucket>(initialAge);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
 
   const [mapExpanded, setMapExpanded] = useState(false);
