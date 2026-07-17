@@ -46,6 +46,8 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     note: '',
     website: '',
     instagram: '',
+    age_min: '' as string,
+    age_max: '' as string,
   });
 
   const updateForm = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
@@ -64,6 +66,7 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
       name: '', category: 'restaurant', address: '',
       high_chair: false, changing_table: false, kids_area: false, kids_menu: false,
       bookable: 'unknown', note: '', website: '', instagram: '',
+      age_min: '', age_max: '',
     });
     setSelectedMeals([]);
     setPhotoFile(null);
