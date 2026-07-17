@@ -156,6 +156,8 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
         instagram: form.instagram || null,
         status: 'pending',
         metadata: { meal_types: selectedMeals },
+        age_min: form.age_min.trim() === '' ? null : Math.max(0, parseInt(form.age_min, 10)) || null,
+        age_max: form.age_max.trim() === '' ? null : Math.max(0, parseInt(form.age_max, 10)) || null,
       };
       if (form.category === 'restaurant' || form.category === 'cafe') {
         insertData.bookable = form.bookable;
