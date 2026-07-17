@@ -41,7 +41,7 @@ export const EQUIP_ICONS: Record<EquipKey, string> = {
 };
 
 export const EQUIP_LABELS: Record<EquipKey, string> = {
-  high_chair: 'Chaise haute',
+  high_chair: 'Chaise haute / réhausseur',
   changing_table: 'Table à langer',
   kids_area: 'Espace jeux',
   kids_menu: 'Menu enfant',
