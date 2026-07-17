@@ -56,6 +56,10 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
     instagram: '',
     age_min: '' as string,
     age_max: '' as string,
+    duration: '' as string,
+    weather: '' as string,
+    effort: '' as string,
+    price: '' as string,
   });
 
   const updateForm = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
