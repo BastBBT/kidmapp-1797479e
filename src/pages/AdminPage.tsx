@@ -29,6 +29,7 @@ const tabs: { key: AdminTab; label: string }[] = [
   { key: 'locations', label: 'Lieux' },
   { key: 'contributions', label: 'Contributions' },
   { key: 'proposals', label: 'Propositions' },
+  { key: 'events', label: 'Événements' },
   { key: 'add', label: 'Ajouter un lieu' },
 ];
 
