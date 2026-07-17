@@ -156,7 +156,7 @@ const AdminPage = () => {
       const notAdmin = (uid: string | null | undefined) => !!uid && !adminIds.has(uid);
       const notAdminOrAnon = (uid: string | null | undefined) => !uid || !adminIds.has(uid);
 
-      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, viewsRes, views7dRes, acquisitionRes] = await Promise.all([
+      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, viewsRes, views7dRes, acquisitionRes, eventsRes] = await Promise.all([
         supabase.from('locations').select('id, status'),
         supabase.from('contributions').select('id, user_id, created_at, status'),
         supabase.from('profiles').select('id, role, created_at').gte('created_at', since),
@@ -165,6 +165,7 @@ const AdminPage = () => {
         supabase.from('page_views' as any).select('user_id, created_at').gte('created_at', since),
         supabase.from('page_views' as any).select('user_id, created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
         supabase.from('profiles').select('id, acquisition_source').not('acquisition_source', 'is', null),
+        supabase.from('events' as any).select('id, name, status, user_id, created_at, date_start').order('created_at', { ascending: false }),
       ]);
 
       const contribs = (contributionsRes.data ?? []).filter((c: any) => notAdmin(c.user_id));
