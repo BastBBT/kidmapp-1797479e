@@ -2239,6 +2239,8 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         website: proposal.website ?? null,
         instagram: proposal.instagram ?? null,
         note: proposal.note ?? null,
+        age_min: proposal.age_min ?? null,
+        age_max: proposal.age_max ?? null,
         status: 'published',
       };
       if ((proposal.category === 'restaurant' || proposal.category === 'cafe') && proposal.bookable) {
