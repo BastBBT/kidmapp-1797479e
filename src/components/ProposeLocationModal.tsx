@@ -368,10 +368,46 @@ const ProposeLocationModal = ({ open, onClose }: ProposeLocationModalProps) => {
                     </p>
                   </div>
                   <div className="flex flex-col gap-3">
-                    <ToggleRow icon={EQUIP_ICONS.high_chair} label="Chaise haute" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
+                    <ToggleRow icon={EQUIP_ICONS.high_chair} label="Chaise haute / réhausseur" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
                     <ToggleRow icon={EQUIP_ICONS.changing_table} label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
                     <ToggleRow icon={EQUIP_ICONS.kids_area} label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
                     <ToggleRow icon={EQUIP_ICONS.kids_menu} label="Menu enfant" checked={form.kids_menu} onChange={(v) => updateForm('kids_menu', v)} />
+                  </div>
+
+                  {/* Age range (optional) */}
+                  <div>
+                    <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 6 }}>
+                      Âge conseillé <span style={{ opacity: 0.7 }}>(optionnel)</span>
+                    </label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="number"
+                          min={0}
+                          max={99}
+                          inputMode="numeric"
+                          value={form.age_min}
+                          onChange={(e) => updateForm('age_min', e.target.value.replace(/[^\d]/g, ''))}
+                          placeholder="Dès X ans"
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="number"
+                          min={0}
+                          max={99}
+                          inputMode="numeric"
+                          value={form.age_max}
+                          onChange={(e) => updateForm('age_max', e.target.value.replace(/[^\d]/g, ''))}
+                          placeholder="Jusqu'à Y ans"
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 4, fontFamily: 'DM Sans' }}>
+                      Laisse vide si adapté à tous les âges.
+                    </div>
                   </div>
                   {(form.category === 'restaurant' || form.category === 'cafe') && (
                     <div>
