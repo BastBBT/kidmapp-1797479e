@@ -133,9 +133,16 @@ const Index = () => {
         loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         loc.address?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchMeal = !locationIdsForMeal || locationIdsForMeal.has(loc.id);
-      return matchCategory && matchSearch && matchMeal;
+      const matchAge = matchesAgeBucket(loc as any, selectedAge);
+      return matchCategory && matchSearch && matchMeal && matchAge;
     })
-    .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+    .sort((a, b) => {
+      if (selectedAge !== 'all') {
+        const diff = ageAdequacyScore(b as any, selectedAge) - ageAdequacyScore(a as any, selectedAge);
+        if (diff !== 0) return diff;
+      }
+      return a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' });
+    });
 
   return (
     <div className="min-h-screen flex flex-col pb-20" style={{ background: 'var(--bg)' }}>
