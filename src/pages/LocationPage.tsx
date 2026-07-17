@@ -76,6 +76,7 @@ const LocationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [showContribute, setShowContribute] = useState(false);
+  const [ageBucket, setAgeBucket] = useState<AgeBucket>('all');
   const { data: location, isLoading } = useLocationData(id ?? '');
   const { isFavorite, toggleFavorite } = useFavorites();
   const { data: contribData } = useLocationContributions(id ?? '');
