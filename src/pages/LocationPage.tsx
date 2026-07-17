@@ -321,6 +321,36 @@ const LocationPage = () => {
             </div>
           )}
 
+          {isActivity(location.category) ? (
+            <div style={{ marginBottom: 16 }}>
+              <h2 className="font-display text-base font-semibold" style={{ color: 'var(--text)', marginBottom: 12 }}>
+                Infos activité
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {[
+                  { label: 'Âge', value: (location as any).age_min != null || (location as any).age_max != null
+                    ? `${(location as any).age_min ?? 0}${(location as any).age_max ? `–${(location as any).age_max}` : '+'} ans`
+                    : null },
+                  { label: 'Durée', value: (location as any).duration },
+                  { label: 'Météo', value: (location as any).weather },
+                  { label: 'Effort', value: (location as any).effort },
+                  { label: 'Prix', value: (location as any).price },
+                ].filter(x => x.value).map((x) => (
+                  <div key={x.label} style={{
+                    padding: '10px 12px', borderRadius: 12,
+                    background: 'var(--bg)', border: '1px solid var(--border)',
+                  }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      {x.label}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginTop: 2 }}>
+                      {x.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <h2 className="font-display text-base font-semibold" style={{ color: 'var(--text)' }}>
               Équipements enfants
