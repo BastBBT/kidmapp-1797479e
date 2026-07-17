@@ -2,7 +2,9 @@ import { LogOut, Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import CategoryFilter from '@/components/CategoryFilter';
+import AgeFilter from '@/components/AgeFilter';
 import { LocationCategory } from '@/types/location';
+import { AgeBucket } from '@/lib/ageFilter';
 
 
 interface HeaderProps {
@@ -10,9 +12,11 @@ interface HeaderProps {
   searchValue?: string;
   selectedCategory?: LocationCategory | 'all';
   onCategoryChange?: (cat: LocationCategory | 'all') => void;
+  selectedAge?: AgeBucket;
+  onAgeChange?: (b: AgeBucket) => void;
 }
 
-const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange }: HeaderProps) => {
+const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, selectedAge, onAgeChange }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAdmin, signOut } = useAuth();
@@ -89,6 +93,13 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange }: H
         {selectedCategory !== undefined && onCategoryChange && (
           <div className="pb-3">
             <CategoryFilter selected={selectedCategory} onChange={onCategoryChange} />
+          </div>
+        )}
+
+        {/* Row 4 — Age filter (persistent) */}
+        {selectedAge !== undefined && onAgeChange && (
+          <div className="pb-3">
+            <AgeFilter selected={selectedAge} onChange={onAgeChange} />
           </div>
         )}
       </div>
