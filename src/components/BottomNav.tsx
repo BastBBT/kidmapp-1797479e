@@ -93,6 +93,7 @@ const BottomNav = () => {
   };
 
   const exploreTab = tabs.find((t) => t.id === 'explore')!;
+  const sortiesTab = tabs.find((t) => t.id === 'sorties')!;
   const savedTab = tabs.find((t) => t.id === 'saved')!;
   const accountTab = tabs.find((t) => t.id === 'account')!;
 
@@ -107,12 +108,13 @@ const BottomNav = () => {
       }}
     >
       {renderTab(exploreTab)}
+      {renderTab(sortiesTab)}
 
       {/* Bouton Proposer — action, pas une route */}
       <button
         onClick={handleProposeClick}
         className="relative flex flex-col items-center gap-1 px-3 py-1 transition-transform active:scale-95"
-        aria-label="Proposer un lieu"
+        aria-label="Proposer"
       >
         <div
           className="flex items-center justify-center rounded-full"
