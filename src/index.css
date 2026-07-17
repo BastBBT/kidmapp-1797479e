@@ -23,6 +23,14 @@
     --shadow: 0 2px 16px rgba(0,0,0,0.06);
     --shadow-md: 0 6px 28px rgba(0,0,0,0.10);
 
+    /* Events (parité iOS) */
+    --event-spectacle: #EF9F27;
+    --event-atelier: #7F5BB5;
+    --event-festival: #C64B7A;
+    --event-fete: #D95F3B;
+    --event-marche: #3B7D6E;
+    --event-autre: #EF9F27;
+
     /* shadcn compat tokens mapped to new palette */
     --background: 40 33% 97%;
     --foreground: 20 12% 10%;
