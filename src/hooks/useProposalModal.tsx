@@ -1,8 +1,12 @@
 import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
 
+export type ProposalMode = 'chooser' | 'location' | 'activity' | 'event';
+
 interface ProposalModalContextValue {
   isOpen: boolean;
-  open: () => void;
+  mode: ProposalMode;
+  open: (mode?: ProposalMode) => void;
+  setMode: (mode: ProposalMode) => void;
   close: () => void;
 }
 
@@ -10,10 +14,20 @@ const ProposalModalContext = createContext<ProposalModalContextValue | null>(nul
 
 export const ProposalModalProvider = ({ children }: { children: ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const open = useCallback(() => setIsOpen(true), []);
-  const close = useCallback(() => setIsOpen(false), []);
+  const [mode, setMode] = useState<ProposalMode>('chooser');
+
+  const open = useCallback((initial?: ProposalMode) => {
+    setMode(initial ?? 'chooser');
+    setIsOpen(true);
+  }, []);
+
+  const close = useCallback(() => {
+    setIsOpen(false);
+    setTimeout(() => setMode('chooser'), 300);
+  }, []);
+
   return (
-    <ProposalModalContext.Provider value={{ isOpen, open, close }}>
+    <ProposalModalContext.Provider value={{ isOpen, mode, open, setMode, close }}>
       {children}
     </ProposalModalContext.Provider>
   );
