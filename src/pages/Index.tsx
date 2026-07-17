@@ -202,6 +202,7 @@ const Index = () => {
           onWeatherChange={setSelectedWeather}
           onDurationChange={setSelectedDuration}
         />
+      </div>
 
       <ActiveCategoryBanner
         category={selectedCategory}
