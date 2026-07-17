@@ -1199,6 +1199,11 @@ const AdminPage = () => {
                     <option value="shop">🛍️ Boutique</option>
                     <option value="public">🌳 Lieu public</option>
                     <option value="coiffeur">✂️ Coiffeur</option>
+                    <option value="nature">🌿 Nature</option>
+                    <option value="sport">⚽ Sport</option>
+                    <option value="creatif">🎨 Créatif</option>
+                    <option value="culture">🏛️ Culture</option>
+                    <option value="jeux">🎲 Jeux</option>
                   </select>
                 </div>
                 <div>
