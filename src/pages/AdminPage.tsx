@@ -1206,6 +1206,11 @@ const AdminPage = () => {
           <ProposalsTab geocodeAddress={geocodeAddress} queryClient={queryClient} toast={toast} />
         )}
 
+        {/* Events */}
+        {activeTab === 'events' && (
+          <EventsTab geocodeAddress={geocodeAddress} queryClient={queryClient} toast={toast} />
+        )}
+
         {/* Add location */}
         {activeTab === 'add' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
