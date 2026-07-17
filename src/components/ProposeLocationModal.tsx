@@ -45,7 +45,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant' }:
   const [selectedMeals, setSelectedMeals] = useState<string[]>([]);
   const [form, setForm] = useState({
     name: '',
-    category: 'restaurant',
+    category: initialCategory,
     address: '',
     high_chair: false,
     changing_table: false,
@@ -62,6 +62,14 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant' }:
     effort: '' as string,
     price: '' as string,
   });
+
+  // Sync initialCategory when modal re-opens with a different context (e.g. from proposal chooser)
+  useEffect(() => {
+    if (open) {
+      setForm((p) => ({ ...p, category: initialCategory }));
+    }
+     
+  }, [open, initialCategory]);
 
   const updateForm = (key: string, value: any) => setForm((p) => ({ ...p, [key]: value }));
 
