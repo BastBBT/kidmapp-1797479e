@@ -17,6 +17,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EQUIP_ICONS, EQUIP_LABELS, EquipKey } from '@/assets/icons';
+import { AGE_BUCKETS, AgeBucket, ageVerdict, getPriorityEquip } from '@/lib/ageFilter';
 
 const categoryGradients: Record<string, string> = {
   restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
