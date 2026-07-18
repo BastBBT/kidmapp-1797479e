@@ -7,6 +7,7 @@ import { useEventFavorites } from '@/hooks/useEventFavorites';
 import { useAuth } from '@/hooks/useAuth';
 import { eventCategoryColor, eventCategoryEmoji, eventCategoryHex } from '@/types/event';
 import { downloadIcs } from '@/lib/ics';
+import { isPastEvent } from '@/lib/weekend';
 
 const formatDate = (d: string) =>
   new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -52,6 +53,7 @@ const EventPage = () => {
   const color = eventCategoryColor(event.category);
   const hex = eventCategoryHex(event.category);
   const fav = isFavorite(event.id);
+  const past = isPastEvent(event.date_start, event.date_end);
 
   return (
     <div style={{ paddingBottom: 140, background: 'var(--bg)', minHeight: '100vh' }}>
@@ -81,7 +83,7 @@ const EventPage = () => {
         >
           ←
         </button>
-        {user && (
+        {user && !past && (
           <button
             onClick={() => toggleFavorite.mutate(event.id)}
             aria-label="Favori"
@@ -273,22 +275,46 @@ const EventPage = () => {
             Voir plus de détails ↗
           </a>
         )}
-        <button
-          onClick={() => downloadIcs(event)}
-          style={{
-            padding: 13,
-            borderRadius: 100,
-            border: '1.5px solid var(--border)',
-            background: 'var(--surface)',
-            color: 'var(--text)',
-            fontFamily: 'DM Sans',
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          📅 Ajouter à mon calendrier
-        </button>
+        {past ? (
+          <div
+            role="status"
+            style={{
+              padding: '14px 16px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1.5px dashed var(--border)',
+              background: '#E7E3DC',
+              color: 'var(--text-muted)',
+              fontFamily: 'DM Sans',
+              fontSize: 14,
+              fontWeight: 600,
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            <span aria-hidden>↩</span>
+            Cet événement est terminé
+          </div>
+        ) : (
+          <button
+            onClick={() => downloadIcs(event)}
+            style={{
+              padding: 13,
+              borderRadius: 100,
+              border: '1.5px solid var(--border)',
+              background: 'var(--surface)',
+              color: 'var(--text)',
+              fontFamily: 'DM Sans',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            📅 Ajouter à mon calendrier
+          </button>
+        )}
         {event.instagram && (
           <a
             href={`https://instagram.com/${event.instagram.replace(/^@/, '')}`}
