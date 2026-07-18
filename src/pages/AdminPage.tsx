@@ -1811,6 +1811,14 @@ const AdminPage = () => {
           </div>
         </div>
       )}
+      <RejectDialog
+        open={!!rejectContribTarget}
+        submissionType="contribution"
+        submissionName={rejectContribTarget?.location_name || rejectContribTarget?.type || 'Contribution'}
+        recipientEmail={rejectContribTarget?.user_id ? (contribEmails[rejectContribTarget.user_id] ?? null) : null}
+        onCancel={() => setRejectContribTarget(null)}
+        onConfirm={confirmRejectContribution}
+      />
     </div>
   );
 };
