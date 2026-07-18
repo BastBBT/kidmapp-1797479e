@@ -13,6 +13,7 @@ import { useUserEmails } from '@/hooks/useUserEmails';
 import { useTopContributors } from '@/hooks/useTopContributors';
 import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryHex, eventCategoryEmoji } from '@/types/event';
 import RejectDialog from '@/components/admin/RejectDialog';
+import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals' | 'events';
