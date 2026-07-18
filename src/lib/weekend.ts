@@ -6,6 +6,7 @@ export interface Weekend {
   sunday: Date;
   label: string;        // e.g. "Ce week-end", "Sam 20 juil.", or "20–21 juil."
   shortLabel: string;   // e.g. "Sam 20", "20–21 juil."
+  past?: boolean;       // true if the weekend is entirely in the past
 }
 
 const toISODate = (d: Date): string => {
@@ -40,7 +41,11 @@ export const upcomingSaturday = (from: Date = new Date()): Date => {
  * If today is Sunday, that weekend is still included (Sat was yesterday) so
  * users can still filter "this weekend".
  */
-export const buildWeekends = (count = 8, from: Date = new Date()): Weekend[] => {
+export const buildWeekends = (
+  count = 8,
+  from: Date = new Date(),
+  includeLast = false,
+): Weekend[] => {
   const now = startOfDay(from);
   const dow = now.getDay();
   // Start Saturday: for Sun (0), start on yesterday's Sat.
@@ -50,8 +55,9 @@ export const buildWeekends = (count = 8, from: Date = new Date()): Weekend[] => 
 
   const result: Weekend[] = [];
   const currentWeekendKey = toISODate(first);
+  const startI = includeLast ? -1 : 0;
 
-  for (let i = 0; i < count; i++) {
+  for (let i = startI; i < count; i++) {
     const sat = new Date(first);
     sat.setDate(first.getDate() + i * 7);
     const sun = new Date(sat);
@@ -61,10 +67,24 @@ export const buildWeekends = (count = 8, from: Date = new Date()): Weekend[] => 
     const shortLabel = sameMonth
       ? `${sat.getDate()}–${sun.getDate()} ${monthShort(sun)}`
       : `${sat.getDate()} ${monthShort(sat)}–${sun.getDate()} ${monthShort(sun)}`;
-    const label = key === currentWeekendKey ? 'Ce week-end' : shortLabel;
-    result.push({ key, saturday: sat, sunday: sun, label, shortLabel });
+    const past = i < 0;
+    const label = past
+      ? 'Week-end dernier'
+      : key === currentWeekendKey
+        ? 'Ce week-end'
+        : shortLabel;
+    result.push({ key, saturday: sat, sunday: sun, label, shortLabel, past });
   }
   return result;
+};
+
+/** ISO date of the Monday of the previous week (relative to `from`). */
+export const lastMondayISO = (from: Date = new Date()): string => {
+  const d = startOfDay(from);
+  const dow = d.getDay(); // 0 Sun..6 Sat
+  const diffToThisMonday = dow === 0 ? -6 : 1 - dow;
+  d.setDate(d.getDate() + diffToThisMonday - 7);
+  return toISODate(d);
 };
 
 export const currentWeekendKey = (from: Date = new Date()): string => {

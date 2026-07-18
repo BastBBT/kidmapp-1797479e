@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Header from '@/components/Header';
-import AgeFilter from '@/components/AgeFilter';
 import WeekendPicker from '@/components/WeekendPicker';
 import EventsMap from '@/components/EventsMap';
 import EventCard from '@/components/EventCard';
@@ -9,12 +8,22 @@ import { useEvents } from '@/hooks/useEvents';
 import { AgeBucket, matchesAgeBucket } from '@/lib/ageFilter';
 
 const SortiesPage = () => {
-  const weekends = useMemo(() => buildWeekends(8), []);
-  const [selectedKey, setSelectedKey] = useState<string>(weekends[0]?.key ?? '');
+  const weekends = useMemo(() => buildWeekends(8, new Date(), true), []);
+  const defaultKey = useMemo(
+    () => weekends.find((w) => !w.past)?.key ?? weekends[0]?.key ?? '',
+    [weekends],
+  );
+  const [selectedKey, setSelectedKey] = useState<string>(defaultKey);
   const [selectedAge, setSelectedAge] = useState<AgeBucket>('all');
   const { data: events = [], isLoading } = useEvents();
 
+  // Reset to the first non-past weekend whenever the age filter changes.
+  useEffect(() => {
+    setSelectedKey(defaultKey);
+  }, [selectedAge, defaultKey]);
+
   const selectedWeekend = weekends.find((w) => w.key === selectedKey) ?? weekends[0];
+  const isPastWeekend = !!selectedWeekend?.past;
 
   const filteredEvents = useMemo(() => {
     if (!selectedWeekend) return [];
@@ -74,7 +83,9 @@ const SortiesPage = () => {
             </div>
           </div>
         ) : (
-          filteredEvents.map((ev) => <EventCard key={ev.id} event={ev} />)
+          filteredEvents.map((ev) => (
+            <EventCard key={ev.id} event={ev} showPast={isPastWeekend} />
+          ))
         )}
       </div>
     </div>
