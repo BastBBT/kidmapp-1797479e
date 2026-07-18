@@ -1,30 +1,42 @@
-## Vérification préalable
-`CATEGORY_ASSETS` est **local à `src/components/MapView.tsx`** (déclaration + une seule utilisation à la ligne 37). Aucun autre fichier ne l'importe. Le remplacer n'a donc **aucun effet de bord** sur les autres écrans.
+## Objectif
+Envoyer un email quand un événement passe au statut `published`, en réutilisant le design du template `proposal-approved`.
 
-Les icônes de lieux sont conservées à l'identique : `CATEGORY_ICONS` dans `src/assets/icons.ts` importe déjà **les mêmes fichiers** que la table locale :
-- `restaurant` → `cat-restaurant.png` ✓
-- `cafe` → `cat-cafe.png` ✓
-- `shop` → `cat-boutique.png` ✓
-- `public` → `cat-lieu-public.png` ✓
-- `coiffeur` → `cat-coiffeur.png` ✓
+## 1. Nouveau template `event-published.tsx`
 
-Et en plus, les 5 activités (`nature`, `sport`, `creatif`, `culture`, `jeux`) qui manquent aujourd'hui.
+Fichier : `supabase/functions/_shared/transactional-email-templates/event-published.tsx`
 
-## Correction (dans `src/components/MapView.tsx` uniquement)
+- Structure/style copiés à l'identique de `proposal-approved.tsx` (header, card, hero, CTA vert, footer).
+- Props : `userName`, `eventTitle`, `eventId`, `eventCategory`, `eventStartDate` (optionnel).
+- Hero : bulle icône calendrier `📅`, headline « Ton événement est en ligne ! ».
+- Badge : `{emoji catégorie} {eventTitle}` avec la palette activités (nature/sport/creatif/culture/jeux) déjà utilisée dans l'app.
+- Paragraphe : mention du titre + date formatée en français si dispo.
+- CTA : « Voir l'événement → » vers `${SITE_URL}/event/${eventId}`.
+- Subject dynamique : `📅 {eventTitle} est en ligne sur Kidmapp`.
 
-1. Supprimer la table locale `CATEGORY_ASSETS`.
-2. Importer `CATEGORY_ICONS` depuis `@/assets/icons`.
-3. Remplacer `CATEGORY_ASSETS[category] ?? CATEGORY_ASSETS.restaurant` par `CATEGORY_ICONS[category] ?? CATEGORY_ICONS.restaurant`.
-4. Ajouter dans `configs` les 5 couleurs manquantes pour les pastilles :
-   - `nature` → vert `#3B7D6E`
-   - `sport` → bleu `#3B6EB0`
-   - `creatif` → violet `#8E44AD`
-   - `culture` → doré `#B7791F`
-   - `jeux` → corail `#D95F3B`
+Enregistrer dans `registry.ts` sous la clé `event-published`.
 
-Les icônes de **lieux restent strictement identiques** (mêmes PNG, mêmes couleurs de pastilles). Seules les activités passent d'un fallback « icône restaurant » à leur vraie icône.
+## 2. Étendre `notify-validation/index.ts`
 
-## Vérification post-fix
+Ajouter `'event'` aux types acceptés :
+- Validation du body : `['contribution', 'proposal', 'event']`.
+- Branche `type === 'event'` :
+  - lit `events` (`user_id, title, category, start_date`)
+  - `templateName = 'event-published'`
+  - `templateData = { userName, eventTitle, eventId, eventCategory, eventStartDate }`
+  - `idempotencyKey = event-{recordId}`
 
-- Recharger la carte avec `?category=nature` → doit afficher l'icône plante verte.
-- Vérifier restaurant/cafe/shop/public/coiffeur → aucun changement visuel attendu.
+## 3. Trigger DB
+
+Migration ajoutant :
+- Fonction `public.on_event_published()` (miroir de `on_proposal_approved`) qui appelle `notify_validation_async('event', NEW.id)` quand `NEW.status = 'published'` et `OLD.status <> 'published'` et `NEW.user_id IS NOT NULL`.
+- Trigger `AFTER UPDATE OF status ON public.events` qui exécute cette fonction.
+- Aucun changement de schéma, aucune RLS/GRANT à ajouter (table existante).
+
+Le trigger existant `events_award_points` reste indépendant — les deux triggers coexistent sans conflit.
+
+## 4. Déploiement
+- Déployer les edge functions `send-transactional-email` et `notify-validation` (nouvelle version).
+- Le template est chargé automatiquement via le registry.
+
+## Cas hors périmètre
+- Les événements créés par un admin ou par le compte de sourcing `bastien.boubat+event@gmail.com` déclencheront quand même l'email si `user_id` correspond à un utilisateur avec email valide — comportement identique aux propositions actuelles. Aucun filtre spécifique ajouté (à préciser si tu veux exclure le compte de sourcing).
