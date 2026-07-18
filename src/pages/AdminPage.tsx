@@ -2872,10 +2872,10 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                 <span style={{
                   display: 'inline-block', padding: '2px 8px', borderRadius: '100px',
                   fontSize: '10px', fontWeight: 600, fontFamily: 'DM Sans',
-                  background: ev.user_id ? '#E8F1FF' : '#F3E8FF',
-                  color: ev.user_id ? '#1B4B8F' : '#6B2FA6',
+                  background: !isSourcing(ev) ? '#E8F1FF' : '#F3E8FF',
+                  color: !isSourcing(ev) ? '#1B4B8F' : '#6B2FA6',
                 }}>
-                  {ev.user_id ? '👤 Utilisateur' : '📰 Sourcing'}
+                  {!isSourcing(ev) ? '👤 Utilisateur' : '📰 Sourcing'}
                 </span>
               </div>
               <StatusBadge status={ev.status === 'published' ? 'validated' : ev.status} />
