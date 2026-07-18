@@ -2791,10 +2791,14 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     }
   };
 
+  const BOT_SOURCING_EMAIL = 'bastien.boubat+event@gmail.com';
+  const isSourcing = (ev: any) =>
+    !ev.user_id || (ev.user_id && emails[ev.user_id] === BOT_SOURCING_EMAIL);
+
   const filtered = events.filter((ev: any) => {
     if (statusFilter !== 'all' && ev.status !== statusFilter) return false;
-    if (sourceFilter === 'user' && !ev.user_id) return false;
-    if (sourceFilter === 'sourcing' && ev.user_id) return false;
+    if (sourceFilter === 'user' && isSourcing(ev)) return false;
+    if (sourceFilter === 'sourcing' && !isSourcing(ev)) return false;
     return matchSearch(search, ev.name, ev.address, ev.website);
   });
 
@@ -2868,10 +2872,10 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                 <span style={{
                   display: 'inline-block', padding: '2px 8px', borderRadius: '100px',
                   fontSize: '10px', fontWeight: 600, fontFamily: 'DM Sans',
-                  background: ev.user_id ? '#E8F1FF' : '#F3E8FF',
-                  color: ev.user_id ? '#1B4B8F' : '#6B2FA6',
+                  background: !isSourcing(ev) ? '#E8F1FF' : '#F3E8FF',
+                  color: !isSourcing(ev) ? '#1B4B8F' : '#6B2FA6',
                 }}>
-                  {ev.user_id ? '👤 Utilisateur' : '📰 Sourcing'}
+                  {!isSourcing(ev) ? '👤 Utilisateur' : '📰 Sourcing'}
                 </span>
               </div>
               <StatusBadge status={ev.status === 'published' ? 'validated' : ev.status} />
@@ -2902,7 +2906,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
               </div>
             )}
             <div style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-              {ev.user_id ? `Proposé par : ${emails[ev.user_id] ?? ev.user_id.slice(0, 8)}` : 'Sourcing interne'}
+              {isSourcing(ev) ? 'Sourcing interne' : `Proposé par : ${emails[ev.user_id] ?? ev.user_id.slice(0, 8)}`}
               {' · '}Créé le {new Date(ev.created_at).toLocaleDateString('fr-FR')}
             </div>
 
