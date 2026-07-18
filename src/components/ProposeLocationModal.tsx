@@ -10,12 +10,15 @@ import { MEAL_ICONS, EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
 import { DURATIONS, WEATHERS, EFFORTS, PRICES } from '@/lib/activity';
 import { isActivity } from '@/types/location';
 
-const CATEGORY_OPTIONS: { id: string; label: string }[] = [
+const PLACE_CATEGORY_OPTIONS: { id: string; label: string }[] = [
   { id: 'restaurant', label: 'Restaurant' },
   { id: 'cafe', label: 'Café' },
   { id: 'shop', label: 'Boutique' },
   { id: 'public', label: 'Lieu public' },
   { id: 'coiffeur', label: 'Coiffeur' },
+];
+
+const ACTIVITY_CATEGORY_OPTIONS: { id: string; label: string }[] = [
   { id: 'nature', label: 'Nature' },
   { id: 'sport', label: 'Sport' },
   { id: 'creatif', label: 'Créatif' },
@@ -27,13 +30,34 @@ interface ProposeLocationModalProps {
   open: boolean;
   onClose: () => void;
   initialCategory?: string;
+  mode?: 'location' | 'activity';
 }
 
 const FULL_STEPS = ['Infos', 'Équipements', 'Repas & horaires', 'Photos'] as const;
 const SHORT_STEPS = ['Infos', 'Équipements', 'Photos'] as const;
 const hasMealsStep = (category: string) => category === 'restaurant' || category === 'cafe';
 
-const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant' }: ProposeLocationModalProps) => {
+const COPY = {
+  location: {
+    title: 'Proposer un lieu',
+    nameLabel: 'Nom du lieu *',
+    namePlaceholder: 'Ex: Le Petit Beurre',
+    notePlaceholder: 'Un mot sur ce lieu…',
+    successDesc: 'Merci ! On vérifie ce lieu avant publication.',
+  },
+  activity: {
+    title: 'Proposer une activité',
+    nameLabel: "Nom de l'activité *",
+    namePlaceholder: 'Ex: Balade au jardin des Plantes',
+    notePlaceholder: 'Un mot sur cette activité…',
+    successDesc: 'Merci ! On vérifie cette activité avant publication.',
+  },
+} as const;
+
+const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', mode = 'location' }: ProposeLocationModalProps) => {
+  const copy = COPY[mode];
+  const CATEGORY_OPTIONS = mode === 'activity' ? ACTIVITY_CATEGORY_OPTIONS : PLACE_CATEGORY_OPTIONS;
+
   const { toast } = useToast();
   const { user } = useAuth();
   const { data: mealTypes = [] } = useMealTypes();
