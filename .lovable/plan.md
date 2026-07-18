@@ -1,21 +1,32 @@
-## Rattacher les événements en semaine au week-end suivant
+## Objectif
 
-Aujourd'hui, `eventInWeekend` (dans `src/lib/weekend.ts`) fait un simple test de chevauchement de plages : un event dont la plage `[date_start, date_end]` ne touche pas samedi/dimanche est exclu du picker. Un event mono-jour un lundi ou mardi disparaît donc de la page Sorties.
+Faire apparaître les propositions d'événements de l'utilisateur sur sa page **Compte**, avec leur statut (en attente / publié / refusé), au même titre que les contributions et les propositions de lieux.
 
-### Règle à ajouter
-Un événement dont **la période entière tombe en semaine (Lun–Ven)** est rattaché au samedi qui suit immédiatement `date_end` (ou `date_start` si pas de fin) — donc il apparaît uniquement dans **un seul** week-end du picker : le prochain.
+## Constat
 
-### Cas couverts
-- Event lundi seul → apparaît dans le week-end de la même semaine.
-- Event mardi→jeudi → même week-end.
-- Event vendredi seul → même week-end (le samedi juste après).
-- Event qui chevauche déjà un samedi ou dimanche → comportement inchangé (règle actuelle d'overlap).
-- Event dans un passé lointain → toujours filtré par `isPastEvent`.
+Dans `src/pages/AccountPage.tsx`, la query `myEvents` est déjà en place (ligne ~205) mais elle n'est jamais rendue dans l'UI. Résultat : un utilisateur qui propose un événement ne le retrouve nulle part dans son compte.
 
-### Changement
-- `src/lib/weekend.ts` — modifier `eventInWeekend` :
-  1. Calculer si la période `[start, end]` est entièrement Lun–Ven (aucune date Sat/Sun dans l'intervalle).
-  2. Si oui : trouver le samedi suivant strictement `end`, comparer sa date ISO à `weekend.saturday` → match si égalité.
-  3. Sinon : garder le test d'overlap existant.
+## Changements
 
-Aucun autre fichier n'est touché — `SortiesPage` consomme déjà `eventInWeekend`.
+Fichier unique : `src/pages/AccountPage.tsx`.
+
+1. **Stats (bloc en haut)** — passer la grille de 3 à 4 colonnes et ajouter une tuile « Événements » = `myEvents.length`.
+
+2. **Nouvelle section « Mes événements »** — insérée juste après « Mes propositions », même style visuel que la section propositions :
+   - Miniature photo si `event.photo`, sinon `CategoryThumb` avec l'emoji catégorie événement (via `eventCategoryEmoji` depuis `@/types/event`).
+   - Nom de l'événement (Fraunces).
+   - Date formatée (`date_start`, + `→ date_end` si présent).
+   - Adresse en petit si dispo.
+   - Badge de statut à droite avec la même palette que les propositions :
+     - `published` → vert « ✓ Publié » + pastille « +25 pts »
+     - `rejected` → rouge « ✗ Refusé »
+     - `pending` (ou autre) → jaune « ⏳ En attente »
+   - Empty state : « Tu n'as pas encore proposé d'événement ✦ ».
+
+3. Aucun changement backend, aucune modification hors de ce fichier.
+
+## Détails techniques
+
+- Type des événements : réutiliser `EventItem` via `data as any[]` déjà en place — pas de refactor de la query.
+- Import ajouté : `eventCategoryEmoji` depuis `@/types/event`.
+- Grille stats : `gridTemplateColumns: 'repeat(4, 1fr)'` pour rester lisible en mobile 390px.
