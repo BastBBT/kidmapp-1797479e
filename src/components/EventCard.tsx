@@ -4,15 +4,17 @@ import { isPastEvent } from '@/lib/weekend';
 import { useEventFavorites } from '@/hooks/useEventFavorites';
 import { useAuth } from '@/hooks/useAuth';
 
-const formatDateRange = (start: string, end: string | null, time: string | null) => {
+const formatDateRange = (start: string, end: string | null, time: string | null, past: boolean) => {
   const s = new Date(start);
   const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
   const startStr = s.toLocaleDateString('fr-FR', opts);
   if (!end || end === start) {
+    if (past) return `${startStr} · Terminé`;
     return time ? `${startStr} · ${time}` : startStr;
   }
   const e = new Date(end);
-  return `${startStr} → ${e.toLocaleDateString('fr-FR', opts)}`;
+  const range = `${startStr} → ${e.toLocaleDateString('fr-FR', opts)}`;
+  return past ? `${range} · Terminé` : range;
 };
 
 interface Props {
@@ -91,7 +93,7 @@ const EventCard = ({ event, showPast = false }: Props) => {
           {event.name}
         </div>
         <div style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text-muted)', marginTop: 4 }}>
-          {formatDateRange(event.date_start, event.date_end, event.time)}
+          {formatDateRange(event.date_start, event.date_end, event.time, past && showPast)}
         </div>
         {event.address && (
           <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
@@ -116,7 +118,7 @@ const EventCard = ({ event, showPast = false }: Props) => {
           )}
         </div>
       </div>
-      {user && (
+      {user && !(past && showPast) && (
         <button
           onClick={(e) => {
             e.stopPropagation();
