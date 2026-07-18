@@ -1,61 +1,62 @@
-# Carte « Confirmer les infos » sur la fiche
+# Feedback post-événement « Tu y étais ? »
 
-Remplacer le bouton isolé « Contribuer » (`src/pages/LocationPage.tsx`, lignes ~582-595) par une carte d'invitation.
+## 1. Migration DB
 
-## Contenu
+Nouvelle table `public.event_feedback` :
+- `id uuid PK default gen_random_uuid()`
+- `event_id uuid NOT NULL REFERENCES events(id) ON DELETE CASCADE`
+- `user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE`
+- `verdict text NOT NULL CHECK (verdict IN ('up','down'))`
+- `comment text` (max 200 côté client)
+- `created_at timestamptz NOT NULL default now()`
+- `UNIQUE (event_id, user_id)`
+- Index sur `event_id`
 
-- Déterminer si le lieu est une activité : `isActivity = (ACTIVITY_CATEGORIES as readonly string[]).includes(location.category)` (import depuis `@/types/location`).
-- Titre : `Tu connais cette activité ?` si activité, sinon `Tu connais ce lieu ?`.
-- Sous-titre :
-  - Lieu : `Confirme ce qu'il y a sur place — chaise haute, table à langer, coin jeux… — pour garder la fiche à jour`
-  - Activité : `Confirme ce qu'il y a sur place pour garder la fiche à jour`
+GRANTs :
+- `SELECT` → `anon`, `authenticated` (lecture publique pour agrégats)
+- `INSERT/UPDATE/DELETE` → `authenticated`
+- `ALL` → `service_role`
 
-## Structure JSX (remplace le `<button>` existant)
+RLS activée + policies :
+- Lecture publique (anon + authenticated)
+- Insert/Update/Delete : `auth.uid() = user_id`
 
-```
-<div style={{
-  marginTop: 16,
-  padding: 16,
-  borderRadius: 'var(--radius)',
-  background: '#FAF0EC',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  textAlign: 'center',
-  gap: 6,
-}}>
-  <div style={{ fontSize: 26 }} aria-hidden>👋</div>
-  <div style={{ fontFamily: 'Fraunces', fontSize: 17, fontWeight: 500, color: 'var(--text)' }}>
-    {isActivity ? 'Tu connais cette activité ?' : 'Tu connais ce lieu ?'}
-  </div>
-  <div style={{ fontFamily: 'DM Sans', fontSize: 13, lineHeight: 1.45, color: 'var(--text-muted)', maxWidth: 360 }}>
-    {isActivity
-      ? 'Confirme ce qu\'il y a sur place pour garder la fiche à jour'
-      : 'Confirme ce qu\'il y a sur place — chaise haute, table à langer, coin jeux… — pour garder la fiche à jour'}
-  </div>
-  <button
-    onClick={() => requireAuth(() => setShowContribute(true), { message: 'Connecte-toi pour partager tes infos sur ce lieu ✦' })}
-    style={{
-      marginTop: 8,
-      padding: '11px 22px',
-      borderRadius: 100,
-      border: 'none',
-      background: 'var(--primary)',
-      color: '#fff',
-      fontFamily: 'DM Sans',
-      fontSize: 14,
-      fontWeight: 600,
-      cursor: 'pointer',
-      boxShadow: '0 6px 18px rgba(217,95,59,0.28)',
-    }}
-  >
-    Confirmer les infos
-  </button>
-</div>
-```
+Trigger d'attribution de points : `AFTER INSERT` → `award_points(user_id, 5, 'event_feedback', id::text)` (cohérent avec la grille existante).
 
-## Comportement
+## 2. UI web
 
-- Même handler `requireAuth` → `setShowContribute(true)` (aucun changement de logique, même sheet, même gate).
-- Bouton « Itinéraire » juste en dessous inchangé.
-- Pas de nouveau token de couleur : `#FAF0EC` inline (rose pâle décrit dans la demande).
+**Nouveau composant `EventFeedbackCard.tsx`** affiché uniquement sur événements passés (date < aujourd'hui) :
+- Titre « Tu y étais ? C'était comment ? »
+- Deux boutons 👍 / 👎 (style capsule, actif = coloré)
+- Champ `textarea` optionnel, placeholder « Un mot pour les autres familles ? », maxLength 200, compteur
+- Bouton « Enregistrer » (upsert sur `event_id + user_id`)
+- État confirmé : bandeau « Merci ! » avec choix affiché + lien « Modifier »
+- Utilisateur non connecté → même gate d'auth que Contribuer (ouvrir `AuthModal`)
+
+**Nouveau hook `useEventFeedback(eventId)`** :
+- Fetch feedback courant de l'utilisateur (si connecté)
+- Fetch agrégats publics (count up/down)
+- Mutation `upsert` avec invalidation TanStack Query
+
+**Intégration** :
+- `src/pages/EventPage.tsx` : afficher `EventFeedbackCard` en remplacement/complément du bandeau « Cet événement est terminé » pour les events passés
+- `src/pages/SavedPage.tsx` : sur les cartes d'événements passés grisés, ajouter accès rapide (via le tap qui ouvre déjà `EventPage`, donc pas de duplication)
+
+## 3. Admin
+
+Dans `AdminPage.tsx` onglet Events :
+- Sur chaque événement (passé de préférence), afficher compteurs `👍 N / 👎 M`
+- Bouton « Voir les commentaires » ouvrant un dialog qui liste les feedbacks (verdict, comment, date, nom du user via `get_contributor_names`)
+
+## Détails techniques
+
+- Types Supabase régénérés après migration → utiliser `event_feedback` typé
+- Détection "past" : réutiliser la logique existante d'`EventPage`/`EventCard` (comparaison date fin/début avec `now()`)
+- Upsert : `.upsert({...}, { onConflict: 'event_id,user_id' })`
+- Pas de bouton favori ni CTA calendrier sur past events (déjà en place)
+
+## Hors scope
+
+- Modération des commentaires (pas demandé)
+- Notifications aux organisateurs
+- Agrégats visibles côté public sur la fiche (uniquement admin pour l'instant, sauf si tu veux l'ajouter — à confirmer)
