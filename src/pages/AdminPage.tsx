@@ -2704,6 +2704,27 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     if (!editingId || !editDraft) return;
     setProcessingId(editingId);
     try {
+      let finalPhotoUrl: string | null = editDraft.photo || null;
+      if (photoFile) {
+        const ext = photoFile.name.split('.').pop() || 'jpg';
+        const path = `events/${editingId}-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from('location-photos').upload(path, photoFile);
+        if (upErr) {
+          toast({ title: 'Erreur upload photo', description: upErr.message, variant: 'destructive' });
+          setProcessingId(null);
+          return;
+        }
+        const { data: urlData } = supabase.storage.from('location-photos').getPublicUrl(path);
+        finalPhotoUrl = urlData.publicUrl;
+        // Remove old photo if it was in our bucket
+        const prev: string | null = editDraft.photo || null;
+        if (prev && prev.includes('/location-photos/')) {
+          const oldPath = prev.split('/location-photos/')[1]?.split('?')[0];
+          if (oldPath) {
+            await supabase.storage.from('location-photos').remove([oldPath]);
+          }
+        }
+      }
       const update: any = {
         name: editDraft.name,
         category: editDraft.category,
@@ -2718,7 +2739,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         price: editDraft.price || null,
         website: editDraft.website || null,
         instagram: editDraft.instagram || null,
-        photo: editDraft.photo || null,
+        photo: finalPhotoUrl,
         note: editDraft.note || null,
         lat: editDraft.lat ?? null,
         lng: editDraft.lng ?? null,
@@ -2729,8 +2750,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       toast({ title: 'Événement modifié ✓' });
-      setEditingId(null);
-      setEditDraft(null);
+      cancelEdit();
     } catch (err: any) {
       toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
     } finally {
