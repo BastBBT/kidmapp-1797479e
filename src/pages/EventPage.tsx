@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { eventCategoryColor, eventCategoryEmoji, eventCategoryHex } from '@/types/event';
 import { downloadIcs } from '@/lib/ics';
 import { isPastEvent } from '@/lib/weekend';
+import EventFeedbackCard from '@/components/EventFeedbackCard';
 
 const formatDate = (d: string) =>
   new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -276,27 +277,30 @@ const EventPage = () => {
           </a>
         )}
         {past ? (
-          <div
-            role="status"
-            style={{
-              padding: '14px 16px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1.5px dashed var(--border)',
-              background: '#E7E3DC',
-              color: 'var(--text-muted)',
-              fontFamily: 'DM Sans',
-              fontSize: 14,
-              fontWeight: 600,
-              textAlign: 'center',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-            }}
-          >
-            <span aria-hidden>↩</span>
-            Cet événement est terminé
-          </div>
+          <>
+            <div
+              role="status"
+              style={{
+                padding: '14px 16px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1.5px dashed var(--border)',
+                background: '#E7E3DC',
+                color: 'var(--text-muted)',
+                fontFamily: 'DM Sans',
+                fontSize: 14,
+                fontWeight: 600,
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+            >
+              <span aria-hidden>↩</span>
+              Cet événement est terminé
+            </div>
+            <EventFeedbackCard eventId={event.id} />
+          </>
         ) : (
           <button
             onClick={() => downloadIcs(event)}
