@@ -3028,7 +3028,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                       style={{ flex: 1, padding: '10px', borderRadius: 100, border: 'none', background: 'var(--primary)', color: 'white', fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                       💾 Enregistrer
                     </button>
-                    <button onClick={() => { setEditingId(null); setEditDraft(null); }}
+                    <button onClick={cancelEdit}
                       style={{ flex: 1, padding: '10px', borderRadius: 100, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                       Annuler
                     </button>
