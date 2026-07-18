@@ -91,14 +91,14 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
 
         {/* Row 3 — Category filter */}
         {selectedCategory !== undefined && onCategoryChange && (
-          <div className="pb-3">
+          <div className="pb-2">
             <CategoryFilter selected={selectedCategory} onChange={onCategoryChange} />
           </div>
         )}
 
         {/* Row 4 — Age filter (persistent) */}
         {selectedAge !== undefined && onAgeChange && (
-          <div className="pb-3">
+          <div className="pb-2">
             <AgeFilter selected={selectedAge} onChange={onAgeChange} />
           </div>
         )}

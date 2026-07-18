@@ -26,28 +26,28 @@ const AgeFilter = ({ selected, onChange }: AgeFilterProps) => {
         {AGE_BUCKETS.map((b) => {
           const active = selected === b.id;
           return (
-            <motion.button
-              key={b.id}
-              type="button"
-              onClick={() => onChange(b.id)}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                flexShrink: 0,
-                padding: '6px 14px',
-                borderRadius: 100,
-                border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
-                background: active ? 'var(--primary-light)' : 'var(--surface)',
-                color: active ? 'var(--primary)' : 'var(--text-muted)',
-                fontFamily: 'DM Sans',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all .15s',
-              }}
-            >
-              {b.label}
-            </motion.button>
+          <motion.button
+            key={b.id}
+            type="button"
+            onClick={() => onChange(b.id)}
+            whileTap={{ scale: 0.95 }}
+            style={{
+              flexShrink: 0,
+              padding: '4px 12px',
+              borderRadius: 100,
+              border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
+              background: active ? 'var(--primary-light)' : 'var(--surface)',
+              color: active ? 'var(--primary)' : 'var(--text-muted)',
+              fontFamily: 'DM Sans',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all .15s',
+            }}
+          >
+            {b.label}
+          </motion.button>
           );
         })}
       </div>
