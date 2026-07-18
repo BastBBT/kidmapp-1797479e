@@ -2906,7 +2906,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
               </div>
             )}
             <div style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-              {ev.user_id ? `Proposé par : ${emails[ev.user_id] ?? ev.user_id.slice(0, 8)}` : 'Sourcing interne'}
+              {isSourcing(ev) ? 'Sourcing interne' : `Proposé par : ${emails[ev.user_id] ?? ev.user_id.slice(0, 8)}`}
               {' · '}Créé le {new Date(ev.created_at).toLocaleDateString('fr-FR')}
             </div>
 
