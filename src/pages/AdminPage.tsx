@@ -3031,6 +3031,9 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
               {' · '}Créé le {new Date(ev.created_at).toLocaleDateString('fr-FR')}
             </div>
 
+            <EventFeedbackAdmin eventId={ev.id} />
+
+
             {isEditing && editDraft && (
               <div style={{ padding: '12px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', marginBottom: '10px' }}>
                 <div className="flex flex-col gap-2">
