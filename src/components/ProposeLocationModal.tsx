@@ -108,7 +108,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
 
   const resetAll = () => {
     setForm({
-      name: '', category: 'restaurant', address: '',
+      name: '', category: initialCategory, address: '',
       high_chair: false, changing_table: false, kids_area: false, kids_menu: false,
       bookable: 'unknown', note: '', website: '', instagram: '',
       age_min: '', age_max: '',
@@ -120,6 +120,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
     setPhotoUrlInput('');
     setStep(0);
   };
+
 
   const handleClose = () => {
     onClose();
