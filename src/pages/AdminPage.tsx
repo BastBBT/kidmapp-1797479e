@@ -2983,6 +2983,34 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                     style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
                   <input placeholder="Photo URL" value={editDraft.photo} onChange={(e) => setEditDraft({ ...editDraft, photo: e.target.value })}
                     style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                  {(photoPreview || editDraft.photo) && (
+                    <div style={{ position: 'relative', width: '100%', height: 120, borderRadius: 8, overflow: 'hidden', background: 'var(--bg)' }}>
+                      <img src={photoPreview || editDraft.photo} alt="Aperçu" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      {photoFile && (
+                        <button
+                          onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
+                          style={{ position: 'absolute', top: 6, right: 6, padding: '4px 8px', borderRadius: 100, border: 'none', background: 'rgba(0,0,0,0.6)', color: 'white', fontFamily: 'DM Sans', fontSize: 11, cursor: 'pointer' }}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 10, border: '1.5px dashed var(--border)', borderRadius: 8, cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'DM Sans', fontSize: 13 }}>
+                    📷 {photoFile ? photoFile.name : 'Téléverser une photo'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setPhotoFile(file);
+                          setPhotoPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                  </label>
                   <textarea placeholder="Note" value={editDraft.note} onChange={(e) => setEditDraft({ ...editDraft, note: e.target.value })}
                     style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px', minHeight: 60 }} />
                   <div className="flex gap-2 items-center">
