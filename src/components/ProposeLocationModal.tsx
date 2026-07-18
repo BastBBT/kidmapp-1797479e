@@ -219,7 +219,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
       if (error) throw error;
       toast({
         title: 'Proposition envoyée ✦',
-        description: 'Merci ! On la vérifie avant de la publier.',
+        description: copy.successDesc,
       });
       handleClose();
     } catch (err: any) {
