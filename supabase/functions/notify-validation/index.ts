@@ -60,6 +60,9 @@ Deno.serve(async (req) => {
     let locationCategory: string | null = null
     let templateName: string
     let contributionType: string | null = null
+    let eventTitle: string | null = null
+    let eventCategory: string | null = null
+    let eventStartDate: string | null = null
 
     if (type === 'contribution') {
       const { data, error } = await supabase
@@ -88,6 +91,24 @@ Deno.serve(async (req) => {
         locationName = loc?.name ?? null
         locationCategory = loc?.category ?? null
       }
+    } else if (type === 'event') {
+      const { data, error } = await supabase
+        .from('events')
+        .select('user_id, title, category, start_date')
+        .eq('id', recordId)
+        .single()
+      if (error || !data) {
+        console.error('event lookup failed', error)
+        return new Response(JSON.stringify({ error: 'Not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      userId = data.user_id
+      eventTitle = data.title
+      eventCategory = data.category
+      eventStartDate = data.start_date
+      templateName = 'event-published'
     } else {
       const { data, error } = await supabase
         .from('location_proposals')
@@ -144,14 +165,19 @@ Deno.serve(async (req) => {
       .single()
     const userName = profile?.full_name?.split(' ')[0] ?? undefined
 
-    const templateData: Record<string, unknown> = {
-      userName,
-      locationName: locationName ?? undefined,
-      locationId: locationId ?? undefined,
-      locationCategory: locationCategory ?? undefined,
-    }
-    if (type === 'contribution' && contributionType) {
-      templateData.contributionType = contributionType
+    const templateData: Record<string, unknown> = { userName }
+    if (type === 'event') {
+      templateData.eventTitle = eventTitle ?? undefined
+      templateData.eventId = recordId
+      templateData.eventCategory = eventCategory ?? undefined
+      templateData.eventStartDate = eventStartDate ?? undefined
+    } else {
+      templateData.locationName = locationName ?? undefined
+      templateData.locationId = locationId ?? undefined
+      templateData.locationCategory = locationCategory ?? undefined
+      if (type === 'contribution' && contributionType) {
+        templateData.contributionType = contributionType
+      }
     }
 
     // send-transactional-email enforces service_role caller — use the service key.
