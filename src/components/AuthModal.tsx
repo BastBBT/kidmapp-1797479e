@@ -666,7 +666,10 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
           {googleLoading ? <Loader2 size={16} className="animate-spin" /> : <GoogleIcon />}
           {googleLoading ? 'Connexion…' : 'Continuer avec Google'}
         </button>
+        </>
+        )}
       </div>
+
 
       <ForgotPasswordSheet open={forgotOpen} onClose={() => setForgotOpen(false)} />
     </div>
