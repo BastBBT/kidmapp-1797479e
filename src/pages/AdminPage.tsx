@@ -2701,6 +2701,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'published' | 'rejected'>('pending');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'user' | 'sourcing'>('all');
   const [search, setSearch] = useState('');
+  const [eventSort, setEventSort] = useState<'eventDateDesc' | 'eventDateAsc' | 'createdAtDesc'>('eventDateDesc');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<any>(null);
   const [manualCoordsFor, setManualCoordsFor] = useState<string | null>(null);
