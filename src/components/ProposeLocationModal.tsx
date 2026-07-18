@@ -399,7 +399,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
                     <textarea
                       value={form.note}
                       onChange={(e) => updateForm('note', e.target.value.slice(0, 500))}
-                      placeholder="Un mot sur ce lieu…"
+                      placeholder={copy.notePlaceholder}
                       maxLength={500}
                       rows={3}
                       style={{ ...inputStyle, resize: 'none' }}
