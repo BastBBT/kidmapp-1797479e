@@ -2925,6 +2925,18 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     return matchSearch(search, ev.name, ev.address, ev.website);
   });
 
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    if (eventSort === 'eventDateDesc') {
+      arr.sort((a, b) => (b.date_start ?? '').localeCompare(a.date_start ?? ''));
+    } else if (eventSort === 'eventDateAsc') {
+      arr.sort((a, b) => (a.date_start ?? '').localeCompare(b.date_start ?? ''));
+    } else {
+      arr.sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
+    }
+    return arr;
+  }, [filtered, eventSort]);
+
   const pillStyle = (active: boolean) => ({
     fontFamily: 'DM Sans',
     fontSize: '12px',
