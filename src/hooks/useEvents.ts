@@ -1,18 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EventItem } from '@/types/event';
-import { todayISO } from '@/lib/weekend';
+import { lastMondayISO } from '@/lib/weekend';
 
 export const useEvents = () => {
   return useQuery({
-    queryKey: ['events', 'published-upcoming'],
+    queryKey: ['events', 'published-from-last-week'],
     queryFn: async () => {
-      const today = todayISO();
+      const since = lastMondayISO();
       const { data, error } = await supabase
         .from('events' as any)
         .select('*')
         .eq('status', 'published')
-        .or(`date_end.gte.${today},and(date_end.is.null,date_start.gte.${today})`)
+        .or(`date_end.gte.${since},and(date_end.is.null,date_start.gte.${since})`)
         .order('date_start', { ascending: true });
       if (error) throw error;
       return (data ?? []) as unknown as EventItem[];
