@@ -19,17 +19,14 @@ export async function sendRejectionEmail(params: {
   if (!params.recipientEmail) return { sent: false };
 
   try {
-    const { error } = await supabase.functions.invoke('send-transactional-email', {
+    const { error } = await supabase.functions.invoke('send-rejection-email', {
       body: {
-        templateName: 'submission-rejected',
+        submissionType: params.submissionType,
+        submissionName: params.submissionName,
+        submissionId: params.submissionId,
         recipientEmail: params.recipientEmail,
-        idempotencyKey: `reject-${params.submissionType}-${params.submissionId}-${Date.now()}`,
-        templateData: {
-          userName: params.recipientName || undefined,
-          submissionType: params.submissionType,
-          submissionName: params.submissionName,
-          reason,
-        },
+        recipientName: params.recipientName,
+        reason,
       },
     });
     if (error) {
