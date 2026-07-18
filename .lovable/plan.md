@@ -1,30 +1,29 @@
-Refonte des filtres d'exploration pour gagner en largeur et réduire l'encombrement vertical.
+Problème constaté
+-----------------
+La barre de navigation inférieure comporte 5 éléments (Explorer, Sorties, Proposer, Sauvegardés, Mon compte). En viewport mobile étroit, le label « MON COMPTE » dépasse et est coupé (cf. screenshot).
 
-## Objectif
-Transformer la ligne unique de catégories (Lieux + Activités) en deux lignes empilées, et réduire légèrement la hauteur des pills de filtre (catégories + âge) pour moins bouffer l'interface.
+Plan de modification
+--------------------
+1. Raccourcir les labels
+   - « SAUVEGARDÉS » → « FAVORIS » (gain de largeur, plus court visuellement).
+   - « MON COMPTE » → « COMPTE » (libère l’espace nécessaire pour rester lisible).
+   - Garder « EXPLORER », « SORTIES » et « PROPOSER » inchangés.
 
-## Fichiers concernés
-- `src/components/CategoryFilter.tsx`
-- `src/components/AgeFilter.tsx`
-- `src/components/Header.tsx` (ajustements d'espacement si nécessaire)
+2. Ajuster l’espacement horizontal
+   - Réduire le padding horizontal des boutons de tab (`px-4` actuel) vers `px-2` ou `px-3` sur les petits écrans, via une classe responsive Tailwind.
+   - Conserver une taille de cible tactile correcte (hauteur + zone cliquable suffisante).
 
-## Détails d'implémentation
+3. Affiner la typographie si besoin
+   - Conserver la taille de police actuelle (`text-[10px]`) pour la lisibilité.
+   - Légèrement réduire le `tracking-wide` ou passer à `tracking-normal` uniquement si le gain de labels ne suffit pas.
 
-### 1. CategoryFilter : deux lignes empilées
-- Passer de `flex-row` unique à une colonne de deux lignes.
-- Ligne 1 : label "Lieux" + pills des `PLACE_CATEGORIES`.
-- Ligne 2 : label "Activités" + pills des `ACTIVITY_CATEGORIES`.
-- Conserver le pill "Tout" en haut à gauche ou le placer sur sa propre ligne si plus clair.
-- Réduire la hauteur des pills (padding vertical et/ou `minHeight`) de ~2-4 px.
-- Garder le défilement horizontal par ligne si les catégories débordent sur mobile.
+4. Vérification
+   - Tester le rendu sur viewport mobile (~390 px) pour s’assurer que les 5 labels sont entièrement visibles.
+   - Vérifier que le badge de favoris reste bien positionné sur l’icône cœur.
+   - Vérifier que les états actifs/inactifs et les navigations fonctionnent toujours.
 
-### 2. AgeFilter : pills plus compacts
-- Réduire le padding vertical et/ou `minHeight` des pills de ~2 px.
-- Conserver le label "Âge :" et le défilement horizontal.
+Fichier concerné
+----------------
+- `src/components/BottomNav.tsx`
 
-### 3. Header : ajustements d'espacement
-- Vérifier que les marges/paddings entre la barre de recherche, CategoryFilter et AgeFilter restent cohérents après réduction.
-- Réduire légèrement `pb-3` si besoin pour compenser la double ligne de catégories.
-
-### 4. Vérification visuelle
-- Capturer un screenshot mobile de l'Explorer pour valider que les deux lignes de filtres sont lisibles et que l'interface suivante reste visible.
+Aucune modification backend ni de route n’est nécessaire.

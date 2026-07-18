@@ -31,7 +31,7 @@ const tabs = [
   },
   {
     id: 'saved',
-    label: 'SAUVEGARDÉS',
+    label: 'FAVORIS',
     path: '/saved',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -41,7 +41,7 @@ const tabs = [
   },
   {
     id: 'account',
-    label: 'MON COMPTE',
+    label: 'COMPTE',
     path: '/account',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -71,7 +71,7 @@ const BottomNav = () => {
       <button
         key={tab.id}
         onClick={() => navigate(tab.path)}
-        className="relative flex flex-col items-center gap-0.5 px-4 py-1 transition-colors"
+        className="relative flex flex-col items-center gap-0.5 px-2 sm:px-3 py-1 transition-colors"
         style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)' }}
       >
         <div className="relative">
