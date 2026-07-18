@@ -8,19 +8,21 @@ interface AgeFilterProps {
 
 const AgeFilter = ({ selected, onChange }: AgeFilterProps) => {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
       <span
         style={{
-          fontFamily: 'Caveat, cursive',
-          fontSize: 14,
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.08em',
           color: 'var(--text-muted)',
           flexShrink: 0,
         }}
       >
-        Âge :
+        ÂGE
       </span>
       <div
-        style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}
+        style={{ display: 'inline-flex', gap: 6 }}
         className="scrollbar-hide"
       >
         {AGE_BUCKETS.map((b) => {
@@ -33,7 +35,7 @@ const AgeFilter = ({ selected, onChange }: AgeFilterProps) => {
             whileTap={{ scale: 0.95 }}
             style={{
               flexShrink: 0,
-              padding: '4px 12px',
+              padding: '4px 10px',
               borderRadius: 100,
               border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
               background: active ? 'var(--primary-light)' : 'var(--surface)',
