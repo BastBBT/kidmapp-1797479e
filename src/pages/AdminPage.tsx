@@ -2965,6 +2965,16 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
             {s === 'all' ? 'Toutes provenances' : s === 'user' ? '👤 Utilisateurs' : '📰 Sourcing'}
           </button>
         ))}
+        <div style={{ width: '1px', background: 'var(--border)', margin: '0 4px' }} />
+        {([
+          { key: 'eventDateDesc', label: 'Date événement ↓' },
+          { key: 'eventDateAsc', label: 'Date événement ↑' },
+          { key: 'createdAtDesc', label: 'Création' },
+        ] as const).map((s) => (
+          <button key={s.key} onClick={() => setEventSort(s.key)} style={pillStyle(eventSort === s.key)}>
+            {s.label}
+          </button>
+        ))}
       </div>
 
       <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
