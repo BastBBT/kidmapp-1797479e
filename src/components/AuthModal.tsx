@@ -406,8 +406,82 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
           </div>
         )}
 
+        {signupSuccessEmail ? (
+          <div style={{ padding: '8px 0 4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'hsl(var(--success) / 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle2 size={34} style={{ color: 'hsl(var(--success))' }} />
+              </div>
+            </div>
+            <div style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 500, color: 'var(--text)', textAlign: 'center', marginBottom: 10 }}>
+              Vérifie ta boîte mail
+            </div>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.55, textAlign: 'center', margin: '0 0 18px' }}>
+              On t'a envoyé un lien de confirmation à <strong style={{ color: 'var(--text)' }}>{signupSuccessEmail}</strong>. Clique dessus pour activer ton compte.
+              <br />
+              <span style={{ fontSize: 13 }}>Pense à vérifier tes spams 👀</span>
+            </p>
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resendLoading || resendCooldown > 0}
+              style={{
+                width: '100%',
+                padding: 13,
+                borderRadius: 100,
+                border: 'none',
+                background: 'var(--primary)',
+                color: '#fff',
+                fontFamily: 'DM Sans',
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: resendLoading || resendCooldown > 0 ? 'not-allowed' : 'pointer',
+                opacity: resendLoading || resendCooldown > 0 ? 0.6 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                marginBottom: 10,
+              }}
+            >
+              {resendLoading && <Loader2 size={16} className="animate-spin" />}
+              {resendCooldown > 0 ? `Renvoyer l'email (${resendCooldown}s)` : resendLoading ? 'Envoi…' : "Renvoyer l'email"}
+            </button>
+            {resendMessage && (
+              <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 10 }}>
+                {resendMessage}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setSignupSuccessEmail(null);
+                setResendMessage('');
+                setPassword('');
+                setConfirmPassword('');
+                setMode('login');
+              }}
+              style={{
+                width: '100%',
+                padding: 12,
+                borderRadius: 100,
+                border: '1.5px solid var(--border)',
+                background: 'var(--surface)',
+                fontFamily: 'DM Sans',
+                fontSize: 14,
+                fontWeight: 500,
+                color: 'var(--text)',
+                cursor: 'pointer',
+              }}
+            >
+              J'ai déjà confirmé, me connecter
+            </button>
+          </div>
+        ) : (
+        <>
         {/* Underline tabs - centered */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 36, borderBottom: '1.5px solid var(--border)', marginBottom: 18 }}>
+
 
           {(['signup', 'login'] as const).map((m) => {
             const active = mode === m;
