@@ -1168,7 +1168,7 @@ const AdminPage = () => {
                         ✓ Valider
                       </button>
                       <button
-                        onClick={() => handleContribution(contrib, 'rejected')}
+                        onClick={() => openRejectContribution(contrib)}
                         style={{
                           flex: 1,
                           fontFamily: 'DM Sans',
