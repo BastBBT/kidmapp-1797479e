@@ -1,48 +1,30 @@
-## Constat
+## Vérification préalable
+`CATEGORY_ASSETS` est **local à `src/components/MapView.tsx`** (déclaration + une seule utilisation à la ligne 37). Aucun autre fichier ne l'importe. Le remplacer n'a donc **aucun effet de bord** sur les autres écrans.
 
-Actuellement, quand l'utilisateur choisit « Un lieu » ou « Une activité » dans le chooser, il tombe sur **exactement le même écran** (`ProposeLocationModal`). Seule différence : `initialCategory` (`restaurant` vs `nature`). Le titre, le picker de catégorie (qui affiche les 10 catégories mélangées), les labels et placeholders sont identiques.
+Les icônes de lieux sont conservées à l'identique : `CATEGORY_ICONS` dans `src/assets/icons.ts` importe déjà **les mêmes fichiers** que la table locale :
+- `restaurant` → `cat-restaurant.png` ✓
+- `cafe` → `cat-cafe.png` ✓
+- `shop` → `cat-boutique.png` ✓
+- `public` → `cat-lieu-public.png` ✓
+- `coiffeur` → `cat-coiffeur.png` ✓
 
-Le formulaire gère déjà bien les champs métier différents (étape 1 : détails activité vs équipements ; étape « Repas & horaires » masquée hors resto/café). Il ne manque que la **cohérence visuelle et éditoriale** entre les deux flux.
+Et en plus, les 5 activités (`nature`, `sport`, `creatif`, `culture`, `jeux`) qui manquent aujourd'hui.
 
-## Objectif
+## Correction (dans `src/components/MapView.tsx` uniquement)
 
-Faire en sorte que le formulaire adopte l'identité du type choisi (lieu OU activité), sans toucher au schéma BDD ni à la logique métier.
+1. Supprimer la table locale `CATEGORY_ASSETS`.
+2. Importer `CATEGORY_ICONS` depuis `@/assets/icons`.
+3. Remplacer `CATEGORY_ASSETS[category] ?? CATEGORY_ASSETS.restaurant` par `CATEGORY_ICONS[category] ?? CATEGORY_ICONS.restaurant`.
+4. Ajouter dans `configs` les 5 couleurs manquantes pour les pastilles :
+   - `nature` → vert `#3B7D6E`
+   - `sport` → bleu `#3B6EB0`
+   - `creatif` → violet `#8E44AD`
+   - `culture` → doré `#B7791F`
+   - `jeux` → corail `#D95F3B`
 
-## Changements
+Les icônes de **lieux restent strictement identiques** (mêmes PNG, mêmes couleurs de pastilles). Seules les activités passent d'un fallback « icône restaurant » à leur vraie icône.
 
-Un seul fichier : `src/components/ProposeLocationModal.tsx`.
+## Vérification post-fix
 
-Ajouter une prop `mode: 'location' | 'activity'` transmise depuis `src/App.tsx` (déjà connu via `proposalMode`), puis conditionner :
-
-1. **Titre du modal**
-   - lieu → « Proposer un lieu »
-   - activité → « Proposer une activité »
-
-2. **Picker de catégorie (étape 0)** — filtrer les options selon le mode :
-   - lieu → `restaurant, cafe, shop, public, coiffeur` (5 pastilles)
-   - activité → `nature, sport, creatif, culture, jeux` (5 pastilles)
-   - Si l'utilisateur change de type via le back button, `initialCategory` remet la valeur cohérente. On garde la possibilité de revenir au chooser.
-
-3. **Labels & placeholders textuels**
-   - « Nom du lieu * » ↔ « Nom de l'activité * »
-   - Placeholder nom : « Le Petit Beurre » ↔ « Balade au jardin des Plantes »
-   - « Un mot sur ce lieu… » ↔ « Un mot sur cette activité… »
-   - Titre étape 1 (déjà différencié : « Équipements pour les enfants » vs « Détails activité ») → OK, on ne touche pas.
-
-4. **Toasts d'erreur/succès**
-   - Message de succès inchangé (« Proposition envoyée »), mais on peut préciser dans la description : « Merci ! On vérifie ce lieu/cette activité avant publication. »
-
-5. **Reset**
-   - `resetAll` remet `category` à `initialCategory` (au lieu du dur `restaurant`), pour rester dans le bon type après fermeture.
-
-Aucune modif de :
-- schéma BDD ou table cible (`location_proposals`)
-- structure des étapes / stepper
-- logique meals ou équipements
-
-## Détails techniques
-
-- Nouveau param optionnel `mode?: 'location' | 'activity'` (défaut `'location'`).
-- Dans `App.tsx`, passer `mode={proposalMode === 'activity' ? 'activity' : 'location'}`.
-- Constantes internes : `PLACE_CATEGORY_OPTIONS`, `ACTIVITY_CATEGORY_OPTIONS`, sélection selon `mode`.
-- Un helper `copy` retournant les libellés (title, name label/placeholder, note placeholder) selon le mode, pour garder le JSX lisible.
+- Recharger la carte avec `?category=nature` → doit afficher l'icône plante verte.
+- Vérifier restaurant/cafe/shop/public/coiffeur → aucun changement visuel attendu.

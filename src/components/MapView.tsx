@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { Location } from '@/types/location';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { EQUIP_ICONS, EquipKey } from '@/assets/icons';
+import { EQUIP_ICONS, EquipKey, CATEGORY_ICONS } from '@/assets/icons';
 
 // Fix leaflet default icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -15,14 +15,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-const CATEGORY_ASSETS: Record<string, string> = {
-  restaurant: new URL('../assets/cat-restaurant.png', import.meta.url).href,
-  cafe: new URL('../assets/cat-cafe.png', import.meta.url).href,
-  shop: new URL('../assets/cat-boutique.png', import.meta.url).href,
-  public: new URL('../assets/cat-lieu-public.png', import.meta.url).href,
-  coiffeur: new URL('../assets/cat-coiffeur.png', import.meta.url).href,
-};
-
 const getMarkerIcon = (category: string, isSelected: boolean) => {
   const configs: Record<string, { bg: string; border: string; stroke: string }> = {
     restaurant: { bg: '#FAF0EC', border: '#F0C4B4', stroke: '#D95F3B' },
@@ -30,11 +22,16 @@ const getMarkerIcon = (category: string, isSelected: boolean) => {
     shop:       { bg: '#FEF9E7', border: '#F5E6C8', stroke: '#C49A35' },
     public:     { bg: '#EEF6EC', border: '#D1E8CF', stroke: '#5A9A56' },
     coiffeur:   { bg: '#F3EAF7', border: '#D7BDE2', stroke: '#9B59B6' },
+    nature:     { bg: '#EBF4F2', border: '#C8E0DC', stroke: '#3B7D6E' },
+    sport:      { bg: '#E8F0FB', border: '#C4D8F0', stroke: '#3B6EB0' },
+    creatif:    { bg: '#F3EAF7', border: '#D7BDE2', stroke: '#8E44AD' },
+    culture:    { bg: '#FEF9E7', border: '#F5E6C8', stroke: '#B7791F' },
+    jeux:       { bg: '#FDECEA', border: '#F5C7C0', stroke: '#D95F3B' },
   };
   const c = configs[category] ?? configs.restaurant;
   const size = isSelected ? 48 : 40;
   const iconSize = isSelected ? 26 : 24;
-  const assetUrl = CATEGORY_ASSETS[category] ?? CATEGORY_ASSETS.restaurant;
+  const assetUrl = CATEGORY_ICONS[category] ?? CATEGORY_ICONS.restaurant;
   return L.divIcon({
     className: '',
     iconSize: [size, size],
