@@ -326,9 +326,10 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
                 <div className="flex flex-col gap-4">
                   <div>
                     <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
-                      Nom du lieu *
+                      {copy.nameLabel}
                     </label>
-                    <input value={form.name} onChange={(e) => updateForm('name', e.target.value)} placeholder="Ex: Le Petit Beurre" style={inputStyle} />
+                    <input value={form.name} onChange={(e) => updateForm('name', e.target.value)} placeholder={copy.namePlaceholder} style={inputStyle} />
+
                   </div>
                   <div>
                     <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
