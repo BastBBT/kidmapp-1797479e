@@ -2701,6 +2701,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'published' | 'rejected'>('pending');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'user' | 'sourcing'>('all');
   const [search, setSearch] = useState('');
+  const [eventSort, setEventSort] = useState<'eventDateDesc' | 'eventDateAsc' | 'createdAtDesc'>('eventDateDesc');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<any>(null);
   const [manualCoordsFor, setManualCoordsFor] = useState<string | null>(null);
@@ -2924,6 +2925,18 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     return matchSearch(search, ev.name, ev.address, ev.website);
   });
 
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    if (eventSort === 'eventDateDesc') {
+      arr.sort((a, b) => (b.date_start ?? '').localeCompare(a.date_start ?? ''));
+    } else if (eventSort === 'eventDateAsc') {
+      arr.sort((a, b) => (a.date_start ?? '').localeCompare(b.date_start ?? ''));
+    } else {
+      arr.sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
+    }
+    return arr;
+  }, [filtered, eventSort]);
+
   const pillStyle = (active: boolean) => ({
     fontFamily: 'DM Sans',
     fontSize: '12px',
@@ -2952,6 +2965,16 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
             {s === 'all' ? 'Toutes provenances' : s === 'user' ? '👤 Utilisateurs' : '📰 Sourcing'}
           </button>
         ))}
+        <div style={{ width: '1px', background: 'var(--border)', margin: '0 4px' }} />
+        {([
+          { key: 'eventDateDesc', label: 'Date événement ↓' },
+          { key: 'eventDateAsc', label: 'Date événement ↑' },
+          { key: 'createdAtDesc', label: 'Création' },
+        ] as const).map((s) => (
+          <button key={s.key} onClick={() => setEventSort(s.key)} style={pillStyle(eventSort === s.key)}>
+            {s.label}
+          </button>
+        ))}
       </div>
 
       <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
@@ -2964,7 +2987,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         </p>
       )}
 
-      {filtered.map((ev: any, i: number) => {
+      {sorted.map((ev: any, i: number) => {
         const isProcessing = processingId === ev.id;
         const isEditing = editingId === ev.id;
         const catHex = eventCategoryHex(ev.category);
