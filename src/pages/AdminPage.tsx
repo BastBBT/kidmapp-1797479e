@@ -2791,10 +2791,14 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     }
   };
 
+  const BOT_SOURCING_EMAIL = 'bastien.boubat+event@gmail.com';
+  const isSourcing = (ev: any) =>
+    !ev.user_id || (ev.user_id && emails[ev.user_id] === BOT_SOURCING_EMAIL);
+
   const filtered = events.filter((ev: any) => {
     if (statusFilter !== 'all' && ev.status !== statusFilter) return false;
-    if (sourceFilter === 'user' && !ev.user_id) return false;
-    if (sourceFilter === 'sourcing' && ev.user_id) return false;
+    if (sourceFilter === 'user' && isSourcing(ev)) return false;
+    if (sourceFilter === 'sourcing' && !isSourcing(ev)) return false;
     return matchSearch(search, ev.name, ev.address, ev.website);
   });
 
