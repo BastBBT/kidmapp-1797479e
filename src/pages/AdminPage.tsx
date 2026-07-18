@@ -3172,6 +3172,14 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
           </motion.div>
         );
       })}
+      <RejectDialog
+        open={!!rejectTarget}
+        submissionType="event"
+        submissionName={rejectTarget?.name || 'Événement'}
+        recipientEmail={rejectTarget?.user_id ? (emails[rejectTarget.user_id] ?? null) : null}
+        onCancel={() => setRejectTarget(null)}
+        onConfirm={confirmReject}
+      />
     </motion.div>
   );
 }
