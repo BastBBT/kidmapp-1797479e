@@ -361,6 +361,38 @@ const AdminPage = () => {
     toast({ title: 'Statut mis à jour ✓' });
   };
 
+  const [rejectContribTarget, setRejectContribTarget] = useState<any>(null);
+
+  const openRejectContribution = (contrib: any) => {
+    setRejectContribTarget(contrib);
+  };
+
+  const confirmRejectContribution = async (reason: string) => {
+    const contrib = rejectContribTarget;
+    if (!contrib) return;
+    const { error } = await supabase.from('contributions').update({ status: 'rejected' }).eq('id', contrib.id);
+    if (error) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      return;
+    }
+    const recipientEmail = contrib.user_id ? contribEmails[contrib.user_id] ?? null : null;
+    const emailRes = await sendRejectionEmail({
+      submissionType: 'contribution',
+      submissionName: contrib.location_name || contrib.type || 'Contribution',
+      submissionId: contrib.id,
+      recipientEmail,
+      reason,
+    });
+    queryClient.invalidateQueries({ queryKey: ['contributions'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['location-contributions'] });
+    setRejectContribTarget(null);
+    toast({
+      title: 'Contribution rejetée',
+      description: emailRes.sent ? '📧 Message envoyé au proposeur' : undefined,
+    });
+  };
+
   const handleContribution = async (contrib: any, action: 'validated' | 'rejected') => {
     const { error } = await supabase.from('contributions').update({ status: action }).eq('id', contrib.id);
     if (error) {
