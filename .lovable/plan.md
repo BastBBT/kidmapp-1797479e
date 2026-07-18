@@ -1,54 +1,44 @@
-## Objectif
+# Compaction des filtres Explorer
 
-Permettre à l'admin d'ajouter un message explicatif lors du refus d'une contribution, proposition de lieu, ou événement/activité. Ce message est envoyé par email au proposeur, avec `reply-to: hello@kidmap.app` pour qu'il puisse répondre.
+Objectif : passer de 3 rangées + 3 libellés à 2 rangées.
+- Rangée 1 : `[Lieux | Activités]` (segmented) + pills scrollables du groupe actif.
+- Rangée 2 : `ÂGE` inline + pills capsule compactes.
 
-## Flux utilisateur (admin)
+## 1. `src/components/CategoryFilter.tsx`
 
-Aujourd'hui : clic sur "Rejeter" → statut passe à `rejected` immédiatement, aucune notification.
+Refactor complet du composant.
 
-Nouveau : clic sur "Rejeter" → une modale s'ouvre avec :
-- Le nom de la contribution/proposition/événement concerné
-- Un `textarea` "Motif du refus (envoyé à l'utilisateur)" — optionnel
-- Un bouton "Confirmer le refus" et "Annuler"
+- Ajouter un state local `group: 'places' | 'activities'`.
+  - Initialisation : si `selected` est dans `ACTIVITY_CATEGORIES` → `activities`, sinon `places` (y compris `all`).
+  - `useEffect` qui resynchronise `group` si `selected` change vers un item de l'autre groupe (ex. sélection déclenchée ailleurs).
+- Un composant `SegmentedControl` avec 2 boutons `Lieux` / `Activités` :
+  - Piste : fond `#E7E3DC` (sable), `border-radius: 100px`, `padding: 3px`, hauteur ~30px, inline-flex.
+  - Segment actif : fond `#fff`, texte `var(--text)` foncé, `font-weight: 600`, ombre légère `0 1px 2px rgba(0,0,0,.08)`.
+  - Segment inactif : fond transparent, texte `var(--text-muted)`.
+  - Point orange 6px (`background: var(--primary)`, `border-radius: 50%`) affiché en position absolue haut-droite du segment inactif si la catégorie sélectionnée appartient à l'autre groupe (et n'est pas `all`).
+  - Police 12–13px, DM Sans.
+- Layout rangée 1 : `flex items-center gap-2`, segmented à gauche (shrink-0), puis un conteneur scrollable horizontal contenant :
+  - Pill `Tout` (toujours en tête, mappe sur `onChange('all')`, actif si `selected === 'all'`).
+  - Les pills du groupe actif (`PLACE_CATEGORIES` ou `ACTIVITY_CATEGORIES`).
+- Les `Pill` gardent leur style actuel (design system existant).
+- Supprimer les `GroupLabel` "Lieux"/"Activités" et le séparateur vertical.
+- Le composant n'expose plus qu'une seule rangée (au lieu de deux).
 
-À la confirmation :
-1. Le statut passe à `rejected` (comportement actuel conservé).
-2. Si le proposeur a un `user_id` ET un email récupérable, un email est envoyé avec le motif.
-3. Toast de succès mentionnant l'envoi ou non de l'email.
+Changer le segment met à jour `group` seulement — ne modifie pas `selected`. La catégorie filtrée est donc conservée quand on bascule.
 
-Le champ motif est optionnel : si vide, aucun email n'est envoyé (rejet silencieux, comme aujourd'hui).
+## 2. `src/components/AgeFilter.tsx`
 
-## Email
+- Remplacer le libellé Caveat `Âge :` par un label inline compact :
+  - Texte `ÂGE`, `font-family: DM Sans`, `font-size: 11px`, `font-weight: 700`, `letter-spacing: 0.08em`, couleur `var(--text-muted)`.
+- Les pills : conserver la forme capsule, `font-size: 12px`, `padding: 4px 10px`, taille naturelle.
+- Conteneur : `display: inline-flex` (pas de largeur 100 %) ; wrapper parent reste en flex row auto pour ne pas s'étirer.
 
-Nouveau template `submission-rejected` (React Email, cohérent avec `proposal-approved` et `event-published`) :
-- Titre : "Ton [lieu/événement/contribution] n'a pas été retenu"
-- Nom de la soumission
-- Bloc "Message de l'équipe Kidmapp" affichant le motif saisi
-- Texte : "Tu peux nous répondre directement à hello@kidmapp.app si tu veux en discuter."
-- Pas de CTA (ou un CTA discret vers la page Compte)
-- `reply-to: hello@kidmapp.app` (via un nouveau paramètre optionnel `replyTo` dans `send-transactional-email`)
+## 3. Vérifier le parent (Explorer)
 
-Un seul template couvre les trois types (contribution / proposition / événement) via un prop `submissionType` qui adapte le titre.
+- Aucun changement d'API : `CategoryFilter` et `AgeFilter` gardent la même signature de props. Le parent affiche déjà les deux composants ; le titre "Âge de l'enfant" au-dessus de `AgeFilter` (s'il existe dans la page Explorer) est retiré si présent, sinon rien à faire côté page.
 
 ## Détails techniques
 
-**Frontend — `src/pages/AdminPage.tsx`**
-- Nouveau composant local `RejectDialog` (ou réutilisation de `Dialog` shadcn) avec state `{ open, target, type, reason }`.
-- Refactor des trois `handleReject` (contributions ligne 362, proposals ligne 2351, events ligne 2794) pour :
-  1. Ouvrir la modale au lieu de rejeter directement.
-  2. Une fois confirmé, appliquer l'update `status: 'rejected'` puis appeler `supabase.functions.invoke('send-transactional-email', ...)` si motif fourni.
-- Récupération de l'email du proposeur : réutiliser le hook existant `useUserEmails` déjà utilisé côté admin (proposals/events). Pour les contributions, ajouter la même récupération si absente.
-
-**Backend — `supabase/functions/send-transactional-email/index.ts`**
-- Ajouter le support d'un champ optionnel `replyTo` dans le payload et le passer à Mailgun (`h:Reply-To`).
-
-**Nouveau template — `supabase/functions/_shared/transactional-email-templates/submission-rejected.tsx`**
-- Props : `submissionType: 'contribution' | 'location' | 'event'`, `submissionName: string`, `reason: string`.
-- Enregistré dans `registry.ts`.
-
-**Déploiement** : `send-transactional-email` (modif payload).
-
-## Hors scope
-
-- Pas de trigger DB automatique : l'envoi est piloté depuis l'admin uniquement (sinon on ne connaît pas le motif).
-- Pas de champ persistant `rejection_reason` en base pour l'instant (peut être ajouté plus tard si besoin d'historique).
+- Point orange sur segment inactif : positionné absolument (`top: 2px; right: 6px`), z-index sur le segment ; le container segment doit être `position: relative`.
+- Le state `group` vit dans `CategoryFilter` (pas remonté au parent) — évite tout changement d'API.
+- Pas de nouveau token de couleur : `#E7E3DC` et `#fff` inline (aesthetic distinct des pills, volontaire pour lecture "switch de vue"), reste des couleurs via variables CSS existantes.
