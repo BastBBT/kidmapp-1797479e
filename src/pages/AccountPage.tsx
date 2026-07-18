@@ -266,7 +266,7 @@ const AccountPage = () => {
             background: 'var(--surface)', padding: '16px',
             textAlign: 'center'
           }}>
-            <div style={{ fontFamily: 'Fraunces', fontSize: '28px', fontWeight: 500, color: 'var(--primary)', letterSpacing: '-0.02em' }}>
+            <div style={{ fontFamily: 'Fraunces', fontSize: '24px', fontWeight: 500, color: 'var(--primary)', letterSpacing: '-0.02em' }}>
               {stat.value}
             </div>
             <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>
