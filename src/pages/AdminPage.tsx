@@ -2635,6 +2635,8 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const [manualCoordsFor, setManualCoordsFor] = useState<string | null>(null);
   const [manualLat, setManualLat] = useState('47.2184');
   const [manualLng, setManualLng] = useState('-1.5536');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const { data: events = [] } = useQuery({
     queryKey: ['admin-events'],
@@ -2671,6 +2673,15 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       lat: ev.lat,
       lng: ev.lng,
     });
+    setPhotoFile(null);
+    setPhotoPreview(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditDraft(null);
+    setPhotoFile(null);
+    setPhotoPreview(null);
   };
 
   const geocodeEditAddress = async () => {
@@ -2693,6 +2704,27 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     if (!editingId || !editDraft) return;
     setProcessingId(editingId);
     try {
+      let finalPhotoUrl: string | null = editDraft.photo || null;
+      if (photoFile) {
+        const ext = photoFile.name.split('.').pop() || 'jpg';
+        const path = `events/${editingId}-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from('location-photos').upload(path, photoFile);
+        if (upErr) {
+          toast({ title: 'Erreur upload photo', description: upErr.message, variant: 'destructive' });
+          setProcessingId(null);
+          return;
+        }
+        const { data: urlData } = supabase.storage.from('location-photos').getPublicUrl(path);
+        finalPhotoUrl = urlData.publicUrl;
+        // Remove old photo if it was in our bucket
+        const prev: string | null = editDraft.photo || null;
+        if (prev && prev.includes('/location-photos/')) {
+          const oldPath = prev.split('/location-photos/')[1]?.split('?')[0];
+          if (oldPath) {
+            await supabase.storage.from('location-photos').remove([oldPath]);
+          }
+        }
+      }
       const update: any = {
         name: editDraft.name,
         category: editDraft.category,
@@ -2707,7 +2739,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         price: editDraft.price || null,
         website: editDraft.website || null,
         instagram: editDraft.instagram || null,
-        photo: editDraft.photo || null,
+        photo: finalPhotoUrl,
         note: editDraft.note || null,
         lat: editDraft.lat ?? null,
         lng: editDraft.lng ?? null,
@@ -2718,8 +2750,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       toast({ title: 'Événement modifié ✓' });
-      setEditingId(null);
-      setEditDraft(null);
+      cancelEdit();
     } catch (err: any) {
       toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
     } finally {
@@ -2952,6 +2983,34 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                     style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
                   <input placeholder="Photo URL" value={editDraft.photo} onChange={(e) => setEditDraft({ ...editDraft, photo: e.target.value })}
                     style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                  {(photoPreview || editDraft.photo) && (
+                    <div style={{ position: 'relative', width: '100%', height: 120, borderRadius: 8, overflow: 'hidden', background: 'var(--bg)' }}>
+                      <img src={photoPreview || editDraft.photo} alt="Aperçu" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      {photoFile && (
+                        <button
+                          onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
+                          style={{ position: 'absolute', top: 6, right: 6, padding: '4px 8px', borderRadius: 100, border: 'none', background: 'rgba(0,0,0,0.6)', color: 'white', fontFamily: 'DM Sans', fontSize: 11, cursor: 'pointer' }}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 10, border: '1.5px dashed var(--border)', borderRadius: 8, cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'DM Sans', fontSize: 13 }}>
+                    📷 {photoFile ? photoFile.name : 'Téléverser une photo'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setPhotoFile(file);
+                          setPhotoPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                  </label>
                   <textarea placeholder="Note" value={editDraft.note} onChange={(e) => setEditDraft({ ...editDraft, note: e.target.value })}
                     style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px', minHeight: 60 }} />
                   <div className="flex gap-2 items-center">
@@ -2969,7 +3028,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                       style={{ flex: 1, padding: '10px', borderRadius: 100, border: 'none', background: 'var(--primary)', color: 'white', fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                       💾 Enregistrer
                     </button>
-                    <button onClick={() => { setEditingId(null); setEditDraft(null); }}
+                    <button onClick={cancelEdit}
                       style={{ flex: 1, padding: '10px', borderRadius: 100, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                       Annuler
                     </button>

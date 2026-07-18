@@ -1,30 +1,20 @@
-## Problème constaté
+## Ajouter l'upload d'une photo dans l'édition d'événement (admin)
 
-Quand un utilisateur crée un compte :
-- `signUp()` réussit silencieusement — pas de session créée (confirmation email requise)
-- L'utilisateur ne voit **rien** : pas de message « Vérifie ta boîte mail », pas de feedback
-- Les logs auth montrent aussi des erreurs `429 over_email_send_rate_limit` (limite horaire GoTrue atteinte)
-- Les erreurs `email_not_confirmed` lors de tentatives de login ne sont pas traduites
+Dans l'onglet « Événements » de l'admin, le formulaire d'édition ne propose actuellement qu'un champ « Photo URL ». On y ajoute la possibilité de téléverser une image depuis l'appareil, à côté du champ URL (l'un OU l'autre — pas obligatoire).
 
-## Ce que je vais faire
+### Comportement
+- Bouton « Choisir une photo » (input file, `accept="image/*"`) + aperçu miniature de l'image sélectionnée.
+- Le champ URL reste éditable (utile pour du sourcing avec URL externe).
+- À l'enregistrement (`saveEdit`) :
+  - Si un fichier a été sélectionné, on l'upload dans le bucket `location-photos` (déjà public, déjà utilisé pour les lieux) sous le préfixe `events/<eventId>-<timestamp>.<ext>`, puis on prend la `publicUrl` comme valeur de `photo`.
+  - Sinon, on garde la valeur du champ URL (comme aujourd'hui).
+  - Si un fichier est uploadé ET que la photo précédente pointait vers ce même bucket, on supprime l'ancien objet (comme pour les lieux).
+- Toast d'erreur en cas d'échec d'upload, l'update Postgres n'est pas envoyé.
 
-### 1. Écran de confirmation après signup (`src/components/AuthModal.tsx`)
-Après `signUp()` réussi, afficher un état de succès dans la modal :
-- Icône check + titre « Vérifie ta boîte mail »
-- Message : « On t'a envoyé un lien de confirmation à **{email}**. Clique dessus pour activer ton compte. Pense à vérifier tes spams. »
-- Bouton « Renvoyer l'email » (via `supabase.auth.resend({ type: 'signup', email })`) avec cooldown 30s
-- Bouton « Retour » pour revenir au formulaire
+### Fichier touché
+- `src/pages/AdminPage.tsx` — dans `EventsTab` :
+  - États locaux `photoFile` / `photoPreview` réinitialisés à l'ouverture et à la fermeture de l'édition.
+  - UI d'upload insérée juste au-dessus du champ « Photo URL » dans le bloc édition.
+  - Logique d'upload/suppression ajoutée en tête de `saveEdit`.
 
-### 2. Meilleurs messages d'erreur FR
-Compléter le mapping des erreurs dans `handleSubmit` :
-- `Email not confirmed` → « Ton compte n'est pas encore activé. Vérifie ta boîte mail (et les spams). »
-- `over_email_send_rate_limit` / `For security purposes` → « Trop de tentatives, réessaie dans quelques minutes. »
-- `Email rate limit exceeded` → même message
-
-### 3. Relever la limite d'envoi auth
-Appeler `supabase--configure_auth` avec `rate_limit_email_sent: 100` (actuellement au défaut bas ~4/h) pour éviter les 429 lors des pics d'inscriptions.
-
-## Hors scope
-- Pas de changement backend (les templates auth email et le hook fonctionnent déjà — les logs montrent `Hook ran successfully`)
-- Pas de modification de `useAuth.ts` (l'appel `signUp` reste identique)
-- Pas de changement du flux OAuth Google
+Aucun changement de schéma ni de policy — le bucket `location-photos` est déjà public et writable par les authenticated users.
