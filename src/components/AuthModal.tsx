@@ -197,8 +197,18 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
   const [error, setError] = useState('');
   const [forgotOpen, setForgotOpen] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [signupSuccessEmail, setSignupSuccessEmail] = useState<string | null>(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendMessage, setResendMessage] = useState('');
   const googleLockRef = useRef(false);
   const { signIn, signUp } = useAuth();
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
 
   const handleGoogleSignIn = async () => {
     if (googleLockRef.current) return;
@@ -226,6 +236,39 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
     setError('');
   }, [mode]);
 
+  const mapAuthError = (msg: string): string => {
+    const lower = msg.toLowerCase();
+    if (lower.includes('invalid login credentials')) return 'Email ou mot de passe incorrect';
+    if (lower.includes('user already registered')) return 'Cet email est déjà utilisé. Essaie de te connecter.';
+    if (lower.includes('email not confirmed')) return "Ton compte n'est pas encore activé. Vérifie ta boîte mail (et les spams) pour cliquer sur le lien de confirmation.";
+    if (lower.includes('over_email_send_rate_limit') || lower.includes('email rate limit') || lower.includes('for security purposes')) {
+      return 'Trop de tentatives récentes. Réessaie dans quelques minutes.';
+    }
+    if (lower.includes('password should be at least')) return 'Le mot de passe doit contenir au moins 8 caractères';
+    if (lower.includes('unable to validate email')) return "Adresse email invalide";
+    return msg || 'Une erreur est survenue';
+  };
+
+  const handleResend = async () => {
+    if (!signupSuccessEmail || resendCooldown > 0 || resendLoading) return;
+    setResendLoading(true);
+    setResendMessage('');
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: signupSuccessEmail,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      setResendMessage('Email renvoyé ✓');
+      setResendCooldown(30);
+    } catch (err: any) {
+      setResendMessage(mapAuthError(err?.message || ''));
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -241,21 +284,20 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
     }
     setLoading(true);
     try {
-      if (mode === 'login') await signIn(email, password);
-      else await signUp(email, password, fullName);
-
+      if (mode === 'login') {
+        await signIn(email, password);
+      } else {
+        await signUp(email, password, fullName);
+        setSignupSuccessEmail(email);
+        setResendCooldown(30);
+      }
     } catch (err: any) {
-      const msg = err?.message || '';
-      const mapped: Record<string, string> = {
-        'Invalid login credentials': 'Email ou mot de passe incorrect',
-        'User already registered': 'Cet email est déjà utilisé',
-        'Password should be at least 6 characters': 'Le mot de passe doit contenir au moins 6 caractères',
-      };
-      setError(mapped[msg] || msg || 'Une erreur est survenue');
+      setError(mapAuthError(err?.message || ''));
     } finally {
       setLoading(false);
     }
   };
+
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
@@ -364,8 +406,82 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
           </div>
         )}
 
+        {signupSuccessEmail ? (
+          <div style={{ padding: '8px 0 4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'hsl(var(--success) / 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle2 size={34} style={{ color: 'hsl(var(--success))' }} />
+              </div>
+            </div>
+            <div style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 500, color: 'var(--text)', textAlign: 'center', marginBottom: 10 }}>
+              Vérifie ta boîte mail
+            </div>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.55, textAlign: 'center', margin: '0 0 18px' }}>
+              On t'a envoyé un lien de confirmation à <strong style={{ color: 'var(--text)' }}>{signupSuccessEmail}</strong>. Clique dessus pour activer ton compte.
+              <br />
+              <span style={{ fontSize: 13 }}>Pense à vérifier tes spams 👀</span>
+            </p>
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resendLoading || resendCooldown > 0}
+              style={{
+                width: '100%',
+                padding: 13,
+                borderRadius: 100,
+                border: 'none',
+                background: 'var(--primary)',
+                color: '#fff',
+                fontFamily: 'DM Sans',
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: resendLoading || resendCooldown > 0 ? 'not-allowed' : 'pointer',
+                opacity: resendLoading || resendCooldown > 0 ? 0.6 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                marginBottom: 10,
+              }}
+            >
+              {resendLoading && <Loader2 size={16} className="animate-spin" />}
+              {resendCooldown > 0 ? `Renvoyer l'email (${resendCooldown}s)` : resendLoading ? 'Envoi…' : "Renvoyer l'email"}
+            </button>
+            {resendMessage && (
+              <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 10 }}>
+                {resendMessage}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setSignupSuccessEmail(null);
+                setResendMessage('');
+                setPassword('');
+                setConfirmPassword('');
+                setMode('login');
+              }}
+              style={{
+                width: '100%',
+                padding: 12,
+                borderRadius: 100,
+                border: '1.5px solid var(--border)',
+                background: 'var(--surface)',
+                fontFamily: 'DM Sans',
+                fontSize: 14,
+                fontWeight: 500,
+                color: 'var(--text)',
+                cursor: 'pointer',
+              }}
+            >
+              J'ai déjà confirmé, me connecter
+            </button>
+          </div>
+        ) : (
+        <>
         {/* Underline tabs - centered */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 36, borderBottom: '1.5px solid var(--border)', marginBottom: 18 }}>
+
 
           {(['signup', 'login'] as const).map((m) => {
             const active = mode === m;
@@ -550,7 +666,10 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
           {googleLoading ? <Loader2 size={16} className="animate-spin" /> : <GoogleIcon />}
           {googleLoading ? 'Connexion…' : 'Continuer avec Google'}
         </button>
+        </>
+        )}
       </div>
+
 
       <ForgotPasswordSheet open={forgotOpen} onClose={() => setForgotOpen(false)} />
     </div>
