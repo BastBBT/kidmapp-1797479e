@@ -10,12 +10,15 @@ import { MEAL_ICONS, EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
 import { DURATIONS, WEATHERS, EFFORTS, PRICES } from '@/lib/activity';
 import { isActivity } from '@/types/location';
 
-const CATEGORY_OPTIONS: { id: string; label: string }[] = [
+const PLACE_CATEGORY_OPTIONS: { id: string; label: string }[] = [
   { id: 'restaurant', label: 'Restaurant' },
   { id: 'cafe', label: 'Café' },
   { id: 'shop', label: 'Boutique' },
   { id: 'public', label: 'Lieu public' },
   { id: 'coiffeur', label: 'Coiffeur' },
+];
+
+const ACTIVITY_CATEGORY_OPTIONS: { id: string; label: string }[] = [
   { id: 'nature', label: 'Nature' },
   { id: 'sport', label: 'Sport' },
   { id: 'creatif', label: 'Créatif' },
@@ -27,13 +30,34 @@ interface ProposeLocationModalProps {
   open: boolean;
   onClose: () => void;
   initialCategory?: string;
+  mode?: 'location' | 'activity';
 }
 
 const FULL_STEPS = ['Infos', 'Équipements', 'Repas & horaires', 'Photos'] as const;
 const SHORT_STEPS = ['Infos', 'Équipements', 'Photos'] as const;
 const hasMealsStep = (category: string) => category === 'restaurant' || category === 'cafe';
 
-const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant' }: ProposeLocationModalProps) => {
+const COPY = {
+  location: {
+    title: 'Proposer un lieu',
+    nameLabel: 'Nom du lieu *',
+    namePlaceholder: 'Ex: Le Petit Beurre',
+    notePlaceholder: 'Un mot sur ce lieu…',
+    successDesc: 'Merci ! On vérifie ce lieu avant publication.',
+  },
+  activity: {
+    title: 'Proposer une activité',
+    nameLabel: "Nom de l'activité *",
+    namePlaceholder: 'Ex: Balade au jardin des Plantes',
+    notePlaceholder: 'Un mot sur cette activité…',
+    successDesc: 'Merci ! On vérifie cette activité avant publication.',
+  },
+} as const;
+
+const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', mode = 'location' }: ProposeLocationModalProps) => {
+  const copy = COPY[mode];
+  const CATEGORY_OPTIONS = mode === 'activity' ? ACTIVITY_CATEGORY_OPTIONS : PLACE_CATEGORY_OPTIONS;
+
   const { toast } = useToast();
   const { user } = useAuth();
   const { data: mealTypes = [] } = useMealTypes();
@@ -84,7 +108,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant' }:
 
   const resetAll = () => {
     setForm({
-      name: '', category: 'restaurant', address: '',
+      name: '', category: initialCategory, address: '',
       high_chair: false, changing_table: false, kids_area: false, kids_menu: false,
       bookable: 'unknown', note: '', website: '', instagram: '',
       age_min: '', age_max: '',
@@ -96,6 +120,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant' }:
     setPhotoUrlInput('');
     setStep(0);
   };
+
 
   const handleClose = () => {
     onClose();
@@ -194,7 +219,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant' }:
       if (error) throw error;
       toast({
         title: 'Proposition envoyée ✦',
-        description: 'Merci ! On la vérifie avant de la publier.',
+        description: copy.successDesc,
       });
       handleClose();
     } catch (err: any) {
@@ -255,7 +280,8 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant' }:
                     </button>
                   )}
                   <h2 style={{ fontFamily: 'Fraunces', fontSize: '20px', fontWeight: 500, color: 'var(--text)' }}>
-                    Proposer un lieu
+                    {copy.title}
+
                   </h2>
                 </div>
                 <button onClick={handleClose} className="p-2 rounded-full" style={{ background: 'var(--bg)' }}>
@@ -300,9 +326,10 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant' }:
                 <div className="flex flex-col gap-4">
                   <div>
                     <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
-                      Nom du lieu *
+                      {copy.nameLabel}
                     </label>
-                    <input value={form.name} onChange={(e) => updateForm('name', e.target.value)} placeholder="Ex: Le Petit Beurre" style={inputStyle} />
+                    <input value={form.name} onChange={(e) => updateForm('name', e.target.value)} placeholder={copy.namePlaceholder} style={inputStyle} />
+
                   </div>
                   <div>
                     <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
@@ -372,7 +399,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant' }:
                     <textarea
                       value={form.note}
                       onChange={(e) => updateForm('note', e.target.value.slice(0, 500))}
-                      placeholder="Un mot sur ce lieu…"
+                      placeholder={copy.notePlaceholder}
                       maxLength={500}
                       rows={3}
                       style={{ ...inputStyle, resize: 'none' }}
