@@ -119,7 +119,7 @@ const AppContent = () => {
       <OnboardingOverlay />
       <AcquisitionOverlay />
       <ProposalTypeChooser />
-      <ProposeLocationModal open={locationModalOpen} onClose={closeProposal} initialCategory={initialCategory} />
+      <ProposeLocationModal open={locationModalOpen} onClose={closeProposal} initialCategory={initialCategory} mode={proposalMode === 'activity' ? 'activity' : 'location'} />
       <ProposeEventModal />
     </>
   );
