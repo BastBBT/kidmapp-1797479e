@@ -579,20 +579,69 @@ const LocationPage = () => {
             </div>
           )}
 
-          {/* Single unified Contribute button */}
-          <button
-            onClick={() => requireAuth(() => setShowContribute(true), { message: 'Connecte-toi pour partager tes infos sur ce lieu ✦' })}
+          {/* Confirm-info invitation card (replaces the standalone Contribuer button) */}
+          <div
             style={{
-              width: '100%', marginTop: 16,
-              padding: '12px 16px', borderRadius: 100,
-              border: '1.5px solid var(--primary)',
-              background: 'transparent', color: 'var(--primary)',
-              fontFamily: 'DM Sans', fontSize: 14, fontWeight: 600,
-              cursor: 'pointer',
+              marginTop: 16,
+              padding: 16,
+              borderRadius: 'var(--radius)',
+              background: '#FAF0EC',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              gap: 6,
             }}
           >
-            Contribuer
-          </button>
+            <div style={{ fontSize: 26 }} aria-hidden>👋</div>
+            <div
+              style={{
+                fontFamily: 'Fraunces',
+                fontSize: 17,
+                fontWeight: 500,
+                color: 'var(--text)',
+              }}
+            >
+              {isActivity(location.category)
+                ? 'Tu connais cette activité ?'
+                : 'Tu connais ce lieu ?'}
+            </div>
+            <div
+              style={{
+                fontFamily: 'DM Sans',
+                fontSize: 13,
+                lineHeight: 1.45,
+                color: 'var(--text-muted)',
+                maxWidth: 360,
+              }}
+            >
+              {isActivity(location.category)
+                ? 'Confirme ce qu\'il y a sur place pour garder la fiche à jour'
+                : 'Confirme ce qu\'il y a sur place — chaise haute, table à langer, coin jeux… — pour garder la fiche à jour'}
+            </div>
+            <button
+              onClick={() =>
+                requireAuth(() => setShowContribute(true), {
+                  message: 'Connecte-toi pour partager tes infos sur ce lieu ✦',
+                })
+              }
+              style={{
+                marginTop: 8,
+                padding: '11px 22px',
+                borderRadius: 100,
+                border: 'none',
+                background: 'var(--primary)',
+                color: '#fff',
+                fontFamily: 'DM Sans',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: '0 6px 18px rgba(217,95,59,0.28)',
+              }}
+            >
+              Confirmer les infos
+            </button>
+          </div>
 
           {/* Bouton Itinéraire */}
           <a
