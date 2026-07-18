@@ -39,10 +39,10 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json()
-    const type = body?.type as 'contribution' | 'proposal' | undefined
+    const type = body?.type as 'contribution' | 'proposal' | 'event' | undefined
     const recordId = body?.recordId as string | undefined
 
-    if (!type || !['contribution', 'proposal'].includes(type) || !recordId) {
+    if (!type || !['contribution', 'proposal', 'event'].includes(type) || !recordId) {
       return new Response(JSON.stringify({ error: 'Invalid body' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
