@@ -13,6 +13,7 @@ import { useUserEmails } from '@/hooks/useUserEmails';
 import { useTopContributors } from '@/hooks/useTopContributors';
 import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryHex, eventCategoryEmoji } from '@/types/event';
 import RejectDialog from '@/components/admin/RejectDialog';
+import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals' | 'events';
@@ -3030,6 +3031,9 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
               {isSourcing(ev) ? 'Sourcing interne' : `Proposé par : ${emails[ev.user_id] ?? ev.user_id.slice(0, 8)}`}
               {' · '}Créé le {new Date(ev.created_at).toLocaleDateString('fr-FR')}
             </div>
+
+            <EventFeedbackAdmin eventId={ev.id} />
+
 
             {isEditing && editDraft && (
               <div style={{ padding: '12px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', marginBottom: '10px' }}>
