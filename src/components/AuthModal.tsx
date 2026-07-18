@@ -197,8 +197,18 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
   const [error, setError] = useState('');
   const [forgotOpen, setForgotOpen] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [signupSuccessEmail, setSignupSuccessEmail] = useState<string | null>(null);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendMessage, setResendMessage] = useState('');
   const googleLockRef = useRef(false);
   const { signIn, signUp } = useAuth();
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
 
   const handleGoogleSignIn = async () => {
     if (googleLockRef.current) return;
@@ -226,6 +236,39 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
     setError('');
   }, [mode]);
 
+  const mapAuthError = (msg: string): string => {
+    const lower = msg.toLowerCase();
+    if (lower.includes('invalid login credentials')) return 'Email ou mot de passe incorrect';
+    if (lower.includes('user already registered')) return 'Cet email est déjà utilisé. Essaie de te connecter.';
+    if (lower.includes('email not confirmed')) return "Ton compte n'est pas encore activé. Vérifie ta boîte mail (et les spams) pour cliquer sur le lien de confirmation.";
+    if (lower.includes('over_email_send_rate_limit') || lower.includes('email rate limit') || lower.includes('for security purposes')) {
+      return 'Trop de tentatives récentes. Réessaie dans quelques minutes.';
+    }
+    if (lower.includes('password should be at least')) return 'Le mot de passe doit contenir au moins 8 caractères';
+    if (lower.includes('unable to validate email')) return "Adresse email invalide";
+    return msg || 'Une erreur est survenue';
+  };
+
+  const handleResend = async () => {
+    if (!signupSuccessEmail || resendCooldown > 0 || resendLoading) return;
+    setResendLoading(true);
+    setResendMessage('');
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: signupSuccessEmail,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      setResendMessage('Email renvoyé ✓');
+      setResendCooldown(30);
+    } catch (err: any) {
+      setResendMessage(mapAuthError(err?.message || ''));
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -241,21 +284,20 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
     }
     setLoading(true);
     try {
-      if (mode === 'login') await signIn(email, password);
-      else await signUp(email, password, fullName);
-
+      if (mode === 'login') {
+        await signIn(email, password);
+      } else {
+        await signUp(email, password, fullName);
+        setSignupSuccessEmail(email);
+        setResendCooldown(30);
+      }
     } catch (err: any) {
-      const msg = err?.message || '';
-      const mapped: Record<string, string> = {
-        'Invalid login credentials': 'Email ou mot de passe incorrect',
-        'User already registered': 'Cet email est déjà utilisé',
-        'Password should be at least 6 characters': 'Le mot de passe doit contenir au moins 6 caractères',
-      };
-      setError(mapped[msg] || msg || 'Une erreur est survenue');
+      setError(mapAuthError(err?.message || ''));
     } finally {
       setLoading(false);
     }
   };
+
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
