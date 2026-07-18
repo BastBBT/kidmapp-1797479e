@@ -252,20 +252,21 @@ const AccountPage = () => {
 
       {/* Stats */}
       <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
         gap: '1px', background: 'var(--border)',
         borderBottom: '1px solid var(--border)'
       }}>
         {[
           { value: favoriteIds.length, label: 'Favoris' },
           { value: myContributions.length, label: 'Contributions' },
-          { value: myProposals.length, label: 'Propositions' },
+          { value: myProposals.length, label: 'Lieux' },
+          { value: myEvents.length, label: 'Événements' },
         ].map(stat => (
           <div key={stat.label} style={{
             background: 'var(--surface)', padding: '16px',
             textAlign: 'center'
           }}>
-            <div style={{ fontFamily: 'Fraunces', fontSize: '28px', fontWeight: 500, color: 'var(--primary)', letterSpacing: '-0.02em' }}>
+            <div style={{ fontFamily: 'Fraunces', fontSize: '24px', fontWeight: 500, color: 'var(--primary)', letterSpacing: '-0.02em' }}>
               {stat.value}
             </div>
             <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>
