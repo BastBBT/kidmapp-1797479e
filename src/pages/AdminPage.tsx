@@ -2673,6 +2673,15 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       lat: ev.lat,
       lng: ev.lng,
     });
+    setPhotoFile(null);
+    setPhotoPreview(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditDraft(null);
+    setPhotoFile(null);
+    setPhotoPreview(null);
   };
 
   const geocodeEditAddress = async () => {
