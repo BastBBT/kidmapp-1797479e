@@ -2390,13 +2390,33 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
     }
   };
 
-  const handleReject = async (proposal: any) => {
+  const [rejectTarget, setRejectTarget] = useState<any>(null);
+
+  const handleReject = (proposal: any) => {
+    setRejectTarget(proposal);
+  };
+
+  const confirmReject = async (reason: string) => {
+    const proposal = rejectTarget;
+    if (!proposal) return;
     setProcessingId(proposal.id);
     try {
       const { error } = await supabase.from('location_proposals' as any).update({ status: 'rejected' }).eq('id', proposal.id);
       if (error) throw error;
+      const recipientEmail = proposal.user_id ? (proposalEmails[proposal.user_id] ?? null) : null;
+      const emailRes = await sendRejectionEmail({
+        submissionType: 'location',
+        submissionName: proposal.name || 'Proposition',
+        submissionId: proposal.id,
+        recipientEmail,
+        reason,
+      });
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
-      toast({ title: 'Proposition rejetée' });
+      setRejectTarget(null);
+      toast({
+        title: 'Proposition rejetée',
+        description: emailRes.sent ? '📧 Message envoyé au proposeur' : undefined,
+      });
     } catch (err: any) {
       toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
     } finally {
