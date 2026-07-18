@@ -2987,7 +2987,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         </p>
       )}
 
-      {filtered.map((ev: any, i: number) => {
+      {sorted.map((ev: any, i: number) => {
         const isProcessing = processingId === ev.id;
         const isEditing = editingId === ev.id;
         const catHex = eventCategoryHex(ev.category);
