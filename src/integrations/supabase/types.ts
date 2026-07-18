@@ -231,6 +231,44 @@ export type Database = {
           },
         ]
       }
+      event_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          event_id: string
+          id: string
+          updated_at: string
+          user_id: string
+          verdict: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          verdict: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_feedback_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           address: string | null
