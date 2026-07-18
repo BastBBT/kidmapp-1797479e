@@ -280,7 +280,8 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
                     </button>
                   )}
                   <h2 style={{ fontFamily: 'Fraunces', fontSize: '20px', fontWeight: 500, color: 'var(--text)' }}>
-                    Proposer un lieu
+                    {copy.title}
+
                   </h2>
                 </div>
                 <button onClick={handleClose} className="p-2 rounded-full" style={{ background: 'var(--bg)' }}>
