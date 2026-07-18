@@ -76,7 +76,9 @@ export const currentWeekendKey = (from: Date = new Date()): string => {
   return toISODate(sat);
 };
 
-/** Does this event fall on the given weekend? Considers date_start..date_end overlap. */
+/** Does this event fall on the given weekend? Considers date_start..date_end overlap.
+ *  Additionally, a weekday-only event (Mon–Fri, no Sat/Sun in its range) is
+ *  attached to the Saturday that follows its end date. */
 export const eventInWeekend = (
   dateStart: string,
   dateEnd: string | null,
@@ -86,8 +88,33 @@ export const eventInWeekend = (
   const sunISO = toISODate(weekend.sunday);
   const start = dateStart;
   const end = dateEnd ?? dateStart;
-  return start <= sunISO && end >= satISO;
+
+  // Standard overlap: event touches Sat or Sun of this weekend.
+  if (start <= sunISO && end >= satISO) return true;
+
+  // Weekday-only event: attach to the Saturday immediately after `end`.
+  const endDate = new Date(`${end}T00:00:00`);
+  const startDate = new Date(`${start}T00:00:00`);
+  if (isNaN(endDate.getTime()) || isNaN(startDate.getTime())) return false;
+
+  // Range length in days
+  const dayMs = 86400000;
+  const rangeDays = Math.round((endDate.getTime() - startDate.getTime()) / dayMs) + 1;
+  // If range spans 6+ days it necessarily includes a Sat or Sun → overlap would have caught it.
+  if (rangeDays >= 6) return false;
+  for (let i = 0; i < rangeDays; i++) {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) return false; // has a weekend day → not weekday-only
+  }
+  // Find Saturday strictly after end date.
+  const followingSat = new Date(endDate);
+  const endDow = endDate.getDay(); // 1..5 here
+  followingSat.setDate(endDate.getDate() + (6 - endDow));
+  return toISODate(followingSat) === satISO;
 };
+
 
 export const todayISO = (): string => toISODate(startOfDay(new Date()));
 

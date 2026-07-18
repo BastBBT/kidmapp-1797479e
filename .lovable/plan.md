@@ -1,20 +1,21 @@
-## Ajouter l'upload d'une photo dans l'édition d'événement (admin)
+## Rattacher les événements en semaine au week-end suivant
 
-Dans l'onglet « Événements » de l'admin, le formulaire d'édition ne propose actuellement qu'un champ « Photo URL ». On y ajoute la possibilité de téléverser une image depuis l'appareil, à côté du champ URL (l'un OU l'autre — pas obligatoire).
+Aujourd'hui, `eventInWeekend` (dans `src/lib/weekend.ts`) fait un simple test de chevauchement de plages : un event dont la plage `[date_start, date_end]` ne touche pas samedi/dimanche est exclu du picker. Un event mono-jour un lundi ou mardi disparaît donc de la page Sorties.
 
-### Comportement
-- Bouton « Choisir une photo » (input file, `accept="image/*"`) + aperçu miniature de l'image sélectionnée.
-- Le champ URL reste éditable (utile pour du sourcing avec URL externe).
-- À l'enregistrement (`saveEdit`) :
-  - Si un fichier a été sélectionné, on l'upload dans le bucket `location-photos` (déjà public, déjà utilisé pour les lieux) sous le préfixe `events/<eventId>-<timestamp>.<ext>`, puis on prend la `publicUrl` comme valeur de `photo`.
-  - Sinon, on garde la valeur du champ URL (comme aujourd'hui).
-  - Si un fichier est uploadé ET que la photo précédente pointait vers ce même bucket, on supprime l'ancien objet (comme pour les lieux).
-- Toast d'erreur en cas d'échec d'upload, l'update Postgres n'est pas envoyé.
+### Règle à ajouter
+Un événement dont **la période entière tombe en semaine (Lun–Ven)** est rattaché au samedi qui suit immédiatement `date_end` (ou `date_start` si pas de fin) — donc il apparaît uniquement dans **un seul** week-end du picker : le prochain.
 
-### Fichier touché
-- `src/pages/AdminPage.tsx` — dans `EventsTab` :
-  - États locaux `photoFile` / `photoPreview` réinitialisés à l'ouverture et à la fermeture de l'édition.
-  - UI d'upload insérée juste au-dessus du champ « Photo URL » dans le bloc édition.
-  - Logique d'upload/suppression ajoutée en tête de `saveEdit`.
+### Cas couverts
+- Event lundi seul → apparaît dans le week-end de la même semaine.
+- Event mardi→jeudi → même week-end.
+- Event vendredi seul → même week-end (le samedi juste après).
+- Event qui chevauche déjà un samedi ou dimanche → comportement inchangé (règle actuelle d'overlap).
+- Event dans un passé lointain → toujours filtré par `isPastEvent`.
 
-Aucun changement de schéma ni de policy — le bucket `location-photos` est déjà public et writable par les authenticated users.
+### Changement
+- `src/lib/weekend.ts` — modifier `eventInWeekend` :
+  1. Calculer si la période `[start, end]` est entièrement Lun–Ven (aucune date Sat/Sun dans l'intervalle).
+  2. Si oui : trouver le samedi suivant strictement `end`, comparer sa date ISO à `weekend.saturday` → match si égalité.
+  3. Sinon : garder le test d'overlap existant.
+
+Aucun autre fichier n'est touché — `SortiesPage` consomme déjà `eventInWeekend`.
