@@ -2861,14 +2861,34 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     }
   };
 
-  const handleReject = async (ev: any) => {
+  const [rejectTarget, setRejectTarget] = useState<any>(null);
+
+  const handleReject = (ev: any) => {
+    setRejectTarget(ev);
+  };
+
+  const confirmReject = async (reason: string) => {
+    const ev = rejectTarget;
+    if (!ev) return;
     setProcessingId(ev.id);
     try {
       const { error } = await supabase.from('events' as any).update({ status: 'rejected' }).eq('id', ev.id);
       if (error) throw error;
+      const recipientEmail = ev.user_id ? (emails[ev.user_id] ?? null) : null;
+      const emailRes = await sendRejectionEmail({
+        submissionType: 'event',
+        submissionName: ev.name || 'Événement',
+        submissionId: ev.id,
+        recipientEmail,
+        reason,
+      });
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-      toast({ title: 'Événement rejeté' });
+      setRejectTarget(null);
+      toast({
+        title: 'Événement rejeté',
+        description: emailRes.sent ? '📧 Message envoyé au proposeur' : undefined,
+      });
     } catch (err: any) {
       toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
     } finally {
