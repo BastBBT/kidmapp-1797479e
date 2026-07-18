@@ -12,6 +12,8 @@ import PhotoUpload from '@/components/admin/PhotoUpload';
 import { useUserEmails } from '@/hooks/useUserEmails';
 import { useTopContributors } from '@/hooks/useTopContributors';
 import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryHex, eventCategoryEmoji } from '@/types/event';
+import RejectDialog from '@/components/admin/RejectDialog';
+import { sendRejectionEmail } from '@/lib/rejectionEmail';
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals' | 'events';
 
@@ -357,6 +359,38 @@ const AdminPage = () => {
     queryClient.invalidateQueries({ queryKey: ['locations'] });
     queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     toast({ title: 'Statut mis à jour ✓' });
+  };
+
+  const [rejectContribTarget, setRejectContribTarget] = useState<any>(null);
+
+  const openRejectContribution = (contrib: any) => {
+    setRejectContribTarget(contrib);
+  };
+
+  const confirmRejectContribution = async (reason: string) => {
+    const contrib = rejectContribTarget;
+    if (!contrib) return;
+    const { error } = await supabase.from('contributions').update({ status: 'rejected' }).eq('id', contrib.id);
+    if (error) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      return;
+    }
+    const recipientEmail = contrib.user_id ? contribEmails[contrib.user_id] ?? null : null;
+    const emailRes = await sendRejectionEmail({
+      submissionType: 'contribution',
+      submissionName: contrib.location_name || contrib.type || 'Contribution',
+      submissionId: contrib.id,
+      recipientEmail,
+      reason,
+    });
+    queryClient.invalidateQueries({ queryKey: ['contributions'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['location-contributions'] });
+    setRejectContribTarget(null);
+    toast({
+      title: 'Contribution rejetée',
+      description: emailRes.sent ? '📧 Message envoyé au proposeur' : undefined,
+    });
   };
 
   const handleContribution = async (contrib: any, action: 'validated' | 'rejected') => {
@@ -1134,7 +1168,7 @@ const AdminPage = () => {
                         ✓ Valider
                       </button>
                       <button
-                        onClick={() => handleContribution(contrib, 'rejected')}
+                        onClick={() => openRejectContribution(contrib)}
                         style={{
                           flex: 1,
                           fontFamily: 'DM Sans',
@@ -1777,6 +1811,14 @@ const AdminPage = () => {
           </div>
         </div>
       )}
+      <RejectDialog
+        open={!!rejectContribTarget}
+        submissionType="contribution"
+        submissionName={rejectContribTarget?.location_name || rejectContribTarget?.type || 'Contribution'}
+        recipientEmail={rejectContribTarget?.user_id ? (contribEmails[rejectContribTarget.user_id] ?? null) : null}
+        onCancel={() => setRejectContribTarget(null)}
+        onConfirm={confirmRejectContribution}
+      />
     </div>
   );
 };
@@ -2348,13 +2390,33 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
     }
   };
 
-  const handleReject = async (proposal: any) => {
+  const [rejectTarget, setRejectTarget] = useState<any>(null);
+
+  const handleReject = (proposal: any) => {
+    setRejectTarget(proposal);
+  };
+
+  const confirmReject = async (reason: string) => {
+    const proposal = rejectTarget;
+    if (!proposal) return;
     setProcessingId(proposal.id);
     try {
       const { error } = await supabase.from('location_proposals' as any).update({ status: 'rejected' }).eq('id', proposal.id);
       if (error) throw error;
+      const recipientEmail = proposal.user_id ? (proposalEmails[proposal.user_id] ?? null) : null;
+      const emailRes = await sendRejectionEmail({
+        submissionType: 'location',
+        submissionName: proposal.name || 'Proposition',
+        submissionId: proposal.id,
+        recipientEmail,
+        reason,
+      });
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
-      toast({ title: 'Proposition rejetée' });
+      setRejectTarget(null);
+      toast({
+        title: 'Proposition rejetée',
+        description: emailRes.sent ? '📧 Message envoyé au proposeur' : undefined,
+      });
     } catch (err: any) {
       toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
     } finally {
@@ -2617,6 +2679,14 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
           </>
         );
       })()}
+      <RejectDialog
+        open={!!rejectTarget}
+        submissionType="location"
+        submissionName={rejectTarget?.name || 'Proposition'}
+        recipientEmail={rejectTarget?.user_id ? (proposalEmails[rejectTarget.user_id] ?? null) : null}
+        onCancel={() => setRejectTarget(null)}
+        onConfirm={confirmReject}
+      />
     </motion.div>
   );
 }
@@ -2791,14 +2861,34 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     }
   };
 
-  const handleReject = async (ev: any) => {
+  const [rejectTarget, setRejectTarget] = useState<any>(null);
+
+  const handleReject = (ev: any) => {
+    setRejectTarget(ev);
+  };
+
+  const confirmReject = async (reason: string) => {
+    const ev = rejectTarget;
+    if (!ev) return;
     setProcessingId(ev.id);
     try {
       const { error } = await supabase.from('events' as any).update({ status: 'rejected' }).eq('id', ev.id);
       if (error) throw error;
+      const recipientEmail = ev.user_id ? (emails[ev.user_id] ?? null) : null;
+      const emailRes = await sendRejectionEmail({
+        submissionType: 'event',
+        submissionName: ev.name || 'Événement',
+        submissionId: ev.id,
+        recipientEmail,
+        reason,
+      });
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-      toast({ title: 'Événement rejeté' });
+      setRejectTarget(null);
+      toast({
+        title: 'Événement rejeté',
+        description: emailRes.sent ? '📧 Message envoyé au proposeur' : undefined,
+      });
     } catch (err: any) {
       toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
     } finally {
@@ -3082,6 +3172,14 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
           </motion.div>
         );
       })}
+      <RejectDialog
+        open={!!rejectTarget}
+        submissionType="event"
+        submissionName={rejectTarget?.name || 'Événement'}
+        recipientEmail={rejectTarget?.user_id ? (emails[rejectTarget.user_id] ?? null) : null}
+        onCancel={() => setRejectTarget(null)}
+        onConfirm={confirmReject}
+      />
     </motion.div>
   );
 }

@@ -1,42 +1,54 @@
 ## Objectif
-Envoyer un email quand un événement passe au statut `published`, en réutilisant le design du template `proposal-approved`.
 
-## 1. Nouveau template `event-published.tsx`
+Permettre à l'admin d'ajouter un message explicatif lors du refus d'une contribution, proposition de lieu, ou événement/activité. Ce message est envoyé par email au proposeur, avec `reply-to: hello@kidmap.app` pour qu'il puisse répondre.
 
-Fichier : `supabase/functions/_shared/transactional-email-templates/event-published.tsx`
+## Flux utilisateur (admin)
 
-- Structure/style copiés à l'identique de `proposal-approved.tsx` (header, card, hero, CTA vert, footer).
-- Props : `userName`, `eventTitle`, `eventId`, `eventCategory`, `eventStartDate` (optionnel).
-- Hero : bulle icône calendrier `📅`, headline « Ton événement est en ligne ! ».
-- Badge : `{emoji catégorie} {eventTitle}` avec la palette activités (nature/sport/creatif/culture/jeux) déjà utilisée dans l'app.
-- Paragraphe : mention du titre + date formatée en français si dispo.
-- CTA : « Voir l'événement → » vers `${SITE_URL}/event/${eventId}`.
-- Subject dynamique : `📅 {eventTitle} est en ligne sur Kidmapp`.
+Aujourd'hui : clic sur "Rejeter" → statut passe à `rejected` immédiatement, aucune notification.
 
-Enregistrer dans `registry.ts` sous la clé `event-published`.
+Nouveau : clic sur "Rejeter" → une modale s'ouvre avec :
+- Le nom de la contribution/proposition/événement concerné
+- Un `textarea` "Motif du refus (envoyé à l'utilisateur)" — optionnel
+- Un bouton "Confirmer le refus" et "Annuler"
 
-## 2. Étendre `notify-validation/index.ts`
+À la confirmation :
+1. Le statut passe à `rejected` (comportement actuel conservé).
+2. Si le proposeur a un `user_id` ET un email récupérable, un email est envoyé avec le motif.
+3. Toast de succès mentionnant l'envoi ou non de l'email.
 
-Ajouter `'event'` aux types acceptés :
-- Validation du body : `['contribution', 'proposal', 'event']`.
-- Branche `type === 'event'` :
-  - lit `events` (`user_id, title, category, start_date`)
-  - `templateName = 'event-published'`
-  - `templateData = { userName, eventTitle, eventId, eventCategory, eventStartDate }`
-  - `idempotencyKey = event-{recordId}`
+Le champ motif est optionnel : si vide, aucun email n'est envoyé (rejet silencieux, comme aujourd'hui).
 
-## 3. Trigger DB
+## Email
 
-Migration ajoutant :
-- Fonction `public.on_event_published()` (miroir de `on_proposal_approved`) qui appelle `notify_validation_async('event', NEW.id)` quand `NEW.status = 'published'` et `OLD.status <> 'published'` et `NEW.user_id IS NOT NULL`.
-- Trigger `AFTER UPDATE OF status ON public.events` qui exécute cette fonction.
-- Aucun changement de schéma, aucune RLS/GRANT à ajouter (table existante).
+Nouveau template `submission-rejected` (React Email, cohérent avec `proposal-approved` et `event-published`) :
+- Titre : "Ton [lieu/événement/contribution] n'a pas été retenu"
+- Nom de la soumission
+- Bloc "Message de l'équipe Kidmapp" affichant le motif saisi
+- Texte : "Tu peux nous répondre directement à hello@kidmapp.app si tu veux en discuter."
+- Pas de CTA (ou un CTA discret vers la page Compte)
+- `reply-to: hello@kidmapp.app` (via un nouveau paramètre optionnel `replyTo` dans `send-transactional-email`)
 
-Le trigger existant `events_award_points` reste indépendant — les deux triggers coexistent sans conflit.
+Un seul template couvre les trois types (contribution / proposition / événement) via un prop `submissionType` qui adapte le titre.
 
-## 4. Déploiement
-- Déployer les edge functions `send-transactional-email` et `notify-validation` (nouvelle version).
-- Le template est chargé automatiquement via le registry.
+## Détails techniques
 
-## Cas hors périmètre
-- Les événements créés par un admin ou par le compte de sourcing `bastien.boubat+event@gmail.com` déclencheront quand même l'email si `user_id` correspond à un utilisateur avec email valide — comportement identique aux propositions actuelles. Aucun filtre spécifique ajouté (à préciser si tu veux exclure le compte de sourcing).
+**Frontend — `src/pages/AdminPage.tsx`**
+- Nouveau composant local `RejectDialog` (ou réutilisation de `Dialog` shadcn) avec state `{ open, target, type, reason }`.
+- Refactor des trois `handleReject` (contributions ligne 362, proposals ligne 2351, events ligne 2794) pour :
+  1. Ouvrir la modale au lieu de rejeter directement.
+  2. Une fois confirmé, appliquer l'update `status: 'rejected'` puis appeler `supabase.functions.invoke('send-transactional-email', ...)` si motif fourni.
+- Récupération de l'email du proposeur : réutiliser le hook existant `useUserEmails` déjà utilisé côté admin (proposals/events). Pour les contributions, ajouter la même récupération si absente.
+
+**Backend — `supabase/functions/send-transactional-email/index.ts`**
+- Ajouter le support d'un champ optionnel `replyTo` dans le payload et le passer à Mailgun (`h:Reply-To`).
+
+**Nouveau template — `supabase/functions/_shared/transactional-email-templates/submission-rejected.tsx`**
+- Props : `submissionType: 'contribution' | 'location' | 'event'`, `submissionName: string`, `reason: string`.
+- Enregistré dans `registry.ts`.
+
+**Déploiement** : `send-transactional-email` (modif payload).
+
+## Hors scope
+
+- Pas de trigger DB automatique : l'envoi est piloté depuis l'admin uniquement (sinon on ne connaît pas le motif).
+- Pas de champ persistant `rejection_reason` en base pour l'instant (peut être ajouté plus tard si besoin d'historique).
