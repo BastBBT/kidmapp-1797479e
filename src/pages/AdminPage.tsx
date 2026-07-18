@@ -2635,6 +2635,8 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const [manualCoordsFor, setManualCoordsFor] = useState<string | null>(null);
   const [manualLat, setManualLat] = useState('47.2184');
   const [manualLng, setManualLng] = useState('-1.5536');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const { data: events = [] } = useQuery({
     queryKey: ['admin-events'],
