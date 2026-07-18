@@ -2679,6 +2679,14 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
           </>
         );
       })()}
+      <RejectDialog
+        open={!!rejectTarget}
+        submissionType="location"
+        submissionName={rejectTarget?.name || 'Proposition'}
+        recipientEmail={rejectTarget?.user_id ? (proposalEmails[rejectTarget.user_id] ?? null) : null}
+        onCancel={() => setRejectTarget(null)}
+        onConfirm={confirmReject}
+      />
     </motion.div>
   );
 }
