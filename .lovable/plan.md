@@ -1,51 +1,40 @@
-## 1. Migration SQL — Contrainte CHECK sur `events.category`
+## Objectif
 
-Migration en un seul call :
+Ajouter un onglet **Activités** dans l'admin, symétrique à l'onglet **Lieux**, avec les mêmes filtres (statut, recherche, tri) et les mêmes actions d'édition (Publier/Masquer, Modifier, Supprimer).
 
-```sql
-UPDATE events SET category = 'Autre'
-WHERE category IS NOT NULL
-  AND category NOT IN ('Spectacle','Atelier','Festival','Fête','Marché','Exposition','Autre');
+## Contexte
 
-ALTER TABLE events DROP CONSTRAINT IF EXISTS events_category_check;
-ALTER TABLE events ADD CONSTRAINT events_category_check
-  CHECK (category IN ('Spectacle','Atelier','Festival','Fête','Marché','Exposition','Autre'));
-```
+Aujourd'hui l'onglet **Lieux** de `AdminPage.tsx` liste tout ce qui vit dans la table `locations` — sans distinction entre les vraies « places » (`restaurant`, `cafe`, `shop`, `public`, `coiffeur`) et les « activités » (`nature`, `sport`, `creatif`, `culture`, `jeux`). Ces deux groupes sont déjà définis dans `src/types/location.ts` (`PLACE_CATEGORIES` / `ACTIVITY_CATEGORIES`).
 
-## 2. Ajout catégorie « Exposition »
+## Changements
 
-Dans `src/types/event.ts` :
-- Ajouter `'Exposition'` dans `EVENT_CATEGORIES` (avant `'Autre'`).
-- Ajouter les mappings dans `CATEGORY_TOKENS` (`var(--event-exposition)`), `CATEGORY_HEX` (`#2F80B5`), `CATEGORY_EMOJI` (`🖼️`).
-- Mettre à jour aussi l'emoji « Festival » → `🎪` (aligné sur la spec) et « Marché » → `🧺`, « Autre » → `📅`.
+Un seul fichier touché : `src/pages/AdminPage.tsx`.
 
-Dans `src/index.css` : ajouter le token CSS `--event-exposition: #2F80B5` à côté des autres event-*.
+1. **Type & liste d'onglets**
+   - Ajouter `'activities'` à `AdminTab`.
+   - Insérer `{ key: 'activities', label: 'Activités' }` dans `tabs` juste après `Lieux`.
 
-Les selects dans `ProposeEventModal.tsx` et `AdminPage.tsx` utilisent déjà `EVENT_CATEGORIES` (menu fermé), donc rien à faire en plus côté formulaires — la nouvelle valeur apparaît automatiquement.
+2. **Rendu partagé Lieux / Activités**
+   - Remplacer la condition `activeTab === 'locations'` par `activeTab === 'locations' || activeTab === 'activities'`.
+   - En haut du bloc, calculer `const isActivitiesTab = activeTab === 'activities'` et filtrer la liste `locations` par groupe :
+     - `locations` → catégorie ∈ `PLACE_CATEGORIES`
+     - `activities` → catégorie ∈ `ACTIVITY_CATEGORIES`
+   - Baser les 4 `counts` (all/published/unpublished/pending), la SearchBar, le tri et la liste rendue sur cette sous-liste.
+   - Adapter les libellés dynamiques : « X lieux affichés » / « X activités affichées », placeholder de recherche (« nom, adresse ou site web » reste OK), message vide inchangé.
 
-## 3. Feature — Filtre par type d'événement dans Sorties
+3. **Édition**
+   - Le formulaire d'édition (`editingId` / `editForm`) est déjà générique côté catégorie via un `<select>` sur `categoryLabels`. On garde tel quel : depuis l'onglet Activités on éditera une activité avec les mêmes champs. Les toggles équipements restent visibles (utile si un jour une activité les utilise ; sans effet sinon).
 
-Nouveau composant `src/components/EventCategoryFilter.tsx` :
-- Props : `available: string[]`, `selected: string | 'all'`, `onChange`.
-- Rendu conditionnel : ne s'affiche que si `available.length >= 2`.
-- Rangée scrollable horizontale, même style que les autres pills (border-radius 100px, hauteur ~28px), avec pill « Tous » en tête.
-- Pill active : `background = eventCategoryHex(cat)`, `color: #fff`.
-- Re-clic sur pill active → repasse à `'all'`.
-
-Dans `src/pages/SortiesPage.tsx` :
-- Nouvel état `selectedCategory: string | 'all'` (défaut `'all'`).
-- Calculer `availableCategories` en `useMemo` sur `events` :
-  - Ordre fixe pour les connues : `Spectacle, Atelier, Festival, Fête, Marché, Exposition` (dans l'ordre de présence).
-  - Puis catégories inconnues triées alphabétiquement.
-  - `Autre` toujours en dernier si présent.
-- Rendre le filtre juste sous l'`AgeFilter` (dans le Header ou juste en dessous du Header dans la page — approche la plus simple : rendu direct dans la page, sous le titre/subtitle et avant le `WeekendPicker`, pour ne pas toucher au composant `Header` partagé).
-- Ajouter le filtre catégorie au `filteredEvents` (combiné avec âge + semaine).
-- Le filtre s'applique déjà naturellement à la carte (elle reçoit `filteredEvents`).
-- Au changement de catégorie ou d'âge : ramener `selectedKey` sur `defaultKey` (première semaine non passée) — étendre le `useEffect` existant.
-- Empty state : si `selectedAge !== 'all' || selectedCategory !== 'all'` → « Rien ne correspond à tes filtres pour le moment » ; sinon garder le texte actuel.
+4. **Dashboard (facultatif, à confirmer)**
+   - Les stats « Lieux publiés / à valider » incluent aujourd'hui les activités. Je ne change pas le dashboard dans ce lot pour rester focus — dis-moi si tu veux aussi séparer les compteurs.
 
 ## Détails techniques
 
-- Sous-titre et pills de semaine inchangés.
-- Aucun changement backend hors la migration.
-- La liste `EVENT_CATEGORIES` mise à jour couvre déjà la contrainte CHECK (formulaires alignés).
+- Import à ajouter en haut du fichier : `PLACE_CATEGORIES, ACTIVITY_CATEGORIES` depuis `@/types/location`.
+- Filtrage groupe fait via `const groupCats = isActivitiesTab ? ACTIVITY_CATEGORIES : PLACE_CATEGORIES; const scoped = locations.filter(l => (groupCats as readonly string[]).includes(l.category));`
+- Les états `searchLocations`, `statusFilter`, `sortBy` sont partagés entre les deux onglets (comportement acceptable ; un utilisateur qui switch garde son filtre). Si tu préfères des états séparés, dis-le et je dédouble.
+
+## Hors scope
+
+- Pas de changement DB, ni de types, ni de fonctions Edge.
+- Pas de modification des onglets Propositions / Événements / Contributions.
