@@ -118,7 +118,9 @@ const SortiesPage = () => {
           <div style={{ textAlign: 'center', padding: '32px 16px' }}>
             <div style={{ fontSize: 34, marginBottom: 8 }}>🎪</div>
             <div style={{ fontFamily: 'Caveat', fontSize: 17, color: 'var(--text-muted)' }}>
-              Pas d'événement pour cette semaine ✦
+              {hasActiveFilter
+                ? 'Rien ne correspond à tes filtres pour le moment'
+                : "Pas d'événement pour cette semaine ✦"}
             </div>
           </div>
         ) : (
