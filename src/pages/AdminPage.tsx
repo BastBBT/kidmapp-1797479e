@@ -826,7 +826,7 @@ const AdminPage = () => {
               );
             })()}
             {(() => {
-              const filtered = locations
+              const filtered = scoped
                 .filter((loc) => statusFilter === 'all' || loc.status === statusFilter)
                 .filter((loc) =>
                   matchSearch(searchLocations, loc.name, loc.address, (loc as any).website)
@@ -840,7 +840,7 @@ const AdminPage = () => {
               return (
                 <>
                   <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                    {filtered.length} {filtered.length > 1 ? 'lieux affichés' : 'lieu affiché'}
+                    {filtered.length} {isActivitiesTab ? (filtered.length > 1 ? 'activités affichées' : 'activité affichée') : (filtered.length > 1 ? 'lieux affichés' : 'lieu affiché')}
                   </div>
                   {filtered.length === 0 && (
                     <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
