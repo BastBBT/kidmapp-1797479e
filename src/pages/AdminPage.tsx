@@ -763,8 +763,12 @@ const AdminPage = () => {
           </motion.div>
         )}
 
-        {/* Lieux */}
-        {activeTab === 'locations' && (
+        {/* Lieux / Activités */}
+        {(activeTab === 'locations' || activeTab === 'activities') && (() => {
+          const isActivitiesTab = activeTab === 'activities';
+          const groupCats = (isActivitiesTab ? ACTIVITY_CATEGORIES : PLACE_CATEGORIES) as readonly string[];
+          const scoped = locations.filter((l) => groupCats.includes(l.category));
+          return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
             <SearchBar
               value={searchLocations}
@@ -773,10 +777,10 @@ const AdminPage = () => {
             />
             {(() => {
               const counts = {
-                all: locations.length,
-                published: locations.filter((l) => l.status === 'published').length,
-                unpublished: locations.filter((l) => l.status === 'unpublished').length,
-                pending: locations.filter((l) => l.status === 'pending').length,
+                all: scoped.length,
+                published: scoped.filter((l) => l.status === 'published').length,
+                unpublished: scoped.filter((l) => l.status === 'unpublished').length,
+                pending: scoped.filter((l) => l.status === 'pending').length,
               };
               const statusOptions: { key: typeof statusFilter; label: string }[] = [
                 { key: 'all', label: 'Tous' },
