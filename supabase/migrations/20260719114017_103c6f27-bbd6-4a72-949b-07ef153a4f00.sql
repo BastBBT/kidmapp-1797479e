@@ -1,0 +1,1 @@
+REVOKE SELECT (user_id) ON public.event_feedback FROM anon;
