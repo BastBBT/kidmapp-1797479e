@@ -3174,6 +3174,13 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
 
             {!isEditing && (
               <div className="flex gap-2 flex-wrap">
+                {ev.website && (
+                  <a href={ev.website} target="_blank" rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ flex: '1 1 30%', textAlign: 'center', textDecoration: 'none', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid #3B7D6E', background: 'transparent', color: '#3B7D6E', cursor: 'pointer' }}>
+                    ↗ Voir le lien
+                  </a>
+                )}
                 {ev.status === 'pending' && (
                   <>
                     <button onClick={() => handleApprove(ev)} disabled={isProcessing}
