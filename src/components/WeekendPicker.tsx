@@ -1,7 +1,11 @@
-import { Weekend } from '@/lib/weekend';
+interface PeriodChip {
+  key: string;
+  label: string;
+  past?: boolean;
+}
 
 interface Props {
-  weekends: Weekend[];
+  weekends: PeriodChip[];
   selectedKey: string;
   onChange: (key: string) => void;
 }

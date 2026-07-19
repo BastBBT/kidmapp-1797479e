@@ -1,43 +1,51 @@
-# Plan : Tri par date d'événement dans l'admin
+# Plan : Sorties par semaine (au lieu de week-end)
 
 ## Objectif
-Dans l'onglet **Événements** de l'admin (`/gestion-k1dm4p`), ajouter une possibilité de trier la liste par **date d'événement** (date de début `date_start`), en complément du tri actuel par date de création.
+L'onglet **Sorties** regroupe les événements par **semaine** (lundi → dimanche) au lieu de week-end, pour inclure ateliers du mercredi + vacances scolaires. Aucun changement de schéma DB.
 
-## État actuel vérifié
-- L'onglet Événements est géré par le composant interne `EventsTab` dans `src/pages/AdminPage.tsx`.
-- Le fetch est actuellement trié sur `created_at DESC`.
-- Les filtres existants sont : statut (pending / published / rejected / all), provenance (all / user / sourcing), et recherche textuelle.
-- Aucun contrôle de tri n'existe aujourd'hui.
+## Changements
 
-## Implémentation
+### 1. `src/lib/weekend.ts` → ajouter helpers "semaine"
+Sans supprimer l'existant (pour ne rien casser ailleurs, ex. `EventCard` réutilise `isPastEvent`), ajouter :
+- `interface Week { key: string /* ISO lundi */, monday: Date, sunday: Date, label: string, past?: boolean }`
+- `buildWeeks(count = 8, from = new Date(), includeLast = true): Week[]`
+  - Calcule le lundi de la semaine courante
+  - Inclut la semaine passée en tête si `includeLast`
+  - Labels :
+    - passée → `Semaine dernière`
+    - semaine courante → `Cette semaine`
+    - suivantes → `Semaine du {d MMM}` (ex. `Semaine du 27 juil.`) via `toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })` sur le lundi
+- `currentWeekKey(from)` : ISO du lundi courant
+- `eventInWeek(dateStart, dateEnd, week)` : overlap standard `[dateStart..dateEnd] ∩ [monday..sunday]`. Plus besoin de la logique "weekday-only rattaché au samedi suivant" — un événement du mercredi tombe naturellement dans sa semaine.
+- `lastMondayISO` existant : inchangé, sert toujours de borne basse du fetch.
 
-### 1. Ajout d'un état de tri
-Ajouter dans `EventsTab` un état local :
-- `eventSort`: `'eventDateDesc' | 'eventDateAsc' | 'createdAtDesc'`
-- Valeur par défaut : `'eventDateDesc'` (plus proche → plus lointain), utile pour la validation d'événements à venir.
+### 2. `src/components/WeekendPicker.tsx` → renommer/adapter
+Le composant s'appuie déjà sur une interface générique `{ key, label, past }`. On garde son style (chip pointillé/gris pour past, vert pour actif futur, plein pour actif présent) et on le renomme mentalement "period picker" — pas besoin de renommer le fichier, on lui passe des `Week[]` typés comme `{ key, label, past }` (structural typing).
+- Aucune modif de style requise ; le picker fonctionne tel quel.
 
-### 2. Contrôle utilisateur
-Ajouter une ligne de pills de tri juste après les filtres existants (statut + provenance) :
-- **Date d'événement ↓** (plus proche en premier)
-- **Date d'événement ↑** (plus lointain en premier)
-- **Création** (tri actuel par `created_at` décroissant)
+### 3. `src/pages/SortiesPage.tsx`
+- Remplacer `buildWeekends(8, new Date(), true)` par `buildWeeks(8, new Date(), true)`.
+- Remplacer `eventInWeekend` par `eventInWeek`.
+- Renommer les variables locales (`selectedWeekend` → `selectedWeek`, `isPastWeekend` → `isPastWeek`).
+- Sous-titre : `Les événements kids, semaine après semaine`.
+- Titre : `Sorties de la semaine` (au lieu de `Sorties du week-end`).
+- Message vide : `Pas d'événement pour cette semaine ✦`.
+- Default key : première semaine non passée (inchangé dans la logique).
 
-Style : reprendre le même `pillStyle` déjà utilisé pour les filtres statut/provenance, avec le même état actif/inactif.
+### 4. Effets induits (déjà OK, à confirmer)
+- `EventCard` avec `showPast={isPastWeek}` : passe le flag « past » basé sur `isPastEvent(date_start, date_end)` — donc dans « Cette semaine » (past=false), un event du mercredi consulté jeudi n'est PAS grisé côté liste. **Correction nécessaire** : passer `showPast` = true dès qu'on affiche la semaine courante ou passée, pour que les events déjà terminés apparaissent grisés « Terminé » **au sein de « Cette semaine »**. On passe donc `showPast={!selectedWeek?.future}` où `future` = semaine strictement à venir (monday > aujourd'hui). Concrètement : `showPast = selectedWeek.monday <= today` (semaine passée OU en cours).
+- `EventPage` : `isPastEvent` déjà utilisé → carte feedback 👍/👎 s'affiche naturellement pour l'atelier de mercredi consulté jeudi. Aucun changement.
 
-### 3. Logique de tri
-Remplacer le rendu direct de `filtered` par une version triée :
-- `eventDateDesc` : `date_start` décroissant
-- `eventDateAsc` : `date_start` croissant
-- `createdAtDesc` : `created_at` décroissant (comportement actuel)
+### 5. Non-changements
+- Fetch `useEvents` : borne basse `lastMondayISO()` inchangée (couvre semaine passée + courantes + futures publiées).
+- Schema DB : aucune migration.
+- Filtre âge : inchangé.
+- `AccountPage`, `SavedPage`, `AdminPage` : n'utilisent pas `buildWeekends`/`eventInWeekend`, non impactés.
 
-Les dates `date_start` sont des chaînes ISO ; la comparaison lexicographique suffit.
+## Fichiers modifiés
+- `src/lib/weekend.ts` (ajouts)
+- `src/pages/SortiesPage.tsx` (bascule semaines + textes + logique showPast)
 
-### 4. Aucun changement de backend
-Pas de migration ni de modification d'API : le tri s'applique en mémoire sur les événements déjà chargés par `useQuery(['admin-events'])`.
-
-## Fichier modifié
-- `src/pages/AdminPage.tsx` uniquement (partie `EventsTab`).
-
-## Non inclus
-- Pas de tri côté base de données (le volume d'événements reste faible, tri client suffisant).
-- Pas de persistance du choix de tri dans l'URL ou le localStorage.
+## Détails techniques
+- Lundi ISO calculé via `(dow + 6) % 7` jours à retrancher depuis un jour donné (dim=0 → 6 jours en arrière).
+- Comparaison de dates via ISO string lexicographique (`YYYY-MM-DD`), déjà utilisée dans le fichier.

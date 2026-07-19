@@ -3,35 +3,37 @@ import Header from '@/components/Header';
 import WeekendPicker from '@/components/WeekendPicker';
 import EventsMap from '@/components/EventsMap';
 import EventCard from '@/components/EventCard';
-import { buildWeekends, eventInWeekend } from '@/lib/weekend';
+import { buildWeeks, eventInWeek, todayISO, toISODate } from '@/lib/weekend';
 import { useEvents } from '@/hooks/useEvents';
 import { AgeBucket, matchesAgeBucket } from '@/lib/ageFilter';
 
 const SortiesPage = () => {
-  const weekends = useMemo(() => buildWeekends(8, new Date(), true), []);
+  const weeks = useMemo(() => buildWeeks(8, new Date(), true), []);
   const defaultKey = useMemo(
-    () => weekends.find((w) => !w.past)?.key ?? weekends[0]?.key ?? '',
-    [weekends],
+    () => weeks.find((w) => !w.past)?.key ?? weeks[0]?.key ?? '',
+    [weeks],
   );
   const [selectedKey, setSelectedKey] = useState<string>(defaultKey);
   const [selectedAge, setSelectedAge] = useState<AgeBucket>('all');
   const { data: events = [], isLoading } = useEvents();
 
-  // Reset to the first non-past weekend whenever the age filter changes.
   useEffect(() => {
     setSelectedKey(defaultKey);
   }, [selectedAge, defaultKey]);
 
-  const selectedWeekend = weekends.find((w) => w.key === selectedKey) ?? weekends[0];
-  const isPastWeekend = !!selectedWeekend?.past;
+  const selectedWeek = weeks.find((w) => w.key === selectedKey) ?? weeks[0];
+  const today = todayISO();
+  // Show past styling for weeks that started already (past OR current week):
+  // an event on Wed viewed on Thu should appear grayed "Terminé".
+  const showPast = selectedWeek ? toISODate(selectedWeek.monday) <= today : false;
 
   const filteredEvents = useMemo(() => {
-    if (!selectedWeekend) return [];
+    if (!selectedWeek) return [];
     return events
-      .filter((ev) => eventInWeekend(ev.date_start, ev.date_end, selectedWeekend))
+      .filter((ev) => eventInWeek(ev.date_start, ev.date_end, selectedWeek))
       .filter((ev) => matchesAgeBucket(ev as any, selectedAge))
       .sort((a, b) => a.date_start.localeCompare(b.date_start));
-  }, [events, selectedWeekend, selectedAge]);
+  }, [events, selectedWeek, selectedAge]);
 
   return (
     <div className="min-h-screen pb-24" style={{ background: 'var(--bg)' }}>
@@ -42,14 +44,14 @@ const SortiesPage = () => {
 
       <div style={{ padding: '8px 16px 4px' }}>
         <h1 style={{ fontFamily: 'Fraunces', fontSize: 22, fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text)' }}>
-          Sorties du week-end
+          Sorties de la semaine
         </h1>
         <p style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text-muted)', marginTop: 2 }}>
-          Événements à faire en famille près de Nantes ✦
+          Les événements kids, semaine après semaine ✦
         </p>
       </div>
 
-      <WeekendPicker weekends={weekends} selectedKey={selectedKey} onChange={setSelectedKey} />
+      <WeekendPicker weekends={weeks} selectedKey={selectedKey} onChange={setSelectedKey} />
 
       <div style={{ padding: '8px 16px' }}>
         <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
@@ -79,12 +81,12 @@ const SortiesPage = () => {
           <div style={{ textAlign: 'center', padding: '32px 16px' }}>
             <div style={{ fontSize: 34, marginBottom: 8 }}>🎪</div>
             <div style={{ fontFamily: 'Caveat', fontSize: 17, color: 'var(--text-muted)' }}>
-              Pas d'événement pour ce week-end ✦
+              Pas d'événement pour cette semaine ✦
             </div>
           </div>
         ) : (
           filteredEvents.map((ev) => (
-            <EventCard key={ev.id} event={ev} showPast={isPastWeekend} />
+            <EventCard key={ev.id} event={ev} showPast={showPast} />
           ))
         )}
       </div>
