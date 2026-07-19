@@ -967,7 +967,8 @@ const AdminPage = () => {
               );
             })()}
           </motion.div>
-        )}
+          );
+        })()}
 
         {/* Contributions */}
         {activeTab === 'contributions' && (
