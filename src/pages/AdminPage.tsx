@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { categoryLabels, categoryIcons } from '@/types/location';
+import { categoryLabels, categoryIcons, PLACE_CATEGORIES, ACTIVITY_CATEGORIES } from '@/types/location';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { useAllLocations, useContributions } from '@/hooks/useLocations';
@@ -16,7 +16,7 @@ import RejectDialog from '@/components/admin/RejectDialog';
 import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
 
-type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals' | 'events';
+type AdminTab = 'dashboard' | 'locations' | 'activities' | 'contributions' | 'add' | 'proposals' | 'events';
 
 type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; confirmed_count: number }>;
 
@@ -31,6 +31,7 @@ const buildEmptyMealsState = (mealTypes: MealType[]): MealsState => {
 const tabs: { key: AdminTab; label: string }[] = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'locations', label: 'Lieux' },
+  { key: 'activities', label: 'Activités' },
   { key: 'contributions', label: 'Contributions' },
   { key: 'proposals', label: 'Propositions' },
   { key: 'events', label: 'Événements' },
@@ -762,8 +763,12 @@ const AdminPage = () => {
           </motion.div>
         )}
 
-        {/* Lieux */}
-        {activeTab === 'locations' && (
+        {/* Lieux / Activités */}
+        {(activeTab === 'locations' || activeTab === 'activities') && (() => {
+          const isActivitiesTab = activeTab === 'activities';
+          const groupCats = (isActivitiesTab ? ACTIVITY_CATEGORIES : PLACE_CATEGORIES) as readonly string[];
+          const scoped = locations.filter((l) => groupCats.includes(l.category));
+          return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
             <SearchBar
               value={searchLocations}
@@ -772,10 +777,10 @@ const AdminPage = () => {
             />
             {(() => {
               const counts = {
-                all: locations.length,
-                published: locations.filter((l) => l.status === 'published').length,
-                unpublished: locations.filter((l) => l.status === 'unpublished').length,
-                pending: locations.filter((l) => l.status === 'pending').length,
+                all: scoped.length,
+                published: scoped.filter((l) => l.status === 'published').length,
+                unpublished: scoped.filter((l) => l.status === 'unpublished').length,
+                pending: scoped.filter((l) => l.status === 'pending').length,
               };
               const statusOptions: { key: typeof statusFilter; label: string }[] = [
                 { key: 'all', label: 'Tous' },
@@ -821,7 +826,7 @@ const AdminPage = () => {
               );
             })()}
             {(() => {
-              const filtered = locations
+              const filtered = scoped
                 .filter((loc) => statusFilter === 'all' || loc.status === statusFilter)
                 .filter((loc) =>
                   matchSearch(searchLocations, loc.name, loc.address, (loc as any).website)
@@ -835,7 +840,7 @@ const AdminPage = () => {
               return (
                 <>
                   <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                    {filtered.length} {filtered.length > 1 ? 'lieux affichés' : 'lieu affiché'}
+                    {filtered.length} {isActivitiesTab ? (filtered.length > 1 ? 'activités affichées' : 'activité affichée') : (filtered.length > 1 ? 'lieux affichés' : 'lieu affiché')}
                   </div>
                   {filtered.length === 0 && (
                     <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
@@ -962,7 +967,8 @@ const AdminPage = () => {
               );
             })()}
           </motion.div>
-        )}
+          );
+        })()}
 
         {/* Contributions */}
         {activeTab === 'contributions' && (
