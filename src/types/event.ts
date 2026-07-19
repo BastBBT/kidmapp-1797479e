@@ -37,6 +37,7 @@ const CATEGORY_TOKENS: Record<string, string> = {
   Fete: 'var(--event-fete)',
   Marché: 'var(--event-marche)',
   Marche: 'var(--event-marche)',
+  Exposition: 'var(--event-exposition)',
   Autre: 'var(--event-autre)',
 };
 
