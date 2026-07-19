@@ -31,6 +31,7 @@ const buildEmptyMealsState = (mealTypes: MealType[]): MealsState => {
 const tabs: { key: AdminTab; label: string }[] = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'locations', label: 'Lieux' },
+  { key: 'activities', label: 'Activités' },
   { key: 'contributions', label: 'Contributions' },
   { key: 'proposals', label: 'Propositions' },
   { key: 'events', label: 'Événements' },
