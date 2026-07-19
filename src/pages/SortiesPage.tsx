@@ -3,12 +3,14 @@ import Header from '@/components/Header';
 import WeekendPicker from '@/components/WeekendPicker';
 import EventsMap from '@/components/EventsMap';
 import EventCard from '@/components/EventCard';
+import EventCategoryFilter, { orderEventCategories } from '@/components/EventCategoryFilter';
 import { buildWeeks, eventInWeek, todayISO, toISODate, type Week } from '@/lib/weekend';
 import { useEvents } from '@/hooks/useEvents';
 import { AgeBucket, matchesAgeBucket } from '@/lib/ageFilter';
 
 const SortiesPage = () => {
   const [selectedAge, setSelectedAge] = useState<AgeBucket>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
   const { data: events = [], isLoading } = useEvents();
 
   // Build weeks: always show last + current, plus any future week where at
@@ -33,11 +35,16 @@ const SortiesPage = () => {
 
   useEffect(() => {
     setSelectedKey(defaultKey);
-  }, [selectedAge, defaultKey]);
+  }, [selectedAge, selectedCategory, defaultKey]);
 
   const selectedWeek = weeks.find((w) => w.key === selectedKey) ?? weeks[0];
   const today = todayISO();
   const showPast = selectedWeek ? toISODate(selectedWeek.monday) <= today : false;
+
+  const availableCategories = useMemo(
+    () => orderEventCategories(Array.from(new Set(events.map((e) => e.category).filter(Boolean) as string[]))),
+    [events],
+  );
 
   const filteredEvents = useMemo(() => {
     if (!selectedWeek) return [];
@@ -45,14 +52,15 @@ const SortiesPage = () => {
     return events
       .filter((ev) => eventInWeek(ev.date_start, ev.date_end, selectedWeek))
       .filter((ev) => matchesAgeBucket(ev as any, selectedAge))
+      .filter((ev) => selectedCategory === 'all' || ev.category === selectedCategory)
       .sort((a, b) => {
-        // Sort by max(date_start, monday of selected week) so long-running
-        // events don't stay pinned at the top every week.
         const ka = a.date_start < mondayISO ? mondayISO : a.date_start;
         const kb = b.date_start < mondayISO ? mondayISO : b.date_start;
         return ka.localeCompare(kb);
       });
-  }, [events, selectedWeek, selectedAge]);
+  }, [events, selectedWeek, selectedAge, selectedCategory]);
+
+  const hasActiveFilter = selectedAge !== 'all' || selectedCategory !== 'all';
 
   return (
     <div className="min-h-screen pb-24" style={{ background: 'var(--bg)' }}>
@@ -69,6 +77,16 @@ const SortiesPage = () => {
           Les événements kids, semaine après semaine ✦
         </p>
       </div>
+
+      {availableCategories.length >= 2 && (
+        <div style={{ padding: '4px 16px 8px' }}>
+          <EventCategoryFilter
+            available={availableCategories}
+            selected={selectedCategory}
+            onChange={setSelectedCategory}
+          />
+        </div>
+      )}
 
       <WeekendPicker weekends={weeks} selectedKey={selectedKey} onChange={setSelectedKey} />
 
@@ -100,7 +118,9 @@ const SortiesPage = () => {
           <div style={{ textAlign: 'center', padding: '32px 16px' }}>
             <div style={{ fontSize: 34, marginBottom: 8 }}>🎪</div>
             <div style={{ fontFamily: 'Caveat', fontSize: 17, color: 'var(--text-muted)' }}>
-              Pas d'événement pour cette semaine ✦
+              {hasActiveFilter
+                ? 'Rien ne correspond à tes filtres pour le moment'
+                : "Pas d'événement pour cette semaine ✦"}
             </div>
           </div>
         ) : (
