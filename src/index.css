@@ -29,6 +29,7 @@
     --event-festival: #C64B7A;
     --event-fete: #D95F3B;
     --event-marche: #3B7D6E;
+    --event-exposition: #2F80B5;
     --event-autre: #EF9F27;
 
     /* shadcn compat tokens mapped to new palette */
