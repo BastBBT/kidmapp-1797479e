@@ -23,14 +23,14 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsErr } = await admin.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims?.sub) {
-      console.error('getClaims failed', claimsErr?.message);
+    const { data: userData, error: userErr } = await admin.auth.getUser(token);
+    if (userErr || !userData?.user?.id) {
+      console.error('getUser failed', userErr?.message);
       return new Response(JSON.stringify({ error: 'invalid_auth' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const userId = claimsData.claims.sub as string;
+    const userId = userData.user.id;
 
     const { data: isAdminData, error: roleErr } = await admin.rpc('is_admin', { _user_id: userId });
     if (roleErr || !isAdminData) {
