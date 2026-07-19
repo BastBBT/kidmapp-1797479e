@@ -52,6 +52,7 @@ const CATEGORY_HEX: Record<string, string> = {
   Fete: '#D95F3B',
   Marché: '#3B7D6E',
   Marche: '#3B7D6E',
+  Exposition: '#2F80B5',
   Autre: '#EF9F27',
 };
 
@@ -61,13 +62,14 @@ export const eventCategoryHex = (category?: string | null): string =>
 const CATEGORY_EMOJI: Record<string, string> = {
   Spectacle: '🎭',
   Atelier: '🎨',
-  Festival: '🎉',
-  'Fête': '🎊',
-  Fete: '🎊',
-  Marché: '🛍️',
-  Marche: '🛍️',
-  Autre: '✨',
+  Festival: '🎪',
+  'Fête': '🎉',
+  Fete: '🎉',
+  Marché: '🧺',
+  Marche: '🧺',
+  Exposition: '🖼️',
+  Autre: '📅',
 };
 
 export const eventCategoryEmoji = (category?: string | null): string =>
-  (category && CATEGORY_EMOJI[category]) || '✨';
+  (category && CATEGORY_EMOJI[category]) || '📅';
