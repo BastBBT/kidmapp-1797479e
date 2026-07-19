@@ -3,12 +3,14 @@ import Header from '@/components/Header';
 import WeekendPicker from '@/components/WeekendPicker';
 import EventsMap from '@/components/EventsMap';
 import EventCard from '@/components/EventCard';
+import EventCategoryFilter, { orderEventCategories } from '@/components/EventCategoryFilter';
 import { buildWeeks, eventInWeek, todayISO, toISODate, type Week } from '@/lib/weekend';
 import { useEvents } from '@/hooks/useEvents';
 import { AgeBucket, matchesAgeBucket } from '@/lib/ageFilter';
 
 const SortiesPage = () => {
   const [selectedAge, setSelectedAge] = useState<AgeBucket>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
   const { data: events = [], isLoading } = useEvents();
 
   // Build weeks: always show last + current, plus any future week where at
