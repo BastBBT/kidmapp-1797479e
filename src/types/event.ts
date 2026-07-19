@@ -1,4 +1,4 @@
-export const EVENT_CATEGORIES = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché', 'Autre'] as const;
+export const EVENT_CATEGORIES = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché', 'Exposition', 'Autre'] as const;
 export type EventCategory = typeof EVENT_CATEGORIES[number];
 
 export const EVENT_WEATHERS = ['En intérieur', 'En extérieur', 'Les deux'] as const;
