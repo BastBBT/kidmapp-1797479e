@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { categoryLabels, categoryIcons } from '@/types/location';
+import { categoryLabels, categoryIcons, PLACE_CATEGORIES, ACTIVITY_CATEGORIES } from '@/types/location';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { useAllLocations, useContributions } from '@/hooks/useLocations';
