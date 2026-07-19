@@ -1,51 +1,31 @@
-# Plan : Sorties par semaine (au lieu de week-end)
+## Événements longue durée dans Sorties
 
-## Objectif
-L'onglet **Sorties** regroupe les événements par **semaine** (lundi → dimanche) au lieu de week-end, pour inclure ateliers du mercredi + vacances scolaires. Aucun changement de schéma DB.
+Support des événements qui s'étalent sur plusieurs semaines (expos, festivals) : ils doivent apparaître dans chaque semaine traversée tant qu'ils ne sont pas terminés.
 
-## Changements
+### 1. Fetch élargi — `src/hooks/useEvents.ts`
+Modifier la requête pour inclure les events longue durée encore en cours :
+- Condition : `date_start >= lundi_semaine_dernière` **OU** `date_end >= aujourd'hui`
+- Garder `status = published`
 
-### 1. `src/lib/weekend.ts` → ajouter helpers "semaine"
-Sans supprimer l'existant (pour ne rien casser ailleurs, ex. `EventCard` réutilise `isPastEvent`), ajouter :
-- `interface Week { key: string /* ISO lundi */, monday: Date, sunday: Date, label: string, past?: boolean }`
-- `buildWeeks(count = 8, from = new Date(), includeLast = true): Week[]`
-  - Calcule le lundi de la semaine courante
-  - Inclut la semaine passée en tête si `includeLast`
-  - Labels :
-    - passée → `Semaine dernière`
-    - semaine courante → `Cette semaine`
-    - suivantes → `Semaine du {d MMM}` (ex. `Semaine du 27 juil.`) via `toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })` sur le lundi
-- `currentWeekKey(from)` : ISO du lundi courant
-- `eventInWeek(dateStart, dateEnd, week)` : overlap standard `[dateStart..dateEnd] ∩ [monday..sunday]`. Plus besoin de la logique "weekday-only rattaché au samedi suivant" — un événement du mercredi tombe naturellement dans sa semaine.
-- `lastMondayISO` existant : inchangé, sert toujours de borne basse du fetch.
+### 2. Groupement par semaine — `src/pages/SortiesPage.tsx`
+Un événement apparaît dans chaque semaine (lun→dim) qu'il traverse, entre `date_start` et `date_end` (ou `date_start` seul si pas de `date_end`).
 
-### 2. `src/components/WeekendPicker.tsx` → renommer/adapter
-Le composant s'appuie déjà sur une interface générique `{ key, label, past }`. On garde son style (chip pointillé/gris pour past, vert pour actif futur, plein pour actif présent) et on le renomme mentalement "period picker" — pas besoin de renommer le fichier, on lui passe des `Week[]` typés comme `{ key, label, past }` (structural typing).
-- Aucune modif de style requise ; le picker fonctionne tel quel.
+Helper à ajouter dans `src/lib/weekend.ts` : `eventInWeek(event, weekStart, weekEnd)` qui vérifie le chevauchement d'intervalles.
 
-### 3. `src/pages/SortiesPage.tsx`
-- Remplacer `buildWeekends(8, new Date(), true)` par `buildWeeks(8, new Date(), true)`.
-- Remplacer `eventInWeekend` par `eventInWeek`.
-- Renommer les variables locales (`selectedWeekend` → `selectedWeek`, `isPastWeekend` → `isPastWeek`).
-- Sous-titre : `Les événements kids, semaine après semaine`.
-- Titre : `Sorties de la semaine` (au lieu de `Sorties du week-end`).
-- Message vide : `Pas d'événement pour cette semaine ✦`.
-- Default key : première semaine non passée (inchangé dans la logique).
+### 3. Onglets semaines
+Génération des chips :
+- Toujours : « Semaine dernière », « Cette semaine »
+- Semaines futures : uniquement celles où un événement **démarre** (`date_start` dans la semaine) — évite les onglets fantômes pour un festival qui a commencé il y a 2 mois.
 
-### 4. Effets induits (déjà OK, à confirmer)
-- `EventCard` avec `showPast={isPastWeek}` : passe le flag « past » basé sur `isPastEvent(date_start, date_end)` — donc dans « Cette semaine » (past=false), un event du mercredi consulté jeudi n'est PAS grisé côté liste. **Correction nécessaire** : passer `showPast` = true dès qu'on affiche la semaine courante ou passée, pour que les events déjà terminés apparaissent grisés « Terminé » **au sein de « Cette semaine »**. On passe donc `showPast={!selectedWeek?.future}` où `future` = semaine strictement à venir (monday > aujourd'hui). Concrètement : `showPast = selectedWeek.monday <= today` (semaine passée OU en cours).
-- `EventPage` : `isPastEvent` déjà utilisé → carte feedback 👍/👎 s'affiche naturellement pour l'atelier de mercredi consulté jeudi. Aucun changement.
+### 4. Tri intra-semaine
+Trier par `max(date_start, lundi_de_la_semaine_affichée)` — un event long ne reste pas figé en tête de liste chaque semaine ; il se positionne selon sa date effective dans la semaine courante.
 
-### 5. Non-changements
-- Fetch `useEvents` : borne basse `lastMondayISO()` inchangée (couvre semaine passée + courantes + futures publiées).
-- Schema DB : aucune migration.
-- Filtre âge : inchangé.
-- `AccountPage`, `SavedPage`, `AdminPage` : n'utilisent pas `buildWeekends`/`eventInWeekend`, non impactés.
+### 5. Statut « Terminé »
+Vérifier que `isPastEvent` dans `EventCard` et `EventPage` se base sur `date_end ?? date_start` — un event long n'est grisé que lorsque sa **fin** est passée, pas son début.
 
-## Fichiers modifiés
-- `src/lib/weekend.ts` (ajouts)
-- `src/pages/SortiesPage.tsx` (bascule semaines + textes + logique showPast)
+### Détails techniques
 
-## Détails techniques
-- Lundi ISO calculé via `(dow + 6) % 7` jours à retrancher depuis un jour donné (dim=0 → 6 jours en arrière).
-- Comparaison de dates via ISO string lexicographique (`YYYY-MM-DD`), déjà utilisée dans le fichier.
+- `weekend.ts` : nouveau helper `eventInWeek(event, weekStartISO, weekEndISO)` → `event.date_start <= weekEnd && (event.date_end ?? event.date_start) >= weekStart`
+- `SortiesPage.tsx` : remplacer le filtre `eventInWeek` actuel par le nouveau, adapter le tri (`sortKey = max(new Date(date_start), weekStart)`)
+- `useEvents.ts` : `.or('date_start.gte.{lastMonday},date_end.gte.{today}')`
+- Aucune migration DB nécessaire

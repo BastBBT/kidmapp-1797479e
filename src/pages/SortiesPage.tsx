@@ -3,19 +3,33 @@ import Header from '@/components/Header';
 import WeekendPicker from '@/components/WeekendPicker';
 import EventsMap from '@/components/EventsMap';
 import EventCard from '@/components/EventCard';
-import { buildWeeks, eventInWeek, todayISO, toISODate } from '@/lib/weekend';
+import { buildWeeks, eventInWeek, todayISO, toISODate, type Week } from '@/lib/weekend';
 import { useEvents } from '@/hooks/useEvents';
 import { AgeBucket, matchesAgeBucket } from '@/lib/ageFilter';
 
 const SortiesPage = () => {
-  const weeks = useMemo(() => buildWeeks(8, new Date(), true), []);
+  const [selectedAge, setSelectedAge] = useState<AgeBucket>('all');
+  const { data: events = [], isLoading } = useEvents();
+
+  // Build weeks: always show last + current, plus any future week where at
+  // least one event *starts* (avoids phantom tabs for long-running events
+  // whose start date is far in the past).
+  const weeks = useMemo<Week[]>(() => {
+    const base = buildWeeks(12, new Date(), true); // last + current + 11 upcoming
+    const [lastW, currentW, ...upcoming] = base;
+    const keeps = upcoming.filter((w) => {
+      const mon = toISODate(w.monday);
+      const sun = toISODate(w.sunday);
+      return events.some((ev) => ev.date_start >= mon && ev.date_start <= sun);
+    });
+    return [lastW, currentW, ...keeps].filter(Boolean);
+  }, [events]);
+
   const defaultKey = useMemo(
     () => weeks.find((w) => !w.past)?.key ?? weeks[0]?.key ?? '',
     [weeks],
   );
   const [selectedKey, setSelectedKey] = useState<string>(defaultKey);
-  const [selectedAge, setSelectedAge] = useState<AgeBucket>('all');
-  const { data: events = [], isLoading } = useEvents();
 
   useEffect(() => {
     setSelectedKey(defaultKey);
@@ -23,16 +37,21 @@ const SortiesPage = () => {
 
   const selectedWeek = weeks.find((w) => w.key === selectedKey) ?? weeks[0];
   const today = todayISO();
-  // Show past styling for weeks that started already (past OR current week):
-  // an event on Wed viewed on Thu should appear grayed "Terminé".
   const showPast = selectedWeek ? toISODate(selectedWeek.monday) <= today : false;
 
   const filteredEvents = useMemo(() => {
     if (!selectedWeek) return [];
+    const mondayISO = toISODate(selectedWeek.monday);
     return events
       .filter((ev) => eventInWeek(ev.date_start, ev.date_end, selectedWeek))
       .filter((ev) => matchesAgeBucket(ev as any, selectedAge))
-      .sort((a, b) => a.date_start.localeCompare(b.date_start));
+      .sort((a, b) => {
+        // Sort by max(date_start, monday of selected week) so long-running
+        // events don't stay pinned at the top every week.
+        const ka = a.date_start < mondayISO ? mondayISO : a.date_start;
+        const kb = b.date_start < mondayISO ? mondayISO : b.date_start;
+        return ka.localeCompare(kb);
+      });
   }, [events, selectedWeek, selectedAge]);
 
   return (
