@@ -35,11 +35,16 @@ const SortiesPage = () => {
 
   useEffect(() => {
     setSelectedKey(defaultKey);
-  }, [selectedAge, defaultKey]);
+  }, [selectedAge, selectedCategory, defaultKey]);
 
   const selectedWeek = weeks.find((w) => w.key === selectedKey) ?? weeks[0];
   const today = todayISO();
   const showPast = selectedWeek ? toISODate(selectedWeek.monday) <= today : false;
+
+  const availableCategories = useMemo(
+    () => orderEventCategories(Array.from(new Set(events.map((e) => e.category).filter(Boolean) as string[]))),
+    [events],
+  );
 
   const filteredEvents = useMemo(() => {
     if (!selectedWeek) return [];
@@ -47,14 +52,15 @@ const SortiesPage = () => {
     return events
       .filter((ev) => eventInWeek(ev.date_start, ev.date_end, selectedWeek))
       .filter((ev) => matchesAgeBucket(ev as any, selectedAge))
+      .filter((ev) => selectedCategory === 'all' || ev.category === selectedCategory)
       .sort((a, b) => {
-        // Sort by max(date_start, monday of selected week) so long-running
-        // events don't stay pinned at the top every week.
         const ka = a.date_start < mondayISO ? mondayISO : a.date_start;
         const kb = b.date_start < mondayISO ? mondayISO : b.date_start;
         return ka.localeCompare(kb);
       });
-  }, [events, selectedWeek, selectedAge]);
+  }, [events, selectedWeek, selectedAge, selectedCategory]);
+
+  const hasActiveFilter = selectedAge !== 'all' || selectedCategory !== 'all';
 
   return (
     <div className="min-h-screen pb-24" style={{ background: 'var(--bg)' }}>
