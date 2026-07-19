@@ -78,6 +78,16 @@ const SortiesPage = () => {
         </p>
       </div>
 
+      {availableCategories.length >= 2 && (
+        <div style={{ padding: '4px 16px 8px' }}>
+          <EventCategoryFilter
+            available={availableCategories}
+            selected={selectedCategory}
+            onChange={setSelectedCategory}
+          />
+        </div>
+      )}
+
       <WeekendPicker weekends={weeks} selectedKey={selectedKey} onChange={setSelectedKey} />
 
       <div style={{ padding: '8px 16px' }}>
