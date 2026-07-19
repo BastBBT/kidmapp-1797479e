@@ -16,7 +16,7 @@ import RejectDialog from '@/components/admin/RejectDialog';
 import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
 
-type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'proposals' | 'events';
+type AdminTab = 'dashboard' | 'locations' | 'activities' | 'contributions' | 'add' | 'proposals' | 'events';
 
 type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; confirmed_count: number }>;
 
