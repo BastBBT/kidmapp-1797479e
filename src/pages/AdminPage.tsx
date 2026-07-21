@@ -158,10 +158,8 @@ const AdminPage = () => {
         .select('id')
         .eq('role', 'admin');
       const adminIds = new Set<string>(((adminProfiles ?? []) as any[]).map((p) => p.id));
-      const notAdmin = (uid: string | null | undefined) => !!uid && !adminIds.has(uid);
-      const notAdminOrAnon = (uid: string | null | undefined) => !uid || !adminIds.has(uid);
 
-      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, viewsRes, views7dRes, acquisitionRes, eventsRes] = await Promise.all([
+      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, viewsRes, views7dRes, acquisitionRes, eventsRes, allProfilesRes] = await Promise.all([
         supabase.from('locations').select('id, status'),
         supabase.from('contributions').select('id, user_id, created_at, status'),
         supabase.from('profiles').select('id, role, created_at').gte('created_at', since),
@@ -171,7 +169,28 @@ const AdminPage = () => {
         supabase.from('page_views' as any).select('user_id, created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
         supabase.from('profiles').select('id, acquisition_source').not('acquisition_source', 'is', null),
         supabase.from('events' as any).select('id, name, status, user_id, created_at, date_start').order('created_at', { ascending: false }),
+        supabase.from('profiles').select('id, role'),
       ]);
+
+      // Résoudre le compte bot de sourcing par email pour l'exclure des stats Audience.
+      const allProfiles = (allProfilesRes.data ?? []) as { id: string; role: string }[];
+      const nonAdminIds = allProfiles.filter((p) => p.role !== 'admin').map((p) => p.id);
+      const excludedIds = new Set<string>(adminIds);
+      try {
+        const { data: emailsData } = await supabase.functions.invoke('admin-list-user-emails', {
+          body: { user_ids: nonAdminIds },
+        });
+        const emails = (emailsData?.emails ?? {}) as Record<string, string>;
+        const BOT_EMAIL = 'bastien.boubat+event@gmail.com';
+        for (const [uid, email] of Object.entries(emails)) {
+          if (email.toLowerCase() === BOT_EMAIL) excludedIds.add(uid);
+        }
+      } catch (e) {
+        console.warn('[admin-stats] bot email lookup failed', e);
+      }
+      const notAdmin = (uid: string | null | undefined) => !!uid && !adminIds.has(uid);
+      const notExcluded = (uid: string | null | undefined) => !!uid && !excludedIds.has(uid);
+      const notExcludedOrAnon = (uid: string | null | undefined) => !uid || !excludedIds.has(uid);
 
       const contribs = (contributionsRes.data ?? []).filter((c: any) => notAdmin(c.user_id));
       const proposals = ((proposalsRes.data ?? []) as any[]).filter((p) => notAdmin(p.user_id));
@@ -179,7 +198,7 @@ const AdminPage = () => {
       const daily = (dailyRes.data ?? []).filter((c: any) => notAdmin(c.user_id));
 
       const views = (((viewsRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[])
-        .filter((v) => notAdminOrAnon(v.user_id));
+        .filter((v) => notExcludedOrAnon(v.user_id));
       const totalVisits = views.length;
       const loggedInUsers = new Set<string>();
       const userDays = new Map<string, Set<string>>();
@@ -194,14 +213,20 @@ const AdminPage = () => {
       userDays.forEach((days) => { if (days.size >= 2) recurring++; });
 
       const visits7d = (((views7dRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[])
-        .filter((v) => notAdminOrAnon(v.user_id));
+        .filter((v) => notExcludedOrAnon(v.user_id));
 
-      const acquisitionProfiles = (acquisitionRes.data ?? []).filter((p: any) => !adminIds.has(p.id));
+      const acquisitionProfiles = (acquisitionRes.data ?? []).filter((p: any) => !excludedIds.has(p.id));
       const acquisitionCounts: Record<string, number> = {};
       for (const p of acquisitionProfiles) {
         const src = p.acquisition_source as string;
         acquisitionCounts[src] = (acquisitionCounts[src] ?? 0) + 1;
       }
+
+      // Inscrits (hors admins + bot) + % actifs sur 30j (au moins un page_view).
+      const totalRegistered = allProfiles.filter((p) => !excludedIds.has(p.id)).length;
+      const activePct30d = totalRegistered > 0
+        ? Math.round((loggedInUsers.size / totalRegistered) * 100)
+        : 0;
 
       const allEvents = ((eventsRes.data ?? []) as any[]);
       const pendingEventsList = allEvents.filter((e) => e.status === 'pending');
@@ -223,9 +248,12 @@ const AdminPage = () => {
         recurringVisitors30d: recurring,
         acquisitionDistribution: acquisitionCounts,
         acquisitionTotal: acquisitionProfiles.length,
+        totalRegistered,
+        activePct30d,
       };
     },
   });
+
 
 
   // Chart data
