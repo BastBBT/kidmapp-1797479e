@@ -158,10 +158,8 @@ const AdminPage = () => {
         .select('id')
         .eq('role', 'admin');
       const adminIds = new Set<string>(((adminProfiles ?? []) as any[]).map((p) => p.id));
-      const notAdmin = (uid: string | null | undefined) => !!uid && !adminIds.has(uid);
-      const notAdminOrAnon = (uid: string | null | undefined) => !uid || !adminIds.has(uid);
 
-      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, viewsRes, views7dRes, acquisitionRes, eventsRes] = await Promise.all([
+      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, viewsRes, views7dRes, acquisitionRes, eventsRes, allProfilesRes] = await Promise.all([
         supabase.from('locations').select('id, status'),
         supabase.from('contributions').select('id, user_id, created_at, status'),
         supabase.from('profiles').select('id, role, created_at').gte('created_at', since),
@@ -171,7 +169,28 @@ const AdminPage = () => {
         supabase.from('page_views' as any).select('user_id, created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
         supabase.from('profiles').select('id, acquisition_source').not('acquisition_source', 'is', null),
         supabase.from('events' as any).select('id, name, status, user_id, created_at, date_start').order('created_at', { ascending: false }),
+        supabase.from('profiles').select('id, role'),
       ]);
+
+      // Résoudre le compte bot de sourcing par email pour l'exclure des stats Audience.
+      const allProfiles = (allProfilesRes.data ?? []) as { id: string; role: string }[];
+      const nonAdminIds = allProfiles.filter((p) => p.role !== 'admin').map((p) => p.id);
+      const excludedIds = new Set<string>(adminIds);
+      try {
+        const { data: emailsData } = await supabase.functions.invoke('admin-list-user-emails', {
+          body: { user_ids: nonAdminIds },
+        });
+        const emails = (emailsData?.emails ?? {}) as Record<string, string>;
+        const BOT_EMAIL = 'bastien.boubat+event@gmail.com';
+        for (const [uid, email] of Object.entries(emails)) {
+          if (email.toLowerCase() === BOT_EMAIL) excludedIds.add(uid);
+        }
+      } catch (e) {
+        console.warn('[admin-stats] bot email lookup failed', e);
+      }
+      const notAdmin = (uid: string | null | undefined) => !!uid && !adminIds.has(uid);
+      const notExcluded = (uid: string | null | undefined) => !!uid && !excludedIds.has(uid);
+      const notExcludedOrAnon = (uid: string | null | undefined) => !uid || !excludedIds.has(uid);
 
       const contribs = (contributionsRes.data ?? []).filter((c: any) => notAdmin(c.user_id));
       const proposals = ((proposalsRes.data ?? []) as any[]).filter((p) => notAdmin(p.user_id));
@@ -179,7 +198,7 @@ const AdminPage = () => {
       const daily = (dailyRes.data ?? []).filter((c: any) => notAdmin(c.user_id));
 
       const views = (((viewsRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[])
-        .filter((v) => notAdminOrAnon(v.user_id));
+        .filter((v) => notExcludedOrAnon(v.user_id));
       const totalVisits = views.length;
       const loggedInUsers = new Set<string>();
       const userDays = new Map<string, Set<string>>();
@@ -194,14 +213,20 @@ const AdminPage = () => {
       userDays.forEach((days) => { if (days.size >= 2) recurring++; });
 
       const visits7d = (((views7dRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[])
-        .filter((v) => notAdminOrAnon(v.user_id));
+        .filter((v) => notExcludedOrAnon(v.user_id));
 
-      const acquisitionProfiles = (acquisitionRes.data ?? []).filter((p: any) => !adminIds.has(p.id));
+      const acquisitionProfiles = (acquisitionRes.data ?? []).filter((p: any) => !excludedIds.has(p.id));
       const acquisitionCounts: Record<string, number> = {};
       for (const p of acquisitionProfiles) {
         const src = p.acquisition_source as string;
         acquisitionCounts[src] = (acquisitionCounts[src] ?? 0) + 1;
       }
+
+      // Inscrits (hors admins + bot) + % actifs sur 30j (au moins un page_view).
+      const totalRegistered = allProfiles.filter((p) => !excludedIds.has(p.id)).length;
+      const activePct30d = totalRegistered > 0
+        ? Math.round((loggedInUsers.size / totalRegistered) * 100)
+        : 0;
 
       const allEvents = ((eventsRes.data ?? []) as any[]);
       const pendingEventsList = allEvents.filter((e) => e.status === 'pending');
@@ -223,9 +248,12 @@ const AdminPage = () => {
         recurringVisitors30d: recurring,
         acquisitionDistribution: acquisitionCounts,
         acquisitionTotal: acquisitionProfiles.length,
+        totalRegistered,
+        activePct30d,
       };
     },
   });
+
 
 
   // Chart data
@@ -248,6 +276,19 @@ const AdminPage = () => {
         (v: any) => v.created_at?.slice(0, 10) === day
       ).length;
       return { day, count, label: getDayLabel(day) };
+    });
+    const max = Math.max(...counts.map((c) => c.count), 1);
+    return { counts, max };
+  }, [stats?.visitsLast7d]);
+
+  const uniqueVisitorsChartData = useMemo(() => {
+    const days = getLast7Days();
+    const counts = days.map((day) => {
+      const uniques = new Set<string>();
+      for (const v of (stats?.visitsLast7d ?? []) as any[]) {
+        if (v.user_id && v.created_at?.slice(0, 10) === day) uniques.add(v.user_id);
+      }
+      return { day, count: uniques.size, label: getDayLabel(day) };
     });
     const max = Math.max(...counts.map((c) => c.count), 1);
     return { counts, max };
@@ -678,10 +719,14 @@ const AdminPage = () => {
             <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 500 }}>
               Audience — 30 derniers jours ✦
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
               <StatCard label="Visites" value={stats?.totalVisits30d ?? 0} sub="hits bruts" />
               <StatCard label="Visiteurs connectés" value={stats?.uniqueLoggedVisitors30d ?? 0} sub="uniques (auth)" />
               <StatCard label="Récurrents" value={stats?.recurringVisitors30d ?? 0} sub="≥ 2 jours" />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+              <StatCard label="Inscrits" value={stats?.totalRegistered ?? 0} sub="hors admins" />
+              <StatCard label="Actifs 30j" value={`${stats?.activePct30d ?? 0}%`} sub="des inscrits" />
             </div>
 
             {/* Visits chart */}
@@ -708,6 +753,32 @@ const AdminPage = () => {
                 ))}
               </div>
             </div>
+
+            {/* Unique visitors chart */}
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)', marginBottom: '12px' }}>
+              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '12px' }}>
+                Visiteurs uniques (connectés) — 7 derniers jours
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '96px' }}>
+                {uniqueVisitorsChartData.counts.map((d, i) => (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ fontFamily: 'DM Sans', fontSize: '11px', fontWeight: 600, color: 'var(--text)' }}>{d.count}</span>
+                    <div
+                      style={{
+                        width: '100%',
+                        height: `${Math.max((d.count / uniqueVisitorsChartData.max) * 60, 4)}px`,
+                        background: 'var(--primary)',
+                        borderRadius: '4px 4px 0 0',
+                        transition: 'height 0.3s ease',
+                      }}
+                      title={`${d.count} visiteur${d.count > 1 ? 's' : ''} unique${d.count > 1 ? 's' : ''}`}
+                    />
+                    <span style={{ fontFamily: 'DM Sans', fontSize: '10px', color: 'var(--text-muted)' }}>{d.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
 
             {/* Mini chart */}
             <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)' }}>
@@ -1832,7 +1903,7 @@ const AdminPage = () => {
 
 /* Sub-components */
 
-function StatCard({ label, value, sub }: { label: string; value: number; sub: string }) {
+function StatCard({ label, value, sub }: { label: string; value: number | string; sub: string }) {
   return (
     <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)' }}>
       <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>{label}</div>
