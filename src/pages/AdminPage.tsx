@@ -1903,7 +1903,7 @@ const AdminPage = () => {
 
 /* Sub-components */
 
-function StatCard({ label, value, sub }: { label: string; value: number; sub: string }) {
+function StatCard({ label, value, sub }: { label: string; value: number | string; sub: string }) {
   return (
     <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)' }}>
       <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>{label}</div>
