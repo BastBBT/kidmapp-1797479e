@@ -281,6 +281,19 @@ const AdminPage = () => {
     return { counts, max };
   }, [stats?.visitsLast7d]);
 
+  const uniqueVisitorsChartData = useMemo(() => {
+    const days = getLast7Days();
+    const counts = days.map((day) => {
+      const uniques = new Set<string>();
+      for (const v of (stats?.visitsLast7d ?? []) as any[]) {
+        if (v.user_id && v.created_at?.slice(0, 10) === day) uniques.add(v.user_id);
+      }
+      return { day, count: uniques.size, label: getDayLabel(day) };
+    });
+    const max = Math.max(...counts.map((c) => c.count), 1);
+    return { counts, max };
+  }, [stats?.visitsLast7d]);
+
   // Add location form
   const [form, setForm] = useState({
     name: '',
