@@ -719,10 +719,14 @@ const AdminPage = () => {
             <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 500 }}>
               Audience — 30 derniers jours ✦
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
               <StatCard label="Visites" value={stats?.totalVisits30d ?? 0} sub="hits bruts" />
               <StatCard label="Visiteurs connectés" value={stats?.uniqueLoggedVisitors30d ?? 0} sub="uniques (auth)" />
               <StatCard label="Récurrents" value={stats?.recurringVisitors30d ?? 0} sub="≥ 2 jours" />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+              <StatCard label="Inscrits" value={stats?.totalRegistered ?? 0} sub="hors admins" />
+              <StatCard label="Actifs 30j" value={`${stats?.activePct30d ?? 0}%`} sub="des inscrits" />
             </div>
 
             {/* Visits chart */}
@@ -749,6 +753,32 @@ const AdminPage = () => {
                 ))}
               </div>
             </div>
+
+            {/* Unique visitors chart */}
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)', marginBottom: '12px' }}>
+              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '12px' }}>
+                Visiteurs uniques (connectés) — 7 derniers jours
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '96px' }}>
+                {uniqueVisitorsChartData.counts.map((d, i) => (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ fontFamily: 'DM Sans', fontSize: '11px', fontWeight: 600, color: 'var(--text)' }}>{d.count}</span>
+                    <div
+                      style={{
+                        width: '100%',
+                        height: `${Math.max((d.count / uniqueVisitorsChartData.max) * 60, 4)}px`,
+                        background: 'var(--primary)',
+                        borderRadius: '4px 4px 0 0',
+                        transition: 'height 0.3s ease',
+                      }}
+                      title={`${d.count} visiteur${d.count > 1 ? 's' : ''} unique${d.count > 1 ? 's' : ''}`}
+                    />
+                    <span style={{ fontFamily: 'DM Sans', fontSize: '10px', color: 'var(--text-muted)' }}>{d.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
 
             {/* Mini chart */}
             <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)' }}>
