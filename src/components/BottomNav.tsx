@@ -96,16 +96,17 @@ const BottomNav = () => {
           )}
         </div>
         <span className="font-body text-[10px] uppercase font-semibold tracking-wide">
-          {tab.label}
+          {tabLabels[tab.id] ?? tab.label}
         </span>
       </button>
     );
   };
 
-  const exploreTab = tabs.find((t) => t.id === 'explore')!;
-  const sortiesTab = tabs.find((t) => t.id === 'sorties')!;
-  const savedTab = tabs.find((t) => t.id === 'saved')!;
-  const accountTab = tabs.find((t) => t.id === 'account')!;
+  const exploreTab = tabs.find((x) => x.id === 'explore')!;
+  const sortiesTab = tabs.find((x) => x.id === 'sorties')!;
+  const savedTab = tabs.find((x) => x.id === 'saved')!;
+  const accountTab = tabs.find((x) => x.id === 'account')!;
+
 
   return (
     <nav
