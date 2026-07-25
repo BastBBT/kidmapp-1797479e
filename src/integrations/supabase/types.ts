@@ -72,6 +72,7 @@ export type Database = {
           id: string
           kids_area: boolean | null
           kids_menu: boolean | null
+          language: string | null
           location_id: string
           status: string
           type: string | null
@@ -86,6 +87,7 @@ export type Database = {
           id?: string
           kids_area?: boolean | null
           kids_menu?: boolean | null
+          language?: string | null
           location_id: string
           status?: string
           type?: string | null
@@ -100,6 +102,7 @@ export type Database = {
           id?: string
           kids_area?: boolean | null
           kids_menu?: boolean | null
+          language?: string | null
           location_id?: string
           status?: string
           type?: string | null
