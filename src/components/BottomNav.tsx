@@ -56,15 +56,24 @@ const tabs = [
 const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const { favoriteIds } = useFavorites();
   const { open: openProposal } = useProposalModal();
   const { requireAuth } = useRequireAuth();
 
+  const tabLabels: Record<string, string> = {
+    explore: t('nav.explore'),
+    sorties: t('nav.events'),
+    saved: t('nav.saved'),
+    account: t('nav.account'),
+  };
+
   const handleProposeClick = () => {
     requireAuth(() => openProposal(), {
-      message: 'Connecte-toi pour proposer un nouveau lieu à la communauté ✦',
+      message: t('nav.propose_auth_prompt'),
     });
   };
+
 
   const renderTab = (tab: typeof tabs[number]) => {
     const isActive = location.pathname === tab.path;
