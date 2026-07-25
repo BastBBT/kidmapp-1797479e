@@ -21,6 +21,7 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAdmin, signOut } = useAuth();
+  const { t } = useTranslation();
 
   const initial = user?.email ? user.email.charAt(0).toUpperCase() : '?';
 
@@ -64,7 +65,7 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
               onClick={signOut}
               className="p-2 rounded-full transition-colors hover:opacity-70"
               style={{ color: 'var(--text-muted)' }}
-              title="Déconnexion"
+              title={t('common.logout')}
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -77,7 +78,7 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)', marginTop: '-6px' }} />
             <input
               type="text"
-              placeholder="Rechercher un lieu…"
+              placeholder={t('common.search_place')}
               value={searchValue ?? ''}
               onChange={(e) => onSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-full text-sm outline-none transition-colors"
