@@ -1,0 +1,102 @@
+{
+  "common": {
+    "loading": "Cargando…",
+    "error": "Ha ocurrido un error",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "save": "Guardar",
+    "send": "Enviar",
+    "yes": "Sí",
+    "no": "No",
+    "unknown": "No sé",
+    "logout": "Cerrar sesión",
+    "search_place": "Buscar un lugar…",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "days_ago": "Hace {{count}} días",
+    "weeks_ago": "Hace {{count}} sem.",
+    "months_ago": "Hace {{count}} meses"
+  },
+  "nav": {
+    "explore": "EXPLORAR",
+    "events": "EVENTOS",
+    "saved": "FAVORITOS",
+    "account": "CUENTA",
+    "propose": "PROPONER",
+    "propose_aria": "Proponer",
+    "propose_auth_prompt": "Inicia sesión para proponer un nuevo lugar a la comunidad ✦"
+  },
+  "contribution": {
+    "families_say": "Lo que dicen las familias",
+    "reviews": "{{count}} opiniones",
+    "a_family": "Una familia",
+    "thanks": "¡Gracias por tu contribución!",
+    "submit": "Enviar",
+    "submit_auth": "Inicia sesión para contribuir",
+    "auth_hint": "Inicia sesión para contribuir.",
+    "your_comment": "Tu comentario",
+    "comment_optional": "¿Algún comentario?",
+    "optional": "(opcional)",
+    "meals_placeholder": "Terraza agradable, ideal para la merienda…",
+    "generic_placeholder": "¿Algún consejo para las familias que visitan este lugar?",
+    "equipment_title": "¿Equipamiento disponible?",
+    "meals_title": "Comidas",
+    "title": "Contribuir",
+    "subtitle_meals": "¿Qué comidas has hecho aquí?",
+    "subtitle_generic": "Comparte tu experiencia"
+  },
+  "equipment": {
+    "high_chair": "Trona",
+    "changing_table": "Cambiador",
+    "kids_area": "Zona infantil",
+    "kids_menu": "Menú infantil"
+  },
+  "category_place": {
+    "restaurant": "Restaurante",
+    "cafe": "Café",
+    "shop": "Tienda",
+    "public": "Espacio público",
+    "coiffeur": "Peluquería",
+    "nature": "Naturaleza",
+    "sport": "Deporte",
+    "creatif": "Creativo",
+    "culture": "Cultura",
+    "jeux": "Juegos"
+  },
+  "category_event": {
+    "Spectacle": "Espectáculo",
+    "Atelier": "Taller",
+    "Festival": "Festival",
+    "Fête": "Fiesta",
+    "Marché": "Mercado",
+    "Exposition": "Exposición",
+    "Autre": "Otro"
+  },
+  "weather": {
+    "En intérieur": "Interior",
+    "En extérieur": "Exterior",
+    "Les deux": "Interior o exterior"
+  },
+  "price": {
+    "Gratuit": "Gratis",
+    "Payant": "De pago"
+  },
+  "duration": {
+    "1h": "1 h",
+    "2-3h": "2-3 h",
+    "Demi-journée": "Media jornada",
+    "Journée": "Jornada completa"
+  },
+  "effort": {
+    "Tranquille": "Tranquilo",
+    "Modéré": "Moderado",
+    "Sportif": "Deportivo"
+  },
+  "meal": {
+    "Petit déjeuner": "Desayuno",
+    "Brunch": "Brunch",
+    "Déjeuner": "Almuerzo",
+    "Goûter": "Merienda",
+    "Dîner": "Cena"
+  }
+}
