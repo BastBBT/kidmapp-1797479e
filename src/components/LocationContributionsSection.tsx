@@ -93,7 +93,22 @@ export default function LocationContributionsSection({ locationId }: { locationI
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: chips.length || c.content ? 10 : 0 }}>
                 <Avatar name={firstName} />
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{firstName}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                    {firstName}
+                    {c.language && c.language.toLowerCase() !== 'fr' && (
+                      <span
+                        style={{
+                          fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
+                          padding: '2px 6px', borderRadius: 6,
+                          background: 'var(--bg)', color: 'var(--text-muted)',
+                          border: '1px solid var(--border)',
+                        }}
+                        title={`Commentaire détecté en ${c.language.toUpperCase()}`}
+                      >
+                        {c.language.toUpperCase()}
+                      </span>
+                    )}
+                  </span>
                   <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                     {formatRelativeDateFr(c.created_at)}
                   </span>

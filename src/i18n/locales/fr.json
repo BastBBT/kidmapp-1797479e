@@ -1,0 +1,102 @@
+{
+  "common": {
+    "loading": "Chargement…",
+    "error": "Une erreur est survenue",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "save": "Enregistrer",
+    "send": "Envoyer",
+    "yes": "Oui",
+    "no": "Non",
+    "unknown": "Je sais pas",
+    "logout": "Déconnexion",
+    "search_place": "Rechercher un lieu…",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "days_ago": "Il y a {{count}} jours",
+    "weeks_ago": "Il y a {{count}} sem.",
+    "months_ago": "Il y a {{count}} mois"
+  },
+  "nav": {
+    "explore": "EXPLORER",
+    "events": "SORTIES",
+    "saved": "FAVORIS",
+    "account": "COMPTE",
+    "propose": "PROPOSER",
+    "propose_aria": "Proposer",
+    "propose_auth_prompt": "Connecte-toi pour proposer un nouveau lieu à la communauté ✦"
+  },
+  "contribution": {
+    "families_say": "Ce que disent les familles",
+    "reviews": "{{count}} avis",
+    "a_family": "Une famille",
+    "thanks": "Merci pour ta contribution !",
+    "submit": "Envoyer",
+    "submit_auth": "Se connecter pour contribuer",
+    "auth_hint": "Connecte-toi pour pouvoir contribuer.",
+    "your_comment": "Votre commentaire",
+    "comment_optional": "Un commentaire ?",
+    "optional": "(optionnel)",
+    "meals_placeholder": "Terrasse sympa, idéal pour le goûter…",
+    "generic_placeholder": "Un conseil pour les familles qui visitent ce lieu ?",
+    "equipment_title": "Équipements disponibles ?",
+    "meals_title": "Repas",
+    "title": "Contribuer",
+    "subtitle_meals": "Quels repas avez-vous fait ici ?",
+    "subtitle_generic": "Partagez votre expérience"
+  },
+  "equipment": {
+    "high_chair": "Chaise haute",
+    "changing_table": "Table à langer",
+    "kids_area": "Espace jeux",
+    "kids_menu": "Menu enfant"
+  },
+  "category_place": {
+    "restaurant": "Restaurant",
+    "cafe": "Café",
+    "shop": "Boutique",
+    "public": "Espace public",
+    "coiffeur": "Coiffeur",
+    "nature": "Nature",
+    "sport": "Sport",
+    "creatif": "Créatif",
+    "culture": "Culture",
+    "jeux": "Jeux"
+  },
+  "category_event": {
+    "Spectacle": "Spectacle",
+    "Atelier": "Atelier",
+    "Festival": "Festival",
+    "Fête": "Fête",
+    "Marché": "Marché",
+    "Exposition": "Exposition",
+    "Autre": "Autre"
+  },
+  "weather": {
+    "En intérieur": "En intérieur",
+    "En extérieur": "En extérieur",
+    "Les deux": "En intérieur ou en extérieur"
+  },
+  "price": {
+    "Gratuit": "Gratuit",
+    "Payant": "Payant"
+  },
+  "duration": {
+    "1h": "1 h",
+    "2-3h": "2-3 h",
+    "Demi-journée": "Demi-journée",
+    "Journée": "Journée"
+  },
+  "effort": {
+    "Tranquille": "Tranquille",
+    "Modéré": "Modéré",
+    "Sportif": "Sportif"
+  },
+  "meal": {
+    "Petit déjeuner": "Petit déjeuner",
+    "Brunch": "Brunch",
+    "Déjeuner": "Déjeuner",
+    "Goûter": "Goûter",
+    "Dîner": "Dîner"
+  }
+}

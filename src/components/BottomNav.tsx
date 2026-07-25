@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useProposalModal } from '@/hooks/useProposalModal';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -55,15 +56,24 @@ const tabs = [
 const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const { favoriteIds } = useFavorites();
   const { open: openProposal } = useProposalModal();
   const { requireAuth } = useRequireAuth();
 
+  const tabLabels: Record<string, string> = {
+    explore: t('nav.explore'),
+    sorties: t('nav.events'),
+    saved: t('nav.saved'),
+    account: t('nav.account'),
+  };
+
   const handleProposeClick = () => {
     requireAuth(() => openProposal(), {
-      message: 'Connecte-toi pour proposer un nouveau lieu à la communauté ✦',
+      message: t('nav.propose_auth_prompt'),
     });
   };
+
 
   const renderTab = (tab: typeof tabs[number]) => {
     const isActive = location.pathname === tab.path;
@@ -86,16 +96,17 @@ const BottomNav = () => {
           )}
         </div>
         <span className="font-body text-[10px] uppercase font-semibold tracking-wide">
-          {tab.label}
+          {tabLabels[tab.id] ?? tab.label}
         </span>
       </button>
     );
   };
 
-  const exploreTab = tabs.find((t) => t.id === 'explore')!;
-  const sortiesTab = tabs.find((t) => t.id === 'sorties')!;
-  const savedTab = tabs.find((t) => t.id === 'saved')!;
-  const accountTab = tabs.find((t) => t.id === 'account')!;
+  const exploreTab = tabs.find((x) => x.id === 'explore')!;
+  const sortiesTab = tabs.find((x) => x.id === 'sorties')!;
+  const savedTab = tabs.find((x) => x.id === 'saved')!;
+  const accountTab = tabs.find((x) => x.id === 'account')!;
+
 
   return (
     <nav
@@ -114,7 +125,7 @@ const BottomNav = () => {
       <button
         onClick={handleProposeClick}
         className="relative flex flex-col items-center gap-1 px-3 py-1 transition-transform active:scale-95"
-        aria-label="Proposer"
+        aria-label={t('nav.propose_aria')}
       >
         <div
           className="flex items-center justify-center rounded-full"
@@ -135,9 +146,10 @@ const BottomNav = () => {
           className="font-body text-[10px] uppercase font-semibold tracking-wide"
           style={{ color: '#D95F3B' }}
         >
-          PROPOSER
+          {t('nav.propose')}
         </span>
       </button>
+
 
       {renderTab(savedTab)}
       {renderTab(accountTab)}

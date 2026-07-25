@@ -14,6 +14,7 @@ export type ValidatedContribution = {
   bookable: string | null;
   status: string;
   created_at: string;
+  language: string | null;
   profiles?: { full_name: string | null } | null;
 };
 
@@ -44,8 +45,8 @@ export function useLocationContributions(locationId: string) {
       // it from the `anon` role) — selecting it would fail without an auth session.
       const isAuthed = !!(await supabase.auth.getSession()).data.session;
       const projection = isAuthed
-        ? 'id, location_id, user_id, content, high_chair, changing_table, kids_area, kids_menu, bookable, status, created_at'
-        : 'id, location_id, content, high_chair, changing_table, kids_area, kids_menu, bookable, status, created_at';
+        ? 'id, location_id, user_id, content, high_chair, changing_table, kids_area, kids_menu, bookable, status, created_at, language'
+        : 'id, location_id, content, high_chair, changing_table, kids_area, kids_menu, bookable, status, created_at, language';
       const { data, error } = await supabase
         .from('contributions')
         .select(projection)

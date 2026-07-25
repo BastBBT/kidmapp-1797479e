@@ -1,0 +1,102 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "cancel": "Cancel",
+    "close": "Close",
+    "save": "Save",
+    "send": "Send",
+    "yes": "Yes",
+    "no": "No",
+    "unknown": "Not sure",
+    "logout": "Sign out",
+    "search_place": "Search for a place…",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "days_ago": "{{count}} days ago",
+    "weeks_ago": "{{count}} wk ago",
+    "months_ago": "{{count}} months ago"
+  },
+  "nav": {
+    "explore": "EXPLORE",
+    "events": "EVENTS",
+    "saved": "SAVED",
+    "account": "ACCOUNT",
+    "propose": "SUBMIT",
+    "propose_aria": "Submit",
+    "propose_auth_prompt": "Sign in to suggest a new place to the community ✦"
+  },
+  "contribution": {
+    "families_say": "What families are saying",
+    "reviews": "{{count}} reviews",
+    "a_family": "A family",
+    "thanks": "Thanks for your contribution!",
+    "submit": "Send",
+    "submit_auth": "Sign in to contribute",
+    "auth_hint": "Sign in to contribute.",
+    "your_comment": "Your comment",
+    "comment_optional": "Any comment?",
+    "optional": "(optional)",
+    "meals_placeholder": "Nice terrace, perfect for an afternoon snack…",
+    "generic_placeholder": "Any tip for families visiting this place?",
+    "equipment_title": "Equipment available?",
+    "meals_title": "Meals",
+    "title": "Contribute",
+    "subtitle_meals": "Which meals have you had here?",
+    "subtitle_generic": "Share your experience"
+  },
+  "equipment": {
+    "high_chair": "High chair",
+    "changing_table": "Changing table",
+    "kids_area": "Kids area",
+    "kids_menu": "Kids menu"
+  },
+  "category_place": {
+    "restaurant": "Restaurant",
+    "cafe": "Café",
+    "shop": "Shop",
+    "public": "Public space",
+    "coiffeur": "Hair salon",
+    "nature": "Nature",
+    "sport": "Sport",
+    "creatif": "Creative",
+    "culture": "Culture",
+    "jeux": "Games"
+  },
+  "category_event": {
+    "Spectacle": "Show",
+    "Atelier": "Workshop",
+    "Festival": "Festival",
+    "Fête": "Fair",
+    "Marché": "Market",
+    "Exposition": "Exhibition",
+    "Autre": "Other"
+  },
+  "weather": {
+    "En intérieur": "Indoor",
+    "En extérieur": "Outdoor",
+    "Les deux": "Indoor or outdoor"
+  },
+  "price": {
+    "Gratuit": "Free",
+    "Payant": "Paid"
+  },
+  "duration": {
+    "1h": "1 h",
+    "2-3h": "2-3 h",
+    "Demi-journée": "Half day",
+    "Journée": "Full day"
+  },
+  "effort": {
+    "Tranquille": "Easy",
+    "Modéré": "Moderate",
+    "Sportif": "Active"
+  },
+  "meal": {
+    "Petit déjeuner": "Breakfast",
+    "Brunch": "Brunch",
+    "Déjeuner": "Lunch",
+    "Goûter": "Snack",
+    "Dîner": "Dinner"
+  }
+}

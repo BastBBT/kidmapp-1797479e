@@ -8,6 +8,7 @@ import { useMealTypes } from '@/hooks/useMeals';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation } from '@/hooks/useLocations';
 import { MEAL_ICONS, EQUIP_ICONS, EQUIP_LABELS, EquipKey } from '@/assets/icons';
+import { detectLanguage } from '@/lib/detectLanguage';
 
 interface Props {
   locationId: string;
@@ -90,16 +91,19 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
     setSubmitting(true);
     try {
       const isMeals = variant === 'meals';
+      const trimmedComment = comment.trim();
       const payload: any = isMeals
-        ? { meal_types: selected, equipment, comment: comment.trim() || null }
-        : { equipment, comment: comment.trim() };
+        ? { meal_types: selected, equipment, comment: trimmedComment || null }
+        : { equipment, comment: trimmedComment };
+      const detectedLang = trimmedComment ? detectLanguage(trimmedComment) : null;
       const { error } = await supabase.from('contributions').insert({
         location_id: locationId,
         user_id: user.id,
         type: isMeals ? 'meal_types' : 'comment',
         content: JSON.stringify(payload),
         status: 'pending',
-      });
+        ...(detectedLang ? { language: detectedLang } : {}),
+      } as any);
       if (error) throw error;
 
       toast.success('Merci pour ta contribution !');
