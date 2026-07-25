@@ -125,7 +125,7 @@ const BottomNav = () => {
       <button
         onClick={handleProposeClick}
         className="relative flex flex-col items-center gap-1 px-3 py-1 transition-transform active:scale-95"
-        aria-label="Proposer"
+        aria-label={t('nav.propose_aria')}
       >
         <div
           className="flex items-center justify-center rounded-full"
@@ -146,9 +146,10 @@ const BottomNav = () => {
           className="font-body text-[10px] uppercase font-semibold tracking-wide"
           style={{ color: '#D95F3B' }}
         >
-          PROPOSER
+          {t('nav.propose')}
         </span>
       </button>
+
 
       {renderTab(savedTab)}
       {renderTab(accountTab)}
