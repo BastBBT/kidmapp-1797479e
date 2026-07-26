@@ -1,9 +1,11 @@
-import { Location, categoryLabels, isActivity } from '@/types/location';
+import { Location, isActivity } from '@/types/location';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useFavorites } from '@/hooks/useFavorites';
 import { MEAL_ICONS, EQUIP_ICONS, EQUIP_SHORT_LABELS, EquipKey, CATEGORY_ICONS } from '@/assets/icons';
 import { AgeBucket, getPriorityEquip } from '@/lib/ageFilter';
+import { translateToken } from '@/i18n/tokenMaps';
 
 interface LocationCardProps {
   location: Location;
@@ -63,6 +65,7 @@ const MealBubble = ({ mealId }: { mealId: string }) => {
 
 const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: LocationCardProps) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { isFavorite } = useFavorites();
   const gradient = categoryGradients[location.category] || categoryGradients.public;
   const isMealCategory = location.category === 'restaurant' || location.category === 'cafe';
@@ -98,7 +101,6 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: 
       }}
       onClick={() => navigate(`/location/${location.id}`)}
     >
-      {/* Thumbnail */}
       <div className="relative" style={{ height: '118px', background: gradient, overflow: 'hidden' }}>
         {location.photo ? (
           <img
@@ -112,9 +114,7 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: 
             <div className="absolute" style={{ width: 50, height: 50, bottom: 8, right: 20, borderRadius: '50%', background: 'rgba(255,255,255,0.18)' }} />
           </>
         )}
-        {/* Overlay gradient */}
         <div className="absolute inset-x-0 bottom-0 h-12" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.25), transparent)' }} />
-        {/* Meal bubbles bottom-left for restaurant/cafe */}
         {isMealCategory && mealIds.length > 0 && (
           <div className="absolute" style={{ bottom: 6, left: 6, display: 'flex', gap: 3 }}>
             {mealIds.slice(0, 4).map((id) => (
@@ -131,13 +131,12 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: 
           </span>
         )}
       </div>
-      {/* Body */}
       <div className="p-3">
         <h3 className="font-display font-semibold text-sm truncate flex items-center gap-1.5" style={{ color: 'var(--text)' }}>
           {CATEGORY_ICONS[location.category] && (
             <img
               src={CATEGORY_ICONS[location.category]}
-              alt={categoryLabels[location.category as keyof typeof categoryLabels] ?? ''}
+              alt={translateToken('category_place', location.category)}
               style={{ width: 16, height: 16, objectFit: 'contain', opacity: 0.85, flexShrink: 0 }}
             />
           )}
@@ -153,7 +152,7 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: 
                   background: 'var(--bg)', color: 'var(--text-muted)',
                   border: '1px solid var(--border)',
                 }}>
-                  ⏱ {duration}
+                  ⏱ {translateToken('duration', duration)}
                 </span>
               )}
               {price && (
@@ -164,7 +163,7 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: 
                   color: price === 'Gratuit' ? '#2E7D32' : 'var(--text-muted)',
                   border: price === 'Gratuit' ? 'none' : '1px solid var(--border)',
                 }}>
-                  {price}
+                  {translateToken('price', price)}
                 </span>
               )}
             </div>

@@ -1,21 +1,11 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { EventItem, eventCategoryColor, eventCategoryEmoji } from '@/types/event';
 import { isPastEvent } from '@/lib/weekend';
 import { useEventFavorites } from '@/hooks/useEventFavorites';
 import { useAuth } from '@/hooks/useAuth';
-
-const formatDateRange = (start: string, end: string | null, time: string | null, past: boolean) => {
-  const s = new Date(start);
-  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
-  const startStr = s.toLocaleDateString('fr-FR', opts);
-  if (!end || end === start) {
-    if (past) return `${startStr} · Terminé`;
-    return time ? `${startStr} · ${time}` : startStr;
-  }
-  const e = new Date(end);
-  const range = `${startStr} → ${e.toLocaleDateString('fr-FR', opts)}`;
-  return past ? `${range} · Terminé` : range;
-};
+import { translateToken } from '@/i18n/tokenMaps';
+import { formatEventDateRange } from '@/lib/formatDate';
 
 interface Props {
   event: EventItem;
@@ -24,6 +14,7 @@ interface Props {
 
 const EventCard = ({ event, showPast = false }: Props) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useEventFavorites();
   const past = isPastEvent(event.date_start, event.date_end);
@@ -72,7 +63,7 @@ const EventCard = ({ event, showPast = false }: Props) => {
               borderRadius: 100,
             }}
           >
-            {eventCategoryEmoji(event.category)} {event.category}
+            {eventCategoryEmoji(event.category)} {translateToken('category_event', event.category)}
           </span>
           {past && showPast && (
             <span
@@ -85,7 +76,7 @@ const EventCard = ({ event, showPast = false }: Props) => {
                 borderRadius: 100,
               }}
             >
-              Passé
+              {t('event.past_badge')}
             </span>
           )}
         </div>
@@ -93,7 +84,7 @@ const EventCard = ({ event, showPast = false }: Props) => {
           {event.name}
         </div>
         <div style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text-muted)', marginTop: 4 }}>
-          {formatDateRange(event.date_start, event.date_end, event.time, past && showPast)}
+          {formatEventDateRange(event.date_start, event.date_end, event.time, past && showPast)}
         </div>
         {event.address && (
           <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
@@ -103,17 +94,17 @@ const EventCard = ({ event, showPast = false }: Props) => {
         <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
           {event.duration && (
             <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 100, background: 'var(--bg)', color: 'var(--text-muted)' }}>
-              ⏱ {event.duration}
+              ⏱ {translateToken('duration', event.duration)}
             </span>
           )}
           {event.price && (
             <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 100, background: 'var(--bg)', color: 'var(--text-muted)' }}>
-              {event.price}
+              {translateToken('price', event.price)}
             </span>
           )}
           {event.weather && (
             <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 100, background: 'var(--bg)', color: 'var(--text-muted)' }}>
-              {event.weather}
+              {translateToken('weather', event.weather)}
             </span>
           )}
         </div>
@@ -124,7 +115,7 @@ const EventCard = ({ event, showPast = false }: Props) => {
             e.stopPropagation();
             toggleFavorite.mutate(event.id);
           }}
-          aria-label="Favori"
+          aria-label={t('event.favorite')}
           style={{
             position: 'absolute',
             top: 12,
