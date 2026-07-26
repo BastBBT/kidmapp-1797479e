@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Header from '@/components/Header';
 import WeekendPicker from '@/components/WeekendPicker';
 import EventsMap from '@/components/EventsMap';
@@ -7,8 +8,10 @@ import EventCategoryFilter, { orderEventCategories } from '@/components/EventCat
 import { buildWeeks, eventInWeek, todayISO, toISODate, type Week } from '@/lib/weekend';
 import { useEvents } from '@/hooks/useEvents';
 import { AgeBucket, matchesAgeBucket } from '@/lib/ageFilter';
+import { formatMonthShort } from '@/lib/formatDate';
 
 const SortiesPage = () => {
+  const { t } = useTranslation();
   const [selectedAge, setSelectedAge] = useState<AgeBucket>('all');
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
   const { data: events = [], isLoading } = useEvents();
@@ -62,6 +65,21 @@ const SortiesPage = () => {
 
   const hasActiveFilter = selectedAge !== 'all' || selectedCategory !== 'all';
 
+  const currentKey = todayISO && weeks.find((w) => !w.past)?.key;
+  const localizedWeeks = useMemo(
+    () =>
+      weeks.map((w) => ({
+        key: w.key,
+        past: w.past,
+        label: w.past
+          ? t('week.last')
+          : w.key === currentKey
+            ? t('week.current')
+            : t('week.of', { date: `${w.monday.getDate()} ${formatMonthShort(w.monday)}` }),
+      })),
+    [weeks, currentKey, t],
+  );
+
   return (
     <div className="min-h-screen pb-24" style={{ background: 'var(--bg)' }}>
       <Header
@@ -71,10 +89,10 @@ const SortiesPage = () => {
 
       <div style={{ padding: '8px 16px 4px' }}>
         <h1 style={{ fontFamily: 'Fraunces', fontSize: 22, fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text)' }}>
-          Sorties de la semaine
+          {t('sorties.title')}
         </h1>
         <p style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text-muted)', marginTop: 2 }}>
-          Les événements kids, semaine après semaine ✦
+          {t('sorties.subtitle')}
         </p>
       </div>
 
@@ -88,13 +106,13 @@ const SortiesPage = () => {
         </div>
       )}
 
-      <WeekendPicker weekends={weeks} selectedKey={selectedKey} onChange={setSelectedKey} />
+      <WeekendPicker weekends={localizedWeeks} selectedKey={selectedKey} onChange={setSelectedKey} />
 
       <div style={{ padding: '8px 16px' }}>
         <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
           {isLoading
-            ? 'Chargement…'
-            : `${filteredEvents.length} événement${filteredEvents.length > 1 ? 's' : ''}`}
+            ? t('common.loading')
+            : t('sorties.count', { count: filteredEvents.length, defaultValue: `${filteredEvents.length} événements` })}
         </p>
       </div>
 
@@ -118,9 +136,7 @@ const SortiesPage = () => {
           <div style={{ textAlign: 'center', padding: '32px 16px' }}>
             <div style={{ fontSize: 34, marginBottom: 8 }}>🎪</div>
             <div style={{ fontFamily: 'Caveat', fontSize: 17, color: 'var(--text-muted)' }}>
-              {hasActiveFilter
-                ? 'Rien ne correspond à tes filtres pour le moment'
-                : "Pas d'événement pour cette semaine ✦"}
+              {hasActiveFilter ? t('sorties.empty_filtered') : t('sorties.empty')}
             </div>
           </div>
         ) : (
