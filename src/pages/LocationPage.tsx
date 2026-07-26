@@ -122,7 +122,7 @@ const LocationPage = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
-        <p style={{ color: 'var(--text-muted)' }}>Chargement…</p>
+        <p style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</p>
       </div>
     );
   }
@@ -130,7 +130,7 @@ const LocationPage = () => {
   if (!location) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
-        <p style={{ color: 'var(--text-muted)' }}>Lieu introuvable</p>
+        <p style={{ color: 'var(--text-muted)' }}>{t('location_page.not_found')}</p>
       </div>
     );
   }
@@ -180,7 +180,7 @@ const LocationPage = () => {
             const url = window.location.href;
             const shareData = {
               title: location.name,
-              text: "Découvre ce lieu kid-friendly sur Kidmapp !",
+              text: t('location_page.share_text'),
               url,
             };
             const canUseNative =
@@ -199,12 +199,12 @@ const LocationPage = () => {
 
             try {
               await navigator.clipboard.writeText(url);
-              toast.success('Lien copié !', {
-                description: 'Tu peux maintenant le coller où tu veux.',
+              toast.success(t('location_page.share_copied'), {
+                description: t('location_page.share_copied_desc'),
                 duration: 2500,
               });
             } catch {
-              toast.error('Impossible de copier le lien');
+              toast.error(t('location_page.share_copy_error'));
             }
           }}
           className="absolute z-10 flex items-center justify-center"
@@ -215,7 +215,7 @@ const LocationPage = () => {
             boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             border: 'none', cursor: 'pointer',
           }}
-          aria-label="Partager ce lieu"
+          aria-label={t('location_page.share_aria')}
         >
           <ArrowUpFromLine size={18} color="var(--primary)" strokeWidth={2} />
         </button>
@@ -223,7 +223,7 @@ const LocationPage = () => {
 
         {/* Favorite button */}
         <button
-          onClick={() => location && requireAuth(() => toggleFavorite.mutate(location.id), { message: 'Connecte-toi pour sauvegarder ce lieu dans tes favoris ❤️' })}
+          onClick={() => location && requireAuth(() => toggleFavorite.mutate(location.id), { message: t('location_page.fav_prompt') })}
           className="absolute z-10 flex items-center justify-center"
           style={{
             top: '52px', right: '16px',
@@ -240,7 +240,7 @@ const LocationPage = () => {
         {/* Text over hero */}
         <div className="absolute bottom-6 left-5 z-10">
           <span className="font-hand italic text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
-            {categoryLabels[location.category as keyof typeof categoryLabels]}
+            {translateToken('category_place', location.category)}
           </span>
           <h1 className="font-display text-[30px] font-semibold text-white" style={{ letterSpacing: '-0.03em', lineHeight: 1.15 }}>
             {location.name}
@@ -278,7 +278,7 @@ const LocationPage = () => {
                     <line x1="2" y1="12" x2="22" y2="12"/>
                     <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
                   </svg>
-                  Site web
+                  {t('location_page.website')}
                 </a>
               )}
               {(location as any).instagram && (
@@ -327,17 +327,17 @@ const LocationPage = () => {
           {isActivity(location.category) ? (
             <div style={{ marginBottom: 16 }}>
               <h2 className="font-display text-base font-semibold" style={{ color: 'var(--text)', marginBottom: 12 }}>
-                Infos activité
+                {t('location_page.activity_info')}
               </h2>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {[
-                  { label: 'Âge', value: (location as any).age_min != null || (location as any).age_max != null
+                  { label: t('location_page.info_age'), value: (location as any).age_min != null || (location as any).age_max != null
                     ? `${(location as any).age_min ?? 0}${(location as any).age_max ? `–${(location as any).age_max}` : '+'} ans`
                     : null },
-                  { label: 'Durée', value: (location as any).duration },
-                  { label: 'Météo', value: (location as any).weather },
-                  { label: 'Effort', value: (location as any).effort },
-                  { label: 'Prix', value: (location as any).price },
+                  { label: t('location_page.info_duration'), value: (location as any).duration ? translateToken('duration', (location as any).duration) : null },
+                  { label: t('location_page.info_weather'), value: (location as any).weather ? translateToken('weather', (location as any).weather) : null },
+                  { label: t('location_page.info_effort'), value: (location as any).effort ? translateToken('effort', (location as any).effort) : null },
+                  { label: t('location_page.info_price'), value: (location as any).price ? translateToken('price', (location as any).price) : null },
                 ].filter(x => x.value).map((x) => (
                   <div key={x.label} style={{
                     padding: '10px 12px', borderRadius: 12,
@@ -356,7 +356,7 @@ const LocationPage = () => {
           ) : (<>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <h2 className="font-display text-base font-semibold" style={{ color: 'var(--text)' }}>
-              Équipements enfants
+              {t('location_page.equipment_title')}
             </h2>
             {contributorCount > 0 && (
               <span
@@ -366,7 +366,7 @@ const LocationPage = () => {
                   background: 'rgba(217,95,59,0.12)', color: 'var(--primary)',
                 }}
               >
-                {contributorCount} famille{contributorCount > 1 ? 's' : ''}
+                {t('location_page.families_count', { count: contributorCount, defaultValue: `${contributorCount} famille${contributorCount > 1 ? 's' : ''}` })}
               </span>
             )}
           </div>
@@ -389,7 +389,7 @@ const LocationPage = () => {
                       fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer',
                     }}
                   >
-                    {b.label}
+                    {t(`location_page.age_bucket_${b.id === '0-2' ? '0_2' : b.id === '3-5' ? '3_5' : b.id === '6+' ? '6_plus' : 'all'}`, { defaultValue: b.label })}
                   </button>
                 );
               })}
@@ -397,10 +397,10 @@ const LocationPage = () => {
             {ageBucket !== 'all' && (() => {
               const v = ageVerdict(location as any, ageBucket);
               const cfg = v.level === 'perfect'
-                ? { bg: '#EBF6EC', color: '#2E7D32', text: 'Tout y est pour cet âge' }
+                ? { bg: '#EBF6EC', color: '#2E7D32', text: t('location_page.verdict_perfect') }
                 : v.level === 'good'
-                ? { bg: '#FEF5E7', color: '#B77400', text: `Bien adapté (${v.matched}/${v.total} besoins clés)` }
-                : { bg: 'var(--bg)', color: 'var(--text-muted)', text: 'Peu d’infos pour cet âge' };
+                ? { bg: '#FEF5E7', color: '#B77400', text: t('location_page.verdict_good', { matched: v.matched, total: v.total }) }
+                : { bg: 'var(--bg)', color: 'var(--text-muted)', text: t('location_page.verdict_poor') };
               return (
                 <div style={{
                   padding: '8px 12px', borderRadius: 100,
@@ -431,7 +431,7 @@ const LocationPage = () => {
             if (visible.length === 0) {
               return (
                 <p style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text-muted)' }}>
-                  Aucun équipement enfant renseigné — sois le premier à contribuer !
+                  {t('location_page.no_equipment')}
                 </p>
               );
             }
@@ -521,10 +521,10 @@ const LocationPage = () => {
                     </svg>
                   </div>
                   <div>
-                    <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)' }}>Réservation</div>
+                    <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)' }}>{t('location_page.reservation')}</div>
                     {votes?.bookable_yes != null && votes.bookable_yes > 0 && (
                       <div style={{ fontFamily: 'Caveat', fontSize: '12px', color: '#2E7D32', fontWeight: 500 }}>
-                        {votes.bookable_yes} confirmation{votes.bookable_yes > 1 ? 's' : ''} ✓
+                        {t('location_page.confirmation', { count: votes.bookable_yes, defaultValue: `${votes.bookable_yes} confirmation${votes.bookable_yes > 1 ? 's' : ''} ✓` })}
                       </div>
                     )}
                   </div>
@@ -540,9 +540,9 @@ const LocationPage = () => {
                     : 'var(--text-muted)',
                   border: (location as any).bookable === 'unknown' ? '1px solid var(--border)' : 'none',
                 }}>
-                  {(location as any).bookable === 'yes' ? 'Accepte les résa'
-                    : (location as any).bookable === 'no' ? 'Sans réservation'
-                    : 'Non renseigné'}
+                  {(location as any).bookable === 'yes' ? t('location_page.reservation_yes')
+                    : (location as any).bookable === 'no' ? t('location_page.reservation_no')
+                    : t('location_page.reservation_unknown')}
                 </div>
               </div>
             </div>
@@ -573,10 +573,10 @@ const LocationPage = () => {
               </svg>
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#C49A35' }}>
-                  Contribution en attente de validation
+                  {t('location_page.pending_title')}
                 </div>
                 <div style={{ fontFamily: 'Caveat', fontSize: '12px', color: '#C49A35', fontWeight: 500 }}>
-                  Merci ! On vérifie ça très vite ✦
+                  {t('location_page.pending_desc')}
                 </div>
               </div>
             </div>
@@ -606,8 +606,8 @@ const LocationPage = () => {
               }}
             >
               {isActivity(location.category)
-                ? 'Tu connais cette activité ?'
-                : 'Tu connais ce lieu ?'}
+                ? t('location_page.cta_title_activity')
+                : t('location_page.cta_title_place')}
             </div>
             <div
               style={{
@@ -619,13 +619,13 @@ const LocationPage = () => {
               }}
             >
               {isActivity(location.category)
-                ? 'Confirme ce qu\'il y a sur place pour garder la fiche à jour'
-                : 'Confirme ce qu\'il y a sur place — chaise haute, table à langer, coin jeux… — pour garder la fiche à jour'}
+                ? t('location_page.cta_desc_activity')
+                : t('location_page.cta_desc_place')}
             </div>
             <button
               onClick={() =>
                 requireAuth(() => setShowContribute(true), {
-                  message: 'Connecte-toi pour partager tes infos sur ce lieu ✦',
+                  message: t('location_page.cta_auth'),
                 })
               }
               style={{
@@ -642,7 +642,7 @@ const LocationPage = () => {
                 boxShadow: '0 6px 18px rgba(217,95,59,0.28)',
               }}
             >
-              Confirmer les infos
+              {t('location_page.cta_button')}
             </button>
           </div>
 
@@ -657,7 +657,7 @@ const LocationPage = () => {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="3 11 22 2 13 21 11 13 3 11" />
             </svg>
-            Itinéraire
+            {t('location_page.directions')}
           </a>
         </div>
       </motion.div>
