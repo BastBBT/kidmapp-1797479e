@@ -75,7 +75,25 @@
   "weather": {
     "En intérieur": "Interior",
     "En extérieur": "Exterior",
-    "Les deux": "Interior o exterior"
+    "Les deux": "Interior o exterior",
+    "Soleil": "Sol",
+    "Pluie": "Lluvia",
+    "Tout temps": "Cualquier tiempo"
+  },
+  "filters": {
+    "all": "Todos",
+    "any": "Todo",
+    "places": "Lugares",
+    "activities": "Actividades",
+    "weather_label": "Tiempo:",
+    "duration_label": "Duración:",
+    "age_label": "EDAD",
+    "age": {
+      "all": "Todos",
+      "0_2": "0-2 años",
+      "3_5": "3-5 años",
+      "6_plus": "6+ años"
+    }
   },
   "price": {
     "Gratuit": "Gratis",

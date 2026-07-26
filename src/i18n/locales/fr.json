@@ -75,7 +75,25 @@
   "weather": {
     "En intérieur": "En intérieur",
     "En extérieur": "En extérieur",
-    "Les deux": "En intérieur ou en extérieur"
+    "Les deux": "En intérieur ou en extérieur",
+    "Soleil": "Soleil",
+    "Pluie": "Pluie",
+    "Tout temps": "Tout temps"
+  },
+  "filters": {
+    "all": "Tous",
+    "any": "Tout",
+    "places": "Lieux",
+    "activities": "Activités",
+    "weather_label": "Météo :",
+    "duration_label": "Durée :",
+    "age_label": "ÂGE",
+    "age": {
+      "all": "Tous",
+      "0_2": "0-2 ans",
+      "3_5": "3-5 ans",
+      "6_plus": "6+ ans"
+    }
   },
   "price": {
     "Gratuit": "Gratuit",

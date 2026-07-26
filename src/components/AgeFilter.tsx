@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { AGE_BUCKETS, AgeBucket } from '@/lib/ageFilter';
 
 interface AgeFilterProps {
@@ -6,7 +7,15 @@ interface AgeFilterProps {
   onChange: (b: AgeBucket) => void;
 }
 
+const AGE_KEY: Record<AgeBucket, string> = {
+  all: 'filters.age.all',
+  '0-2': 'filters.age.0_2',
+  '3-5': 'filters.age.3_5',
+  '6+': 'filters.age.6_plus',
+};
+
 const AgeFilter = ({ selected, onChange }: AgeFilterProps) => {
+  const { t } = useTranslation();
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
       <span
@@ -19,7 +28,7 @@ const AgeFilter = ({ selected, onChange }: AgeFilterProps) => {
           flexShrink: 0,
         }}
       >
-        ÂGE
+        {t('filters.age_label')}
       </span>
       <div
         style={{ display: 'inline-flex', gap: 6 }}
@@ -48,7 +57,7 @@ const AgeFilter = ({ selected, onChange }: AgeFilterProps) => {
               transition: 'all .15s',
             }}
           >
-            {b.label}
+            {t(AGE_KEY[b.id])}
           </motion.button>
           );
         })}
