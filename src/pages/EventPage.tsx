@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -9,13 +10,13 @@ import { eventCategoryColor, eventCategoryEmoji, eventCategoryHex } from '@/type
 import { downloadIcs } from '@/lib/ics';
 import { isPastEvent } from '@/lib/weekend';
 import EventFeedbackCard from '@/components/EventFeedbackCard';
-
-const formatDate = (d: string) =>
-  new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+import { translateToken } from '@/i18n/tokenMaps';
+import { formatDateLong } from '@/lib/formatDate';
 
 const EventPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { data: event, isLoading } = useEvent(id ?? '');
   const { isFavorite, toggleFavorite } = useEventFavorites();
@@ -23,7 +24,7 @@ const EventPage = () => {
   if (isLoading) {
     return (
       <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
-        Chargement…
+        {t('common.loading')}
       </div>
     );
   }
@@ -31,7 +32,7 @@ const EventPage = () => {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>😕</div>
-        <div style={{ fontFamily: 'Fraunces', fontSize: 18, marginBottom: 8 }}>Événement introuvable</div>
+        <div style={{ fontFamily: 'Fraunces', fontSize: 18, marginBottom: 8 }}>{t('event.not_found')}</div>
         <button
           onClick={() => navigate('/sorties')}
           style={{
@@ -45,7 +46,7 @@ const EventPage = () => {
             cursor: 'pointer',
           }}
         >
-          Retour aux sorties
+          {t('event.back_to_sorties')}
         </button>
       </div>
     );
@@ -80,14 +81,14 @@ const EventPage = () => {
             cursor: 'pointer',
             fontSize: 18,
           }}
-          aria-label="Retour"
+          aria-label={t('event.back')}
         >
           ←
         </button>
         {user && !past && (
           <button
             onClick={() => toggleFavorite.mutate(event.id)}
-            aria-label="Favori"
+            aria-label={t('event.favorite')}
             style={{
               position: 'absolute',
               top: 16,
@@ -123,7 +124,7 @@ const EventPage = () => {
           }}
         >
           <span>{eventCategoryEmoji(event.category)}</span>
-          {event.category}
+          {translateToken('category_event', event.category)}
         </div>
         <h1 style={{ fontFamily: 'Fraunces', fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text)' }}>
           {event.name}
@@ -161,9 +162,9 @@ const EventPage = () => {
           </div>
           <div>
             <div style={{ fontFamily: 'Fraunces', fontSize: 16, fontWeight: 500, textTransform: 'capitalize' }}>
-              {formatDate(event.date_start)}
+              {formatDateLong(event.date_start)}
               {event.date_end && event.date_end !== event.date_start && (
-                <> → {formatDate(event.date_end)}</>
+                <> → {formatDateLong(event.date_end)}</>
               )}
             </div>
             {event.time && (
@@ -189,10 +190,10 @@ const EventPage = () => {
       {/* Info grid */}
       <div style={{ padding: '20px 16px 0' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <InfoCell label="Âge" value={ageLabel(event.age_min, event.age_max)} />
-          <InfoCell label="Durée" value={event.duration} />
-          <InfoCell label="Prix" value={event.price} />
-          <InfoCell label="Météo" value={event.weather} />
+          <InfoCell label={t('event.info_age')} value={ageLabel(event.age_min, event.age_max, t)} />
+          <InfoCell label={t('event.info_duration')} value={event.duration ? translateToken('duration', event.duration) : null} />
+          <InfoCell label={t('event.info_price')} value={event.price ? translateToken('price', event.price) : null} />
+          <InfoCell label={t('event.info_weather')} value={event.weather ? translateToken('weather', event.weather) : null} />
         </div>
       </div>
 
@@ -200,7 +201,7 @@ const EventPage = () => {
       {event.note && (
         <div style={{ padding: '20px 16px 0' }}>
           <div style={{ fontFamily: 'Fraunces', fontSize: 17, fontWeight: 500, marginBottom: 8 }}>
-            Description
+            {t('event.description')}
           </div>
           <div
             style={{
@@ -223,7 +224,7 @@ const EventPage = () => {
       {event.lat != null && event.lng != null && (
         <div style={{ padding: '20px 16px 0' }}>
           <div style={{ fontFamily: 'Fraunces', fontSize: 17, fontWeight: 500, marginBottom: 8 }}>
-            Localisation
+            {t('event.location')}
           </div>
           {event.address && (
             <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>
@@ -273,7 +274,7 @@ const EventPage = () => {
               boxShadow: '0 6px 18px rgba(217,95,59,0.28)',
             }}
           >
-            Voir plus de détails ↗
+            {t('event.more_details')}
           </a>
         )}
         {past ? (
@@ -297,7 +298,7 @@ const EventPage = () => {
               }}
             >
               <span aria-hidden>↩</span>
-              Cet événement est terminé
+              {t('event.finished_message')}
             </div>
             <EventFeedbackCard eventId={event.id} />
           </>
@@ -316,7 +317,7 @@ const EventPage = () => {
               cursor: 'pointer',
             }}
           >
-            📅 Ajouter à mon calendrier
+            {t('event.add_to_calendar')}
           </button>
         )}
         {event.instagram && (
@@ -337,7 +338,7 @@ const EventPage = () => {
               textDecoration: 'none',
             }}
           >
-            @{event.instagram.replace(/^@/, '')} sur Instagram
+            {t('event.instagram_link', { handle: event.instagram.replace(/^@/, '') })}
           </a>
         )}
       </div>
@@ -361,12 +362,12 @@ const InfoCell = ({ label, value }: { label: string; value: string | number | nu
   </div>
 );
 
-const ageLabel = (min: number | null, max: number | null) => {
-  if (min == null && max == null) return 'Tous âges';
-  if (min == null) return `Jusqu'à ${max} ans`;
-  if (max == null) return `Dès ${min} ans`;
-  if (min === max) return `${min} ans`;
-  return `${min}–${max} ans`;
+const ageLabel = (min: number | null, max: number | null, t: (k: string, o?: any) => string) => {
+  if (min == null && max == null) return t('event.age_all');
+  if (min == null) return t('event.age_up_to', { max });
+  if (max == null) return t('event.age_from', { min });
+  if (min === max) return t('event.age_exact', { age: min });
+  return t('event.age_range', { min, max });
 };
 
 export default EventPage;
