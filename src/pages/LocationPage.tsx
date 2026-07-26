@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { categoryIcons, categoryLabels, isActivity } from '@/types/location';
+import { useTranslation } from 'react-i18next';
+import { categoryIcons, isActivity } from '@/types/location';
 import { ArrowLeft, ArrowUpFromLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
@@ -18,6 +19,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EQUIP_ICONS, EQUIP_LABELS, EquipKey } from '@/assets/icons';
 import { AGE_BUCKETS, AgeBucket, ageVerdict, getPriorityEquip } from '@/lib/ageFilter';
+import { translateToken } from '@/i18n/tokenMaps';
 
 const categoryGradients: Record<string, string> = {
   restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
@@ -80,6 +82,7 @@ const EquipBlock = ({ available, icon, label, voteCount }: { available: boolean;
 const LocationPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [showContribute, setShowContribute] = useState(false);
   const [ageBucket, setAgeBucket] = useState<AgeBucket>('all');
   const { data: location, isLoading } = useLocationData(id ?? '');
