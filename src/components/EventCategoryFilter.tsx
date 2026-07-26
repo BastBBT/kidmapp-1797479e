@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { eventCategoryHex, eventCategoryEmoji } from '@/types/event';
+import { translateToken } from '@/i18n/tokenMaps';
 
 interface Props {
   available: string[];
@@ -47,17 +49,18 @@ const Pill = ({
 );
 
 const EventCategoryFilter = ({ available, selected, onChange }: Props) => {
+  const { t } = useTranslation();
   if (available.length < 2) return null;
 
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-hide items-center">
-      <Pill label="Tous" isActive={selected === 'all'} onClick={() => onChange('all')} />
+      <Pill label={t('filters.all')} isActive={selected === 'all'} onClick={() => onChange('all')} />
       {available.map((cat) => {
         const active = selected === cat;
         return (
           <Pill
             key={cat}
-            label={`${eventCategoryEmoji(cat)} ${cat}`}
+            label={`${eventCategoryEmoji(cat)} ${translateToken('category_event', cat)}`}
             isActive={active}
             activeColor={eventCategoryHex(cat)}
             onClick={() => onChange(active ? 'all' : cat)}

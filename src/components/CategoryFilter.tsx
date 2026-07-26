@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { LocationCategory, categoryLabels, PLACE_CATEGORIES, ACTIVITY_CATEGORIES } from '@/types/location';
+import { useTranslation } from 'react-i18next';
+import { LocationCategory, PLACE_CATEGORIES, ACTIVITY_CATEGORIES } from '@/types/location';
 import { motion } from 'framer-motion';
 import { CATEGORY_ICONS } from '@/assets/icons';
+import { translateToken } from '@/i18n/tokenMaps';
 
 interface CategoryFilterProps {
   selected: LocationCategory | 'all';
@@ -48,6 +50,7 @@ const SegmentedControl = ({
   onChange: (g: Group) => void;
   otherHasFilter: { places: boolean; activities: boolean };
 }) => {
+  const { t } = useTranslation();
   const segStyle = (active: boolean): React.CSSProperties => ({
     position: 'relative',
     padding: '5px 12px',
@@ -90,11 +93,11 @@ const SegmentedControl = ({
       }}
     >
       <button type="button" onClick={() => onChange('places')} style={segStyle(group === 'places')}>
-        Lieux
+        {t('filters.places')}
         {group !== 'places' && otherHasFilter.places && <Dot />}
       </button>
       <button type="button" onClick={() => onChange('activities')} style={segStyle(group === 'activities')}>
-        Activités
+        {t('filters.activities')}
         {group !== 'activities' && otherHasFilter.activities && <Dot />}
       </button>
     </div>
@@ -102,6 +105,7 @@ const SegmentedControl = ({
 };
 
 const CategoryFilter = ({ selected, onChange }: CategoryFilterProps) => {
+  const { t } = useTranslation();
   const [group, setGroup] = useState<Group>(() =>
     selected === 'all' ? 'places' : groupOf(selected)
   );
@@ -129,12 +133,12 @@ const CategoryFilter = ({ selected, onChange }: CategoryFilterProps) => {
         otherHasFilter={{ places: selectedInPlaces, activities: selectedInActivities }}
       />
       <div className="flex gap-2 overflow-x-auto scrollbar-hide items-center min-w-0 flex-1">
-        <Pill cat="all" label="Tout" isActive={selected === 'all'} onClick={() => onChange('all')} />
+        <Pill cat="all" label={t('filters.any')} isActive={selected === 'all'} onClick={() => onChange('all')} />
         {activeCats.map((cat) => (
           <Pill
             key={cat}
             cat={cat}
-            label={categoryLabels[cat]}
+            label={translateToken('category_place', cat)}
             isActive={selected === cat}
             onClick={() => onChange(cat)}
           />

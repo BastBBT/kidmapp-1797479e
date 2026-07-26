@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { WEATHERS, DURATIONS } from '@/lib/activity';
+import { translateToken } from '@/i18n/tokenMaps';
 
 interface ActivityFilterProps {
   weather: string | null;
@@ -39,14 +41,15 @@ const Pill = ({
 );
 
 const ActivityFilter = ({ weather, duration, onWeatherChange, onDurationChange }: ActivityFilterProps) => {
+  const { t } = useTranslation();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 16px 4px' }}>
       <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }} className="scrollbar-hide">
-        <span style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', alignSelf: 'center', flexShrink: 0, marginRight: 2 }}>Météo :</span>
+        <span style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', alignSelf: 'center', flexShrink: 0, marginRight: 2 }}>{t('filters.weather_label')}</span>
         {WEATHERS.map((w) => (
           <Pill
             key={w}
-            label={w}
+            label={translateToken('weather', w)}
             icon={WEATHER_ICONS[w]}
             active={weather === w}
             onClick={() => onWeatherChange(weather === w ? null : w)}
@@ -54,11 +57,11 @@ const ActivityFilter = ({ weather, duration, onWeatherChange, onDurationChange }
         ))}
       </div>
       <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }} className="scrollbar-hide">
-        <span style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', alignSelf: 'center', flexShrink: 0, marginRight: 2 }}>Durée :</span>
+        <span style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', alignSelf: 'center', flexShrink: 0, marginRight: 2 }}>{t('filters.duration_label')}</span>
         {DURATIONS.map((d) => (
           <Pill
             key={d}
-            label={d}
+            label={translateToken('duration', d)}
             active={duration === d}
             onClick={() => onDurationChange(duration === d ? null : d)}
           />
