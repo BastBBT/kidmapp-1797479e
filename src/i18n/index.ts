@@ -11,9 +11,9 @@ if (!i18n.isInitialized) {
     .use(initReactI18next)
     .init({
       resources: {
-        fr: fr as any,
-        en: en as any,
-        es: es as any,
+        fr: { translation: fr as any },
+        en: { translation: en as any },
+        es: { translation: es as any },
       },
       fallbackLng: 'fr',
       supportedLngs: ['fr', 'en', 'es'],
