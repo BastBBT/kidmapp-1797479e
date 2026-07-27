@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useEventFeedback, Verdict } from '@/hooks/useEventFeedback';
@@ -11,6 +12,7 @@ interface Props {
 const MAX = 200;
 
 const EventFeedbackCard = ({ eventId }: Props) => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { requireAuth } = useRequireAuth();
   const { mine, upsert } = useEventFeedback(eventId);
@@ -30,7 +32,7 @@ const EventFeedbackCard = ({ eventId }: Props) => {
   const handleVerdictTap = (v: Verdict) => {
     if (!user) {
       requireAuth(() => setVerdict(v), {
-        message: 'Connecte-toi pour partager ton avis',
+        message: t('event.feedback_auth_prompt'),
         mode: 'login',
       });
       return;

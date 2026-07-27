@@ -157,7 +157,8 @@
     "age_up_to": "Up to {{max}} yrs",
     "age_from": "From {{min}} yrs",
     "age_exact": "{{age}} yrs",
-    "age_range": "{{min}}–{{max}} yrs"
+    "age_range": "{{min}}–{{max}} yrs",
+    "feedback_auth_prompt": "Sign in to share your feedback"
   },
   "location_page": {
     "loading": "Loading…",
