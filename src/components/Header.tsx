@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import CategoryFilter from '@/components/CategoryFilter';
 import AgeFilter from '@/components/AgeFilter';
-import { LocationCategory } from '@/types/location';
+import { CategoryGroup, LocationCategory } from '@/types/location';
 import { AgeBucket } from '@/lib/ageFilter';
 
 
@@ -13,11 +13,13 @@ interface HeaderProps {
   searchValue?: string;
   selectedCategory?: LocationCategory | 'all';
   onCategoryChange?: (cat: LocationCategory | 'all') => void;
+  selectedGroup?: CategoryGroup;
+  onGroupChange?: (g: CategoryGroup) => void;
   selectedAge?: AgeBucket;
   onAgeChange?: (b: AgeBucket) => void;
 }
 
-const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, selectedAge, onAgeChange }: HeaderProps) => {
+const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, selectedGroup, onGroupChange, selectedAge, onAgeChange }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAdmin, signOut } = useAuth();
@@ -92,9 +94,14 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
         )}
 
         {/* Row 3 — Category filter */}
-        {selectedCategory !== undefined && onCategoryChange && (
+        {selectedCategory !== undefined && onCategoryChange && selectedGroup && onGroupChange && (
           <div className="pb-2">
-            <CategoryFilter selected={selectedCategory} onChange={onCategoryChange} />
+            <CategoryFilter
+              selected={selectedCategory}
+              onChange={onCategoryChange}
+              group={selectedGroup}
+              onGroupChange={onGroupChange}
+            />
           </div>
         )}
 

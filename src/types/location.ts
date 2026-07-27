@@ -10,6 +10,12 @@ export const ACTIVITY_CATEGORIES: ActivityCategory[] = ['nature', 'sport', 'crea
 export const isActivity = (cat?: string | null): cat is ActivityCategory =>
   !!cat && (ACTIVITY_CATEGORIES as string[]).includes(cat);
 
+/** Groupe de navigation haut-niveau : on ne mélange jamais lieux et activités. */
+export type CategoryGroup = 'places' | 'activities';
+
+export const groupOf = (cat: LocationCategory | 'all'): CategoryGroup =>
+  isActivity(cat) ? 'activities' : 'places';
+
 export type Location = Tables<'locations'> & {
   // Type narrowing helpers
 };

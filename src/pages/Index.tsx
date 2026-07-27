@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { LocationCategory, isActivity } from '@/types/location';
+import { useTranslation } from 'react-i18next';
+import { CategoryGroup, LocationCategory, groupOf, isActivity } from '@/types/location';
 import MapView from '@/components/MapView';
 import LocationCard from '@/components/LocationCard';
 import Header from '@/components/Header';
@@ -22,12 +23,14 @@ const VALID_CATEGORIES = new Set<string>([
   'nature', 'sport', 'creatif', 'culture', 'jeux',
 ]);
 const VALID_AGES = new Set<string>(['all', '0-2', '3-5', '6+']);
+const VALID_GROUPS = new Set<string>(['places', 'activities']);
 
 const NANTES_CENTER: [number, number] = [47.1984, -1.5536];
 const DEFAULT_ZOOM = 12;
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { t } = useTranslation();
 
   // Read initial values from URL once
   const initialCategory = (() => {
@@ -39,6 +42,13 @@ const Index = () => {
   const initialAge = (() => {
     const a = searchParams.get('age');
     return a && VALID_AGES.has(a) ? (a as AgeBucket) : 'all';
+  })();
+  // Le groupe suit la catégorie quand elle est précise ; sinon l'URL, sinon Lieux
+  // (on n'atterrit jamais sur une liste mélangée lieux + activités).
+  const initialGroup = (() => {
+    if (initialCategory !== 'all') return groupOf(initialCategory);
+    const g = searchParams.get('group');
+    return g && VALID_GROUPS.has(g) ? (g as CategoryGroup) : 'places';
   })();
   const initialCenter = useMemo<[number, number]>(() => {
     const lat = parseFloat(searchParams.get('lat') ?? '');
@@ -53,6 +63,7 @@ const Index = () => {
   }, []);
 
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>(initialCategory);
+  const [selectedGroup, setSelectedGroup] = useState<CategoryGroup>(initialGroup);
   const [selectedMeal, setSelectedMeal] = useState<string | null>(initialMeal);
   const [selectedAge, setSelectedAge] = useState<AgeBucket>(initialAge);
   const [selectedWeather, setSelectedWeather] = useState<string | null>(null);
@@ -64,6 +75,10 @@ const Index = () => {
   const mapViewRef = useRef<{ center: [number, number]; zoom: number }>({ center: initialCenter, zoom: initialZoom });
 
   const { data: locations = [], isLoading } = useLocations(selectedCategory);
+  // Catalogue complet publié, toujours en cache : sert la recherche, qui doit ignorer
+  // les filtres. Même requête que ci-dessus (donc gratuite) quand aucune catégorie
+  // précise n'est sélectionnée.
+  const { data: allLocations = [] } = useLocations('all');
   const { data: mealTypes = [] } = useMealTypes();
   const { data: locationMeals = [] } = useAllLocationMeals();
 
@@ -85,6 +100,16 @@ const Index = () => {
     }
   }, [showActivityFilter, selectedWeather, selectedDuration]);
 
+  // Une catégorie précise appartient à un groupe : le segment suit la sélection.
+  // (L'inverse n'est pas vrai — changer de groupe conserve la catégorie active,
+  // signalée par le point sur l'autre segment.)
+  useEffect(() => {
+    if (selectedCategory !== 'all') {
+      const g = groupOf(selectedCategory);
+      setSelectedGroup((prev) => (prev === g ? prev : g));
+    }
+  }, [selectedCategory]);
+
   // Sync URL params (replaceState — no history pollution)
   const updateUrl = useCallback((overrides: Partial<{ q: string; category: string; meal: string | null; lat: number; lng: number; zoom: number }> = {}) => {
     const params = new URLSearchParams();
@@ -97,6 +122,7 @@ const Index = () => {
 
     if (q) params.set('q', q);
     if (category && category !== 'all') params.set('category', category);
+    else if (selectedGroup !== 'places') params.set('group', selectedGroup);
     if (meal) params.set('meal', meal);
     if (selectedAge && selectedAge !== 'all') params.set('age', selectedAge);
     if (Number.isFinite(lat) && (lat !== NANTES_CENTER[0] || lng !== NANTES_CENTER[1])) {
@@ -107,13 +133,13 @@ const Index = () => {
       params.set('zoom', String(zoom));
     }
     setSearchParams(params, { replace: true });
-  }, [searchQuery, selectedCategory, selectedMeal, selectedAge, setSearchParams]);
+  }, [searchQuery, selectedCategory, selectedGroup, selectedMeal, selectedAge, setSearchParams]);
 
   // Push filter changes to URL
   useEffect(() => {
     updateUrl();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, selectedCategory, selectedMeal, selectedAge]);
+  }, [searchQuery, selectedCategory, selectedGroup, selectedMeal, selectedAge]);
 
   const handleMapViewChange = useCallback((center: [number, number], zoom: number) => {
     mapViewRef.current = { center, zoom };
@@ -141,27 +167,66 @@ const Index = () => {
 
   const activeMeal = mealTypes.find((m) => m.id === selectedMeal) || null;
 
-  const filteredLocations = locations
-    .filter((loc) => {
-      const matchCategory = !selectedCategory || selectedCategory === 'all' || loc.category === selectedCategory;
-      const matchSearch =
-        !searchQuery ||
-        loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        loc.address?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchMeal = !locationIdsForMeal || locationIdsForMeal.has(loc.id);
-      const matchAge = matchesAgeBucket(loc as any, selectedAge);
-      const isActivityLoc = isActivity(loc.category);
-      const matchWeather = !isActivityLoc || matchesWeather((loc as any).weather, selectedWeather);
-      const matchDuration = !isActivityLoc || matchesDuration((loc as any).duration, selectedDuration);
-      return matchCategory && matchSearch && matchMeal && matchAge && matchWeather && matchDuration;
-    })
-    .sort((a, b) => {
-      if (selectedAge !== 'all') {
-        const diff = ageAdequacyScore(b as any, selectedAge) - ageAdequacyScore(a as any, selectedAge);
-        if (diff !== 0) return diff;
-      }
-      return a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' });
-    });
+  const searchTerm = searchQuery.trim().toLowerCase();
+  const isSearching = searchTerm !== '';
+
+  const byName = (a: { name: string }, b: { name: string }) =>
+    a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' });
+
+  const displayedLocations = useMemo(() => {
+    // Recherche active : on balaie TOUT le catalogue publié en ignorant les filtres
+    // (groupe, catégorie, âge, repas, météo, durée). Taper un nom doit le trouver,
+    // qu'on soit sur Lieux ou sur Activités.
+    if (isSearching) {
+      return allLocations
+        .filter(
+          (loc) =>
+            loc.name.toLowerCase().includes(searchTerm) ||
+            loc.address?.toLowerCase().includes(searchTerm)
+        )
+        .sort(byName);
+    }
+
+    return locations
+      .filter((loc) => {
+        const matchCategory = selectedCategory === 'all' || loc.category === selectedCategory;
+        // Sans catégorie précise, « Tout » reste borné au groupe actif : il n'existe
+        // plus d'écran affichant lieux et activités mélangés.
+        const matchGroup =
+          selectedCategory !== 'all' ||
+          isActivity(loc.category) === (selectedGroup === 'activities');
+        const matchMeal = !locationIdsForMeal || locationIdsForMeal.has(loc.id);
+        const matchAge = matchesAgeBucket(loc as any, selectedAge);
+        const isActivityLoc = isActivity(loc.category);
+        const matchWeather = !isActivityLoc || matchesWeather((loc as any).weather, selectedWeather);
+        const matchDuration = !isActivityLoc || matchesDuration((loc as any).duration, selectedDuration);
+        return matchCategory && matchGroup && matchMeal && matchAge && matchWeather && matchDuration;
+      })
+      .sort((a, b) => {
+        if (selectedAge !== 'all') {
+          const diff = ageAdequacyScore(b as any, selectedAge) - ageAdequacyScore(a as any, selectedAge);
+          if (diff !== 0) return diff;
+        }
+        return byName(a, b);
+      });
+  }, [
+    locations, allLocations, isSearching, searchTerm, selectedCategory, selectedGroup,
+    locationIdsForMeal, selectedAge, selectedWeather, selectedDuration,
+  ]);
+
+  // Compteurs accordés au groupe actif — et neutres pendant une recherche, dont les
+  // résultats croisent lieux et activités.
+  const count = displayedLocations.length;
+  const foundLabel = isSearching
+    ? t('explore.results', { count })
+    : selectedGroup === 'activities'
+      ? t('explore.found_activities', { count })
+      : t('explore.found_places', { count });
+  const countLabel = isSearching
+    ? t('explore.results', { count })
+    : selectedGroup === 'activities'
+      ? t('explore.count_activities', { count })
+      : t('explore.count_places', { count });
 
   return (
     <div className="min-h-screen flex flex-col pb-20" style={{ background: 'var(--bg)' }}>
@@ -170,6 +235,8 @@ const Index = () => {
         searchValue={searchQuery}
         selectedCategory={selectedCategory}
         onCategoryChange={setSelectedCategory}
+        selectedGroup={selectedGroup}
+        onGroupChange={setSelectedGroup}
         selectedAge={selectedAge}
         onAgeChange={setSelectedAge}
       />
@@ -214,9 +281,7 @@ const Index = () => {
       {/* Compteur */}
       <div style={{ padding: '12px 16px 8px' }}>
         <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
-          {isLoading
-            ? 'Chargement…'
-            : `${filteredLocations.length} lieu${filteredLocations.length > 1 ? 'x' : ''} trouvé${filteredLocations.length > 1 ? 's' : ''}`}
+          {isLoading ? t('common.loading') : foundLabel}
           {activeMeal && (
             <span style={{ marginLeft: 4 }}>
               · {activeMeal.emoji} {activeMeal.label}
@@ -237,7 +302,7 @@ const Index = () => {
         zIndex: 0,
       }}>
         <MapView
-          locations={filteredLocations}
+          locations={displayedLocations}
           selectedId={selectedId}
           initialCenter={initialCenter}
           initialZoom={initialZoom}
@@ -283,7 +348,7 @@ const Index = () => {
             À découvrir
           </div>
           <div style={{ fontFamily: 'Caveat, cursive', fontSize: '14px', color: 'var(--text-muted)' }}>
-            {filteredLocations.length} lieux
+            {countLabel}
           </div>
         </div>
       </div>
@@ -295,7 +360,7 @@ const Index = () => {
         gap: '12px',
         padding: '0 16px 120px',
       }}>
-        {filteredLocations.map((loc, i) => {
+        {displayedLocations.map((loc, i) => {
           const mealIds = mealsByLocation.get(loc.id) ?? [];
           return <LocationCard key={loc.id} location={loc} index={i} mealIds={mealIds} ageBucket={selectedAge} />;
         })}
@@ -312,7 +377,7 @@ const Index = () => {
         }}>
           <div style={{ height: '100vh', width: '100%', position: 'relative', zIndex: 0 }}>
             <MapView
-              locations={filteredLocations}
+              locations={displayedLocations}
               selectedId={selectedId}
               initialCenter={mapViewRef.current.center}
               initialZoom={mapViewRef.current.zoom}
@@ -357,7 +422,12 @@ const Index = () => {
               padding: '10px 12px',
               boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
             }}>
-              <CategoryFilter selected={selectedCategory} onChange={setSelectedCategory} />
+              <CategoryFilter
+                selected={selectedCategory}
+                onChange={setSelectedCategory}
+                group={selectedGroup}
+                onGroupChange={setSelectedGroup}
+              />
               <div style={{ marginTop: 6 }}>
                 <AgeFilter selected={selectedAge} onChange={setSelectedAge} />
               </div>
