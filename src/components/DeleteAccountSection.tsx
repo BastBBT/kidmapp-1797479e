@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2, Trash2, X, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,12 +19,14 @@ const sheet: React.CSSProperties = {
 };
 
 export const DeleteAccountSection = () => {
+  const { t } = useTranslation();
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [reason, setReason] = useState('');
   const [confirmText, setConfirmText] = useState('');
   const [loading, setLoading] = useState(false);
+  const confirmWord = t('account_delete.confirm_word');
 
   const close = () => {
     if (loading) return;
@@ -39,12 +42,12 @@ export const DeleteAccountSection = () => {
       if (error || (data && (data as any).error)) {
         throw new Error(error?.message || (data as any)?.error || 'delete failed');
       }
-      toast.success('Compte supprimé');
+      toast.success(t('account_delete.toast_success'));
       await signOut().catch(() => {});
       navigate('/', { replace: true });
     } catch (e) {
       console.error(e);
-      toast.error('Une erreur est survenue. Réessaie ou contacte le support.');
+      toast.error(t('account_delete.toast_error'));
       setLoading(false);
     }
   };
@@ -60,13 +63,13 @@ export const DeleteAccountSection = () => {
           letterSpacing: '-0.02em', marginBottom: 6,
           color: 'hsl(var(--destructive))',
         }}>
-          Zone dangereuse
+          {t('account_delete.danger_zone')}
         </div>
         <div style={{
           fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text-muted)',
           lineHeight: 1.5, marginBottom: 14,
         }}>
-          La suppression de ton compte est définitive et efface toutes tes données.
+          {t('account_delete.danger_desc')}
         </div>
         <button
           onClick={() => setStep(1)}
@@ -81,7 +84,7 @@ export const DeleteAccountSection = () => {
           }}
         >
           <Trash2 size={16} />
-          Supprimer mon compte
+          {t('account_delete.cta')}
         </button>
       </div>
 
@@ -92,7 +95,7 @@ export const DeleteAccountSection = () => {
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <AlertTriangle size={22} style={{ color: 'hsl(var(--destructive))' }} />
                 <div style={{ fontFamily: 'Fraunces', fontSize: 22, fontWeight: 500, color: 'var(--text)' }}>
-                  Supprimer ton compte ?
+                  {t('account_delete.confirm_title')}
                 </div>
               </div>
               <button onClick={close} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-muted)' }}>
@@ -100,16 +103,16 @@ export const DeleteAccountSection = () => {
               </button>
             </div>
             <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5, margin: '0 0 16px' }}>
-              Cette action est irréversible. Toutes tes données (favoris, contributions, propositions) seront définitivement effacées.
+              {t('account_delete.confirm_desc')}
             </p>
             <label style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-              Pourquoi pars-tu ? (optionnel)
+              {t('account_delete.reason_label')}
             </label>
             <textarea
               rows={3}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Ton retour nous aide à améliorer Kidmapp"
+              placeholder={t('account_delete.reason_placeholder')}
               style={{
                 width: '100%', padding: '12px 14px', borderRadius: 12,
                 border: '1.5px solid var(--border)', background: 'var(--surface)',
@@ -127,7 +130,7 @@ export const DeleteAccountSection = () => {
                   color: 'var(--text)', cursor: 'pointer',
                 }}
               >
-                Annuler
+                {t('common.cancel')}
               </button>
               <button
                 onClick={() => setStep(2)}
@@ -138,7 +141,7 @@ export const DeleteAccountSection = () => {
                   color: '#fff', cursor: 'pointer',
                 }}
               >
-                Oui, supprimer
+                {t('account_delete.confirm_yes')}
               </button>
             </div>
           </div>
@@ -151,20 +154,20 @@ export const DeleteAccountSection = () => {
           <div onClick={(e) => e.stopPropagation()} style={sheet}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
               <div style={{ fontFamily: 'Fraunces', fontSize: 22, fontWeight: 500, color: 'var(--text)' }}>
-                Confirme la suppression
+                {t('account_delete.final_title')}
               </div>
               <button onClick={close} disabled={loading} style={{ background: 'transparent', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', padding: 4, color: 'var(--text-muted)' }}>
                 <X size={22} />
               </button>
             </div>
             <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5, margin: '0 0 14px' }}>
-              Saisis <strong style={{ color: 'var(--text)' }}>supprimer</strong> pour confirmer.
+              {t('account_delete.final_desc_prefix')} <strong style={{ color: 'var(--text)' }}>{confirmWord}</strong> {t('account_delete.final_desc_suffix')}
             </p>
             <input
               type="text"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="supprimer"
+              placeholder={confirmWord}
               autoComplete="off"
               disabled={loading}
               style={{
@@ -186,23 +189,23 @@ export const DeleteAccountSection = () => {
                   opacity: loading ? 0.6 : 1,
                 }}
               >
-                Annuler
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleDelete}
-                disabled={loading || confirmText !== 'supprimer'}
+                disabled={loading || confirmText !== confirmWord}
                 style={{
                   flex: 1, padding: 14, borderRadius: 100,
                   border: 'none', background: 'hsl(var(--destructive))',
                   fontFamily: 'DM Sans', fontSize: 14, fontWeight: 600,
                   color: '#fff',
-                  cursor: loading || confirmText !== 'supprimer' ? 'not-allowed' : 'pointer',
-                  opacity: loading || confirmText !== 'supprimer' ? 0.5 : 1,
+                  cursor: loading || confirmText !== confirmWord ? 'not-allowed' : 'pointer',
+                  opacity: loading || confirmText !== confirmWord ? 0.5 : 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}
               >
                 {loading && <Loader2 size={16} className="animate-spin" />}
-                {loading ? 'Suppression…' : 'Supprimer définitivement'}
+                {loading ? t('account_delete.deleting') : t('account_delete.delete_forever')}
               </button>
             </div>
           </div>

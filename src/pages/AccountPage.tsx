@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -8,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import DeleteAccountSection from '@/components/DeleteAccountSection';
 import LevelCard from '@/components/LevelCard';
 import { EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
+import { translateToken } from '@/i18n/tokenMaps';
 
 
 const CategoryThumb = ({ category }: { category?: string | null }) => {
@@ -25,20 +27,24 @@ const CategoryThumb = ({ category }: { category?: string | null }) => {
   );
 };
 
-const EquipBadge = ({ icon, value }: { icon: string; value: boolean }) => (
-  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '11px', padding: '2px 8px', borderRadius: '100px', background: 'var(--bg)', color: 'var(--text-muted)' }}>
-    <img src={icon} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />
-    {value ? 'Oui' : 'Non'}
-  </span>
-);
+const EquipBadge = ({ icon, value }: { icon: string; value: boolean }) => {
+  const { t } = useTranslation();
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '11px', padding: '2px 8px', borderRadius: '100px', background: 'var(--bg)', color: 'var(--text-muted)' }}>
+      <img src={icon} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />
+      {value ? t('common.yes') : t('common.no')}
+    </span>
+  );
+};
 
 const JoinKidmappView = () => {
+  const { t } = useTranslation();
   const { openAuth } = useRequireAuth();
   const benefits = [
-    { emoji: '❤️', label: 'Sauvegarder tes lieux préférés' },
-    { emoji: '✍️', label: 'Contribuer aux infos des lieux' },
-    { emoji: '📍', label: 'Proposer un nouveau lieu' },
-    { emoji: '👤', label: 'Suivre ton activité et tes contributions' },
+    { emoji: '❤️', label: t('account.benefit_save') },
+    { emoji: '✍️', label: t('account.benefit_contribute') },
+    { emoji: '📍', label: t('account.benefit_propose') },
+    { emoji: '👤', label: t('account.benefit_track') },
   ];
   return (
     <div style={{ paddingBottom: '120px', minHeight: '100vh', background: 'var(--bg)' }}>
@@ -67,13 +73,13 @@ const JoinKidmappView = () => {
           fontFamily: 'Fraunces', fontSize: 28, fontWeight: 500,
           letterSpacing: '-0.02em', color: 'var(--text)', position: 'relative', zIndex: 1,
         }}>
-          Rejoindre Kidmapp
+          {t('account.join_title')}
         </div>
         <div style={{
           fontFamily: 'Caveat', fontSize: 17, color: 'var(--text-muted)',
           marginTop: 6, position: 'relative', zIndex: 1,
         }}>
-          Sauvegarde tes lieux préférés, contribue, et plus encore ✦
+          {t('account.join_subtitle')}
         </div>
       </div>
 
@@ -110,7 +116,7 @@ const JoinKidmappView = () => {
             cursor: 'pointer', boxShadow: '0 8px 22px rgba(217,95,59,0.28)',
           }}
         >
-          Créer un compte 🎉
+          {t('account.signup_cta')}
         </button>
         <button
           onClick={() => openAuth('login')}
@@ -121,7 +127,7 @@ const JoinKidmappView = () => {
             fontWeight: 600, cursor: 'pointer',
           }}
         >
-          J'ai déjà un compte — Se connecter
+          {t('account.login_cta')}
         </button>
       </div>
 
@@ -130,12 +136,12 @@ const JoinKidmappView = () => {
           fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text-muted)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
         }}>
-          <Link to="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Confidentialité</Link>
+          <Link to="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>{t('common.privacy')}</Link>
           <span aria-hidden="true">·</span>
-          <Link to="/support" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Support</Link>
+          <Link to="/support" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>{t('common.support')}</Link>
         </div>
         <div style={{ fontFamily: 'Caveat, cursive', fontSize: 14, color: 'var(--text-muted)', marginTop: 8 }}>
-          © 2026 Kidmapp
+          {t('account.copyright', { year: new Date().getFullYear() })}
         </div>
       </div>
     </div>
@@ -143,6 +149,7 @@ const JoinKidmappView = () => {
 };
 
 const AccountPage = () => {
+  const { t, i18n } = useTranslation();
   const { user, profile, signOut, refreshProfile } = useAuth();
   const { favoriteIds } = useFavorites();
   const [nameDraft, setNameDraft] = useState('');
@@ -240,13 +247,13 @@ const AccountPage = () => {
           {user?.email?.[0].toUpperCase()}
         </div>
         <div style={{ fontFamily: 'Fraunces', fontSize: '22px', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text)' }}>
-          Mon compte
+          {t('account.title')}
         </div>
         <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)', marginTop: '2px' }}>
           {user?.email}
         </div>
         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', fontFamily: 'DM Sans' }}>
-          Membre depuis {user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '—'}
+          {t('account.member_since', { date: user?.created_at ? new Date(user.created_at).toLocaleDateString(i18n.language, { month: 'long', year: 'numeric' }) : '—' })}
         </div>
       </div>
 
@@ -257,10 +264,10 @@ const AccountPage = () => {
         borderBottom: '1px solid var(--border)'
       }}>
         {[
-          { value: favoriteIds.length, label: 'Favoris' },
-          { value: myContributions.length, label: 'Contributions' },
-          { value: myProposals.length, label: 'Lieux' },
-          { value: myEvents.length, label: 'Événements' },
+          { value: favoriteIds.length, label: t('account.stat_favorites') },
+          { value: myContributions.length, label: t('account.stat_contributions') },
+          { value: myProposals.length, label: t('account.stat_places') },
+          { value: myEvents.length, label: t('account.stat_events') },
         ].map(stat => (
           <div key={stat.label} style={{
             background: 'var(--surface)', padding: '16px',
@@ -287,21 +294,21 @@ const AccountPage = () => {
       <div style={{ padding: '20px 16px 0' }}>
 
         <div style={{ fontFamily: 'Fraunces', fontSize: '18px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: '12px' }}>
-          Mon prénom
+          {t('account.name_title')}
         </div>
         <div style={{
           background: 'var(--surface)', borderRadius: 'var(--radius-sm)',
           padding: '14px', boxShadow: 'var(--shadow)',
         }}>
           <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
-            Affiché à côté de tes contributions. Laisse vide pour rester anonyme.
+            {t('account.name_hint')}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               type="text"
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
-              placeholder="Ex. Camille"
+              placeholder={t('common.example_name')}
               maxLength={60}
               autoComplete="given-name"
               style={{
@@ -322,7 +329,7 @@ const AccountPage = () => {
                 opacity: (savingName || nameDraft.trim() === (profile?.full_name ?? '')) ? 0.5 : 1,
               }}
             >
-              {savingName ? '…' : nameSaved ? '✓' : 'Enregistrer'}
+              {savingName ? '…' : nameSaved ? '✓' : t('common.save')}
             </button>
           </div>
         </div>
@@ -332,12 +339,12 @@ const AccountPage = () => {
       <div style={{ padding: '20px 16px 0' }}>
 
         <div style={{ fontFamily: 'Fraunces', fontSize: '18px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: '12px' }}>
-          Mes contributions
+          {t('account.contributions_title')}
         </div>
         {myContributions.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)' }}>
             <div style={{ fontFamily: 'Caveat', fontSize: '16px', color: 'var(--text-muted)' }}>
-              Aucune contribution pour l'instant ✦
+              {t('account.contributions_empty')}
             </div>
           </div>
         ) : myContributions.map((c: any) => (
@@ -354,7 +361,7 @@ const AccountPage = () => {
                 </div>
               </div>
               <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)' }}>
-                {new Date(c.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                {new Date(c.created_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'long' })}
               </div>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
                 {c.high_chair !== null && <EquipBadge icon={EQUIP_ICONS.high_chair} value={c.high_chair} />}
@@ -371,14 +378,14 @@ const AccountPage = () => {
                   fontSize: 11, fontWeight: 700,
                   background: 'rgba(217,95,59,0.08)', color: '#D95F3B',
                   padding: '2px 8px', borderRadius: 20,
-                }}>+10 pts</div>
+                }}>{t('account.points_earned', { points: 10 })}</div>
               )}
               <div style={{
                 fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '100px',
                 background: c.status === 'validated' ? '#EBF6EC' : c.status === 'rejected' ? '#FEF0EC' : 'var(--accent-light)',
                 color: c.status === 'validated' ? '#2E7D32' : c.status === 'rejected' ? 'var(--primary)' : '#C49A35'
               }}>
-                {c.status === 'validated' ? '✓ Validée' : c.status === 'rejected' ? '✗ Refusée' : '⏳ En attente'}
+                {c.status === 'validated' ? t('account.status_validated') : c.status === 'rejected' ? t('account.status_rejected') : t('account.status_pending')}
               </div>
             </div>
 
@@ -389,12 +396,12 @@ const AccountPage = () => {
       {/* Propositions */}
       <div style={{ padding: '20px 16px 0' }}>
         <div style={{ fontFamily: 'Fraunces', fontSize: '18px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: '12px' }}>
-          Mes propositions
+          {t('account.proposals_title')}
         </div>
         {myProposals.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)' }}>
             <div style={{ fontFamily: 'Caveat', fontSize: '16px', color: 'var(--text-muted)' }}>
-              Tu n'as pas encore proposé de lieu ✦
+              {t('account.proposals_empty')}
             </div>
           </div>
         ) : myProposals.map((p: any) => (
@@ -419,7 +426,7 @@ const AccountPage = () => {
                 {p.address}
               </div>
               <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)' }}>
-                {new Date(p.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                {new Date(p.created_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'long' })}
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
@@ -428,14 +435,14 @@ const AccountPage = () => {
                   fontSize: 11, fontWeight: 700,
                   background: 'rgba(217,95,59,0.08)', color: '#D95F3B',
                   padding: '2px 8px', borderRadius: 20,
-                }}>+25 pts</div>
+                }}>{t('account.points_earned', { points: 25 })}</div>
               )}
               <div style={{
                 fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '100px',
                 background: p.status === 'approved' ? '#EBF6EC' : p.status === 'rejected' ? '#FEF0EC' : 'var(--accent-light)',
                 color: p.status === 'approved' ? '#2E7D32' : p.status === 'rejected' ? 'var(--primary)' : '#C49A35'
               }}>
-                {p.status === 'approved' ? '✓ Publiée' : p.status === 'rejected' ? '✗ Refusée' : '⏳ En attente'}
+                {p.status === 'approved' ? t('account.status_published_place') : p.status === 'rejected' ? t('account.status_rejected') : t('account.status_pending')}
               </div>
             </div>
 
@@ -446,12 +453,12 @@ const AccountPage = () => {
       {/* Mes événements proposés */}
       <div style={{ padding: '20px 16px 0' }}>
         <div style={{ fontFamily: 'Fraunces', fontSize: '18px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: '12px' }}>
-          Mes événements
+          {t('account.events_title')}
         </div>
         {myEvents.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)' }}>
             <div style={{ fontFamily: 'Caveat', fontSize: '16px', color: 'var(--text-muted)' }}>
-              Tu n'as pas encore proposé d'événement ✦
+              {t('account.events_empty')}
             </div>
           </div>
         ) : myEvents.map((e: any) => (
@@ -465,10 +472,10 @@ const AccountPage = () => {
                 {e.name}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                {e.category} · {new Date(e.date_start).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                {translateToken('category_event', e.category)} · {new Date(e.date_start).toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' })}
               </div>
               <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)' }}>
-                Proposé le {new Date(e.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                {t('account.proposed_on', { date: new Date(e.created_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'long' }) })}
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
@@ -477,14 +484,14 @@ const AccountPage = () => {
                   fontSize: 11, fontWeight: 700,
                   background: 'rgba(217,95,59,0.08)', color: '#D95F3B',
                   padding: '2px 8px', borderRadius: 20,
-                }}>+25 pts</div>
+                }}>{t('account.points_earned', { points: 25 })}</div>
               )}
               <div style={{
                 fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '100px',
                 background: e.status === 'published' ? '#EBF6EC' : e.status === 'rejected' ? '#FEF0EC' : 'var(--accent-light)',
                 color: e.status === 'published' ? '#2E7D32' : e.status === 'rejected' ? 'var(--primary)' : '#C49A35'
               }}>
-                {e.status === 'published' ? '✓ Publié' : e.status === 'rejected' ? '✗ Refusé' : '⏳ En attente'}
+                {e.status === 'published' ? t('account.status_published_event') : e.status === 'rejected' ? t('account.status_rejected_event') : t('account.status_pending')}
               </div>
             </div>
           </div>
@@ -508,7 +515,7 @@ const AccountPage = () => {
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />
           </svg>
-          Se déconnecter
+          {t('account.logout_cta')}
         </button>
       </div>
 
@@ -532,7 +539,7 @@ const AccountPage = () => {
             <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
             <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
           </svg>
-          Suivez-nous sur Instagram
+          {t('account.instagram_cta')}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="7" y1="17" x2="17" y2="7" />
             <polyline points="7 7 17 7 17 17" />
@@ -560,14 +567,14 @@ const AccountPage = () => {
             to="/privacy"
             style={{ color: 'var(--text-muted)', textDecoration: 'none' }}
           >
-            Confidentialité
+            {t('common.privacy')}
           </Link>
           <span aria-hidden="true">·</span>
           <Link
             to="/support"
             style={{ color: 'var(--text-muted)', textDecoration: 'none' }}
           >
-            Support
+            {t('common.support')}
           </Link>
         </div>
         <div style={{
@@ -576,7 +583,7 @@ const AccountPage = () => {
           color: 'var(--text-muted)',
           marginTop: '8px',
         }}>
-          © 2026 Kidmapp
+          {t('account.copyright', { year: new Date().getFullYear() })}
         </div>
       </div>
     </div>
