@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useLocations } from '@/hooks/useLocations';
 import { useAllEvents } from '@/hooks/useEvents';
@@ -10,6 +11,7 @@ import Header from '@/components/Header';
 type Tab = 'places' | 'events';
 
 const SavedPage = () => {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('places');
   const { favoriteIds } = useFavorites();
   const { data: locations = [] } = useLocations();
@@ -26,12 +28,12 @@ const SavedPage = () => {
       <Header />
       <div className="px-5 pt-6 pb-3">
         <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--text)' }}>
-          Sauvegardés
+          {t('saved.title')}
         </h1>
         <p className="font-hand text-base mt-1" style={{ color: 'var(--text-muted)' }}>
           {tab === 'places'
-            ? `${saved.length} lieu${saved.length !== 1 ? 'x' : ''} ♥`
-            : `${savedEvents.length} événement${savedEvents.length !== 1 ? 's' : ''} ♥`}
+            ? t('saved.count_places', { count: saved.length })
+            : t('saved.count_events', { count: savedEvents.length })}
         </p>
       </div>
 
@@ -46,12 +48,12 @@ const SavedPage = () => {
             borderRadius: 100,
           }}
         >
-          {(['places', 'events'] as const).map((t) => {
-            const active = tab === t;
+          {(['places', 'events'] as const).map((tabKey) => {
+            const active = tab === tabKey;
             return (
               <button
-                key={t}
-                onClick={() => setTab(t)}
+                key={tabKey}
+                onClick={() => setTab(tabKey)}
                 style={{
                   flex: 1,
                   padding: '8px 12px',
@@ -65,7 +67,7 @@ const SavedPage = () => {
                   cursor: 'pointer',
                 }}
               >
-                {t === 'places' ? 'Lieux & activités' : 'Événements'}
+                {tabKey === 'places' ? t('saved.tab_places') : t('saved.tab_events')}
               </button>
             );
           })}
@@ -74,7 +76,7 @@ const SavedPage = () => {
 
       {tab === 'places' ? (
         saved.length === 0 ? (
-          <EmptyState label="Aucun favori pour l'instant" hint="Appuyez sur ♥ sur une fiche lieu pour sauvegarder" />
+          <EmptyState label={t('saved.empty_places')} hint={t('saved.empty_places_hint')} />
         ) : (
           <div className="px-4 grid grid-cols-2 gap-3 pb-6">
             {saved.map((location) => (
@@ -83,7 +85,7 @@ const SavedPage = () => {
           </div>
         )
       ) : savedEvents.length === 0 ? (
-        <EmptyState label="Aucun événement sauvegardé" hint="Appuyez sur ♥ sur une sortie pour la retrouver ici" />
+        <EmptyState label={t('saved.empty_events')} hint={t('saved.empty_events_hint')} />
       ) : (
         <div className="px-4 flex flex-col gap-3 pb-6">
           {savedEvents.map((event) => {

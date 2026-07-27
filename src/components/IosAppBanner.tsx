@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import iconAsset from '@/assets/ios-app-icon.png.asset.json';
 
 const STORAGE_KEY = 'kidmapp_iosBannerDismissedAt';
@@ -37,6 +38,7 @@ const isDismissed = () => {
 };
 
 const IosAppBanner = () => {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -70,7 +72,7 @@ const IosAppBanner = () => {
     >
       <button
         onClick={dismiss}
-        aria-label="Fermer"
+        aria-label={t('common.close')}
         style={{
           background: 'transparent',
           border: 'none',
@@ -118,7 +120,7 @@ const IosAppBanner = () => {
             marginTop: 2,
           }}
         >
-          Disponible sur l'App Store
+          {t('ios_banner.subtitle')}
         </div>
       </div>
 
@@ -139,7 +141,7 @@ const IosAppBanner = () => {
           whiteSpace: 'nowrap',
         }}
       >
-        Ouvrir
+        {t('ios_banner.open')}
       </a>
     </div>
   );

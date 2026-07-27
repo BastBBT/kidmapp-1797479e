@@ -1,4 +1,5 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import AuthModal from '@/components/AuthModal';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -12,6 +13,7 @@ interface RequireAuthContextValue {
 const RequireAuthContext = createContext<RequireAuthContextValue | null>(null);
 
 export const RequireAuthProvider = ({ children }: { children: ReactNode }) => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<AuthMode>('signup');
@@ -75,7 +77,7 @@ export const RequireAuthProvider = ({ children }: { children: ReactNode }) => {
         >
           <button
             onClick={close}
-            aria-label="Fermer"
+            aria-label={t('common.close')}
             style={{
               position: 'fixed',
               top: 'calc(env(safe-area-inset-top, 0px) + 12px)',

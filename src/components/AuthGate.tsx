@@ -1,9 +1,11 @@
 import { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import AuthModal from './AuthModal';
 
 const AuthGate = ({ children }: { children: ReactNode }) => {
+  const { t } = useTranslation();
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -15,7 +17,7 @@ const AuthGate = ({ children }: { children: ReactNode }) => {
   }
 
   if (!user) {
-    return <AuthModal initialMode="login" headerMessage="Connecte-toi pour accéder à cette page" />;
+    return <AuthModal initialMode="login" headerMessage={t('auth.gate_message')} />;
   }
 
   return <>{children}</>;

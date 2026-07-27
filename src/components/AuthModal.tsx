@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2, X, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +22,7 @@ const GoogleIcon = () => (
 );
 
 const ForgotPasswordSheet = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -45,7 +47,7 @@ const ForgotPasswordSheet = ({ open, onClose }: { open: boolean; onClose: () => 
       if (error) throw error;
       setSuccess(true);
     } catch (err: any) {
-      setError(err?.message || 'Une erreur est survenue');
+      setError(err?.message || t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -79,12 +81,12 @@ const ForgotPasswordSheet = ({ open, onClose }: { open: boolean; onClose: () => 
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
           <div style={{ fontFamily: 'Fraunces', fontSize: 22, fontWeight: 500, color: 'var(--text)' }}>
-            Réinitialiser le mot de passe
+            {t('auth.reset_title')}
           </div>
           <button
             onClick={onClose}
             style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-muted)' }}
-            aria-label="Fermer"
+            aria-label={t('common.close')}
           >
             <X size={22} />
           </button>
@@ -106,7 +108,7 @@ const ForgotPasswordSheet = ({ open, onClose }: { open: boolean; onClose: () => 
             >
               <CheckCircle2 size={20} style={{ color: 'hsl(var(--success))', flexShrink: 0, marginTop: 1 }} />
               <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text)', lineHeight: 1.5 }}>
-                Un lien de réinitialisation a été envoyé à <strong>{email}</strong>. Pense à vérifier tes spams.
+                {t('auth.reset_success_prefix')} <strong>{email}</strong>{t('auth.reset_success_suffix')}
               </div>
             </div>
             <button
@@ -124,20 +126,20 @@ const ForgotPasswordSheet = ({ open, onClose }: { open: boolean; onClose: () => 
                 cursor: 'pointer',
               }}
             >
-              Fermer
+              {t('common.close')}
             </button>
           </>
         ) : (
           <form onSubmit={submit}>
             <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5, marginTop: 0, marginBottom: 18 }}>
-              Entre ton email et nous t'enverrons un lien pour créer un nouveau mot de passe.
+              {t('auth.reset_desc')}
             </p>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="vous@exemple.com"
+              placeholder={t('auth.email_placeholder')}
               style={{
                 width: '100%',
                 padding: '14px 16px',
@@ -176,7 +178,7 @@ const ForgotPasswordSheet = ({ open, onClose }: { open: boolean; onClose: () => 
               }}
             >
               {loading && <Loader2 size={16} className="animate-spin" />}
-              {loading ? 'Envoi…' : 'Envoyer le lien'}
+              {loading ? t('auth.sending') : t('auth.send_link')}
             </button>
           </form>
         )}
@@ -187,6 +189,7 @@ const ForgotPasswordSheet = ({ open, onClose }: { open: boolean; onClose: () => 
 };
 
 const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) => {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -220,13 +223,13 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
         redirect_uri: window.location.origin,
       });
       if (result.error) {
-        setError((result.error as Error)?.message || 'Connexion Google impossible');
+        setError((result.error as Error)?.message || t('auth.error_google_failed'));
         googleLockRef.current = false;
         setGoogleLoading(false);
       }
       // On success/redirect, leave the lock engaged — the browser will navigate away.
     } catch (err: any) {
-      setError(err?.message || 'Connexion Google impossible');
+      setError(err?.message || t('auth.error_google_failed'));
       googleLockRef.current = false;
       setGoogleLoading(false);
     }
@@ -238,15 +241,15 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
 
   const mapAuthError = (msg: string): string => {
     const lower = msg.toLowerCase();
-    if (lower.includes('invalid login credentials')) return 'Email ou mot de passe incorrect';
-    if (lower.includes('user already registered')) return 'Cet email est déjà utilisé. Essaie de te connecter.';
-    if (lower.includes('email not confirmed')) return "Ton compte n'est pas encore activé. Vérifie ta boîte mail (et les spams) pour cliquer sur le lien de confirmation.";
+    if (lower.includes('invalid login credentials')) return t('auth.error_invalid_credentials');
+    if (lower.includes('user already registered')) return t('auth.error_already_registered');
+    if (lower.includes('email not confirmed')) return t('auth.error_email_not_confirmed');
     if (lower.includes('over_email_send_rate_limit') || lower.includes('email rate limit') || lower.includes('for security purposes')) {
-      return 'Trop de tentatives récentes. Réessaie dans quelques minutes.';
+      return t('auth.error_rate_limit');
     }
-    if (lower.includes('password should be at least')) return 'Le mot de passe doit contenir au moins 8 caractères';
-    if (lower.includes('unable to validate email')) return "Adresse email invalide";
-    return msg || 'Une erreur est survenue';
+    if (lower.includes('password should be at least')) return t('auth.error_password_length');
+    if (lower.includes('unable to validate email')) return t('auth.error_invalid_email');
+    return msg || t('common.error');
   };
 
   const handleResend = async () => {
@@ -260,7 +263,7 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
         options: { emailRedirectTo: window.location.origin },
       });
       if (error) throw error;
-      setResendMessage('Email renvoyé ✓');
+      setResendMessage(t('auth.resend_success'));
       setResendCooldown(30);
     } catch (err: any) {
       setResendMessage(mapAuthError(err?.message || ''));
@@ -274,11 +277,11 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
     setError('');
     if (mode === 'signup') {
       if (password.length < 8) {
-        setError('Le mot de passe doit contenir au moins 8 caractères');
+        setError(t('auth.error_password_length'));
         return;
       }
       if (password !== confirmPassword) {
-        setError('Les mots de passe ne correspondent pas');
+        setError(t('auth.error_password_mismatch'));
         return;
       }
     }
@@ -352,7 +355,7 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
           kidmapp
         </div>
         <div style={{ fontFamily: "'Caveat', cursive", fontSize: 18, color: '#C45A38', fontWeight: 500, position: 'relative', zIndex: 1, marginTop: 4 }}>
-          Nantes pour les familles ✦
+          {t('auth.tagline')}
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginTop: 14, position: 'relative', zIndex: 1 }}>
@@ -414,12 +417,12 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
               </div>
             </div>
             <div style={{ fontFamily: 'Fraunces', fontSize: 24, fontWeight: 500, color: 'var(--text)', textAlign: 'center', marginBottom: 10 }}>
-              Vérifie ta boîte mail
+              {t('auth.check_email_title')}
             </div>
             <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.55, textAlign: 'center', margin: '0 0 18px' }}>
-              On t'a envoyé un lien de confirmation à <strong style={{ color: 'var(--text)' }}>{signupSuccessEmail}</strong>. Clique dessus pour activer ton compte.
+              {t('auth.check_email_prefix')} <strong style={{ color: 'var(--text)' }}>{signupSuccessEmail}</strong>{t('auth.check_email_suffix')}
               <br />
-              <span style={{ fontSize: 13 }}>Pense à vérifier tes spams 👀</span>
+              <span style={{ fontSize: 13 }}>{t('auth.check_spam')}</span>
             </p>
             <button
               type="button"
@@ -445,7 +448,7 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
               }}
             >
               {resendLoading && <Loader2 size={16} className="animate-spin" />}
-              {resendCooldown > 0 ? `Renvoyer l'email (${resendCooldown}s)` : resendLoading ? 'Envoi…' : "Renvoyer l'email"}
+              {resendCooldown > 0 ? t('auth.resend_cooldown', { seconds: resendCooldown }) : resendLoading ? t('auth.sending') : t('auth.resend')}
             </button>
             {resendMessage && (
               <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 10 }}>
@@ -474,7 +477,7 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
                 cursor: 'pointer',
               }}
             >
-              J'ai déjà confirmé, me connecter
+              {t('auth.already_confirmed')}
             </button>
           </div>
         ) : (
@@ -505,7 +508,7 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
                   transition: 'all 0.2s',
                 }}
               >
-                {m === 'signup' ? 'Créer un compte' : 'Se connecter'}
+                {m === 'signup' ? t('auth.tab_signup') : t('auth.tab_login')}
               </button>
             );
           })}
@@ -514,12 +517,12 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {mode === 'signup' && (
             <div>
-              <label style={labelStyle}>Prénom <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text-muted)', opacity: 0.7 }}>(optionnel)</span></label>
+              <label style={labelStyle}>{t('auth.first_name_label')} <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: 'var(--text-muted)', opacity: 0.7 }}>{t('contribution.optional')}</span></label>
               <input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Ex. Camille"
+                placeholder={t('common.example_name')}
                 maxLength={60}
                 autoComplete="given-name"
                 style={inputStyle}
@@ -530,12 +533,12 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
           )}
 
           <div>
-            <label style={labelStyle}>Email</label>
+            <label style={labelStyle}>{t('auth.email_label')}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="vous@exemple.com"
+              placeholder={t('auth.email_placeholder')}
               required
               style={inputStyle}
               onFocus={(e) => (e.target.style.borderColor = 'var(--primary)')}
@@ -546,7 +549,7 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <label style={labelStyle}>Mot de passe</label>
+              <label style={labelStyle}>{t('auth.password_label')}</label>
               {mode === 'login' && (
                 <button
                   type="button"
@@ -562,7 +565,7 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
                     padding: 0,
                   }}
                 >
-                  Mot de passe oublié ?
+                  {t('auth.forgot_password')}
                 </button>
               )}
             </div>
@@ -570,7 +573,7 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === 'signup' ? '8 caractères minimum' : '••••••••'}
+              placeholder={mode === 'signup' ? t('auth.password_placeholder_signup') : '••••••••'}
               required
               minLength={mode === 'signup' ? 8 : 6}
               style={inputStyle}
@@ -581,7 +584,7 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
 
           {mode === 'signup' && (
             <div>
-              <label style={labelStyle}>Confirmer le mot de passe</label>
+              <label style={labelStyle}>{t('auth.confirm_password_label')}</label>
               <input
                 type="password"
                 value={confirmPassword}
@@ -622,8 +625,8 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
           >
             {loading && <Loader2 size={16} className="animate-spin" />}
             {loading
-              ? mode === 'login' ? 'Connexion…' : 'Création…'
-              : mode === 'login' ? 'Se connecter →' : 'Rejoindre Kidmapp 🎉'}
+              ? mode === 'login' ? t('auth.submit_login_loading') : t('auth.submit_signup_loading')
+              : mode === 'login' ? t('auth.submit_login') : t('auth.submit_signup')}
           </button>
 
           {error && (
@@ -636,7 +639,7 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
         {/* Separator */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0' }}>
           <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-          <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)' }}>ou</div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)' }}>{t('auth.or')}</div>
           <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
         </div>
 
@@ -664,7 +667,7 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
           }}
         >
           {googleLoading ? <Loader2 size={16} className="animate-spin" /> : <GoogleIcon />}
-          {googleLoading ? 'Connexion…' : 'Continuer avec Google'}
+          {googleLoading ? t('auth.submit_login_loading') : t('auth.google_continue')}
         </button>
         </>
         )}
