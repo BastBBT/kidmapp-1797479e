@@ -143,6 +143,30 @@ export const isPastEvent = (dateStart: string, dateEnd: string | null): boolean 
   return end < todayISO();
 };
 
+/**
+ * Ordre d'affichage d'un événement au sein d'une semaine :
+ * 0 = court (journée / week-end), 1 = long (expo, festival), 2 = terminé.
+ * Sans ça, une expo démarrée en mai remonte au même niveau qu'un atelier du jour.
+ */
+export const eventSortRank = (dateStart: string, dateEnd: string | null): number => {
+  if (isPastEvent(dateStart, dateEnd)) return 2;
+  return isShortEvent(dateStart, dateEnd) ? 0 : 1;
+};
+
+/**
+ * Événement « court » : sur une journée ou un week-end (≤ 3 jours), par
+ * opposition aux expos et festivals qui courent sur plusieurs semaines.
+ * Sert à prioriser l'affichage dans une semaine (courts d'abord).
+ */
+export const isShortEvent = (dateStart: string, dateEnd: string | null): boolean => {
+  if (!dateEnd || dateEnd === dateStart) return true;
+  const start = new Date(`${dateStart}T00:00:00`);
+  const end = new Date(`${dateEnd}T00:00:00`);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return true;
+  const days = Math.round((end.getTime() - start.getTime()) / 86400000);
+  return days <= 3;
+};
+
 export { toISODate };
 
 // ---------- Weekly grouping (Mon → Sun) ----------
