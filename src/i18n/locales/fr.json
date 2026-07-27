@@ -128,7 +128,10 @@
     "count_one": "{{count}} événement",
     "count_other": "{{count}} événements",
     "empty_filtered": "Rien ne correspond à tes filtres pour le moment",
-    "empty": "Pas d'événement pour cette semaine ✦"
+    "empty": "Pas d'événement pour cette semaine ✦",
+    "show_finished_one": "Voir l'événement terminé",
+    "show_finished_other": "Voir les {{count}} événements terminés",
+    "hide_finished": "Masquer les événements terminés"
   },
   "event": {
     "finished": "Terminé",

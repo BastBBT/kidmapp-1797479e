@@ -5,7 +5,15 @@ import WeekendPicker from '@/components/WeekendPicker';
 import EventsMap from '@/components/EventsMap';
 import EventCard from '@/components/EventCard';
 import EventCategoryFilter, { orderEventCategories } from '@/components/EventCategoryFilter';
-import { buildWeeks, eventInWeek, todayISO, toISODate, type Week } from '@/lib/weekend';
+import {
+  buildWeeks,
+  eventInWeek,
+  eventSortRank,
+  isPastEvent,
+  todayISO,
+  toISODate,
+  type Week,
+} from '@/lib/weekend';
 import { useEvents } from '@/hooks/useEvents';
 import { AgeBucket, matchesAgeBucket } from '@/lib/ageFilter';
 import { formatMonthShort } from '@/lib/formatDate';
@@ -14,6 +22,7 @@ const SortiesPage = () => {
   const { t } = useTranslation();
   const [selectedAge, setSelectedAge] = useState<AgeBucket>('all');
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
+  const [showFinished, setShowFinished] = useState(false);
   const { data: events = [], isLoading } = useEvents();
 
   // Build weeks: always show last + current, plus any future week where at
@@ -57,11 +66,35 @@ const SortiesPage = () => {
       .filter((ev) => matchesAgeBucket(ev as any, selectedAge))
       .filter((ev) => selectedCategory === 'all' || ev.category === selectedCategory)
       .sort((a, b) => {
+        // Tri à 3 paliers : les events courts (journée / week-end) d'abord, puis
+        // les longs (expos, festivals sur plusieurs semaines) qui sinon
+        // squattent le haut de liste avec leur date de début lointaine, et
+        // enfin ceux déjà terminés.
+        const ra = eventSortRank(a.date_start, a.date_end);
+        const rb = eventSortRank(b.date_start, b.date_end);
+        if (ra !== rb) return ra - rb;
+        // À rang égal : date de début « ramenée » au lundi de la semaine.
         const ka = a.date_start < mondayISO ? mondayISO : a.date_start;
         const kb = b.date_start < mondayISO ? mondayISO : b.date_start;
         return ka.localeCompare(kb);
       });
   }, [events, selectedWeek, selectedAge, selectedCategory]);
+
+  // Dans une semaine en cours ou à venir, les events individuellement terminés
+  // (l'atelier de lundi consulté le jeudi) sont masqués par défaut. Une semaine
+  // entièrement passée reste affichée en entier : c'est son sens même.
+  const weekIsPast = selectedWeek?.past ?? false;
+  const finishedCount = useMemo(
+    () => (weekIsPast ? 0 : filteredEvents.filter((ev) => isPastEvent(ev.date_start, ev.date_end)).length),
+    [filteredEvents, weekIsPast],
+  );
+  const displayedEvents = useMemo(
+    () =>
+      weekIsPast || showFinished
+        ? filteredEvents
+        : filteredEvents.filter((ev) => !isPastEvent(ev.date_start, ev.date_end)),
+    [filteredEvents, weekIsPast, showFinished],
+  );
 
   const hasActiveFilter = selectedAge !== 'all' || selectedCategory !== 'all';
 
@@ -112,7 +145,7 @@ const SortiesPage = () => {
         <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
           {isLoading
             ? t('common.loading')
-            : t('sorties.count', { count: filteredEvents.length, defaultValue: `${filteredEvents.length} événements` })}
+            : t('sorties.count', { count: displayedEvents.length, defaultValue: `${displayedEvents.length} événements` })}
         </p>
       </div>
 
@@ -127,12 +160,27 @@ const SortiesPage = () => {
           zIndex: 0,
         }}
       >
-        <EventsMap events={filteredEvents} />
+        <EventsMap events={displayedEvents} />
       </div>
+
+      {/* Toggle « événements terminés » — seulement s'il y en a à masquer */}
+      {finishedCount > 0 && (
+        <div style={{ padding: '0 16px 10px' }}>
+          <button
+            type="button"
+            onClick={() => setShowFinished((v) => !v)}
+            className="flex items-center gap-1.5 text-sm"
+            style={{ color: 'var(--text-muted)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+          >
+            <span aria-hidden style={{ fontSize: 13 }}>{showFinished ? '☑' : '☐'}</span>
+            {showFinished ? t('sorties.hide_finished') : t('sorties.show_finished', { count: finishedCount })}
+          </button>
+        </div>
+      )}
 
       {/* List */}
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {filteredEvents.length === 0 && !isLoading ? (
+        {displayedEvents.length === 0 && !isLoading ? (
           <div style={{ textAlign: 'center', padding: '32px 16px' }}>
             <div style={{ fontSize: 34, marginBottom: 8 }}>🎪</div>
             <div style={{ fontFamily: 'Caveat', fontSize: 17, color: 'var(--text-muted)' }}>
@@ -140,7 +188,7 @@ const SortiesPage = () => {
             </div>
           </div>
         ) : (
-          filteredEvents.map((ev) => (
+          displayedEvents.map((ev) => (
             <EventCard key={ev.id} event={ev} showPast={showPast} />
           ))
         )}
