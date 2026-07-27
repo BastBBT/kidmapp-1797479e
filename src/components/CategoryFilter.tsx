@@ -1,6 +1,10 @@
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LocationCategory, PLACE_CATEGORIES, ACTIVITY_CATEGORIES } from '@/types/location';
+import {
+  CategoryGroup,
+  LocationCategory,
+  PLACE_CATEGORIES,
+  ACTIVITY_CATEGORIES,
+} from '@/types/location';
 import { motion } from 'framer-motion';
 import { CATEGORY_ICONS } from '@/assets/icons';
 import { translateToken } from '@/i18n/tokenMaps';
@@ -8,9 +12,12 @@ import { translateToken } from '@/i18n/tokenMaps';
 interface CategoryFilterProps {
   selected: LocationCategory | 'all';
   onChange: (cat: LocationCategory | 'all') => void;
+  /** Groupe actif, piloté par la page : il borne aussi les résultats, pas seulement les pastilles. */
+  group: CategoryGroup;
+  onGroupChange: (g: CategoryGroup) => void;
 }
 
-type Group = 'places' | 'activities';
+type Group = CategoryGroup;
 
 const CategoryIcon = ({ cat }: { cat: string }) => {
   const src = CATEGORY_ICONS[cat];
@@ -37,9 +44,6 @@ const Pill = ({
     {label}
   </motion.button>
 );
-
-const groupOf = (cat: LocationCategory | 'all'): Group =>
-  (ACTIVITY_CATEGORIES as readonly string[]).includes(cat as string) ? 'activities' : 'places';
 
 const SegmentedControl = ({
   group,
@@ -104,19 +108,8 @@ const SegmentedControl = ({
   );
 };
 
-const CategoryFilter = ({ selected, onChange }: CategoryFilterProps) => {
+const CategoryFilter = ({ selected, onChange, group, onGroupChange }: CategoryFilterProps) => {
   const { t } = useTranslation();
-  const [group, setGroup] = useState<Group>(() =>
-    selected === 'all' ? 'places' : groupOf(selected)
-  );
-
-  useEffect(() => {
-    if (selected !== 'all') {
-      const g = groupOf(selected);
-      if (g !== group) setGroup(g);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected]);
 
   const activeCats = group === 'places' ? PLACE_CATEGORIES : ACTIVITY_CATEGORIES;
 
@@ -129,7 +122,7 @@ const CategoryFilter = ({ selected, onChange }: CategoryFilterProps) => {
     <div className="flex items-center gap-2">
       <SegmentedControl
         group={group}
-        onChange={setGroup}
+        onChange={onGroupChange}
         otherHasFilter={{ places: selectedInPlaces, activities: selectedInActivities }}
       />
       <div className="flex gap-2 overflow-x-auto scrollbar-hide items-center min-w-0 flex-1">

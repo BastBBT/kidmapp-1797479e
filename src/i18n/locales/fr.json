@@ -195,5 +195,17 @@
     "age_bucket_0_2": "0-2 ans",
     "age_bucket_3_5": "3-5 ans",
     "age_bucket_6_plus": "6+ ans"
+  },
+  "explore": {
+    "results_one": "{{count}} résultat",
+    "results_other": "{{count}} résultats",
+    "found_places_one": "{{count}} lieu trouvé",
+    "found_places_other": "{{count}} lieux trouvés",
+    "found_activities_one": "{{count}} activité trouvée",
+    "found_activities_other": "{{count}} activités trouvées",
+    "count_places_one": "{{count}} lieu",
+    "count_places_other": "{{count}} lieux",
+    "count_activities_one": "{{count}} activité",
+    "count_activities_other": "{{count}} activités"
   }
 }
