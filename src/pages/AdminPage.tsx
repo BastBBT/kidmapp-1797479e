@@ -17,7 +17,7 @@ import RejectDialog from '@/components/admin/RejectDialog';
 import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
 
-type AdminTab = 'dashboard' | 'locations' | 'activities' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events';
+type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events';
 
 type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; confirmed_count: number }>;
 
@@ -31,8 +31,7 @@ const buildEmptyMealsState = (mealTypes: MealType[]): MealsState => {
 
 const tabs: { key: AdminTab; label: string }[] = [
   { key: 'dashboard', label: 'Dashboard' },
-  { key: 'locations', label: 'Lieux' },
-  { key: 'activities', label: 'Activités' },
+  { key: 'locations', label: 'Lieux & activités' },
   { key: 'contributions', label: 'Contributions' },
   { key: 'proposals', label: 'Propositions' },
   { key: 'events', label: 'Événements' },
@@ -118,6 +117,7 @@ const AdminPage = () => {
   const [searchLocations, setSearchLocations] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'unpublished' | 'pending'>('published');
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'name'>('recent');
+  const [groupFilter, setGroupFilter] = useState<'all' | 'places' | 'activities'>('all');
   const [searchContributions, setSearchContributions] = useState('');
 
   useEffect(() => {
@@ -851,10 +851,13 @@ const AdminPage = () => {
         )}
 
         {/* Lieux / Activités */}
-        {(activeTab === 'locations' || activeTab === 'activities') && (() => {
-          const isActivitiesTab = activeTab === 'activities';
-          const groupCats = (isActivitiesTab ? ACTIVITY_CATEGORIES : PLACE_CATEGORIES) as readonly string[];
-          const scoped = locations.filter((l) => groupCats.includes(l.category));
+        {activeTab === 'locations' && (() => {
+          const scoped = locations;
+          const byGroup = scoped.filter((l) =>
+            groupFilter === 'all' ? true :
+            groupFilter === 'activities' ? (ACTIVITY_CATEGORIES as readonly string[]).includes(l.category) :
+            (PLACE_CATEGORIES as readonly string[]).includes(l.category)
+          );
           return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
             <SearchBar
@@ -863,11 +866,45 @@ const AdminPage = () => {
               placeholder="Rechercher par nom, adresse ou site web…"
             />
             {(() => {
-              const counts = {
+              const groupCounts = {
                 all: scoped.length,
-                published: scoped.filter((l) => l.status === 'published').length,
-                unpublished: scoped.filter((l) => l.status === 'unpublished').length,
-                pending: scoped.filter((l) => l.status === 'pending').length,
+                places: scoped.filter((l) => (PLACE_CATEGORIES as readonly string[]).includes(l.category)).length,
+                activities: scoped.filter((l) => (ACTIVITY_CATEGORIES as readonly string[]).includes(l.category)).length,
+              };
+              const groupOptions: { key: typeof groupFilter; label: string }[] = [
+                { key: 'all', label: 'Tous' },
+                { key: 'places', label: 'Lieux' },
+                { key: 'activities', label: 'Activités' },
+              ];
+              return (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {groupOptions.map((o) => {
+                    const active = groupFilter === o.key;
+                    return (
+                      <button
+                        key={o.key}
+                        onClick={() => setGroupFilter(o.key)}
+                        style={{
+                          padding: '5px 12px', borderRadius: 100, fontSize: 12, fontWeight: 600,
+                          border: active ? '1.5px solid var(--secondary)' : '1.5px solid var(--border)',
+                          background: active ? 'var(--secondary)' : 'transparent',
+                          color: active ? 'white' : 'var(--text-muted)',
+                          fontFamily: 'DM Sans', cursor: 'pointer',
+                        }}
+                      >
+                        {o.label} ({groupCounts[o.key]})
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+            {(() => {
+              const counts = {
+                all: byGroup.length,
+                published: byGroup.filter((l) => l.status === 'published').length,
+                unpublished: byGroup.filter((l) => l.status === 'unpublished').length,
+                pending: byGroup.filter((l) => l.status === 'pending').length,
               };
               const statusOptions: { key: typeof statusFilter; label: string }[] = [
                 { key: 'all', label: 'Tous' },
@@ -913,7 +950,7 @@ const AdminPage = () => {
               );
             })()}
             {(() => {
-              const filtered = scoped
+              const filtered = byGroup
                 .filter((loc) => statusFilter === 'all' || loc.status === statusFilter)
                 .filter((loc) =>
                   matchSearch(searchLocations, loc.name, loc.address, (loc as any).website)
@@ -927,7 +964,7 @@ const AdminPage = () => {
               return (
                 <>
                   <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                    {filtered.length} {isActivitiesTab ? (filtered.length > 1 ? 'activités affichées' : 'activité affichée') : (filtered.length > 1 ? 'lieux affichés' : 'lieu affiché')}
+                    {filtered.length} {filtered.length > 1 ? 'résultats affichés' : 'résultat affiché'}
                   </div>
                   {filtered.length === 0 && (
                     <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
@@ -2339,6 +2376,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   const [proposalManualLat, setProposalManualLat] = useState('47.2184');
   const [proposalManualLng, setProposalManualLng] = useState('-1.5536');
   const [searchProposals, setSearchProposals] = useState('');
+  const [groupFilter, setGroupFilter] = useState<'all' | 'places' | 'activities'>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<any>(null);
   const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
@@ -2618,15 +2656,55 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         onChange={setSearchProposals}
         placeholder="Rechercher par nom, adresse ou site web…"
       />
+      {(() => {
+        const groupCounts = {
+          all: proposals.length,
+          places: proposals.filter((p: any) => (PLACE_CATEGORIES as readonly string[]).includes(p.category)).length,
+          activities: proposals.filter((p: any) => (ACTIVITY_CATEGORIES as readonly string[]).includes(p.category)).length,
+        };
+        const groupOptions: { key: typeof groupFilter; label: string }[] = [
+          { key: 'all', label: 'Tous' },
+          { key: 'places', label: 'Lieux' },
+          { key: 'activities', label: 'Activités' },
+        ];
+        return (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {groupOptions.map((o) => {
+              const active = groupFilter === o.key;
+              return (
+                <button
+                  key={o.key}
+                  onClick={() => setGroupFilter(o.key)}
+                  style={{
+                    padding: '5px 12px', borderRadius: 100, fontSize: 12, fontWeight: 600,
+                    border: active ? '1.5px solid var(--secondary)' : '1.5px solid var(--border)',
+                    background: active ? 'var(--secondary)' : 'transparent',
+                    color: active ? 'white' : 'var(--text-muted)',
+                    fontFamily: 'DM Sans', cursor: 'pointer',
+                  }}
+                >
+                  {o.label} ({groupCounts[o.key]})
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
       {proposals.length === 0 && (
         <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
           Aucune proposition
         </p>
       )}
       {(() => {
-        const filteredProposals = proposals.filter((p: any) =>
-          matchSearch(searchProposals, p.name, p.address, p.website)
-        );
+        const filteredProposals = proposals
+          .filter((p: any) =>
+            groupFilter === 'all' ? true :
+            groupFilter === 'activities' ? (ACTIVITY_CATEGORIES as readonly string[]).includes(p.category) :
+            (PLACE_CATEGORIES as readonly string[]).includes(p.category)
+          )
+          .filter((p: any) =>
+            matchSearch(searchProposals, p.name, p.address, p.website)
+          );
         return (
           <>
             {proposals.length > 0 && (
