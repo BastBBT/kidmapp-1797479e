@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { categoryLabels, categoryIcons, PLACE_CATEGORIES, ACTIVITY_CATEGORIES } from '@/types/location';
+import { categoryLabels, categoryIcons, PLACE_CATEGORIES, ACTIVITY_CATEGORIES, isActivity } from '@/types/location';
+import { DURATIONS, WEATHERS, EFFORTS, PRICES } from '@/lib/activity';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { useAllLocations, useContributions } from '@/hooks/useLocations';
@@ -309,6 +310,12 @@ const AdminPage = () => {
     website: '',
     instagram: '',
     note: '',
+    age_min: '' as string,
+    age_max: '' as string,
+    duration: '' as string,
+    weather: '' as string,
+    effort: '' as string,
+    price: '' as string,
   });
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -591,9 +598,17 @@ const AdminPage = () => {
       website: form.website || null,
       instagram: form.instagram || null,
       note: form.note || null,
+      age_min: form.age_min.trim() === '' ? null : Math.max(0, parseInt(form.age_min, 10)) || null,
+      age_max: form.age_max.trim() === '' ? null : Math.max(0, parseInt(form.age_max, 10)) || null,
     };
     if (form.category === 'restaurant' || form.category === 'cafe') {
       insertData.bookable = form.bookable;
+    }
+    if (isActivity(form.category)) {
+      insertData.duration = form.duration || null;
+      insertData.weather = form.weather || null;
+      insertData.effort = form.effort || null;
+      insertData.price = form.price || null;
     }
     const { data: insertedLocation, error } = await supabase
       .from('locations')
@@ -631,7 +646,7 @@ const AdminPage = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     queryClient.invalidateQueries({ queryKey: ['location_meals'] });
     toast({ title: 'Lieu ajouté ✓' });
-    setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, kids_menu: false, bookable: 'unknown', status: 'pending', website: '', instagram: '', note: '' });
+    setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, kids_menu: false, bookable: 'unknown', status: 'pending', website: '', instagram: '', note: '', age_min: '', age_max: '', duration: '', weather: '', effort: '', price: '' });
     setPhotoFile(null);
     setPhotoPreview(null);
     setAddMeals(buildEmptyMealsState(mealTypes));
@@ -989,6 +1004,10 @@ const AdminPage = () => {
                         status: loc.status,
                         age_min: (loc as any).age_min != null ? String((loc as any).age_min) : '',
                         age_max: (loc as any).age_max != null ? String((loc as any).age_max) : '',
+                        duration: (loc as any).duration ?? '',
+                        weather: (loc as any).weather ?? '',
+                        effort: (loc as any).effort ?? '',
+                        price: (loc as any).price ?? '',
                       });
                       setEditOriginalAddress(loc.address ?? '');
                       setEditOriginalLat(loc.lat ?? null);
@@ -1492,11 +1511,42 @@ const AdminPage = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3 mt-1">
-                  <Toggle label="Chaise haute / réhausseur" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
-                  <Toggle label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
-                  <Toggle label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
-                  <Toggle label="🍽️ Menu enfant" checked={form.kids_menu} onChange={(v) => updateForm('kids_menu', v)} />
+                {isActivity(form.category) ? (
+                  <div className="flex flex-col gap-3 mt-1">
+                    <PillGroup label="Durée" options={DURATIONS as any} value={form.duration} onChange={(v) => updateForm('duration', v)} />
+                    <PillGroup label="Météo" options={WEATHERS as any} value={form.weather} onChange={(v) => updateForm('weather', v)} />
+                    <PillGroup label="Effort" options={EFFORTS as any} value={form.effort} onChange={(v) => updateForm('effort', v)} />
+                    <PillGroup label="Prix" options={PRICES as any} value={form.price} onChange={(v) => updateForm('price', v)} />
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 mt-1">
+                    <Toggle label="Chaise haute / réhausseur" checked={form.high_chair} onChange={(v) => updateForm('high_chair', v)} />
+                    <Toggle label="Table à langer" checked={form.changing_table} onChange={(v) => updateForm('changing_table', v)} />
+                    <Toggle label="Espace jeux" checked={form.kids_area} onChange={(v) => updateForm('kids_area', v)} />
+                    <Toggle label="🍽️ Menu enfant" checked={form.kids_menu} onChange={(v) => updateForm('kids_menu', v)} />
+                  </div>
+                )}
+
+                <div>
+                  <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+                    Âge conseillé (optionnel)
+                  </label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="number" min={0} max={99} inputMode="numeric"
+                      value={form.age_min}
+                      onChange={(e) => updateForm('age_min', e.target.value.replace(/[^\d]/g, ''))}
+                      placeholder="Dès X ans"
+                      style={{ flex: 1, padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
+                    />
+                    <input
+                      type="number" min={0} max={99} inputMode="numeric"
+                      value={form.age_max}
+                      onChange={(e) => updateForm('age_max', e.target.value.replace(/[^\d]/g, ''))}
+                      placeholder="Jusqu'à Y ans"
+                      style={{ flex: 1, padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
+                    />
+                  </div>
                 </div>
 
                 {(form.category === 'restaurant' || form.category === 'cafe') && (
@@ -1703,12 +1753,21 @@ const AdminPage = () => {
                 />
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>{(editForm.note || '').length}/500</div>
               </div>
-              <div className="flex flex-col gap-3">
-                <Toggle label="Chaise haute / réhausseur" checked={editForm.high_chair} onChange={(v) => setEditForm((f: any) => ({ ...f, high_chair: v }))} />
-                <Toggle label="Table à langer" checked={editForm.changing_table} onChange={(v) => setEditForm((f: any) => ({ ...f, changing_table: v }))} />
-                <Toggle label="Espace jeux" checked={editForm.kids_area} onChange={(v) => setEditForm((f: any) => ({ ...f, kids_area: v }))} />
-                <Toggle label="🍽️ Menu enfant" checked={!!editForm.kids_menu} onChange={(v) => setEditForm((f: any) => ({ ...f, kids_menu: v }))} />
-              </div>
+              {isActivity(editForm.category) ? (
+                <div className="flex flex-col gap-3">
+                  <PillGroup label="Durée" options={DURATIONS as any} value={editForm.duration ?? ''} onChange={(v) => setEditForm((f: any) => ({ ...f, duration: v }))} />
+                  <PillGroup label="Météo" options={WEATHERS as any} value={editForm.weather ?? ''} onChange={(v) => setEditForm((f: any) => ({ ...f, weather: v }))} />
+                  <PillGroup label="Effort" options={EFFORTS as any} value={editForm.effort ?? ''} onChange={(v) => setEditForm((f: any) => ({ ...f, effort: v }))} />
+                  <PillGroup label="Prix" options={PRICES as any} value={editForm.price ?? ''} onChange={(v) => setEditForm((f: any) => ({ ...f, price: v }))} />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <Toggle label="Chaise haute / réhausseur" checked={editForm.high_chair} onChange={(v) => setEditForm((f: any) => ({ ...f, high_chair: v }))} />
+                  <Toggle label="Table à langer" checked={editForm.changing_table} onChange={(v) => setEditForm((f: any) => ({ ...f, changing_table: v }))} />
+                  <Toggle label="Espace jeux" checked={editForm.kids_area} onChange={(v) => setEditForm((f: any) => ({ ...f, kids_area: v }))} />
+                  <Toggle label="🍽️ Menu enfant" checked={!!editForm.kids_menu} onChange={(v) => setEditForm((f: any) => ({ ...f, kids_menu: v }))} />
+                </div>
+              )}
               <div>
                 <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
                   Âge conseillé (optionnel)
@@ -1831,6 +1890,12 @@ const AdminPage = () => {
                     age_min: (editForm.age_min ?? '').toString().trim() === '' ? null : Math.max(0, parseInt(editForm.age_min, 10)) || null,
                     age_max: (editForm.age_max ?? '').toString().trim() === '' ? null : Math.max(0, parseInt(editForm.age_max, 10)) || null,
                   };
+                  if (isActivity(editForm.category)) {
+                    updatePayload.duration = editForm.duration || null;
+                    updatePayload.weather = editForm.weather || null;
+                    updatePayload.effort = editForm.effort || null;
+                    updatePayload.price = editForm.price || null;
+                  }
                   if (newLat != null && newLng != null) {
                     updatePayload.lat = newLat;
                     updatePayload.lng = newLng;
@@ -2128,6 +2193,37 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
           }}
         />
       </button>
+    </div>
+  );
+}
+
+function PillGroup({ label, options, value, onChange }: { label: string; options: readonly string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 6 }}>
+        {label}
+      </label>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {options.map((opt) => {
+          const active = value === opt;
+          return (
+            <button
+              type="button"
+              key={opt}
+              onClick={() => onChange(active ? '' : opt)}
+              style={{
+                padding: '6px 14px', borderRadius: 100,
+                border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
+                background: active ? 'var(--primary-light)' : 'var(--surface)',
+                color: active ? 'var(--primary)' : 'var(--text-muted)',
+                fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
