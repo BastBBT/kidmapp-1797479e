@@ -2966,6 +2966,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const [manualLng, setManualLng] = useState('-1.5536');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
   const { data: events = [] } = useQuery({
     queryKey: ['admin-events'],
@@ -3206,45 +3207,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     cursor: 'pointer',
   } as React.CSSProperties);
 
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
-      <SearchBar value={search} onChange={setSearch} placeholder="Rechercher par nom, adresse ou site web…" />
-
-      <div className="flex flex-wrap gap-2">
-        {(['pending', 'published', 'rejected', 'all'] as const).map((s) => (
-          <button key={s} onClick={() => setStatusFilter(s)} style={pillStyle(statusFilter === s)}>
-            {s === 'pending' ? 'À valider' : s === 'published' ? 'Publiés' : s === 'rejected' ? 'Rejetés' : 'Tous'}
-          </button>
-        ))}
-        <div style={{ width: '1px', background: 'var(--border)', margin: '0 4px' }} />
-        {(['all', 'user', 'sourcing'] as const).map((s) => (
-          <button key={s} onClick={() => setSourceFilter(s)} style={pillStyle(sourceFilter === s)}>
-            {s === 'all' ? 'Toutes provenances' : s === 'user' ? '👤 Utilisateurs' : '📰 Sourcing'}
-          </button>
-        ))}
-        <div style={{ width: '1px', background: 'var(--border)', margin: '0 4px' }} />
-        {([
-          { key: 'eventDateDesc', label: 'Date événement ↓' },
-          { key: 'eventDateAsc', label: 'Date événement ↑' },
-          { key: 'createdAtDesc', label: 'Création' },
-        ] as const).map((s) => (
-          <button key={s.key} onClick={() => setEventSort(s.key)} style={pillStyle(eventSort === s.key)}>
-            {s.label}
-          </button>
-        ))}
-      </div>
-
-      <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
-        {filtered.length} {filtered.length > 1 ? 'événements affichés' : 'événement affiché'}
-      </div>
-
-      {filtered.length === 0 && (
-        <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
-          Aucun événement
-        </p>
-      )}
-
-      {sorted.map((ev: any, i: number) => {
+  const renderEventCard = (ev: any, i: number) => {
         const isProcessing = processingId === ev.id;
         const isEditing = editingId === ev.id;
         const catHex = eventCategoryHex(ev.category);
@@ -3462,7 +3425,60 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
             )}
           </motion.div>
         );
-      })}
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
+      <div className="flex gap-2">
+        <button onClick={() => setViewMode('list')} style={pillStyle(viewMode === 'list')}>
+          📋 Liste
+        </button>
+        <button onClick={() => setViewMode('calendar')} style={pillStyle(viewMode === 'calendar')}>
+          📅 Calendrier
+        </button>
+      </div>
+      <SearchBar value={search} onChange={setSearch} placeholder="Rechercher par nom, adresse ou site web…" />
+
+      <div className="flex flex-wrap gap-2">
+        {(['pending', 'published', 'rejected', 'all'] as const).map((s) => (
+          <button key={s} onClick={() => setStatusFilter(s)} style={pillStyle(statusFilter === s)}>
+            {s === 'pending' ? 'À valider' : s === 'published' ? 'Publiés' : s === 'rejected' ? 'Rejetés' : 'Tous'}
+          </button>
+        ))}
+        <div style={{ width: '1px', background: 'var(--border)', margin: '0 4px' }} />
+        {(['all', 'user', 'sourcing'] as const).map((s) => (
+          <button key={s} onClick={() => setSourceFilter(s)} style={pillStyle(sourceFilter === s)}>
+            {s === 'all' ? 'Toutes provenances' : s === 'user' ? '👤 Utilisateurs' : '📰 Sourcing'}
+          </button>
+        ))}
+        <div style={{ width: '1px', background: 'var(--border)', margin: '0 4px' }} />
+        {([
+          { key: 'eventDateDesc', label: 'Date événement ↓' },
+          { key: 'eventDateAsc', label: 'Date événement ↑' },
+          { key: 'createdAtDesc', label: 'Création' },
+        ] as const).map((s) => (
+          <button key={s.key} onClick={() => setEventSort(s.key)} style={pillStyle(eventSort === s.key)}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
+        {filtered.length} {filtered.length > 1 ? 'événements affichés' : 'événement affiché'}
+      </div>
+
+      {filtered.length === 0 && (
+        <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
+          Aucun événement
+        </p>
+      )}
+
+      {viewMode === 'list' && sorted.map(renderEventCard)}
+
+      {viewMode === 'calendar' && (
+        <EventsCalendarView events={filtered} renderEventCard={renderEventCard} />
+      )}
+
       <RejectDialog
         open={!!rejectTarget}
         submissionType="event"
@@ -3472,6 +3488,166 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         onConfirm={confirmReject}
       />
     </motion.div>
+  );
+}
+
+function EventsCalendarView({ events, renderEventCard }: { events: any[]; renderEventCard: (ev: any, i: number) => JSX.Element }) {
+  const [calendarDate, setCalendarDate] = useState(() => new Date());
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  const byDate = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    events.forEach((ev) => {
+      const key = ev.date_start ? String(ev.date_start).slice(0, 10) : null;
+      if (!key) return;
+      (map[key] = map[key] || []).push(ev);
+    });
+    return map;
+  }, [events]);
+
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
+  const monthLabel = calendarDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
+  const firstOfMonth = new Date(year, month, 1);
+  const startOffset = (firstOfMonth.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < startOffset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+  const dayEvents = selectedDay ? (byDate[selectedDay] ?? []) : [];
+  const selectedLabel = (() => {
+    if (!selectedDay) return '';
+    const [y, m, dd] = selectedDay.split('-').map(Number);
+    return new Date(y, m - 1, dd).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  })();
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)' }}>
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => setCalendarDate(new Date(year, month - 1, 1))}
+            aria-label="Mois précédent"
+            style={{ border: 'none', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 18, padding: 4 }}
+          >
+            ‹
+          </button>
+          <span style={{ fontFamily: 'Fraunces', fontSize: 16, fontWeight: 500, color: 'var(--text)', textTransform: 'capitalize' }}>
+            {monthLabel}
+          </span>
+          <button
+            onClick={() => setCalendarDate(new Date(year, month + 1, 1))}
+            aria-label="Mois suivant"
+            style={{ border: 'none', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 18, padding: 4 }}
+          >
+            ›
+          </button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
+          {dayLabels.map((d) => (
+            <div key={d} style={{ textAlign: 'center', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              {d}
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+          {cells.map((d, idx) => {
+            if (d == null) return <div key={`blank-${idx}`} />;
+            const dateStr = `${year}-${pad(month + 1)}-${pad(d)}`;
+            const dayEvs = byDate[dateStr] ?? [];
+            const isSelected = selectedDay === dateStr;
+            return (
+              <div
+                key={dateStr}
+                onClick={() => setSelectedDay(isSelected ? null : dateStr)}
+                style={{
+                  minHeight: 68,
+                  borderRadius: 8,
+                  padding: 5,
+                  cursor: 'pointer',
+                  border: `1.5px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
+                  background: isSelected ? 'var(--accent-light)' : 'var(--bg)',
+                }}
+              >
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, color: 'var(--text)', marginBottom: 3 }}>
+                  {d}
+                </div>
+                {dayEvs.slice(0, 2).map((ev: any) => {
+                  const hex = eventCategoryHex(ev.category);
+                  const isPending = ev.status === 'pending';
+                  const isRejected = ev.status === 'rejected';
+                  return (
+                    <div
+                      key={ev.id}
+                      style={{
+                        fontSize: 10,
+                        fontFamily: 'DM Sans',
+                        fontWeight: 600,
+                        padding: '2px 5px',
+                        borderRadius: 4,
+                        marginBottom: 2,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        ...(isRejected
+                          ? { background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)', textDecoration: 'line-through' }
+                          : isPending
+                          ? { background: 'transparent', border: `1.2px dashed ${hex}`, color: hex }
+                          : { background: hex, color: 'white' }),
+                      }}
+                    >
+                      {ev.name}
+                    </div>
+                  );
+                })}
+                {dayEvs.length > 2 && (
+                  <div style={{ fontSize: 10, fontFamily: 'DM Sans', fontWeight: 600, color: 'var(--text-muted)' }}>
+                    +{dayEvs.length - 2}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-wrap gap-3 mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--text-muted)' }}>
+            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', marginRight: 4 }} />
+            publié
+          </span>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--text-muted)' }}>
+            <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', border: '1.5px solid var(--primary)', marginRight: 4 }} />
+            en attente
+          </span>
+        </div>
+      </div>
+
+      {!selectedDay && (
+        <div style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 2px' }}>
+          Cliquez sur un jour pour voir le détail des événements ✦
+        </div>
+      )}
+
+      {selectedDay && (
+        <div className="flex flex-col gap-3">
+          <div style={{ fontFamily: 'Caveat', fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
+            {selectedLabel}
+          </div>
+          {dayEvents.length === 0 && (
+            <p className="text-center py-4" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans', fontSize: 13 }}>
+              Aucun événement ce jour
+            </p>
+          )}
+          {dayEvents.map(renderEventCard)}
+        </div>
+      )}
+    </div>
   );
 }
 
