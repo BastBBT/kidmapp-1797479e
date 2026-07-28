@@ -16,7 +16,7 @@ import RejectDialog from '@/components/admin/RejectDialog';
 import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
 
-type AdminTab = 'dashboard' | 'locations' | 'activities' | 'contributions' | 'add' | 'proposals' | 'events';
+type AdminTab = 'dashboard' | 'locations' | 'activities' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events';
 
 type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; confirmed_count: number }>;
 
@@ -36,6 +36,7 @@ const tabs: { key: AdminTab; label: string }[] = [
   { key: 'proposals', label: 'Propositions' },
   { key: 'events', label: 'Événements' },
   { key: 'add', label: 'Ajouter un lieu' },
+  { key: 'add-event', label: 'Ajouter un événement' },
 ];
 
 const dayLabels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
@@ -1570,6 +1571,11 @@ const AdminPage = () => {
               </div>
             </div>
           </motion.div>
+        )}
+
+        {/* Add event */}
+        {activeTab === 'add-event' && (
+          <AddEventTab geocodeAddress={geocodeAddress} queryClient={queryClient} toast={toast} />
         )}
       </div>
 
@@ -3291,6 +3297,304 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         onCancel={() => setRejectTarget(null)}
         onConfirm={confirmReject}
       />
+    </motion.div>
+  );
+}
+
+const emptyEventForm = {
+  name: '',
+  category: 'Spectacle' as string,
+  address: '',
+  date_start: '',
+  date_end: '',
+  time: '',
+  age_min: '',
+  age_max: '',
+  duration: '',
+  weather: '',
+  price: '',
+  website: '',
+  instagram: '',
+  note: '',
+  status: 'published',
+};
+
+function AddEventTab({ geocodeAddress, queryClient, toast }: {
+  geocodeAddress: (address: string) => Promise<{lat: number; lng: number} | null>;
+  queryClient: any;
+  toast: any;
+}) {
+  const [form, setForm] = useState(emptyEventForm);
+  const updateForm = (key: keyof typeof emptyEventForm, value: string) => setForm((p) => ({ ...p, [key]: value }));
+  const [submitting, setSubmitting] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [showManualCoords, setShowManualCoords] = useState(false);
+  const [manualLat, setManualLat] = useState('47.2184');
+  const [manualLng, setManualLng] = useState('-1.5536');
+
+  const handleAddEvent = async () => {
+    if (!form.name || !form.date_start) {
+      toast({ title: 'Erreur', description: 'Le nom et la date de début sont obligatoires', variant: 'destructive' });
+      return;
+    }
+    setSubmitting(true);
+
+    let coords: { lat: number; lng: number } | null = null;
+    if (form.address) {
+      if (showManualCoords) {
+        coords = { lat: parseFloat(manualLat), lng: parseFloat(manualLng) };
+      } else {
+        coords = await geocodeAddress(form.address);
+        if (!coords) {
+          setShowManualCoords(true);
+          toast({ title: 'Adresse non trouvée automatiquement', description: 'Ajustez les coordonnées manuellement.', variant: 'destructive' });
+          setSubmitting(false);
+          return;
+        }
+      }
+    }
+
+    let photoUrl: string | null = null;
+    if (photoFile) {
+      const fileExt = photoFile.name.split('.').pop();
+      const fileName = `events/${crypto.randomUUID()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('location-photos')
+        .upload(fileName, photoFile);
+      if (uploadError) {
+        toast({ title: 'Erreur upload photo', variant: 'destructive' });
+        setSubmitting(false);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from('location-photos').getPublicUrl(fileName);
+      photoUrl = urlData.publicUrl;
+    }
+
+    const insertData: any = {
+      name: form.name,
+      category: form.category,
+      address: form.address || null,
+      lat: coords?.lat ?? null,
+      lng: coords?.lng ?? null,
+      date_start: form.date_start,
+      date_end: form.date_end || null,
+      time: form.time || null,
+      age_min: form.age_min === '' ? null : Number(form.age_min),
+      age_max: form.age_max === '' ? null : Number(form.age_max),
+      duration: form.duration || null,
+      weather: form.weather || null,
+      price: form.price || null,
+      website: form.website || null,
+      instagram: form.instagram || null,
+      photo: photoUrl,
+      note: form.note || null,
+      status: form.status,
+    };
+
+    const { error } = await supabase.from('events' as any).insert(insertData as any);
+    setSubmitting(false);
+    if (error) {
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['admin-events'] });
+    queryClient.invalidateQueries({ queryKey: ['events'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    toast({ title: 'Événement ajouté ✓' });
+    setForm(emptyEventForm);
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setShowManualCoords(false);
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '20px', boxShadow: 'var(--shadow)' }}>
+        <div className="flex flex-col gap-4">
+          <FormField label="Nom *" value={form.name} onChange={(v) => updateForm('name', v)} />
+
+          <div>
+            <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+              Catégorie *
+            </label>
+            <select
+              value={form.category}
+              onChange={(e) => updateForm('category', e.target.value)}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
+            >
+              {EVENT_CATEGORIES.map((c) => (
+                <option key={c} value={c}>{eventCategoryEmoji(c)} {c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <FormField label="Adresse" value={form.address} onChange={(v) => { updateForm('address', v); setShowManualCoords(false); }} placeholder="Ex: 6 rue Saint-Léonard, 44000 Nantes" />
+            {showManualCoords && (
+              <div style={{ padding: '12px', borderRadius: 'var(--radius-sm)', background: 'var(--accent-light)', border: '1px solid #F2C94C', marginTop: '8px' }}>
+                <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: '#C49A35', marginBottom: '8px' }}>
+                  Adresse non reconnue — ajustez les coordonnées ✦
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '4px' }}>
+                      Latitude
+                    </label>
+                    <input value={manualLat} onChange={(e) => setManualLat(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '14px' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '4px' }}>
+                      Longitude
+                    </label>
+                    <input value={manualLng} onChange={(e) => setManualLng(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '14px' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <FormField label="Date de début *" type="date" value={form.date_start} onChange={(v) => updateForm('date_start', v)} />
+            <FormField label="Date de fin" type="date" value={form.date_end} onChange={(v) => updateForm('date_end', v)} />
+          </div>
+
+          <div className="flex gap-2">
+            <FormField label="Heure" value={form.time} onChange={(v) => updateForm('time', v)} placeholder="Ex: 14h30" />
+            <FormField label="Durée" value={form.duration} onChange={(v) => updateForm('duration', v)} placeholder="Ex: 1h30" />
+          </div>
+
+          <div className="flex gap-2">
+            <FormField label="Âge min" type="number" value={form.age_min} onChange={(v) => updateForm('age_min', v)} />
+            <FormField label="Âge max" type="number" value={form.age_max} onChange={(v) => updateForm('age_max', v)} />
+            <FormField label="Prix" value={form.price} onChange={(v) => updateForm('price', v)} placeholder="Ex: Gratuit" />
+          </div>
+
+          <div>
+            <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+              Météo
+            </label>
+            <select
+              value={form.weather}
+              onChange={(e) => updateForm('weather', e.target.value)}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
+            >
+              <option value="">Non renseigné</option>
+              {EVENT_WEATHERS.map((w) => <option key={w} value={w}>{w}</option>)}
+            </select>
+          </div>
+
+          {/* Photo upload */}
+          <div>
+            <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+              Photo
+            </label>
+            {photoPreview && (
+              <div style={{ width: '100%', height: '140px', borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: '10px', position: 'relative' }}>
+                <img src={photoPreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Aperçu" />
+                <button
+                  type="button"
+                  onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
+                  style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', fontSize: '12px' }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', border: '1.5px dashed var(--border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px', fontFamily: 'DM Sans' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              {photoFile ? photoFile.name : 'Choisir une photo'}
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setPhotoFile(file);
+                    setPhotoPreview(URL.createObjectURL(file));
+                  }
+                }}
+              />
+            </label>
+          </div>
+
+          <FormField label="Site web" value={form.website} onChange={(v) => updateForm('website', v)} placeholder="https://..." />
+
+          <div>
+            <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+              Instagram
+            </label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontFamily: 'DM Sans', fontSize: '15px' }}>@</span>
+              <input
+                value={form.instagram}
+                onChange={(e) => updateForm('instagram', e.target.value)}
+                placeholder="compte_evenement"
+                style={{ width: '100%', padding: '13px 16px 13px 30px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px' }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+              Note (optionnelle)
+            </label>
+            <textarea
+              value={form.note}
+              onChange={(e) => updateForm('note', e.target.value.slice(0, 500))}
+              placeholder="Un mot sur cet événement, une info pratique…"
+              maxLength={500}
+              rows={3}
+              style={{ width: '100%', padding: '13px 16px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px', resize: 'none' }}
+            />
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>
+              {(form.note || '').length}/500
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+              Statut initial
+            </label>
+            <select
+              value={form.status}
+              onChange={(e) => updateForm('status', e.target.value)}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
+            >
+              <option value="published">Publié</option>
+              <option value="pending">En attente</option>
+            </select>
+          </div>
+
+          <button
+            onClick={handleAddEvent}
+            disabled={submitting}
+            style={{
+              width: '100%',
+              padding: '14px',
+              borderRadius: '100px',
+              border: 'none',
+              background: 'var(--primary)',
+              color: '#fff',
+              fontFamily: 'DM Sans',
+              fontSize: '15px',
+              fontWeight: 600,
+              cursor: submitting ? 'not-allowed' : 'pointer',
+              opacity: submitting ? 0.6 : 1,
+              marginTop: '8px',
+            }}
+          >
+            {submitting ? 'Ajout en cours…' : "Ajouter l'événement"}
+          </button>
+        </div>
+      </div>
     </motion.div>
   );
 }
