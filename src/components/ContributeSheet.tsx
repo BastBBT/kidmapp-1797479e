@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useMealTypes } from '@/hooks/useMeals';
@@ -9,6 +10,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useLocation } from '@/hooks/useLocations';
 import { MEAL_ICONS, EQUIP_ICONS, EQUIP_LABELS, EquipKey } from '@/assets/icons';
 import { detectLanguage } from '@/lib/detectLanguage';
+import { isActivity } from '@/types/location';
+import { DURATIONS, WEATHERS, EFFORTS, PRICES } from '@/lib/activity';
+import { AGE_RANGES } from '@/lib/ageFilter';
+import { translateToken } from '@/i18n/tokenMaps';
 
 interface Props {
   locationId: string;
@@ -31,12 +36,26 @@ const EQUIP_ITEMS: { key: EquipKey; label: string }[] = [
   { key: 'kids_menu', label: EQUIP_LABELS.kids_menu },
 ];
 
+// Une activité n'affiche jamais les équipements bébé sur sa fiche : on lui
+// demande ce qu'elle montre vraiment (durée / météo / effort / prix / âge).
+type AgeChoice = '0-2' | '3-5' | '6+';
+const AGE_CHOICES: { id: AgeChoice; key: string }[] = [
+  { id: '0-2', key: 'filters.age.0_2' },
+  { id: '3-5', key: 'filters.age.3_5' },
+  { id: '6+', key: 'filters.age.6_plus' },
+];
+
 const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }: Props) => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { data: mealTypes = [] } = useMealTypes();
   const { data: location } = useLocation(locationId);
   const queryClient = useQueryClient();
-  const variant = MEAL_CATEGORIES.has(category) ? 'meals' : 'comment';
+  const variant = isActivity(category)
+    ? 'activity'
+    : MEAL_CATEGORIES.has(category)
+      ? 'meals'
+      : 'comment';
   const maxLen = variant === 'meals' ? MAX_COMMENT_MEAL : MAX_COMMENT_GENERIC;
 
   const [selected, setSelected] = useState<string[]>([]);
@@ -47,12 +66,22 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
     kids_area: null,
     kids_menu: null,
   });
+  const [duration, setDuration] = useState<string | null>(null);
+  const [weather, setWeather] = useState<string | null>(null);
+  const [effort, setEffort] = useState<string | null>(null);
+  const [price, setPrice] = useState<string | null>(null);
+  const [age, setAge] = useState<AgeChoice | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
       setSelected([]);
       setComment('');
+      setDuration(null);
+      setWeather(null);
+      setEffort(null);
+      setPrice(null);
+      setAge(null);
       // Pre-fill with current location values
       setEquipment({
         high_chair: location?.high_chair ?? null,
@@ -75,11 +104,14 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
     setEquipment((e) => ({ ...e, [key]: value }));
 
   const hasEquipmentInput = Object.values(equipment).some((v) => v !== null);
+  const hasActivityInput = [duration, weather, effort, price, age].some((v) => v !== null);
 
   const canSubmit =
     variant === 'meals'
       ? selected.length > 0 || hasEquipmentInput || comment.trim().length > 0
-      : comment.trim().length > 0 || hasEquipmentInput;
+      : variant === 'activity'
+        ? hasActivityInput || comment.trim().length > 0
+        : comment.trim().length > 0 || hasEquipmentInput;
 
   const handleSubmit = async () => {
     if (!user) {
@@ -94,12 +126,26 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
       const trimmedComment = comment.trim();
       const payload: any = isMeals
         ? { meal_types: selected, equipment, comment: trimmedComment || null }
-        : { equipment, comment: trimmedComment };
+        : variant === 'activity'
+          ? {
+              activity: {
+                duration,
+                weather,
+                effort,
+                price,
+                age_min: age ? AGE_RANGES[age].min : null,
+                // « 6+ » n'a pas de borne haute : on n'envoie pas 99, qui serait
+                // interprété comme un âge max réel sur la fiche.
+                age_max: age && age !== '6+' ? AGE_RANGES[age].max : null,
+              },
+              comment: trimmedComment || null,
+            }
+          : { equipment, comment: trimmedComment };
       const detectedLang = trimmedComment ? detectLanguage(trimmedComment) : null;
       const { error } = await supabase.from('contributions').insert({
         location_id: locationId,
         user_id: user.id,
-        type: isMeals ? 'meal_types' : 'comment',
+        type: isMeals ? 'meal_types' : variant === 'activity' ? 'activity_info' : 'comment',
         content: JSON.stringify(payload),
         status: 'pending',
         ...(detectedLang ? { language: detectedLang } : {}),
@@ -119,7 +165,91 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
   const subtitle =
     variant === 'meals'
       ? 'Quels repas avez-vous fait ici ?'
-      : 'Partagez votre expérience';
+      : variant === 'activity'
+        ? t('contribution.subtitle_activity', { defaultValue: 'Confirmez les infos de cette activité' })
+        : 'Partagez votre expérience';
+
+  const renderChoiceGroup = (
+    title: string,
+    options: readonly string[],
+    namespace: 'duration' | 'weather' | 'effort' | 'price',
+    value: string | null,
+    onChange: (v: string | null) => void,
+  ) => (
+    <div style={{ marginTop: 18 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>
+        {title}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {options.map((opt) => {
+          const active = value === opt;
+          return (
+            <button
+              key={opt}
+              onClick={() => onChange(active ? null : opt)}
+              style={{
+                padding: '8px 14px', borderRadius: 100,
+                fontSize: 13, fontWeight: 600, fontFamily: 'DM Sans',
+                border: active ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
+                background: active ? 'var(--primary)' : 'var(--surface)',
+                color: active ? '#fff' : 'var(--text-muted)',
+                cursor: 'pointer',
+              }}
+            >
+              {translateToken(namespace, opt)}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderActivitySection = () => (
+    <>
+      {renderChoiceGroup(
+        t('contribution.activity_duration', { defaultValue: 'Combien de temps y avez-vous passé ?' }),
+        DURATIONS, 'duration', duration, setDuration,
+      )}
+      {renderChoiceGroup(
+        t('contribution.activity_weather', { defaultValue: 'Ça marche par quel temps ?' }),
+        WEATHERS, 'weather', weather, setWeather,
+      )}
+      {renderChoiceGroup(
+        t('contribution.activity_effort', { defaultValue: "Niveau d'effort pour les enfants ?" }),
+        EFFORTS, 'effort', effort, setEffort,
+      )}
+      {renderChoiceGroup(
+        t('contribution.activity_price', { defaultValue: "C'est gratuit ou payant ?" }),
+        PRICES, 'price', price, setPrice,
+      )}
+      <div style={{ marginTop: 18 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>
+          {t('contribution.activity_age', { defaultValue: 'Ça a plu à quel âge ?' })}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {AGE_CHOICES.map((choice) => {
+            const active = age === choice.id;
+            return (
+              <button
+                key={choice.id}
+                onClick={() => setAge(active ? null : choice.id)}
+                style={{
+                  padding: '8px 14px', borderRadius: 100,
+                  fontSize: 13, fontWeight: 600, fontFamily: 'DM Sans',
+                  border: active ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
+                  background: active ? 'var(--primary)' : 'var(--surface)',
+                  color: active ? '#fff' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                }}
+              >
+                {t(choice.key)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
 
   const renderEquipmentSection = () => (
     <div style={{ marginTop: variant === 'meals' ? 22 : 0 }}>
@@ -296,7 +426,7 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
                 </>
               )}
 
-              {renderEquipmentSection()}
+              {variant === 'activity' ? renderActivitySection() : renderEquipmentSection()}
 
               <div style={{ marginTop: 18 }}>
                 <label
@@ -305,9 +435,9 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
                     color: 'var(--text)', marginBottom: 6,
                   }}
                 >
-                  {variant === 'meals'
-                    ? <>Un commentaire ? <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optionnel)</span></>
-                    : 'Votre commentaire'}
+                  {variant === 'comment'
+                    ? 'Votre commentaire'
+                    : <>Un commentaire ? <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optionnel)</span></>}
                 </label>
                 <textarea
                   value={comment}
@@ -315,9 +445,11 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
                   placeholder={
                     variant === 'meals'
                       ? 'Terrasse sympa, idéal pour le goûter…'
-                      : 'Un conseil pour les familles qui visitent ce lieu ?'
+                      : variant === 'activity'
+                        ? t('contribution.activity_placeholder', { defaultValue: "Ex : prévoir des bottes, l'ombre manque l'été…" })
+                        : 'Un conseil pour les familles qui visitent ce lieu ?'
                   }
-                  rows={variant === 'meals' ? 3 : 5}
+                  rows={variant === 'comment' ? 5 : 3}
                   style={{
                     width: '100%', padding: '10px 12px', borderRadius: 12,
                     border: '1px solid var(--border)', background: 'var(--surface)',

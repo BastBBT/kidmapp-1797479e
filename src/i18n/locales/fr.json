@@ -46,7 +46,14 @@
     "meals_title": "Repas",
     "title": "Contribuer",
     "subtitle_meals": "Quels repas avez-vous fait ici ?",
-    "subtitle_generic": "Partagez votre expérience"
+    "subtitle_generic": "Partagez votre expérience",
+    "activity_duration": "Combien de temps y avez-vous passé ?",
+    "activity_weather": "Ça marche par quel temps ?",
+    "activity_effort": "Niveau d'effort pour les enfants ?",
+    "activity_price": "C'est gratuit ou payant ?",
+    "activity_age": "Ça a plu à quel âge ?",
+    "activity_placeholder": "Ex : prévoir des bottes, l'ombre manque l'été…",
+    "subtitle_activity": "Confirmez les infos de cette activité"
   },
   "equipment": {
     "high_chair": "Chaise haute",
@@ -194,7 +201,7 @@
     "cta_title_place": "Tu connais ce lieu ?",
     "cta_title_activity": "Tu connais cette activité ?",
     "cta_desc_place": "Confirme ce qu'il y a sur place — chaise haute, table à langer, coin jeux… — pour garder la fiche à jour",
-    "cta_desc_activity": "Confirme ce qu'il y a sur place pour garder la fiche à jour",
+    "cta_desc_activity": "Confirme la durée, la météo, l'effort ou l'âge conseillé — tes infos gardent la fiche à jour",
     "cta_button": "Confirmer les infos",
     "cta_auth": "Connecte-toi pour partager tes infos sur ce lieu ✦",
     "directions": "Itinéraire",
