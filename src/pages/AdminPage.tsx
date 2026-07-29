@@ -471,6 +471,30 @@ const AdminPage = () => {
         if (eq.kids_area === true || eq.kids_area === false) updateData.kids_area = eq.kids_area;
         if (eq.kids_menu === true || eq.kids_menu === false) updateData.kids_menu = eq.kids_menu;
       }
+      // Infos activité (durée / météo / effort / prix / âge) : une activité n'a
+      // pas d'équipements bébé sur sa fiche, ce sont ces champs-là qu'on confirme.
+      if (parsedContent?.activity) {
+        const act = parsedContent.activity;
+        if (act.duration) updateData.duration = act.duration;
+        if (act.weather) updateData.weather = act.weather;
+        if (act.effort) updateData.effort = act.effort;
+        if (act.price) updateData.price = act.price;
+        // L'âge remonté est celui d'un enfant qui a aimé : on ÉLARGIT la plage
+        // existante au lieu de l'écraser (sinon un « 6+ » effacerait le « dès 3 ans »).
+        const { data: locRow } = await supabase
+          .from('locations')
+          .select('age_min, age_max')
+          .eq('id', contrib.location_id)
+          .maybeSingle();
+        if (typeof act.age_min === 'number') {
+          const curMin = (locRow as any)?.age_min;
+          const curMax = (locRow as any)?.age_max;
+          updateData.age_min = typeof curMin === 'number' ? Math.min(curMin, act.age_min) : act.age_min;
+          // null d'un côté ou de l'autre = pas de borne haute.
+          updateData.age_max =
+            act.age_max == null || curMax == null ? null : Math.max(curMax, act.age_max);
+        }
+      }
       if (Object.keys(updateData).length > 0) {
         await supabase.from('locations').update(updateData).eq('id', contrib.location_id);
       }
@@ -1131,9 +1155,11 @@ const AdminPage = () => {
                   {filteredContribs.map((contrib: any, i: number) => {
                     const loc = locations.find((l) => l.id === contrib.location_id);
                     const isMealContrib = contrib.type === 'meal_types';
+                    const isActivityContrib = contrib.type === 'activity_info';
                     let mealIds: string[] = [];
                     let mealComment: string | null = null;
                     let jsonEquipment: { high_chair?: boolean | null; changing_table?: boolean | null; kids_area?: boolean | null } | null = null;
+                    let activityInfo: any = null;
                     if (contrib.content) {
                       try {
                         const parsed = JSON.parse(contrib.content);
@@ -1144,8 +1170,25 @@ const AdminPage = () => {
                         if (parsed?.equipment && typeof parsed.equipment === 'object') {
                           jsonEquipment = parsed.equipment;
                         }
+                        if (parsed?.activity && typeof parsed.activity === 'object') {
+                          activityInfo = parsed.activity;
+                        }
                       } catch { /* ignore */ }
                     }
+                    // Infos activité confirmées par le parent : ce sont elles qui seront
+                    // appliquées sur la fiche à la validation (pas les équipements bébé).
+                    const activityItems: { emoji: string; label: string }[] = activityInfo
+                      ? [
+                          activityInfo.duration && { emoji: '⏱', label: `Durée : ${activityInfo.duration}` },
+                          activityInfo.weather && { emoji: '🌤', label: `Météo : ${activityInfo.weather}` },
+                          activityInfo.effort && { emoji: '🥾', label: `Effort : ${activityInfo.effort}` },
+                          activityInfo.price && { emoji: '💶', label: `Prix : ${activityInfo.price}` },
+                          typeof activityInfo.age_min === 'number' && {
+                            emoji: '👤',
+                            label: `Âge : ${activityInfo.age_min}${activityInfo.age_max != null ? `-${activityInfo.age_max} ans` : ' ans +'}`,
+                          },
+                        ].filter(Boolean) as { emoji: string; label: string }[]
+                      : [];
                     const equipItems: { emoji: string; label: string; value: boolean | null | undefined }[] = jsonEquipment
                       ? [
                           { emoji: '🪑', label: 'Chaise haute / réhausseur', value: jsonEquipment.high_chair },
@@ -1175,6 +1218,16 @@ const AdminPage = () => {
                           letterSpacing: '0.04em', textTransform: 'uppercase',
                         }}>
                           Repas
+                        </span>
+                      )}
+                      {isActivityContrib && (
+                        <span style={{
+                          fontFamily: 'DM Sans', fontSize: '10px', fontWeight: 700,
+                          padding: '2px 8px', borderRadius: 100,
+                          background: 'var(--secondary)', color: '#fff',
+                          letterSpacing: '0.04em', textTransform: 'uppercase',
+                        }}>
+                          Activité
                         </span>
                       )}
                     </div>
@@ -1252,6 +1305,25 @@ const AdminPage = () => {
                         {(contrib as any).kids_menu !== null && (contrib as any).kids_menu !== undefined && <span>🍽️ Menu enfant {(contrib as any).kids_menu ? '✓' : '✗'}</span>}
                         {contrib.bookable !== null && <span>📅 Réservation: {contrib.bookable === 'yes' ? 'Oui ✓' : contrib.bookable === 'no' ? 'Non ✗' : '?'}</span>}
                       </div>
+                      {activityItems.length > 0 && (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                          {activityItems.map((a) => (
+                            <span
+                              key={a.label}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                padding: '4px 10px', borderRadius: 100,
+                                background: 'var(--bg)',
+                                color: 'var(--text)',
+                                fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600,
+                              }}
+                            >
+                              <span style={{ fontSize: 14 }}>{a.emoji}</span>
+                              {a.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       {equipItems.length > 0 && (
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                           {equipItems.map((e) => (

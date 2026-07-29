@@ -46,7 +46,14 @@
     "meals_title": "Comidas",
     "title": "Contribuir",
     "subtitle_meals": "¿Qué comidas has hecho aquí?",
-    "subtitle_generic": "Comparte tu experiencia"
+    "subtitle_generic": "Comparte tu experiencia",
+    "activity_duration": "¿Cuánto tiempo pasasteis allí?",
+    "activity_weather": "¿Con qué tiempo funciona?",
+    "activity_effort": "¿Nivel de esfuerzo para los niños?",
+    "activity_price": "¿Es gratis o de pago?",
+    "activity_age": "¿A qué edad le gustó?",
+    "activity_placeholder": "ej. llevad botas, poca sombra en verano…",
+    "subtitle_activity": "Confirma los datos de esta actividad"
   },
   "equipment": {
     "high_chair": "Trona",
@@ -194,7 +201,7 @@
     "cta_title_place": "¿Conoces este lugar?",
     "cta_title_activity": "¿Conoces esta actividad?",
     "cta_desc_place": "Confirma qué hay en el sitio — trona, cambiador, zona infantil… — para mantener la ficha al día",
-    "cta_desc_activity": "Confirma qué hay en el sitio para mantener la ficha al día",
+    "cta_desc_activity": "Confirma la duración, el tiempo, el esfuerzo o la edad recomendada: tus datos mantienen la ficha al día",
     "cta_button": "Confirmar la info",
     "cta_auth": "Inicia sesión para compartir tu info sobre este lugar ✦",
     "directions": "Cómo llegar",

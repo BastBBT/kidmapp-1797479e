@@ -46,7 +46,14 @@
     "meals_title": "Meals",
     "title": "Contribute",
     "subtitle_meals": "Which meals have you had here?",
-    "subtitle_generic": "Share your experience"
+    "subtitle_generic": "Share your experience",
+    "activity_duration": "How long did you stay?",
+    "activity_weather": "What weather does it work in?",
+    "activity_effort": "How much effort for the kids?",
+    "activity_price": "Is it free or paid?",
+    "activity_age": "Which age enjoyed it?",
+    "activity_placeholder": "e.g. bring boots, not much shade in summer…",
+    "subtitle_activity": "Confirm this activity's details"
   },
   "equipment": {
     "high_chair": "High chair",
@@ -194,7 +201,7 @@
     "cta_title_place": "Know this place?",
     "cta_title_activity": "Know this activity?",
     "cta_desc_place": "Confirm what's on site — high chair, changing table, kids area… — to keep the page up to date",
-    "cta_desc_activity": "Confirm what's on site to keep the page up to date",
+    "cta_desc_activity": "Confirm the duration, weather, effort or recommended age — your input keeps the listing up to date",
     "cta_button": "Confirm info",
     "cta_auth": "Sign in to share your info about this place ✦",
     "directions": "Directions",
