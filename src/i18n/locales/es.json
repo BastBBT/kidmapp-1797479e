@@ -110,9 +110,9 @@
     "Payant": "De pago"
   },
   "duration": {
-    "1h": "1 h",
-    "2-3h": "2-3 h",
-    "Demi-journée": "Media jornada",
+    "1h": "1h",
+    "2-3h": "2-3h",
+    "Demi-journée": "Medio día",
     "Journée": "Jornada completa"
   },
   "effort": {
