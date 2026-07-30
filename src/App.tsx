@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -38,12 +39,40 @@ const AcquisitionOverlay = () => {
   useEffect(() => {
     if (isLoading || !user) return;
     try {
-      if (!localStorage.getItem(ACQUISITION_FLAG)) {
-        setShow(true);
-      }
+      if (localStorage.getItem(ACQUISITION_FLAG)) return;
     } catch {
       // ignore
     }
+
+    let cancelled = false;
+    supabase
+      .from('profiles')
+      .select('acquisition_source')
+      .eq('id', user.id)
+      .single()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error('acquisition check error', error);
+          return;
+        }
+        // La réponse est déjà en base (répondu depuis un autre appareil/navigateur,
+        // ou le flag local n'a pas pu être écrit) : on resynchronise le flag local
+        // et on n'affiche pas la popup une nouvelle fois.
+        if ((data as { acquisition_source: string | null } | null)?.acquisition_source) {
+          try {
+            localStorage.setItem(ACQUISITION_FLAG, 'true');
+          } catch {
+            // ignore
+          }
+          return;
+        }
+        setShow(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [isLoading, user]);
 
   if (!user) return null;
