@@ -15,6 +15,14 @@ import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
 import { AgeBucket, matchesAgeBucket, ageAdequacyScore } from '@/lib/ageFilter';
 import { matchesWeather, matchesDuration } from '@/lib/activity';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ChevronsUpDown } from 'lucide-react';
+
+/** Ordre d'affichage de la liste. `default` = ordre historique : alphabétique,
+ *  ou classé par adéquation d'âge quand un filtre d'âge est actif. */
+type SortMode = 'default' | 'loved' | 'recent';
 
 
 const MEAL_CATEGORIES = new Set(['restaurant', 'cafe']);
@@ -68,6 +76,7 @@ const Index = () => {
   const [selectedAge, setSelectedAge] = useState<AgeBucket>(initialAge);
   const [selectedWeather, setSelectedWeather] = useState<string | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>('default');
   const [searchQuery, setSearchQuery] = useState(initialQuery);
 
   const [mapExpanded, setMapExpanded] = useState(false);
@@ -188,7 +197,7 @@ const Index = () => {
         .sort(byName);
     }
 
-    return locations
+    const scoped = locations
       .filter((loc) => {
         const matchCategory = selectedCategory === 'all' || loc.category === selectedCategory;
         // Sans catégorie précise, « Tout » reste borné au groupe actif : il n'existe
@@ -202,17 +211,38 @@ const Index = () => {
         const matchWeather = !isActivityLoc || matchesWeather((loc as any).weather, selectedWeather);
         const matchDuration = !isActivityLoc || matchesDuration((loc as any).duration, selectedDuration);
         return matchCategory && matchGroup && matchMeal && matchAge && matchWeather && matchDuration;
-      })
-      .sort((a, b) => {
-        if (selectedAge !== 'all') {
-          const diff = ageAdequacyScore(b as any, selectedAge) - ageAdequacyScore(a as any, selectedAge);
-          if (diff !== 0) return diff;
-        }
-        return byName(a, b);
       });
+
+    // Les filtres ci-dessus réduisent le jeu ; le tri choisi, lui, l'ordonne et
+    // prime sur l'ordre alphabétique comme sur le classement par âge.
+    if (sortMode === 'loved') {
+      // On restreint aux lieux ayant au moins un favori : trier les 200+ lieux à
+      // zéro ne produirait qu'une queue arbitraire où l'utilisateur scrolle dans
+      // du bruit.
+      return scoped
+        .filter((loc) => (loc.favorites_count ?? 0) > 0)
+        .sort((a, b) => (b.favorites_count ?? 0) - (a.favorites_count ?? 0) || byName(a, b));
+    }
+
+    if (sortMode === 'recent') {
+      // `created_at` est un timestamptz ISO 8601 rendu par PostgREST dans un
+      // format constant : la comparaison lexicographique équivaut à la
+      // comparaison chronologique, sans parsing.
+      return [...scoped].sort(
+        (a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '') || byName(a, b)
+      );
+    }
+
+    return scoped.sort((a, b) => {
+      if (selectedAge !== 'all') {
+        const diff = ageAdequacyScore(b as any, selectedAge) - ageAdequacyScore(a as any, selectedAge);
+        if (diff !== 0) return diff;
+      }
+      return byName(a, b);
+    });
   }, [
     locations, allLocations, isSearching, searchTerm, selectedCategory, selectedGroup,
-    locationIdsForMeal, selectedAge, selectedWeather, selectedDuration,
+    locationIdsForMeal, selectedAge, selectedWeather, selectedDuration, sortMode,
   ]);
 
   // Compteurs accordés au groupe actif — et neutres pendant une recherche, dont les
@@ -279,9 +309,11 @@ const Index = () => {
 
 
 
-      {/* Compteur */}
-      <div style={{ padding: '12px 16px 8px' }}>
-        <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
+      {/* Compteur + tri. La ligne du compteur occupait toute la largeur pour un
+          texte aligné à gauche : le tri s'y loge sans coûter une rangée de plus
+          à un en-tête déjà chargé. */}
+      <div style={{ padding: '12px 16px 8px' }} className="flex items-center gap-2">
+        <p className="text-sm font-medium flex-1" style={{ color: 'var(--text-muted)' }}>
           {isLoading ? t('common.loading') : foundLabel}
           {activeMeal && (
             <span style={{ marginLeft: 4 }}>
@@ -289,6 +321,31 @@ const Index = () => {
             </span>
           )}
         </p>
+        {!isSearching && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="flex items-center gap-1 text-sm font-medium shrink-0"
+                style={{ color: sortMode === 'default' ? 'var(--text-muted)' : 'var(--primary)' }}
+                aria-label={t('explore.sort')}
+              >
+                {t(`explore.sort_${sortMode}`)}
+                <ChevronsUpDown size={14} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {(['default', 'loved', 'recent'] as const).map((mode) => (
+                <DropdownMenuItem
+                  key={mode}
+                  onSelect={() => setSortMode(mode)}
+                  className={sortMode === mode ? 'font-semibold' : undefined}
+                >
+                  {t(`explore.sort_${mode}`)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Carte compacte — isolation crée un nouveau contexte d'empilement */}

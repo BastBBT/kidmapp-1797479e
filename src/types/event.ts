@@ -27,6 +27,11 @@ export interface EventItem {
   user_id: string | null;
   created_at: string;
   updated_at: string;
+  /**
+   * Nombre de favoris, tous utilisateurs confondus. Maintenu par trigger côté
+   * Postgres : la RLS de `event_favorites` interdit de l'agréger côté client.
+   */
+  favorites_count: number | null;
 }
 
 const CATEGORY_TOKENS: Record<string, string> = {

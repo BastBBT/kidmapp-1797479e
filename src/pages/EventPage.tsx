@@ -1,5 +1,7 @@
+import { Heart } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -129,6 +131,12 @@ const EventPage = () => {
         <h1 style={{ fontFamily: 'Fraunces', fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text)' }}>
           {event.name}
         </h1>
+        {shouldDisplayFavoriteCount(event.favorites_count) && (
+          <p className="flex items-center gap-1 text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+            <Heart size={11} fill="currentColor" strokeWidth={0} />
+            {t('explore.loved_by', { count: event.favorites_count ?? 0 })}
+          </p>
+        )}
       </div>
 
       {/* Date block */}

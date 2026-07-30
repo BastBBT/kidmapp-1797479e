@@ -221,7 +221,13 @@
     "count_places_one": "{{count}} lieu",
     "count_places_other": "{{count}} lieux",
     "count_activities_one": "{{count}} activité",
-    "count_activities_other": "{{count}} activités"
+    "count_activities_other": "{{count}} activités",
+    "sort": "Trier",
+    "sort_default": "Par défaut",
+    "sort_loved": "Les plus aimés",
+    "sort_recent": "Les plus récents",
+    "loved_by_one": "Aimé par {{count}} famille",
+    "loved_by_other": "Aimé par {{count}} familles"
   },
   "saved": {
     "title": "Sauvegardés",
