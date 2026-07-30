@@ -282,6 +282,7 @@ export type Database = {
           date_end: string | null
           date_start: string
           duration: string | null
+          favorites_count: number
           id: string
           instagram: string | null
           lat: number | null
@@ -306,6 +307,7 @@ export type Database = {
           date_end?: string | null
           date_start: string
           duration?: string | null
+          favorites_count?: number
           id?: string
           instagram?: string | null
           lat?: number | null
@@ -330,6 +332,7 @@ export type Database = {
           date_end?: string | null
           date_start?: string
           duration?: string | null
+          favorites_count?: number
           id?: string
           instagram?: string | null
           lat?: number | null
@@ -517,6 +520,7 @@ export type Database = {
           created_at: string
           duration: string | null
           effort: string | null
+          favorites_count: number
           high_chair: boolean
           id: string
           instagram: string | null
@@ -544,6 +548,7 @@ export type Database = {
           created_at?: string
           duration?: string | null
           effort?: string | null
+          favorites_count?: number
           high_chair?: boolean
           id?: string
           instagram?: string | null
@@ -571,6 +576,7 @@ export type Database = {
           created_at?: string
           duration?: string | null
           effort?: string | null
+          favorites_count?: number
           high_chair?: boolean
           id?: string
           instagram?: string | null
