@@ -182,7 +182,8 @@ const Index = () => {
         .filter(
           (loc) =>
             loc.name.toLowerCase().includes(searchTerm) ||
-            loc.address?.toLowerCase().includes(searchTerm)
+            loc.address?.toLowerCase().includes(searchTerm) ||
+            loc.note?.toLowerCase().includes(searchTerm)
         )
         .sort(byName);
     }
