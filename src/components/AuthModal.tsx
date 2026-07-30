@@ -359,7 +359,7 @@ const AuthModal = ({ initialMode = 'signup', headerMessage }: AuthModalProps) =>
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginTop: 14, position: 'relative', zIndex: 1 }}>
-          {(['restaurant', 'cafe', 'shop', 'public', 'coiffeur'] as const).map((cat) => (
+          {(['restaurant', 'cafe', 'shop', 'public', 'coiffeur', 'librairie'] as const).map((cat) => (
             <div
               key={cat}
               style={{

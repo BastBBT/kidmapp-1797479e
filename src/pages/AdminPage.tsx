@@ -1483,6 +1483,7 @@ const AdminPage = () => {
                     <option value="shop">🛍️ Boutique</option>
                     <option value="public">🌳 Lieu public</option>
                     <option value="coiffeur">✂️ Coiffeur</option>
+                    <option value="librairie">📚 Librairie</option>
                     <option value="nature">🌿 Nature</option>
                     <option value="sport">⚽ Sport</option>
                     <option value="creatif">🎨 Créatif</option>
@@ -1802,6 +1803,7 @@ const AdminPage = () => {
                   <option value="shop">🛍️ Boutique</option>
                   <option value="public">🌳 Lieu public</option>
                   <option value="coiffeur">✂️ Coiffeur</option>
+                  <option value="librairie">📚 Librairie</option>
                   <option value="nature">🌿 Nature</option>
                   <option value="sport">⚽ Sport</option>
                   <option value="creatif">🎨 Créatif</option>

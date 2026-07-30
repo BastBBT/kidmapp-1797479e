@@ -13,6 +13,7 @@ const categoryColors: Record<LocationCategory, { bg: string; border: string; tex
   public:     { bg: '#E2F0D6', border: '#72B05E', text: '#3B5E2C' },
   shop:       { bg: '#FBF1D1', border: '#E0B848', text: '#6B5418' },
   coiffeur:   { bg: '#EEDFF4', border: '#9B59B6', text: '#5C2E73' },
+  librairie:  { bg: '#E4E7F6', border: '#4A55A2', text: '#262C5E' },
   nature:     { bg: '#E2F0D6', border: '#5A9E4C', text: '#2F5325' },
   sport:      { bg: '#DDECF7', border: '#3F82BF', text: '#1F4770' },
   creatif:    { bg: '#FCE4EC', border: '#D96A8E', text: '#7A2C48' },

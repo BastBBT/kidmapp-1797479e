@@ -22,6 +22,7 @@ const getMarkerIcon = (category: string, isSelected: boolean) => {
     shop:       { bg: '#FEF9E7', border: '#F5E6C8', stroke: '#C49A35' },
     public:     { bg: '#EEF6EC', border: '#D1E8CF', stroke: '#5A9A56' },
     coiffeur:   { bg: '#F3EAF7', border: '#D7BDE2', stroke: '#9B59B6' },
+    librairie:  { bg: '#ECEEF8', border: '#C6CCE9', stroke: '#4A55A2' },
     nature:     { bg: '#EBF4F2', border: '#C8E0DC', stroke: '#3B7D6E' },
     sport:      { bg: '#E8F0FB', border: '#C4D8F0', stroke: '#3B6EB0' },
     creatif:    { bg: '#F3EAF7', border: '#D7BDE2', stroke: '#8E44AD' },
@@ -81,6 +82,7 @@ const categoryLabels: Record<string, string> = {
   shop: 'Boutique',
   public: 'Lieu public',
   coiffeur: 'Coiffeur',
+  librairie: 'Librairie',
 };
 
 interface MapViewProps {
@@ -190,6 +192,7 @@ const MapView = ({ locations, selectedId, initialCenter, initialZoom, onViewChan
               shop: { stroke: '#C49A35' },
               public: { stroke: '#5A9A56' },
               coiffeur: { stroke: '#9B59B6' },
+              librairie: { stroke: '#4A55A2' },
             };
             const colors = markerColors[loc.category] || markerColors.restaurant;
             return (

@@ -16,6 +16,7 @@ const PLACE_CATEGORY_OPTIONS: { id: string; label: string }[] = [
   { id: 'shop', label: 'Boutique' },
   { id: 'public', label: 'Lieu public' },
   { id: 'coiffeur', label: 'Coiffeur' },
+  { id: 'librairie', label: 'Librairie' },
 ];
 
 const ACTIVITY_CATEGORY_OPTIONS: { id: string; label: string }[] = [
