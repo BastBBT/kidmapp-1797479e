@@ -2472,6 +2472,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   const startEdit = (proposal: any) => {
     setEditingId(proposal.id);
     setEditPhotoFile(null);
+    setManualCoordsProposal(null);
     setEditDraft({
       name: proposal.name ?? '',
       category: proposal.category ?? 'restaurant',
@@ -2488,7 +2489,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
     });
   };
 
-  const handleEditAndApprove = async (proposal: any) => {
+  const handleEditAndApprove = async (proposal: any, useManualCoords = false) => {
     if (!editDraft) return;
     if (!editDraft.name || !editDraft.address) {
       toast({ title: 'Erreur', description: 'Nom et adresse obligatoires', variant: 'destructive' });
@@ -2496,6 +2497,26 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
     }
     setProcessingId(proposal.id);
     try {
+      let coords: { lat: number; lng: number } | null;
+      if (useManualCoords) {
+        const la = parseFloat(proposalManualLat);
+        const ln = parseFloat(proposalManualLng);
+        if (Number.isNaN(la) || Number.isNaN(ln)) {
+          toast({ title: 'Coordonnées invalides', description: 'Vérifie latitude et longitude.', variant: 'destructive' });
+          setProcessingId(null);
+          return;
+        }
+        coords = { lat: la, lng: ln };
+      } else {
+        coords = await geocodeAddress(editDraft.address);
+        if (!coords) {
+          setManualCoordsProposal(proposal.id);
+          toast({ title: 'Adresse non trouvée', description: 'Ajustez les coordonnées manuellement ci-dessous, puis réessaie.', variant: 'destructive' });
+          setProcessingId(null);
+          return;
+        }
+      }
+
       // Upload new photo if provided
       let photoUrl: string | null = editDraft.photo || null;
       if (editPhotoFile) {
@@ -2504,14 +2525,6 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         const { error: upErr } = await supabase.storage.from('location-photos').upload(fileName, editPhotoFile);
         if (upErr) throw upErr;
         photoUrl = supabase.storage.from('location-photos').getPublicUrl(fileName).data.publicUrl;
-      }
-
-      const coords = await geocodeAddress(editDraft.address);
-      if (!coords) {
-        setManualCoordsProposal(proposal.id);
-        toast({ title: 'Adresse non trouvée', description: 'Ajustez les coordonnées manuellement, puis utilisez "Approuver".', variant: 'destructive' });
-        setProcessingId(null);
-        return;
       }
 
       const insertData: any = {
@@ -2590,6 +2603,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
       toast({ title: 'Proposition modifiée & approuvée ✓', description: editedFields.length ? `Champs édités : ${editedFields.join(', ')}` : 'Aucune modification' });
       setEditingId(null);
       setEditDraft(null);
+      setManualCoordsProposal(null);
       setEditPhotoFile(null);
     } catch (err: any) {
       toast({ title: 'Erreur', description: err?.message ?? 'Échec', variant: 'destructive' });
@@ -2906,16 +2920,52 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                     </select>
                   </div>
                 )}
+                {manualCoordsProposal === proposal.id && (
+                  <div style={{
+                    padding:'12px', borderRadius:'var(--radius-sm)',
+                    background:'var(--accent-light)',
+                    border:'1px solid #F2C94C',
+                  }}>
+                    <div style={{fontFamily:'Caveat', fontSize:'14px', color:'#C49A35', marginBottom:'8px'}}>
+                      Adresse non reconnue — ajustez les coordonnées ✦
+                    </div>
+                    <div style={{display:'flex', gap:'8px'}}>
+                      <div style={{flex:1}}>
+                        <label style={{fontSize:'11px', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:'4px'}}>
+                          Latitude
+                        </label>
+                        <input
+                          value={proposalManualLat}
+                          onChange={e => setProposalManualLat(e.target.value)}
+                          style={{width:'100%', padding:'10px 12px', borderRadius:'var(--radius-sm)', border:'1.5px solid var(--border)', fontFamily:'DM Sans', fontSize:'14px'}}
+                        />
+                      </div>
+                      <div style={{flex:1}}>
+                        <label style={{fontSize:'11px', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:'4px'}}>
+                          Longitude
+                        </label>
+                        <input
+                          value={proposalManualLng}
+                          onChange={e => setProposalManualLng(e.target.value)}
+                          style={{width:'100%', padding:'10px 12px', borderRadius:'var(--radius-sm)', border:'1.5px solid var(--border)', fontFamily:'DM Sans', fontSize:'14px'}}
+                        />
+                      </div>
+                    </div>
+                    <div style={{fontSize:'11px', color:'var(--text-muted)', marginTop:'6px', fontFamily:'DM Sans'}}>
+                      Astuce : trouvez les coordonnées sur maps.google.com en faisant clic droit sur le lieu.
+                    </div>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleEditAndApprove(proposal)}
+                    onClick={() => handleEditAndApprove(proposal, manualCoordsProposal === proposal.id)}
                     disabled={isProcessing}
                     style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, padding: 10, borderRadius: 100, border: 'none', background: 'var(--secondary)', color: '#fff', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}
                   >
-                    {isProcessing ? 'En cours…' : '✓ Enregistrer & approuver'}
+                    {isProcessing ? 'En cours…' : manualCoordsProposal === proposal.id ? '✓ Enregistrer & approuver (coords)' : '✓ Enregistrer & approuver'}
                   </button>
                   <button
-                    onClick={() => { setEditingId(null); setEditDraft(null); setEditPhotoFile(null); }}
+                    onClick={() => { setEditingId(null); setEditDraft(null); setEditPhotoFile(null); setManualCoordsProposal(null); }}
                     disabled={isProcessing}
                     style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, padding: 10, borderRadius: 100, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
                   >
