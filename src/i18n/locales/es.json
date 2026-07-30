@@ -221,7 +221,13 @@
     "count_places_one": "{{count}} lugar",
     "count_places_other": "{{count}} lugares",
     "count_activities_one": "{{count}} actividad",
-    "count_activities_other": "{{count}} actividades"
+    "count_activities_other": "{{count}} actividades",
+    "sort": "Ordenar",
+    "sort_default": "Por defecto",
+    "sort_loved": "Los más queridos",
+    "sort_recent": "Los más recientes",
+    "loved_by_one": "Le gusta a {{count}} familia",
+    "loved_by_other": "Le gusta a {{count}} familias"
   },
   "saved": {
     "title": "Guardados",

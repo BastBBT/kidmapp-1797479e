@@ -6,6 +6,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { MEAL_ICONS, EQUIP_ICONS, EQUIP_SHORT_LABELS, EquipKey, CATEGORY_ICONS } from '@/assets/icons';
 import { AgeBucket, getPriorityEquip } from '@/lib/ageFilter';
 import { translateToken } from '@/i18n/tokenMaps';
+import { FavoriteCountBadge, shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
 
 interface LocationCardProps {
   location: Location;
@@ -130,6 +131,11 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: 
           >
             Coup de ♥
           </span>
+        )}
+        {/* Coin opposé au badge « Coup de ♥ », qui lui ne parle que de MON
+            favori. Les deux doivent rester distincts. */}
+        {shouldDisplayFavoriteCount(location.favorites_count) && (
+          <FavoriteCountBadge count={location.favorites_count ?? 0} />
         )}
       </div>
       <div className="p-3">

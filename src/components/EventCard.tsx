@@ -6,6 +6,8 @@ import { useEventFavorites } from '@/hooks/useEventFavorites';
 import { useAuth } from '@/hooks/useAuth';
 import { translateToken } from '@/i18n/tokenMaps';
 import { formatEventDateRange } from '@/lib/formatDate';
+import { Heart } from 'lucide-react';
+import { shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
 
 interface Props {
   event: EventItem;
@@ -92,6 +94,17 @@ const EventCard = ({ event, showPast = false }: Props) => {
           </div>
         )}
         <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+          {/* Compteur public, en gris : il informe, il ne se confond pas avec le
+              bouton cœur flottant qui est mon propre favori. */}
+          {shouldDisplayFavoriteCount(event.favorites_count) && (
+            <span
+              className="inline-flex items-center gap-1"
+              style={{ fontSize: 11, padding: '3px 8px', borderRadius: 100, background: 'var(--bg)', color: 'var(--text-muted)' }}
+            >
+              <Heart size={10} fill="currentColor" strokeWidth={0} />
+              {event.favorites_count}
+            </span>
+          )}
           {event.duration && (
             <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 100, background: 'var(--bg)', color: 'var(--text-muted)' }}>
               ⏱ {translateToken('duration', event.duration)}

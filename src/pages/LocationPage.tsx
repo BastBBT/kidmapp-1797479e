@@ -1,7 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { categoryIcons, isActivity } from '@/types/location';
-import { ArrowLeft, ArrowUpFromLine } from 'lucide-react';
+import { ArrowLeft, ArrowUpFromLine, Heart } from 'lucide-react';
+import { shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import LocationServicesSection from '@/components/LocationServicesSection';
@@ -246,6 +247,14 @@ const LocationPage = () => {
           <h1 className="font-display text-[30px] font-semibold text-white" style={{ letterSpacing: '-0.03em', lineHeight: 1.15 }}>
             {location.name}
           </h1>
+          {/* Sous le nom, et pas près du bouton cœur du haut : celui-ci est une
+              action (mon favori), celui-là une information (ceux des autres). */}
+          {shouldDisplayFavoriteCount(location.favorites_count) && (
+            <p className="flex items-center gap-1 text-xs mt-1" style={{ color: 'rgba(255,255,255,0.85)' }}>
+              <Heart size={11} fill="currentColor" strokeWidth={0} />
+              {t('explore.loved_by', { count: location.favorites_count ?? 0 })}
+            </p>
+          )}
         </div>
       </div>
 
