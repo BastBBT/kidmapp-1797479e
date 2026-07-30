@@ -1,21 +1,27 @@
 ## Objectif
-Permettre aux admins d'insérer directement un événement dans `public.events`, quel que soit le statut ou le `user_id`.
+Étendre la contrainte `CHECK` sur la colonne `category` des tables `public.locations` et `public.location_proposals` pour accepter la nouvelle valeur `librairie`.
 
 ## Constat vérifié
-Les policies actuelles sur `public.events` : `events_insert_own_pending` est la seule policy INSERT, et elle impose `user_id = auth.uid() AND status = 'pending'`. Aucune policy INSERT admin n'existe (contrairement à `locations`, qui a `locations_insert_admin`).
+Les deux tables possèdent déjà une contrainte `category_check` à 10 valeurs (`restaurant`, `cafe`, `shop`, `public`, `coiffeur`, `nature`, `sport`, `creatif`, `culture`, `jeux`). Aucune ligne n'utilise encore `librairie`.
 
 ## Changement
-Une seule migration, aucun changement de code front :
+Une seule migration SQL, aucune modification de code applicatif.
 
 ```sql
-CREATE POLICY "events_insert_admin" ON public.events
-  FOR INSERT TO authenticated
-  WITH CHECK (public.is_admin(auth.uid()));
+ALTER TABLE public.locations DROP CONSTRAINT IF EXISTS locations_category_check;
+ALTER TABLE public.locations
+  ADD CONSTRAINT locations_category_check
+  CHECK (category IN ('restaurant','cafe','shop','public','coiffeur','librairie',
+                      'nature','sport','creatif','culture','jeux'));
+
+ALTER TABLE public.location_proposals DROP CONSTRAINT IF EXISTS location_proposals_category_check;
+ALTER TABLE public.location_proposals
+  ADD CONSTRAINT location_proposals_category_check
+  CHECK (category IN ('restaurant','cafe','shop','public','coiffeur','librairie',
+                      'nature','sport','creatif','culture','jeux'));
 ```
 
-Les policies INSERT étant permissives et cumulatives (OR), les utilisateurs standards conservent la possibilité de proposer un événement en `pending`, et les admins peuvent insérer n'importe quel statut / `user_id`.
-
 ## Détails techniques
-- `public.is_admin(uuid)` existe déjà (security definer, lit `profiles.role`), utilisé par les policies admin `events_select/update/delete`.
-- Les GRANTs sur `public.events` sont déjà en place pour `authenticated` (les inserts users fonctionnent), rien à ajouter.
-- Impact sécurité : accès élargi uniquement aux comptes admin.
+- `events` n'est pas concerné : elle a son propre vocabulaire de catégories événementielles.
+- Aucune donnée à migrer : `librairie` est une valeur neuve.
+- Aucun impact sur les policies RLS, les triggers ou le code TypeScript.
