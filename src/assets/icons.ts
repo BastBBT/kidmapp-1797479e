@@ -13,6 +13,7 @@ import catCafe from './cat-cafe.png';
 import catBoutique from './cat-boutique.png';
 import catLieuPublic from './cat-lieu-public.png';
 import catCoiffeur from './cat-coiffeur.png';
+import catLibrairie from './cat-librairie.png';
 import catNature from './cat-nature.png.asset.json';
 import catSport from './cat-sport.png.asset.json';
 import catCreatif from './cat-creatif.png.asset.json';
@@ -26,6 +27,7 @@ export const CATEGORY_ICONS: Record<string, string> = {
   shop: catBoutique,
   public: catLieuPublic,
   coiffeur: catCoiffeur,
+  librairie: catLibrairie,
   nature: catNature.url,
   sport: catSport.url,
   creatif: catCreatif.url,

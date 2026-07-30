@@ -1,10 +1,10 @@
 import { Tables } from '@/integrations/supabase/types';
 
-export type PlaceCategory = 'restaurant' | 'cafe' | 'shop' | 'public' | 'coiffeur';
+export type PlaceCategory = 'restaurant' | 'cafe' | 'shop' | 'public' | 'coiffeur' | 'librairie';
 export type ActivityCategory = 'nature' | 'sport' | 'creatif' | 'culture' | 'jeux';
 export type LocationCategory = PlaceCategory | ActivityCategory;
 
-export const PLACE_CATEGORIES: PlaceCategory[] = ['restaurant', 'cafe', 'shop', 'public', 'coiffeur'];
+export const PLACE_CATEGORIES: PlaceCategory[] = ['restaurant', 'cafe', 'shop', 'public', 'coiffeur', 'librairie'];
 export const ACTIVITY_CATEGORIES: ActivityCategory[] = ['nature', 'sport', 'creatif', 'culture', 'jeux'];
 
 export const isActivity = (cat?: string | null): cat is ActivityCategory =>
@@ -28,6 +28,7 @@ export const categoryLabels: Record<LocationCategory, string> = {
   shop: 'Boutique',
   public: 'Lieu public',
   coiffeur: 'Coiffeur',
+  librairie: 'Librairie',
   nature: 'Nature',
   sport: 'Sport',
   creatif: 'Créatif',
@@ -41,6 +42,7 @@ export const categoryIcons: Record<LocationCategory, string> = {
   shop: '🛍️',
   public: '🌳',
   coiffeur: '✂️',
+  librairie: '📚',
   nature: '🌿',
   sport: '⚽',
   creatif: '🎨',

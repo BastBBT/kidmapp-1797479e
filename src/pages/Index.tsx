@@ -19,7 +19,7 @@ import { matchesWeather, matchesDuration } from '@/lib/activity';
 
 const MEAL_CATEGORIES = new Set(['restaurant', 'cafe']);
 const VALID_CATEGORIES = new Set<string>([
-  'all', 'restaurant', 'cafe', 'shop', 'public', 'coiffeur',
+  'all', 'restaurant', 'cafe', 'shop', 'public', 'coiffeur', 'librairie',
   'nature', 'sport', 'creatif', 'culture', 'jeux',
 ]);
 const VALID_AGES = new Set<string>(['all', '0-2', '3-5', '6+']);
