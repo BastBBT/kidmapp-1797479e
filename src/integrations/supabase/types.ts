@@ -750,6 +750,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_data_retention: { Args: never; Returns: undefined }
       award_points: {
         Args: {
           p_amount: number
