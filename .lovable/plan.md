@@ -19,8 +19,23 @@ Autres constats vérifiés : `pg_cron` et `pg_net` sont déjà installés, 1 job
    - supprime les `page_views` de plus de 12 mois ;
    - passe `account_deletions.email` à `NULL` au-delà de 12 mois (ligne et motif conservés comme preuve de traitement) ;
    - `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated` juste après la création — seul le rôle propriétaire (donc le cron) peut l'appeler.
-4. **Planification pg_cron** — `cron.unschedule('apply-data-retention')` si le job existe, puis
-   `cron.schedule('apply-data-retention', '15 3 * * *', $$ SELECT public.apply_data_retention(); $$)`.
+4. **Planification pg_cron** — `cron.unschedule` lève une erreur si le job n'existe pas, donc la désinscription est gardée explicitement :
+
+```text
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'apply-data-retention') THEN
+    PERFORM cron.unschedule('apply-data-retention');
+  END IF;
+END $$;
+
+SELECT cron.schedule(
+  'apply-data-retention',
+  '15 3 * * *',
+  $$ SELECT public.apply_data_retention(); $$
+);
+```
+
    SQL pur, aucune clé service_role, aucun appel HTTP.
 
 ## Notes techniques
