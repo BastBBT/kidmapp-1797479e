@@ -3081,8 +3081,9 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'published' | 'rejected'>('pending');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'user' | 'sourcing'>('all');
+  const [favOnly, setFavOnly] = useState(false);
   const [search, setSearch] = useState('');
-  const [eventSort, setEventSort] = useState<'eventDateDesc' | 'eventDateAsc' | 'createdAtDesc'>('eventDateDesc');
+  const [eventSort, setEventSort] = useState<'eventDateDesc' | 'eventDateAsc' | 'createdAtDesc' | 'favAtDesc'>('eventDateDesc');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<any>(null);
   const [manualCoordsFor, setManualCoordsFor] = useState<string | null>(null);
@@ -3245,6 +3246,29 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     }
   };
 
+  // Coup de cœur admin : mise à jour optimiste pour que l'étoile réponde au clic,
+  // rollback si Supabase refuse.
+  const toggleFav = async (ev: any) => {
+    const next = !ev.admin_fav;
+    const nextAt = next ? new Date().toISOString() : null;
+    const patch = (fav: boolean, favAt: string | null) =>
+      queryClient.setQueryData(['admin-events'], (old: any[] | undefined) =>
+        (old ?? []).map((e) => (e.id === ev.id ? { ...e, admin_fav: fav, admin_fav_at: favAt } : e))
+      );
+
+    patch(next, nextAt);
+    const { error } = await supabase
+      .from('events' as any)
+      .update({ admin_fav: next, admin_fav_at: nextAt })
+      .eq('id', ev.id);
+    if (error) {
+      patch(!!ev.admin_fav, ev.admin_fav_at ?? null);
+      toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['admin-events'] });
+  };
+
   const [rejectTarget, setRejectTarget] = useState<any>(null);
 
   const handleReject = (ev: any) => {
@@ -3300,16 +3324,22 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const isSourcing = (ev: any) =>
     !ev.user_id || (ev.user_id && emails[ev.user_id] === BOT_SOURCING_EMAIL);
 
+  const favCount = events.filter((ev: any) => ev.admin_fav).length;
+
   const filtered = events.filter((ev: any) => {
     if (statusFilter !== 'all' && ev.status !== statusFilter) return false;
     if (sourceFilter === 'user' && isSourcing(ev)) return false;
     if (sourceFilter === 'sourcing' && !isSourcing(ev)) return false;
+    if (favOnly && !ev.admin_fav) return false;
     return matchSearch(search, ev.name, ev.address, ev.website);
   });
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
-    if (eventSort === 'eventDateDesc') {
+    if (eventSort === 'favAtDesc') {
+      // Derniers coups de cœur en tête, non marqués en fin de liste.
+      arr.sort((a, b) => (b.admin_fav_at ?? '').localeCompare(a.admin_fav_at ?? ''));
+    } else if (eventSort === 'eventDateDesc') {
       arr.sort((a, b) => (b.date_start ?? '').localeCompare(a.date_start ?? ''));
     } else if (eventSort === 'eventDateAsc') {
       arr.sort((a, b) => (a.date_start ?? '').localeCompare(b.date_start ?? ''));
@@ -3367,7 +3397,25 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                   {!isSourcing(ev) ? '👤 Utilisateur' : '📰 Sourcing'}
                 </span>
               </div>
-              <StatusBadge status={ev.status === 'published' ? 'validated' : ev.status} />
+              <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
+                <button
+                  onClick={() => toggleFav(ev)}
+                  title={ev.admin_fav ? 'Retirer des coups de cœur' : 'Marquer comme coup de cœur'}
+                  aria-label={ev.admin_fav ? 'Retirer des coups de cœur' : 'Marquer comme coup de cœur'}
+                  aria-pressed={!!ev.admin_fav}
+                  style={{
+                    width: 32, height: 32, padding: 0, borderRadius: 100,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: `1.5px solid ${ev.admin_fav ? '#F2C94C' : 'var(--border)'}`,
+                    background: ev.admin_fav ? 'var(--accent-light)' : 'transparent',
+                    color: ev.admin_fav ? '#BA7517' : 'var(--text-muted)',
+                    fontSize: 15, lineHeight: 1, cursor: 'pointer',
+                  }}
+                >
+                  {ev.admin_fav ? '★' : '☆'}
+                </button>
+                <StatusBadge status={ev.status === 'published' ? 'validated' : ev.status} />
+              </div>
             </div>
 
             {ev.address && (
@@ -3576,10 +3624,24 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
           </button>
         ))}
         <div style={{ width: '1px', background: 'var(--border)', margin: '0 4px' }} />
+        <button
+          onClick={() => setFavOnly((v) => !v)}
+          aria-pressed={favOnly}
+          style={{
+            ...pillStyle(favOnly),
+            border: `1.5px solid ${favOnly ? '#F2C94C' : 'var(--border)'}`,
+            background: favOnly ? 'var(--accent-light)' : 'transparent',
+            color: favOnly ? '#7A5C05' : 'var(--text-muted)',
+          }}
+        >
+          ★ Coups de cœur · {favCount}
+        </button>
+        <div style={{ width: '1px', background: 'var(--border)', margin: '0 4px' }} />
         {([
           { key: 'eventDateDesc', label: 'Date événement ↓' },
           { key: 'eventDateAsc', label: 'Date événement ↑' },
           { key: 'createdAtDesc', label: 'Création' },
+          { key: 'favAtDesc', label: '★ Date de fav ↓' },
         ] as const).map((s) => (
           <button key={s.key} onClick={() => setEventSort(s.key)} style={pillStyle(eventSort === s.key)}>
             {s.label}
