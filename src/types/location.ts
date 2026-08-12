@@ -18,6 +18,13 @@ export const groupOf = (cat: LocationCategory | 'all'): CategoryGroup =>
 
 export type Location = Tables<'locations'> & {
   // Type narrowing helpers
+
+  // Colonnes ajoutées par la migration `photos` / `reel_url`. Déclarées ici en
+  // optionnel pour que le code compile avant la régénération de `types.ts` par
+  // Lovable ; une fois celle-ci faite, elles deviennent redondantes (mêmes types)
+  // et ces deux lignes peuvent disparaître.
+  photos?: string[] | null;
+  reel_url?: string | null;
 };
 
 export type Contribution = Tables<'contributions'>;

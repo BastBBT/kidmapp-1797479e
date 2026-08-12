@@ -21,6 +21,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { EQUIP_ICONS, EQUIP_LABELS, EquipKey } from '@/assets/icons';
 import { AGE_BUCKETS, AgeBucket, ageVerdict, getPriorityEquip } from '@/lib/ageFilter';
 import { translateToken } from '@/i18n/tokenMaps';
+import { galleryMedia } from '@/lib/gallery';
+import LocationGallery from '@/components/LocationGallery';
 
 const categoryGradients: Record<string, string> = {
   restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
@@ -138,19 +140,15 @@ const LocationPage = () => {
   }
 
   const gradient = categoryGradients[location.category] || categoryGradients.public;
+  const media = galleryMedia(location);
 
   return (
     <div className="min-h-screen pb-20" style={{ background: 'var(--bg)' }}>
       <Header />
       {/* Hero */}
       <div className="relative overflow-hidden" style={{ height: '260px', background: gradient }}>
-        {location.photo ? (
-          <img
-            src={location.photo}
-            alt={location.name}
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ zIndex: 1 }}
-          />
+        {media.length > 0 ? (
+          <LocationGallery media={media} gradient={gradient} name={location.name} />
         ) : (
           <>
             <svg style={{ position: 'absolute', bottom: '-10px', left: '-20px', width: '200px', height: '160px', zIndex: 2 }} viewBox="0 0 200 160">
@@ -239,8 +237,9 @@ const LocationPage = () => {
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
         </button>
-        {/* Text over hero */}
-        <div className="absolute bottom-6 left-5 z-10">
+        {/* Text over hero — remonté quand il y a un carrousel, pour laisser la bande
+            du bas aux pastilles de pagination (fiche à une seule photo inchangée). */}
+        <div className={`absolute ${media.length > 1 ? 'bottom-14' : 'bottom-6'} left-5 z-10`}>
           <span className="font-hand italic text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
             {translateToken('category_place', location.category)}
           </span>

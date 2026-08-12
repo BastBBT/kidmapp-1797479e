@@ -209,7 +209,16 @@
     "age_bucket_all": "All",
     "age_bucket_0_2": "0-2 yrs",
     "age_bucket_3_5": "3-5 yrs",
-    "age_bucket_6_plus": "6+ yrs"
+    "age_bucket_6_plus": "6+ yrs",
+    "gallery": "Gallery",
+    "gallery_see": "See the gallery",
+    "gallery_prev": "Previous media",
+    "gallery_next": "Next media",
+    "reel": "Reel",
+    "reel_play": "Play the reel",
+    "reel_open": "Open in Instagram",
+    "reel_confirm_title": "Open this reel in Instagram?",
+    "reel_confirm_body": "The video stays hosted on Instagram — Kidmapp only stores the link."
   },
   "explore": {
     "results_one": "{{count}} result",
