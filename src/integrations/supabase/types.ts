@@ -272,6 +272,44 @@ export type Database = {
           },
         ]
       }
+      event_occurrences: {
+        Row: {
+          created_at: string
+          date_end: string | null
+          date_start: string
+          event_id: string
+          id: string
+          time: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_end?: string | null
+          date_start: string
+          event_id: string
+          id?: string
+          time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_end?: string | null
+          date_start?: string
+          event_id?: string
+          id?: string
+          time?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_occurrences_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           address: string | null
