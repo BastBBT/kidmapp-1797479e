@@ -575,7 +575,9 @@ export type Database = {
           name: string
           note: string | null
           photo: string | null
+          photos: string[] | null
           price: string | null
+          reel_url: string | null
           status: string
           updated_at: string
           weather: string | null
@@ -603,7 +605,9 @@ export type Database = {
           name: string
           note?: string | null
           photo?: string | null
+          photos?: string[] | null
           price?: string | null
+          reel_url?: string | null
           status?: string
           updated_at?: string
           weather?: string | null
@@ -631,7 +635,9 @@ export type Database = {
           name?: string
           note?: string | null
           photo?: string | null
+          photos?: string[] | null
           price?: string | null
+          reel_url?: string | null
           status?: string
           updated_at?: string
           weather?: string | null
