@@ -275,6 +275,8 @@ export type Database = {
       events: {
         Row: {
           address: string | null
+          admin_fav: boolean
+          admin_fav_at: string | null
           age_max: number | null
           age_min: number | null
           category: string
@@ -300,6 +302,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          admin_fav?: boolean
+          admin_fav_at?: string | null
           age_max?: number | null
           age_min?: number | null
           category: string
@@ -325,6 +329,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          admin_fav?: boolean
+          admin_fav_at?: string | null
           age_max?: number | null
           age_min?: number | null
           category?: string
