@@ -19,7 +19,8 @@ Migration SQL sur `public.events` :
    - Autorise l'appel si l'utilisateur courant est admin (`public.is_admin(auth.uid())`) OU si l'email du JWT vaut `bastien.boubat+event@gmail.com`.
    - Sinon lève une exception `'non autorisé'`.
    - Met à jour `admin_fav_visual_at = now()` sur l'événement `_event_id` **uniquement si `admin_fav` est vrai** (uniquement les coups de cœur).
-3. Révoquer l'exécution de la fonction à `public` et `anon`.
+   - Lève `'aucun événement coup de cœur avec cet identifiant'` si aucune ligne n'a été mise à jour, pour éviter un succès trompeur.
+   3. Révoquer l'exécution de la fonction à `public` et `anon`.
 4. Accorder l'exécution à `authenticated`.
 
 ### RLS / UI
