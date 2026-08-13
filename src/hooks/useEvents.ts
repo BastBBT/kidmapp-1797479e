@@ -2,6 +2,36 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EventItem, EventOccurrence } from '@/types/event';
 import { lastMondayISO, todayISO } from '@/lib/weekend';
+import { eventsWindowFilter } from '@/lib/eventCalendar';
+
+/**
+ * Ids des events ayant au moins un *créneau* dans la fenêtre d'affichage.
+ *
+ * Les dates portées par l'event ne suffisent pas à décider quoi charger : elles
+ * sont synchronisées sur le créneau le plus proche *au moment de l'écriture*, et
+ * le trigger n'est jamais rejoué au fil du temps. Un spectacle dont les dates
+ * proches sont passées mais qui rejoue dans trois mois garde donc une date
+ * périmée, sort du filtre, et ses créneaux lointains deviennent invisibles
+ * partout — liste comme calendrier.
+ */
+const eventIdsWithOccurrence = async (since: string, today: string): Promise<string[]> => {
+  // Repli silencieux : on garde le seul filtre porté par l'event. Mieux vaut la
+  // liste d'avant que pas de liste du tout — d'où le catch, et pas seulement le
+  // test sur `error` : une coupure réseau rejette la promesse au lieu de
+  // renseigner `error`, et ferait échouer tout le chargement des sorties.
+  try {
+    const { data, error } = await supabase
+      .from('event_occurrences')
+      .select('event_id')
+      // Même fenêtre que les events, appliquée au créneau.
+      .or(`date_start.gte.${since},date_end.gte.${today}`);
+    if (error) return [];
+    const ids = new Set((data ?? []).map((row) => (row as { event_id: string }).event_id));
+    return [...ids].sort();
+  } catch {
+    return [];
+  }
+};
 
 export const useEvents = () => {
   return useQuery({
@@ -9,13 +39,13 @@ export const useEvents = () => {
     queryFn: async () => {
       const since = lastMondayISO();
       const today = todayISO();
-      // Include: events starting from last Monday onwards,
-      // OR long-running events whose end date is still today or later.
+      const idsWithOccurrence = await eventIdsWithOccurrence(since, today);
+      const filter = eventsWindowFilter(since, today, idsWithOccurrence);
       const { data, error } = await supabase
         .from('events' as any)
         .select('*')
         .eq('status', 'published')
-        .or(`date_start.gte.${since},date_end.gte.${today}`)
+        .or(filter)
         .order('date_start', { ascending: true });
       if (error) throw error;
       return (data ?? []) as unknown as EventItem[];

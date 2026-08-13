@@ -3,6 +3,7 @@ import {
   buildSlots,
   defaultSelectedDay,
   distinctEvents,
+  eventsWindowFilter,
   longEventsOn,
   populatedMonths,
   shortSlotsByDay,
@@ -195,5 +196,29 @@ describe('populatedMonths', () => {
 
   it('garde le mois courant même sans créneau', () => {
     expect(populatedMonths([])).toEqual(['2026-08-01']);
+  });
+});
+
+describe('eventsWindowFilter', () => {
+  const since = '2026-08-03';
+  const today = '2026-08-13';
+
+  it('sans ids, retombe exactement sur le filtre porté par l’event', () => {
+    expect(eventsWindowFilter(since, today)).toBe(
+      'date_start.gte.2026-08-03,date_end.gte.2026-08-13',
+    );
+  });
+
+  it('ajoute le terme de rattrapage quand des events ont un créneau dans la fenêtre', () => {
+    expect(eventsWindowFilter(since, today, ['a1', 'b2'])).toBe(
+      'date_start.gte.2026-08-03,date_end.gte.2026-08-13,id.in.(a1,b2)',
+    );
+  });
+
+  it('garde le filet event-level à côté du rattrapage', () => {
+    // Un event sans ligne dans event_occurrences n'est dans aucun id : il doit
+    // rester joignable par ses propres dates, sinon il disparaît de la liste.
+    const f = eventsWindowFilter(since, today, ['a1']);
+    expect(f.startsWith('date_start.gte.2026-08-03,date_end.gte.2026-08-13')).toBe(true);
   });
 });
