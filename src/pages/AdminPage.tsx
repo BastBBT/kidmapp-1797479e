@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useMealTypes, type MealType } from '@/hooks/useMeals';
 import PhotoUpload from '@/components/admin/PhotoUpload';
+import GalleryUpload from '@/components/admin/GalleryUpload';
 import { useUserEmails } from '@/hooks/useUserEmails';
 import { useTopContributors } from '@/hooks/useTopContributors';
 import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryHex, eventCategoryEmoji } from '@/types/event';
@@ -324,6 +325,11 @@ const AdminPage = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
+  // Galerie : URLs déjà enregistrées (réordonnables, supprimables) + fichiers en attente
+  // d'envoi. `editOriginalPhotos` sert à repérer celles retirées, pour les effacer du bucket.
+  const [editGalleryUrls, setEditGalleryUrls] = useState<string[]>([]);
+  const [editGalleryFiles, setEditGalleryFiles] = useState<File[]>([]);
+  const [editOriginalPhotos, setEditOriginalPhotos] = useState<string[]>([]);
 
   const { data: mealTypes = [] } = useMealTypes();
   const [addMeals, setAddMeals] = useState<MealsState>({});
@@ -1049,6 +1055,9 @@ const AdminPage = () => {
                     onClick={async () => {
                       setEditingId(loc.id);
                       setEditPhotoFile(null);
+                      setEditGalleryFiles([]);
+                      setEditGalleryUrls(((loc as any).photos as string[] | null) ?? []);
+                      setEditOriginalPhotos(((loc as any).photos as string[] | null) ?? []);
                       setEditForm({
                         name: loc.name,
                         category: loc.category,
@@ -1056,6 +1065,7 @@ const AdminPage = () => {
                         website: (loc as any).website ?? '',
                         instagram: (loc as any).instagram ?? '',
                         photo: loc.photo ?? '',
+                        reel_url: (loc as any).reel_url ?? '',
                         note: (loc as any).note ?? '',
                         high_chair: loc.high_chair,
                         changing_table: loc.changing_table,
@@ -1852,6 +1862,24 @@ const AdminPage = () => {
                 urlValue={editForm.photo}
                 onUrlChange={(v) => setEditForm((f: any) => ({ ...f, photo: v }))}
               />
+              <GalleryUpload
+                urls={editGalleryUrls}
+                onUrlsChange={setEditGalleryUrls}
+                files={editGalleryFiles}
+                onFilesChange={setEditGalleryFiles}
+              />
+              <div>
+                <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Reel Instagram</label>
+                <input
+                  value={editForm.reel_url ?? ''}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, reel_url: e.target.value }))}
+                  placeholder="https://www.instagram.com/reel/..."
+                  style={{ width: '100%', padding: '13px 16px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px' }}
+                />
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Un seul par lieu. La vidéo reste chez Instagram — la vignette reprend la photo principale.
+                </div>
+              </div>
               <div>
                 <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Note</label>
                 <textarea
@@ -1953,6 +1981,41 @@ const AdminPage = () => {
                     finalPhotoUrl = newUrl;
                   }
 
+                  // Galerie : le lien du reel doit être une URL, sinon la fiche
+                  // proposerait d'ouvrir quelque chose d'invalide.
+                  const reelUrl = (editForm.reel_url ?? '').trim();
+                  if (reelUrl && !/^https?:\/\//i.test(reelUrl)) {
+                    toast({ title: 'Lien du reel invalide', description: 'Colle l\'URL complète du reel Instagram (https://…).', variant: 'destructive' });
+                    return;
+                  }
+
+                  // Envoi des photos de galerie ajoutées, dans l'ordre choisi.
+                  const finalGallery = [...editGalleryUrls];
+                  for (const gf of editGalleryFiles) {
+                    const gExt = gf.name.split('.').pop() || 'jpg';
+                    const gPath = `${editingId}/gallery-${Date.now()}-${Math.round(Math.random() * 1e6)}.${gExt}`;
+                    const { error: gErr } = await supabase.storage
+                      .from('location-photos')
+                      .upload(gPath, gf, { contentType: gf.type });
+                    if (gErr) {
+                      toast({ title: "Erreur lors de l'upload de la galerie, réessaie", variant: 'destructive' });
+                      return;
+                    }
+                    const { data: gUrlData } = supabase.storage
+                      .from('location-photos')
+                      .getPublicUrl(gPath);
+                    finalGallery.push(gUrlData.publicUrl);
+                  }
+
+                  // Efface du bucket les photos retirées de la galerie, pour ne pas
+                  // laisser de fichiers orphelins (même règle que la photo principale).
+                  const removed = editOriginalPhotos.filter((u) => !finalGallery.includes(u));
+                  for (const url of removed) {
+                    if (!url.includes('/location-photos/')) continue;
+                    const path = url.split('/location-photos/')[1]?.split('?')[0];
+                    if (path) await supabase.storage.from('location-photos').remove([path]);
+                  }
+
                   // Resolve coordinates: manual override > re-geocode (if address changed) > keep originals
                   let newLat: number | null = null;
                   let newLng: number | null = null;
@@ -1991,6 +2054,8 @@ const AdminPage = () => {
                     website: editForm.website || null,
                     instagram: editForm.instagram || null,
                     photo: finalPhotoUrl,
+                    photos: finalGallery.length ? finalGallery : null,
+                    reel_url: reelUrl || null,
                     note: editForm.note || null,
                     high_chair: editForm.high_chair,
                     changing_table: editForm.changing_table,
