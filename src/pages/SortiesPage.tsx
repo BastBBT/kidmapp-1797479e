@@ -15,16 +15,17 @@ import {
   toISODate,
   type Week,
 } from '@/lib/weekend';
-import { useEvents } from '@/hooks/useEvents';
+import { useEvents, useEventOccurrences } from '@/hooks/useEvents';
 import { AgeBucket, matchesAgeBucket } from '@/lib/ageFilter';
 import { formatMonthShort, localeOf } from '@/lib/formatDate';
 import EventsCalendar from '@/components/EventsCalendar';
 import {
+  buildSlots,
   dateFromISO,
   defaultSelectedDay,
   longEventsOn,
-  shortEventsByDay,
-  shortEventsOn,
+  shortSlotsByDay,
+  shortSlotsOn,
 } from '@/lib/eventCalendar';
 import { eventCategoryEmoji, eventCategoryHex } from '@/types/event';
 
@@ -37,6 +38,10 @@ const SortiesPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
   const [showFinished, setShowFinished] = useState(false);
   const { data: events = [], isLoading } = useEvents();
+  // Créneaux des events chargés : le calendrier pose une pastille par créneau,
+  // pas une par event. Sans eux, il retombe sur la date portée par l'event.
+  const eventIds = useMemo(() => events.map((ev) => ev.id), [events]);
+  const { data: occurrencesByEvent = {} } = useEventOccurrences(eventIds);
 
   // Mode d'affichage retenu d'une session à l'autre. La liste reste le défaut :
   // c'est le comportement historique de l'onglet.
@@ -135,7 +140,11 @@ const SortiesPage = () => {
         .filter((ev) => selectedCategory === 'all' || ev.category === selectedCategory),
     [events, selectedAge, selectedCategory],
   );
-  const byDay = useMemo(() => shortEventsByDay(calendarEvents), [calendarEvents]);
+  const calendarSlots = useMemo(
+    () => buildSlots(calendarEvents, occurrencesByEvent),
+    [calendarEvents, occurrencesByEvent],
+  );
+  const byDay = useMemo(() => shortSlotsByDay(calendarSlots), [calendarSlots]);
   const calendarDefaultDay = useMemo(() => defaultSelectedDay(byDay), [byDay]);
 
   // Tant que l'utilisateur n'a pas choisi de jour, on suit le premier jour
@@ -147,10 +156,10 @@ const SortiesPage = () => {
     setDayTouched(false);
   }, [selectedAge, selectedCategory]);
 
-  const dayEvents = useMemo(() => shortEventsOn(byDay, selectedDay), [byDay, selectedDay]);
+  const daySlots = useMemo(() => shortSlotsOn(byDay, selectedDay), [byDay, selectedDay]);
   const dayLongEvents = useMemo(
-    () => longEventsOn(calendarEvents, selectedDay),
-    [calendarEvents, selectedDay],
+    () => longEventsOn(calendarSlots, selectedDay),
+    [calendarSlots, selectedDay],
   );
   const dayTitle = useMemo(() => {
     const s = dateFromISO(selectedDay).toLocaleDateString(localeOf(i18n.language), {
@@ -244,7 +253,7 @@ const SortiesPage = () => {
         <>
           <div style={{ padding: '0 16px' }}>
             <EventsCalendar
-              events={calendarEvents}
+              slots={calendarSlots}
               selectedDay={selectedDay}
               onSelectDay={(day) => {
                 setSelectedDay(day);
@@ -306,15 +315,15 @@ const SortiesPage = () => {
             <span style={{ fontFamily: 'Caveat', fontSize: 19, fontWeight: 600, color: 'var(--text)' }}>
               {dayTitle}
             </span>
-            {dayEvents.length > 0 && (
+            {daySlots.length > 0 && (
               <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)' }}>
-                · {t('sorties.count', { count: dayEvents.length })}
+                · {t('sorties.count', { count: daySlots.length })}
               </span>
             )}
           </div>
 
           <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {dayEvents.length === 0 && !isLoading ? (
+            {daySlots.length === 0 && !isLoading ? (
               <div style={{ textAlign: 'center', padding: '24px 16px' }}>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text-muted)' }}>
                   {t('sorties.empty_day')}
@@ -324,7 +333,14 @@ const SortiesPage = () => {
                 </div>
               </div>
             ) : (
-              dayEvents.map((ev) => <EventCard key={ev.id} event={ev} showPast={selectedDay <= today} />)
+              daySlots.map((slot) => (
+                <EventCard
+                  key={slot.occurrence.id}
+                  event={slot.event}
+                  occurrence={slot.occurrence}
+                  showPast={selectedDay <= today}
+                />
+              ))
             )}
           </div>
         </>

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { EventItem } from '@/types/event';
+import { EventItem, EventOccurrence } from '@/types/event';
 import { lastMondayISO, todayISO } from '@/lib/weekend';
 
 export const useEvents = () => {
@@ -19,6 +19,31 @@ export const useEvents = () => {
         .order('date_start', { ascending: true });
       if (error) throw error;
       return (data ?? []) as unknown as EventItem[];
+    },
+  });
+};
+
+/**
+ * Créneaux des events passés en paramètre, groupés par `event_id`.
+ * Le calendrier en a besoin pour poser une pastille par créneau et non une par
+ * event ; en cas d'échec il retombe sur les dates portées par l'event lui-même.
+ */
+export const useEventOccurrences = (eventIds: string[]) => {
+  const ids = [...eventIds].sort();
+  return useQuery({
+    queryKey: ['event-occurrences', ids],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('event_occurrences')
+        .select('*')
+        .in('event_id', ids)
+        .order('date_start', { ascending: true });
+      if (error) throw error;
+      const rows = (data ?? []) as unknown as EventOccurrence[];
+      const map: Record<string, EventOccurrence[]> = {};
+      for (const occ of rows) (map[occ.event_id] ??= []).push(occ);
+      return map;
     },
   });
 };

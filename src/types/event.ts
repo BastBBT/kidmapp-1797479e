@@ -34,6 +34,20 @@ export interface EventItem {
   favorites_count: number | null;
 }
 
+/**
+ * Un créneau d'un event à plusieurs dates (table `event_occurrences`).
+ * Un event a toujours au moins un créneau, créé par un trigger Postgres ;
+ * `events.date_start/date_end/time` reste synchronisé sur le créneau le plus
+ * proche pour compatibilité, mais le calendrier raisonne créneau par créneau.
+ */
+export interface EventOccurrence {
+  id: string;
+  event_id: string;
+  date_start: string;
+  date_end: string | null;
+  time: string | null;
+}
+
 const CATEGORY_TOKENS: Record<string, string> = {
   Spectacle: 'var(--event-spectacle)',
   Atelier: 'var(--event-atelier)',
