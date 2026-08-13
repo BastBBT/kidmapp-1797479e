@@ -315,6 +315,7 @@ export type Database = {
           address: string | null
           admin_fav: boolean
           admin_fav_at: string | null
+          admin_fav_visual_at: string | null
           age_max: number | null
           age_min: number | null
           category: string
@@ -342,6 +343,7 @@ export type Database = {
           address?: string | null
           admin_fav?: boolean
           admin_fav_at?: string | null
+          admin_fav_visual_at?: string | null
           age_max?: number | null
           age_min?: number | null
           category: string
@@ -369,6 +371,7 @@ export type Database = {
           address?: string | null
           admin_fav?: boolean
           admin_fav_at?: string | null
+          admin_fav_visual_at?: string | null
           age_max?: number | null
           age_min?: number | null
           category?: string
@@ -831,6 +834,10 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      mark_event_visual_generated: {
+        Args: { _event_id: string }
+        Returns: undefined
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
