@@ -6,7 +6,15 @@
 // et ça évite les décalages de fuseau/heure d'été sur les clés de regroupement.
 
 import { EventItem, EventOccurrence } from '@/types/event';
-import { isShortEvent, isPastEvent, todayISO, toISODate } from '@/lib/weekend';
+import {
+  eventInWeek,
+  eventSortRank,
+  isShortEvent,
+  isPastEvent,
+  todayISO,
+  toISODate,
+  type Week,
+} from '@/lib/weekend';
 
 /**
  * Un créneau à poser dans la grille : l'event et la date précise concernée.
@@ -217,4 +225,33 @@ export const monthGridCells = (monthISO: string): (string | null)[] => {
     ...Array.from({ length: leading }, () => null),
     ...Array.from({ length: dayCount }, (_, i) => addDaysISO(first, i)),
   ];
+};
+
+/**
+ * Créneaux d'une semaine (lun→dim), dans l'ordre d'affichage de la liste.
+ * L'unité est le créneau et non l'event : un spectacle joué trois samedis
+ * apparaît dans les trois semaines, chaque fois à sa date.
+ */
+export const weekSlots = (slots: EventSlot[], week: Week): EventSlot[] => {
+  const monISO = toISODate(week.monday);
+  return slots
+    .filter(({ occurrence }) => eventInWeek(occurrence.date_start, occurrence.date_end, week))
+    .sort((a, b) => {
+      // Tri à 3 paliers : les créneaux courts (journée / week-end) d'abord, puis
+      // les longs (expos, festivals sur plusieurs semaines) qui sinon squattent
+      // le haut de liste avec leur début lointain, et enfin ceux déjà terminés.
+      const ra = eventSortRank(a.occurrence.date_start, a.occurrence.date_end);
+      const rb = eventSortRank(b.occurrence.date_start, b.occurrence.date_end);
+      if (ra !== rb) return ra - rb;
+      // À rang égal : date de début « ramenée » au lundi de la semaine.
+      const ka = a.occurrence.date_start < monISO ? monISO : a.occurrence.date_start;
+      const kb = b.occurrence.date_start < monISO ? monISO : b.occurrence.date_start;
+      return ka.localeCompare(kb);
+    });
+};
+
+/** Les events d'une liste de créneaux, dédoublonnés (marqueurs de la mini-carte). */
+export const distinctEvents = (slots: EventSlot[]): EventItem[] => {
+  const seen = new Set<string>();
+  return slots.filter(({ event }) => !seen.has(event.id) && seen.add(event.id)).map(({ event }) => event);
 };

@@ -23,9 +23,11 @@ import {
   buildSlots,
   dateFromISO,
   defaultSelectedDay,
+  distinctEvents,
   longEventsOn,
   shortSlotsByDay,
   shortSlotsOn,
+  weekSlots,
 } from '@/lib/eventCalendar';
 import { eventCategoryEmoji, eventCategoryHex } from '@/types/event';
 
@@ -44,6 +46,17 @@ const SortiesPage = () => {
   const eventIds = useMemo(() => events.map((ev) => ev.id), [events]);
   const { data: occurrencesByEvent = {} } = useEventOccurrences(eventIds);
 
+  // Base commune des deux modes : chaque event déplié en autant de créneaux
+  // qu'il en porte, puis filtré par âge et catégorie.
+  const allSlots = useMemo(() => buildSlots(events, occurrencesByEvent), [events, occurrencesByEvent]);
+  const filteredSlots = useMemo(
+    () =>
+      allSlots
+        .filter(({ event }) => matchesAgeBucket(event, selectedAge))
+        .filter(({ event }) => selectedCategory === 'all' || event.category === selectedCategory),
+    [allSlots, selectedAge, selectedCategory],
+  );
+
   // Mode d'affichage retenu d'une session à l'autre. La liste reste le défaut :
   // c'est le comportement historique de l'onglet.
   const [calendarMode, setCalendarMode] = useState(
@@ -59,18 +72,21 @@ const SortiesPage = () => {
   };
 
   // Build weeks: always show last + current, plus any future week where at
-  // least one event *starts* (avoids phantom tabs for long-running events
-  // whose start date is far in the past).
+  // least one *créneau* starts (avoids phantom tabs for long-running events
+  // whose start date is far in the past). Un event à plusieurs dates ouvre donc
+  // un onglet par semaine où il joue.
   const weeks = useMemo<Week[]>(() => {
     const base = buildWeeks(12, new Date(), true); // last + current + 11 upcoming
     const [lastW, currentW, ...upcoming] = base;
     const keeps = upcoming.filter((w) => {
       const mon = toISODate(w.monday);
       const sun = toISODate(w.sunday);
-      return events.some((ev) => ev.date_start >= mon && ev.date_start <= sun);
+      return allSlots.some(
+        ({ occurrence }) => occurrence.date_start >= mon && occurrence.date_start <= sun,
+      );
     });
     return [lastW, currentW, ...keeps].filter(Boolean);
-  }, [events]);
+  }, [allSlots]);
 
   const defaultKey = useMemo(
     () => weeks.find((w) => !w.past)?.key ?? weeks[0]?.key ?? '',
@@ -91,61 +107,42 @@ const SortiesPage = () => {
     [events],
   );
 
-  const filteredEvents = useMemo(() => {
-    if (!selectedWeek) return [];
-    const mondayISO = toISODate(selectedWeek.monday);
-    return events
-      .filter((ev) => eventInWeek(ev.date_start, ev.date_end, selectedWeek))
-      .filter((ev) => matchesAgeBucket(ev, selectedAge))
-      .filter((ev) => selectedCategory === 'all' || ev.category === selectedCategory)
-      .sort((a, b) => {
-        // Tri à 3 paliers : les events courts (journée / week-end) d'abord, puis
-        // les longs (expos, festivals sur plusieurs semaines) qui sinon
-        // squattent le haut de liste avec leur date de début lointaine, et
-        // enfin ceux déjà terminés.
-        const ra = eventSortRank(a.date_start, a.date_end);
-        const rb = eventSortRank(b.date_start, b.date_end);
-        if (ra !== rb) return ra - rb;
-        // À rang égal : date de début « ramenée » au lundi de la semaine.
-        const ka = a.date_start < mondayISO ? mondayISO : a.date_start;
-        const kb = b.date_start < mondayISO ? mondayISO : b.date_start;
-        return ka.localeCompare(kb);
-      });
-  }, [events, selectedWeek, selectedAge, selectedCategory]);
+  // L'unité de la liste est le créneau et non l'event : un spectacle joué trois
+  // samedis apparaît dans les trois semaines, chaque fois à sa date.
+  const selectedWeekSlots = useMemo(
+    () => (selectedWeek ? weekSlots(filteredSlots, selectedWeek) : []),
+    [filteredSlots, selectedWeek],
+  );
 
-  // Dans une semaine en cours ou à venir, les events individuellement terminés
+  // Dans une semaine en cours ou à venir, les créneaux individuellement terminés
   // (l'atelier de lundi consulté le jeudi) sont masqués par défaut. Une semaine
   // entièrement passée reste affichée en entier : c'est son sens même.
   const weekIsPast = selectedWeek?.past ?? false;
   const finishedCount = useMemo(
-    () => (weekIsPast ? 0 : filteredEvents.filter((ev) => isPastEvent(ev.date_start, ev.date_end)).length),
-    [filteredEvents, weekIsPast],
+    () =>
+      weekIsPast
+        ? 0
+        : selectedWeekSlots.filter(({ occurrence }) => isPastEvent(occurrence.date_start, occurrence.date_end))
+            .length,
+    [selectedWeekSlots, weekIsPast],
   );
-  const displayedEvents = useMemo(
+  const displayedSlots = useMemo(
     () =>
       weekIsPast || showFinished
-        ? filteredEvents
-        : filteredEvents.filter((ev) => !isPastEvent(ev.date_start, ev.date_end)),
-    [filteredEvents, weekIsPast, showFinished],
+        ? selectedWeekSlots
+        : selectedWeekSlots.filter(({ occurrence }) => !isPastEvent(occurrence.date_start, occurrence.date_end)),
+    [selectedWeekSlots, weekIsPast, showFinished],
   );
+  // La mini-carte ne veut qu'un marqueur par lieu : deux créneaux du même event
+  // ne doivent pas se superposer.
+  const displayedEvents = useMemo(() => distinctEvents(displayedSlots), [displayedSlots]);
 
   const hasActiveFilter = selectedAge !== 'all' || selectedCategory !== 'all';
 
   // ---- Mode calendrier ----
-  // Le calendrier raisonne sur tous les événements filtrés, pas sur une seule
+  // Le calendrier raisonne sur tous les créneaux filtrés, pas sur une seule
   // semaine : c'est lui qui porte la navigation dans le temps.
-  const calendarEvents = useMemo(
-    () =>
-      events
-        .filter((ev) => matchesAgeBucket(ev, selectedAge))
-        .filter((ev) => selectedCategory === 'all' || ev.category === selectedCategory),
-    [events, selectedAge, selectedCategory],
-  );
-  const calendarSlots = useMemo(
-    () => buildSlots(calendarEvents, occurrencesByEvent),
-    [calendarEvents, occurrencesByEvent],
-  );
-  const byDay = useMemo(() => shortSlotsByDay(calendarSlots), [calendarSlots]);
+  const byDay = useMemo(() => shortSlotsByDay(filteredSlots), [filteredSlots]);
   const calendarDefaultDay = useMemo(() => defaultSelectedDay(byDay), [byDay]);
 
   // Tant que l'utilisateur n'a pas choisi de jour, on suit le premier jour
@@ -159,8 +156,8 @@ const SortiesPage = () => {
 
   const daySlots = useMemo(() => shortSlotsOn(byDay, selectedDay), [byDay, selectedDay]);
   const dayLongEvents = useMemo(
-    () => longEventsOn(calendarSlots, selectedDay),
-    [calendarSlots, selectedDay],
+    () => longEventsOn(filteredSlots, selectedDay),
+    [filteredSlots, selectedDay],
   );
   const dayTitle = useMemo(() => {
     const s = dateFromISO(selectedDay).toLocaleDateString(localeOf(i18n.language), {
@@ -254,7 +251,7 @@ const SortiesPage = () => {
         <>
           <div style={{ padding: '0 16px' }}>
             <EventsCalendar
-              slots={calendarSlots}
+              slots={filteredSlots}
               selectedDay={selectedDay}
               onSelectDay={(day) => {
                 setSelectedDay(day);
@@ -339,6 +336,7 @@ const SortiesPage = () => {
                   key={slot.occurrence.id}
                   event={slot.event}
                   occurrence={slot.occurrence}
+                  occurrenceCount={occurrencesByEvent[slot.event.id]?.length ?? 1}
                   showPast={selectedDay <= today}
                 />
               ))
@@ -353,7 +351,7 @@ const SortiesPage = () => {
             <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
               {isLoading
                 ? t('common.loading')
-                : t('sorties.count', { count: displayedEvents.length, defaultValue: `${displayedEvents.length} événements` })}
+                : t('sorties.count', { count: displayedSlots.length, defaultValue: `${displayedSlots.length} événements` })}
             </p>
           </div>
 
@@ -388,7 +386,7 @@ const SortiesPage = () => {
 
           {/* List */}
           <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {displayedEvents.length === 0 && !isLoading ? (
+            {displayedSlots.length === 0 && !isLoading ? (
               <div style={{ textAlign: 'center', padding: '32px 16px' }}>
                 <div style={{ fontSize: 34, marginBottom: 8 }}>🎪</div>
                 <div style={{ fontFamily: 'Caveat', fontSize: 17, color: 'var(--text-muted)' }}>
@@ -396,8 +394,14 @@ const SortiesPage = () => {
                 </div>
               </div>
             ) : (
-              displayedEvents.map((ev) => (
-                <EventCard key={ev.id} event={ev} showPast={showPast} occurrenceCount={occurrencesByEvent[ev.id]?.length ?? 1} />
+              displayedSlots.map((slot) => (
+                <EventCard
+                  key={slot.occurrence.id}
+                  event={slot.event}
+                  occurrence={slot.occurrence}
+                  occurrenceCount={occurrencesByEvent[slot.event.id]?.length ?? 1}
+                  showPast={showPast}
+                />
               ))
             )}
           </div>
