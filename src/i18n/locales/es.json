@@ -176,7 +176,12 @@
     "age_from": "Desde {{min}} años",
     "age_exact": "{{age}} años",
     "age_range": "{{min}}–{{max}} años",
-    "feedback_auth_prompt": "Inicia sesión para compartir tu opinión"
+    "feedback_auth_prompt": "Inicia sesión para compartir tu opinión",
+    "next_date": "Próxima: {{date}}",
+    "extra_dates_one": "+1 fecha",
+    "extra_dates_other": "+{{count}} fechas",
+    "dates_available_one": "{{count}} fecha disponible",
+    "dates_available_other": "{{count}} fechas disponibles"
   },
   "location_page": {
     "loading": "Cargando…",

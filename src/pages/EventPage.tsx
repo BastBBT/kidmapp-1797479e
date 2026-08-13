@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -5,7 +6,7 @@ import { shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useEvent } from '@/hooks/useEvents';
+import { useEvent, useOccurrencesForEvent } from '@/hooks/useEvents';
 import { useEventFavorites } from '@/hooks/useEventFavorites';
 import { useAuth } from '@/hooks/useAuth';
 import { eventCategoryColor, eventCategoryEmoji, eventCategoryHex } from '@/types/event';
@@ -13,7 +14,7 @@ import { downloadIcs } from '@/lib/ics';
 import { isPastEvent } from '@/lib/weekend';
 import EventFeedbackCard from '@/components/EventFeedbackCard';
 import { translateToken } from '@/i18n/tokenMaps';
-import { formatDateLong } from '@/lib/formatDate';
+import { formatDateLong, localeOf } from '@/lib/formatDate';
 
 const EventPage = () => {
   const { id } = useParams();
@@ -21,7 +22,14 @@ const EventPage = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { data: event, isLoading } = useEvent(id ?? '');
+  const { data: occurrences = [] } = useOccurrencesForEvent(id ?? '');
   const { isFavorite, toggleFavorite } = useEventFavorites();
+  const [selectedOccurrenceId, setSelectedOccurrenceId] = useState<string | null>(null);
+
+  const selectedOccurrence = useMemo(() => {
+    if (occurrences.length === 0) return null;
+    return occurrences.find((o) => o.id === selectedOccurrenceId) ?? occurrences.find((o) => !isPastEvent(o.date_start, o.date_end)) ?? occurrences[occurrences.length - 1];
+  }, [occurrences, selectedOccurrenceId]);
 
   if (isLoading) {
     return (
@@ -58,6 +66,14 @@ const EventPage = () => {
   const hex = eventCategoryHex(event.category);
   const fav = isFavorite(event.id);
   const past = isPastEvent(event.date_start, event.date_end);
+
+  // Le bloc date et le CTA (calendrier / avis) suivent le créneau sélectionné
+  // quand l'event en a plusieurs ; sinon on retombe sur les champs de
+  // `event` (event à date unique, ou fetch des créneaux pas encore résolu).
+  const displayDateStart = selectedOccurrence?.date_start ?? event.date_start;
+  const displayDateEnd = selectedOccurrence?.date_end ?? event.date_end;
+  const displayTime = selectedOccurrence?.time ?? event.time;
+  const displayIsPast = selectedOccurrence ? isPastEvent(selectedOccurrence.date_start, selectedOccurrence.date_end) : past;
 
   return (
     <div style={{ paddingBottom: 140, background: 'var(--bg)', minHeight: '100vh' }}>
@@ -147,40 +163,82 @@ const EventPage = () => {
             borderRadius: 'var(--radius)',
             padding: 16,
             boxShadow: 'var(--shadow)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
           }}
         >
-          <div
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: 14,
-              background: color,
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 22,
-              flexShrink: 0,
-            }}
-          >
-            📅
-          </div>
-          <div>
-            <div style={{ fontFamily: 'Fraunces', fontSize: 16, fontWeight: 500, textTransform: 'capitalize' }}>
-              {formatDateLong(event.date_start)}
-              {event.date_end && event.date_end !== event.date_start && (
-                <> → {formatDateLong(event.date_end)}</>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 14,
+                background: color,
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 22,
+                flexShrink: 0,
+              }}
+            >
+              📅
+            </div>
+            <div>
+              <div style={{ fontFamily: 'Fraunces', fontSize: 16, fontWeight: 500, textTransform: 'capitalize' }}>
+                {formatDateLong(displayDateStart)}
+                {displayDateEnd && displayDateEnd !== displayDateStart && (
+                  <> → {formatDateLong(displayDateEnd)}</>
+                )}
+              </div>
+              {displayTime && (
+                <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
+                  🕐 {displayTime}
+                </div>
               )}
             </div>
-            {event.time && (
-              <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
-                🕐 {event.time}
-              </div>
-            )}
           </div>
+
+          {occurrences.length > 1 && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>
+                {t('event.dates_available', { count: occurrences.length })}
+              </div>
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
+                {occurrences.map((occ) => {
+                  const occPast = isPastEvent(occ.date_start, occ.date_end);
+                  const isSelected = selectedOccurrence?.id === occ.id;
+                  const fg = isSelected ? (occPast ? 'var(--text-muted)' : color) : 'var(--text)';
+                  const bg = isSelected ? (occPast ? 'var(--bg)' : `color-mix(in srgb, ${color} 12%, transparent)`) : 'var(--surface)';
+                  const border = isSelected ? (occPast ? 'var(--border)' : color) : 'var(--border)';
+                  return (
+                    <button
+                      key={occ.id}
+                      type="button"
+                      onClick={() => setSelectedOccurrenceId(occ.id)}
+                      style={{
+                        flexShrink: 0,
+                        minWidth: 60,
+                        padding: '7px 10px',
+                        borderRadius: 12,
+                        border: `${isSelected ? 1.5 : 1}px solid ${border}`,
+                        background: bg,
+                        color: fg,
+                        cursor: 'pointer',
+                        opacity: occPast && !isSelected ? 0.5 : 1,
+                        textAlign: 'center',
+                        fontFamily: 'DM Sans',
+                      }}
+                    >
+                      <div style={{ fontSize: 10, fontWeight: 600 }}>
+                        {new Date(occ.date_start).toLocaleDateString(localeOf(), { weekday: 'short' }).replace('.', '').toUpperCase()}
+                      </div>
+                      <div style={{ fontSize: 14 }}>{new Date(occ.date_start).getDate()}</div>
+                      {occ.time && <div style={{ fontSize: 10 }}>{occ.time}</div>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -285,34 +343,39 @@ const EventPage = () => {
             {t('event.more_details')}
           </a>
         )}
-        {past ? (
+        {/* `displayIsPast` suit le créneau sélectionné : choisir une date passée
+            d'un event qui a encore des créneaux à venir affiche l'avis sans le
+            bandeau « terminé » (réservé à `past`, l'event entier). */}
+        {displayIsPast ? (
           <>
-            <div
-              role="status"
-              style={{
-                padding: '14px 16px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1.5px dashed var(--border)',
-                background: '#E7E3DC',
-                color: 'var(--text-muted)',
-                fontFamily: 'DM Sans',
-                fontSize: 14,
-                fontWeight: 600,
-                textAlign: 'center',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-              }}
-            >
-              <span aria-hidden>↩</span>
-              {t('event.finished_message')}
-            </div>
+            {past && (
+              <div
+                role="status"
+                style={{
+                  padding: '14px 16px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1.5px dashed var(--border)',
+                  background: '#E7E3DC',
+                  color: 'var(--text-muted)',
+                  fontFamily: 'DM Sans',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  textAlign: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                <span aria-hidden>↩</span>
+                {t('event.finished_message')}
+              </div>
+            )}
             <EventFeedbackCard eventId={event.id} />
           </>
         ) : (
           <button
-            onClick={() => downloadIcs(event)}
+            onClick={() => downloadIcs({ ...event, date_start: displayDateStart, date_end: displayDateEnd, time: displayTime })}
             style={{
               padding: 13,
               borderRadius: 100,
