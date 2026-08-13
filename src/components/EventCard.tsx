@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { EventItem, eventCategoryColor, eventCategoryEmoji } from '@/types/event';
+import { EventItem, EventOccurrence, eventCategoryColor, eventCategoryEmoji } from '@/types/event';
 import { isPastEvent } from '@/lib/weekend';
 import { useEventFavorites } from '@/hooks/useEventFavorites';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,14 +12,23 @@ import { shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
 interface Props {
   event: EventItem;
   showPast?: boolean;
+  /**
+   * Créneau précis à afficher — renseigné par le calendrier, où la carte
+   * appartient à un jour donné. La ligne de date et l'état « terminé » portent
+   * alors sur ce créneau et non sur la date synchronisée de l'event.
+   */
+  occurrence?: EventOccurrence;
 }
 
-const EventCard = ({ event, showPast = false }: Props) => {
+const EventCard = ({ event, showPast = false, occurrence }: Props) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useEventFavorites();
-  const past = isPastEvent(event.date_start, event.date_end);
+  const dateStart = occurrence?.date_start ?? event.date_start;
+  const dateEnd = occurrence ? occurrence.date_end : event.date_end;
+  const time = occurrence ? occurrence.time : event.time;
+  const past = isPastEvent(dateStart, dateEnd);
   const color = eventCategoryColor(event.category);
 
   return (
@@ -86,7 +95,7 @@ const EventCard = ({ event, showPast = false }: Props) => {
           {event.name}
         </div>
         <div style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text-muted)', marginTop: 4 }}>
-          {formatEventDateRange(event.date_start, event.date_end, event.time, past && showPast)}
+          {formatEventDateRange(dateStart, dateEnd, time, past && showPast)}
         </div>
         {event.address && (
           <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>

@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
-import { EventItem, eventCategoryHex } from '@/types/event';
+import { eventCategoryHex } from '@/types/event';
 import { todayISO } from '@/lib/weekend';
 import {
   addDaysISO,
@@ -14,13 +14,14 @@ import {
   mondayISO,
   populatedMonths,
   populatedWeeks,
-  shortEventsByDay,
+  shortSlotsByDay,
+  type EventSlot,
 } from '@/lib/eventCalendar';
 import { localeOf } from '@/lib/formatDate';
 
 interface Props {
-  /** Événements déjà filtrés (âge + catégorie). */
-  events: EventItem[];
+  /** Créneaux des événements déjà filtrés (âge + catégorie). */
+  slots: EventSlot[];
   selectedDay: string;
   onSelectDay: (day: string) => void;
   expanded: boolean;
@@ -31,11 +32,11 @@ interface Props {
  * Calendrier des Sorties, en deux états : un bandeau d'une semaine (replié) ou
  * la grille du mois (déplié). Miroir de `SortiesView.swift` côté iOS.
  */
-const EventsCalendar = ({ events, selectedDay, onSelectDay, expanded, onExpandedChange }: Props) => {
+const EventsCalendar = ({ slots, selectedDay, onSelectDay, expanded, onExpandedChange }: Props) => {
   const { t, i18n } = useTranslation();
-  const byDay = useMemo(() => shortEventsByDay(events), [events]);
-  const months = useMemo(() => populatedMonths(events), [events]);
-  const weeks = useMemo(() => populatedWeeks(events), [events]);
+  const byDay = useMemo(() => shortSlotsByDay(slots), [slots]);
+  const months = useMemo(() => populatedMonths(slots), [slots]);
+  const weeks = useMemo(() => populatedWeeks(slots), [slots]);
   const today = todayISO();
 
   const currentStart = expanded ? monthStartISO(selectedDay) : mondayISO(selectedDay);
@@ -79,7 +80,9 @@ const EventsCalendar = ({ events, selectedDay, onSelectDay, expanded, onExpanded
 
   const dayCell = (day: string | null, key: string, weekdayInitial?: string) => {
     if (!day) return <div key={key} />;
-    const dayEvents = byDay[day] ?? [];
+    // Une pastille par créneau du jour, pas par event : un event à trois dates
+    // pose sa pastille sur chacune.
+    const daySlots = byDay[day] ?? [];
     const isSelected = day === selectedDay;
     const isToday = day === today;
     const isPast = day < today;
@@ -97,7 +100,7 @@ const EventsCalendar = ({ events, selectedDay, onSelectDay, expanded, onExpanded
         onClick={() => onSelectDay(day)}
         aria-pressed={isSelected}
         aria-label={
-          dayEvents.length > 0 ? `${label}, ${t('sorties.count', { count: dayEvents.length })}` : label
+          daySlots.length > 0 ? `${label}, ${t('sorties.count', { count: daySlots.length })}` : label
         }
         style={{
           display: 'flex',
@@ -138,18 +141,18 @@ const EventsCalendar = ({ events, selectedDay, onSelectDay, expanded, onExpanded
           {dayNumber}
         </span>
         <span style={{ display: 'flex', gap: 2, alignItems: 'center', height: 6 }}>
-          {dayEvents.slice(0, 3).map((ev, i) => (
+          {daySlots.slice(0, 3).map((slot, i) => (
             <span
-              key={`${ev.id}-${i}`}
+              key={`${slot.occurrence.id}-${i}`}
               style={{
                 width: 5,
                 height: 5,
                 borderRadius: '50%',
-                background: isSelected ? '#fff' : eventCategoryHex(ev.category),
+                background: isSelected ? '#fff' : eventCategoryHex(slot.event.category),
               }}
             />
           ))}
-          {dayEvents.length > 3 && (
+          {daySlots.length > 3 && (
             <span
               style={{
                 fontFamily: 'DM Sans',

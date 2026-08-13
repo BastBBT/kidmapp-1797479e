@@ -5,8 +5,49 @@
 // c'est le format déjà stocké en base et comparé ailleurs dans `weekend.ts`,
 // et ça évite les décalages de fuseau/heure d'été sur les clés de regroupement.
 
-import { EventItem } from '@/types/event';
+import { EventItem, EventOccurrence } from '@/types/event';
 import { isShortEvent, isPastEvent, todayISO, toISODate } from '@/lib/weekend';
+
+/**
+ * Un créneau à poser dans la grille : l'event et la date précise concernée.
+ * C'est l'unité du calendrier, pas l'event : un event à trois dates pose trois
+ * pastilles, chacune sur son jour.
+ */
+export interface EventSlot {
+  event: EventItem;
+  occurrence: EventOccurrence;
+}
+
+/**
+ * Créneaux d'un event. À défaut de créneaux chargés (requête en échec, ou event
+ * sans ligne dans `event_occurrences`), on en reconstruit un depuis
+ * `date_start/date_end/time` : le calendrier ne doit pas se vider parce que la
+ * table est muette.
+ */
+export const occurrencesOf = (
+  event: EventItem,
+  byEvent: Record<string, EventOccurrence[]>,
+): EventOccurrence[] => {
+  const loaded = byEvent[event.id];
+  if (loaded?.length) return loaded;
+  if (!event.date_start) return [];
+  return [
+    {
+      id: `fallback-${event.id}`,
+      event_id: event.id,
+      date_start: event.date_start,
+      date_end: event.date_end,
+      time: event.time,
+    },
+  ];
+};
+
+/** Tous les créneaux des events filtrés — base commune des vues calendrier. */
+export const buildSlots = (
+  events: EventItem[],
+  byEvent: Record<string, EventOccurrence[]>,
+): EventSlot[] =>
+  events.flatMap((event) => occurrencesOf(event, byEvent).map((occurrence) => ({ event, occurrence })));
 
 /** `YYYY-MM-DD` → `Date` locale à minuit. */
 export const dateFromISO = (iso: string): Date => new Date(`${iso}T00:00:00`);
@@ -44,52 +85,69 @@ const nextMonthStartISO = (iso: string): string => addDaysISO(monthEndISO(iso), 
  * pastille sur soixante cases et noierait tout le reste — elle passe par le
  * bandeau « En ce moment » à la place.
  */
-export const shortEventsByDay = (events: EventItem[]): Record<string, EventItem[]> => {
-  const map: Record<string, EventItem[]> = {};
-  for (const ev of events) {
-    if (!ev.date_start || !isShortEvent(ev.date_start, ev.date_end)) continue;
-    const last = ev.date_end ?? ev.date_start;
-    let day = ev.date_start;
+export const shortSlotsByDay = (slots: EventSlot[]): Record<string, EventSlot[]> => {
+  const map: Record<string, EventSlot[]> = {};
+  for (const slot of slots) {
+    const { date_start, date_end } = slot.occurrence;
+    if (!date_start || !isShortEvent(date_start, date_end)) continue;
+    const last = date_end ?? date_start;
+    let day = date_start;
     // Garde-fou : `isShortEvent` borne déjà à 3 jours, la boucle ne peut pas filer.
     while (day <= last) {
-      (map[day] ??= []).push(ev);
+      (map[day] ??= []).push(slot);
       day = addDaysISO(day, 1);
     }
   }
   return map;
 };
 
-/** Événements courts d'un jour, dans l'ordre d'affichage habituel. */
-export const shortEventsOn = (byDay: Record<string, EventItem[]>, dayISO: string): EventItem[] =>
+/**
+ * Créneaux courts d'un jour, dans l'ordre d'affichage habituel. Le rang porte
+ * sur le créneau et non sur l'event : un event dont la première date est passée
+ * garde ses dates suivantes en tête de liste.
+ */
+export const shortSlotsOn = (byDay: Record<string, EventSlot[]>, dayISO: string): EventSlot[] =>
   [...(byDay[dayISO] ?? [])].sort((a, b) => {
-    const ra = eventDayRank(a);
-    const rb = eventDayRank(b);
+    const ra = slotDayRank(a);
+    const rb = slotDayRank(b);
     if (ra !== rb) return ra - rb;
-    return (a.time ?? '').localeCompare(b.time ?? '');
+    return (a.occurrence.time ?? '').localeCompare(b.occurrence.time ?? '');
   });
 
-const eventDayRank = (ev: EventItem): number => (isPastEvent(ev.date_start, ev.date_end) ? 1 : 0);
-
-/** Expos, festivals et autres événements au long cours qui couvrent ce jour. */
-export const longEventsOn = (events: EventItem[], dayISO: string): EventItem[] =>
-  events.filter((ev) => {
-    if (!ev.date_start || isShortEvent(ev.date_start, ev.date_end)) return false;
-    const end = ev.date_end ?? ev.date_start;
-    return ev.date_start <= dayISO && end >= dayISO;
-  });
+const slotDayRank = (slot: EventSlot): number =>
+  isPastEvent(slot.occurrence.date_start, slot.occurrence.date_end) ? 1 : 0;
 
 /**
- * Mois portant au moins un événement, sous forme de premier jour de mois.
- * Un mois compte dès qu'un événement le **traverse**, pas seulement s'il y
+ * Expos, festivals et autres événements au long cours qui couvrent ce jour.
+ * Dédoublonnés : deux créneaux longs d'un même event ne donnent qu'une pastille.
+ */
+export const longEventsOn = (slots: EventSlot[], dayISO: string): EventItem[] => {
+  const seen = new Set<string>();
+  const result: EventItem[] = [];
+  for (const { event, occurrence } of slots) {
+    const { date_start, date_end } = occurrence;
+    if (!date_start || isShortEvent(date_start, date_end)) continue;
+    const end = date_end ?? date_start;
+    if (date_start > dayISO || end < dayISO) continue;
+    if (seen.has(event.id)) continue;
+    seen.add(event.id);
+    result.push(event);
+  }
+  return result;
+};
+
+/**
+ * Mois portant au moins un créneau, sous forme de premier jour de mois.
+ * Un mois compte dès qu'un créneau le **traverse**, pas seulement s'il y
  * démarre. Le mois courant est toujours présent : sans lui le calendrier
  * disparaîtrait hors saison.
  */
-export const populatedMonths = (events: EventItem[]): string[] => {
+export const populatedMonths = (slots: EventSlot[]): string[] => {
   const months = new Set<string>([monthStartISO(todayISO())]);
-  for (const ev of events) {
-    if (!ev.date_start) continue;
-    const last = monthStartISO(ev.date_end ?? ev.date_start);
-    let m = monthStartISO(ev.date_start);
+  for (const { occurrence } of slots) {
+    if (!occurrence.date_start) continue;
+    const last = monthStartISO(occurrence.date_end ?? occurrence.date_start);
+    let m = monthStartISO(occurrence.date_start);
     while (m <= last) {
       months.add(m);
       m = nextMonthStartISO(m);
@@ -98,13 +156,13 @@ export const populatedMonths = (events: EventItem[]): string[] => {
   return [...months].sort();
 };
 
-/** Semaines portant au moins un événement (+ la semaine courante), en lundis ISO. */
-export const populatedWeeks = (events: EventItem[]): string[] => {
+/** Semaines portant au moins un créneau (+ la semaine courante), en lundis ISO. */
+export const populatedWeeks = (slots: EventSlot[]): string[] => {
   const weeks = new Set<string>([mondayISO(todayISO())]);
-  for (const ev of events) {
-    if (!ev.date_start) continue;
-    const last = mondayISO(ev.date_end ?? ev.date_start);
-    let w = mondayISO(ev.date_start);
+  for (const { occurrence } of slots) {
+    if (!occurrence.date_start) continue;
+    const last = mondayISO(occurrence.date_end ?? occurrence.date_start);
+    let w = mondayISO(occurrence.date_start);
     while (w <= last) {
       weeks.add(w);
       w = addDaysISO(w, 7);
@@ -126,9 +184,9 @@ export const adjacentPopulated = (
   return [...periods].reverse().find((p) => p < currentStart) ?? null;
 };
 
-/** Premier jour porteur d'événements dans l'intervalle, sinon `null`. */
+/** Premier jour porteur de créneaux dans l'intervalle, sinon `null`. */
 export const firstEventDay = (
-  byDay: Record<string, EventItem[]>,
+  byDay: Record<string, EventSlot[]>,
   startISO: string,
   endISO: string,
 ): string | null =>
@@ -138,9 +196,9 @@ export const firstEventDay = (
 
 /**
  * Jour à sélectionner à l'ouverture : le premier jour à venir qui porte un
- * événement, à défaut aujourd'hui.
+ * créneau, à défaut aujourd'hui.
  */
-export const defaultSelectedDay = (byDay: Record<string, EventItem[]>): string => {
+export const defaultSelectedDay = (byDay: Record<string, EventSlot[]>): string => {
   const today = todayISO();
   return (
     Object.keys(byDay)
