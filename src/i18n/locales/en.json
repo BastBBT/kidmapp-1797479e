@@ -142,7 +142,17 @@
     "empty": "No events for this week ✦",
     "show_finished_one": "See 1 finished event",
     "show_finished_other": "See {{count}} finished events",
-    "hide_finished": "Hide finished events"
+    "hide_finished": "Hide finished events",
+    "mode_list": "List",
+    "mode_calendar": "Calendar",
+    "view_mode": "View mode",
+    "see_month": "See the month",
+    "collapse": "Collapse",
+    "happening_now": "HAPPENING NOW",
+    "empty_day": "No outing on this day",
+    "empty_day_hint": "Tap a day with dots ✦",
+    "calendar_prev": "Previous period",
+    "calendar_next": "Next period"
   },
   "event": {
     "finished": "Ended",

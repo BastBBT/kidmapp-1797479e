@@ -1,6 +1,6 @@
 import i18n from '@/i18n';
 
-const localeOf = (lng?: string): string => {
+export const localeOf = (lng?: string): string => {
   const l = (lng ?? i18n.language ?? 'fr').split('-')[0];
   if (l === 'en') return 'en-US';
   if (l === 'es') return 'es-ES';

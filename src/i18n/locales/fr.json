@@ -142,7 +142,17 @@
     "empty": "Pas d'événement pour cette semaine ✦",
     "show_finished_one": "Voir l'événement terminé",
     "show_finished_other": "Voir les {{count}} événements terminés",
-    "hide_finished": "Masquer les événements terminés"
+    "hide_finished": "Masquer les événements terminés",
+    "mode_list": "Liste",
+    "mode_calendar": "Calendrier",
+    "view_mode": "Mode d'affichage",
+    "see_month": "Voir le mois",
+    "collapse": "Réduire",
+    "happening_now": "EN CE MOMENT",
+    "empty_day": "Aucune sortie ce jour",
+    "empty_day_hint": "Touche un jour avec des pastilles ✦",
+    "calendar_prev": "Période précédente",
+    "calendar_next": "Période suivante"
   },
   "event": {
     "finished": "Terminé",
