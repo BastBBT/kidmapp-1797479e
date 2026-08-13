@@ -38,7 +38,8 @@ export interface EventItem {
  * Un créneau d'un event à plusieurs dates (table `event_occurrences`).
  * Un event a toujours au moins un créneau, créé par un trigger Postgres ;
  * `events.date_start/date_end/time` reste synchronisé sur le créneau le plus
- * proche pour compatibilité, mais le calendrier raisonne créneau par créneau.
+ * proche pour compatibilité, mais le calendrier et l'UI multi-dates
+ * raisonnent créneau par créneau.
  */
 export interface EventOccurrence {
   id: string;

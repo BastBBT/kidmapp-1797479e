@@ -79,6 +79,23 @@ export const useAllEvents = (enabled: boolean = true) => {
   });
 };
 
+/** Créneaux d'un seul event, pour la fiche détail. */
+export const useOccurrencesForEvent = (eventId: string) => {
+  return useQuery({
+    queryKey: ['event-occurrences', eventId],
+    enabled: !!eventId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('event_occurrences')
+        .select('*')
+        .eq('event_id', eventId)
+        .order('date_start', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as EventOccurrence[];
+    },
+  });
+};
+
 export const useMyEvents = (userId?: string) => {
   return useQuery({
     queryKey: ['my-events', userId],

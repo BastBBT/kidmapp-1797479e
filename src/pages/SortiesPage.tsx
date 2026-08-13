@@ -38,8 +38,9 @@ const SortiesPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
   const [showFinished, setShowFinished] = useState(false);
   const { data: events = [], isLoading } = useEvents();
-  // Créneaux des events chargés : le calendrier pose une pastille par créneau,
-  // pas une par event. Sans eux, il retombe sur la date portée par l'event.
+  // Créneaux des events chargés : le calendrier pose une pastille par créneau
+  // (pas une par event, sans quoi il retombe sur la date portée par l'event),
+  // et la liste s'en sert aussi pour le badge « +N dates » des cartes.
   const eventIds = useMemo(() => events.map((ev) => ev.id), [events]);
   const { data: occurrencesByEvent = {} } = useEventOccurrences(eventIds);
 
@@ -396,7 +397,7 @@ const SortiesPage = () => {
               </div>
             ) : (
               displayedEvents.map((ev) => (
-                <EventCard key={ev.id} event={ev} showPast={showPast} />
+                <EventCard key={ev.id} event={ev} showPast={showPast} occurrenceCount={occurrencesByEvent[ev.id]?.length ?? 1} />
               ))
             )}
           </div>

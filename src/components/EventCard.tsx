@@ -18,9 +18,11 @@ interface Props {
    * alors sur ce créneau et non sur la date synchronisée de l'event.
    */
   occurrence?: EventOccurrence;
+  /** Nombre de créneaux de l'event (1 pour un event à date unique). */
+  occurrenceCount?: number;
 }
 
-const EventCard = ({ event, showPast = false, occurrence }: Props) => {
+const EventCard = ({ event, showPast = false, occurrence, occurrenceCount = 1 }: Props) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -30,6 +32,11 @@ const EventCard = ({ event, showPast = false, occurrence }: Props) => {
   const time = occurrence ? occurrence.time : event.time;
   const past = isPastEvent(dateStart, dateEnd);
   const color = eventCategoryColor(event.category);
+  const dateLabel = formatEventDateRange(dateStart, dateEnd, time, past && showPast);
+  // « Prochaine : » ne s'affiche que s'il y a d'autres créneaux ET qu'on n'est
+  // pas déjà sur un créneau précis (calendrier) — sinon ce serait la seule
+  // date affichée sur cette carte, pas la « prochaine » d'une liste.
+  const dateLine = occurrenceCount > 1 && !occurrence ? t('event.next_date', { date: dateLabel }) : dateLabel;
 
   return (
     <button
@@ -94,8 +101,26 @@ const EventCard = ({ event, showPast = false, occurrence }: Props) => {
         <div style={{ fontFamily: 'Fraunces', fontSize: 16, fontWeight: 500, color: 'var(--text)', lineHeight: 1.25 }}>
           {event.name}
         </div>
-        <div style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text-muted)', marginTop: 4 }}>
-          {formatEventDateRange(dateStart, dateEnd, time, past && showPast)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text-muted)' }}>{dateLine}</span>
+          {/* Le badge "+N dates" n'a de sens que sur une carte liste (une seule
+              date affichée pour un event qui en a plusieurs) — pas sur une carte
+              calendrier, qui montre déjà un créneau précis via `occurrence`. */}
+          {occurrenceCount > 1 && !occurrence && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color,
+                background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                padding: '2px 7px',
+                borderRadius: 100,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {t('event.extra_dates', { count: occurrenceCount - 1 })}
+            </span>
+          )}
         </div>
         {event.address && (
           <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
