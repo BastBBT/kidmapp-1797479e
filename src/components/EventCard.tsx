@@ -103,10 +103,11 @@ const EventCard = ({ event, showPast = false, occurrence, occurrenceCount = 1 }:
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text-muted)' }}>{dateLine}</span>
-          {/* Le badge "+N dates" n'a de sens que sur une carte liste (une seule
-              date affichée pour un event qui en a plusieurs) — pas sur une carte
-              calendrier, qui montre déjà un créneau précis via `occurrence`. */}
-          {occurrenceCount > 1 && !occurrence && (
+          {/* Le badge dit « cet event rejoue ailleurs », une information vraie
+              quelle que soit la date affichée : il reste donc visible sur une
+              carte de créneau. Seul le préfixe « Prochaine : » disparaît, lui
+              qui ne vaut que pour une carte affichant la date la plus proche. */}
+          {occurrenceCount > 1 && (
             <span
               style={{
                 fontSize: 10,
