@@ -255,3 +255,24 @@ export const distinctEvents = (slots: EventSlot[]): EventItem[] => {
   const seen = new Set<string>();
   return slots.filter(({ event }) => !seen.has(event.id) && seen.add(event.id)).map(({ event }) => event);
 };
+
+/**
+ * Filtre PostgREST `or=(…)` de la fenêtre de chargement des events.
+ *
+ * Deux premiers termes : les dates portées par l'event — le filet des events
+ * sans ligne dans `event_occurrences`. Troisième terme : les events ayant un
+ * créneau dans la fenêtre, qui rattrape ceux dont la date synchronisée est
+ * périmée (le trigger de synchro n'est rejoué qu'à l'écriture d'un créneau,
+ * jamais au fil du temps). Sans ids — requête créneaux en échec — on retombe
+ * exactement sur l'ancien filtre.
+ */
+export const eventsWindowFilter = (
+  since: string,
+  today: string,
+  idsWithOccurrence: string[] = [],
+): string =>
+  [
+    `date_start.gte.${since}`,
+    `date_end.gte.${today}`,
+    ...(idsWithOccurrence.length ? [`id.in.(${idsWithOccurrence.join(',')})`] : []),
+  ].join(',');
