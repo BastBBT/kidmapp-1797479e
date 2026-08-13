@@ -142,7 +142,17 @@
     "empty": "Sin eventos esta semana ✦",
     "show_finished_one": "Ver 1 evento finalizado",
     "show_finished_other": "Ver {{count}} eventos finalizados",
-    "hide_finished": "Ocultar eventos finalizados"
+    "hide_finished": "Ocultar eventos finalizados",
+    "mode_list": "Lista",
+    "mode_calendar": "Calendario",
+    "view_mode": "Modo de visualización",
+    "see_month": "Ver el mes",
+    "collapse": "Reducir",
+    "happening_now": "AHORA MISMO",
+    "empty_day": "Ninguna salida este día",
+    "empty_day_hint": "Toca un día con puntos ✦",
+    "calendar_prev": "Periodo anterior",
+    "calendar_next": "Periodo siguiente"
   },
   "event": {
     "finished": "Terminado",
