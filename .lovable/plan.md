@@ -50,6 +50,10 @@ BEGIN
   UPDATE public.events
      SET admin_fav_visual_at = now()
    WHERE id = _event_id AND admin_fav;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'aucun événement coup de cœur avec cet identifiant';
+  END IF;
 END;
 $$;
 
