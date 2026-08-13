@@ -3086,6 +3086,16 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const [eventSort, setEventSort] = useState<'eventDateDesc' | 'eventDateAsc' | 'createdAtDesc' | 'favAtDesc'>('eventDateDesc');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<any>(null);
+  const [editSlots, setEditSlots] = useState<EventSlotDraft[]>([]);
+  const [removedSlotIds, setRemovedSlotIds] = useState<string[]>([]);
+  const updateEditSlot = (i: number, patch: Partial<EventSlotDraft>) =>
+    setEditSlots((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  const addEditSlot = () => setEditSlots((prev) => [...prev, emptyEventSlot()]);
+  const removeEditSlot = (i: number) => {
+    const slot = editSlots[i];
+    if (slot?.id) setRemovedSlotIds((prev) => [...prev, slot.id!]);
+    setEditSlots((prev) => prev.filter((_, idx) => idx !== i));
+  };
   const [manualCoordsFor, setManualCoordsFor] = useState<string | null>(null);
   const [manualLat, setManualLat] = useState('47.2184');
   const [manualLng, setManualLng] = useState('-1.5536');
@@ -3107,15 +3117,22 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   );
   const { data: emails = {} } = useUserEmails(userIds);
 
-  const startEdit = (ev: any) => {
+  const { data: occurrenceCounts = {} } = useQuery({
+    queryKey: ['admin-event-occurrence-counts'],
+    queryFn: async () => {
+      const { data } = await supabase.from('event_occurrences' as any).select('event_id');
+      const counts: Record<string, number> = {};
+      (data ?? []).forEach((row: any) => { counts[row.event_id] = (counts[row.event_id] ?? 0) + 1; });
+      return counts;
+    },
+  });
+
+  const startEdit = async (ev: any) => {
     setEditingId(ev.id);
     setEditDraft({
       name: ev.name ?? '',
       category: ev.category ?? 'Spectacle',
       address: ev.address ?? '',
-      date_start: ev.date_start ?? '',
-      date_end: ev.date_end ?? '',
-      time: ev.time ?? '',
       age_min: ev.age_min ?? '',
       age_max: ev.age_max ?? '',
       duration: ev.duration ?? '',
@@ -3130,11 +3147,25 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     });
     setPhotoFile(null);
     setPhotoPreview(null);
+    setRemovedSlotIds([]);
+    const { data: occRows } = await supabase
+      .from('event_occurrences' as any)
+      .select('*')
+      .eq('event_id', ev.id)
+      .order('date_start', { ascending: true });
+    const rows = (occRows ?? []) as any[];
+    setEditSlots(
+      rows.length > 0
+        ? rows.map((r) => ({ id: r.id, date_start: r.date_start ?? '', date_end: r.date_end ?? '', time: r.time ?? '' }))
+        : [{ date_start: ev.date_start ?? '', date_end: ev.date_end ?? '', time: ev.time ?? '' }]
+    );
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setEditDraft(null);
+    setEditSlots([]);
+    setRemovedSlotIds([]);
     setPhotoFile(null);
     setPhotoPreview(null);
   };
@@ -3157,6 +3188,10 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
 
   const saveEdit = async () => {
     if (!editingId || !editDraft) return;
+    if (!editSlots.some((s) => s.date_start)) {
+      toast({ title: 'Erreur', description: 'Au moins un créneau doit avoir une date de début', variant: 'destructive' });
+      return;
+    }
     setProcessingId(editingId);
     try {
       let finalPhotoUrl: string | null = editDraft.photo || null;
@@ -3184,9 +3219,6 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         name: editDraft.name,
         category: editDraft.category,
         address: editDraft.address || null,
-        date_start: editDraft.date_start,
-        date_end: editDraft.date_end || null,
-        time: editDraft.time || null,
         age_min: editDraft.age_min === '' ? null : Number(editDraft.age_min),
         age_max: editDraft.age_max === '' ? null : Number(editDraft.age_max),
         duration: editDraft.duration || null,
@@ -3201,9 +3233,37 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       };
       const { error } = await supabase.from('events' as any).update(update).eq('id', editingId);
       if (error) throw error;
+
+      // Créneaux : les dates/heures de `events` sont recopiées automatiquement par le
+      // trigger event_occurrences_sync_legacy à chaque écriture ci-dessous.
+      const existingSlots = editSlots.filter((s) => s.id && s.date_start);
+      const newSlots = editSlots.filter((s) => !s.id && s.date_start);
+      if (existingSlots.length > 0) {
+        const { error: updErr } = await Promise.all(
+          existingSlots.map((s) =>
+            supabase
+              .from('event_occurrences' as any)
+              .update({ date_start: s.date_start, date_end: s.date_end || null, time: s.time || null })
+              .eq('id', s.id!)
+          )
+        ).then((results) => ({ error: results.find((r) => r.error)?.error }));
+        if (updErr) throw updErr;
+      }
+      if (newSlots.length > 0) {
+        const { error: insErr } = await supabase.from('event_occurrences' as any).insert(
+          newSlots.map((s) => ({ event_id: editingId, date_start: s.date_start, date_end: s.date_end || null, time: s.time || null })) as any
+        );
+        if (insErr) throw insErr;
+      }
+      if (removedSlotIds.length > 0) {
+        const { error: delErr } = await supabase.from('event_occurrences' as any).delete().in('id', removedSlotIds);
+        if (delErr) throw delErr;
+      }
+
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-event-occurrence-counts'] });
       toast({ title: 'Événement modifié ✓' });
       cancelEdit();
     } catch (err: any) {
@@ -3312,6 +3372,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-event-occurrence-counts'] });
       toast({ title: 'Événement supprimé' });
     } catch (err: any) {
       toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
@@ -3430,6 +3491,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
               📅 {new Date(ev.date_start).toLocaleDateString('fr-FR')}
               {ev.date_end && ` → ${new Date(ev.date_end).toLocaleDateString('fr-FR')}`}
               {ev.time && ` · ⏰ ${ev.time}`}
+              {(occurrenceCounts[ev.id] ?? 1) > 1 && ` · 🔁 ${occurrenceCounts[ev.id]} créneaux`}
             </div>
             <div className="flex gap-3 flex-wrap mb-2" style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)' }}>
               {(ev.age_min != null || ev.age_max != null) && <span>👶 {ev.age_min ?? 0}-{ev.age_max ?? '∞'} ans</span>}
@@ -3461,15 +3523,8 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                   </select>
                   <input value={editDraft.address} onChange={(e) => setEditDraft({ ...editDraft, address: e.target.value })}
                     placeholder="Adresse" style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                  <SlotsEditor slots={editSlots} onUpdate={updateEditSlot} onAdd={addEditSlot} onRemove={removeEditSlot} />
                   <div className="flex gap-2">
-                    <input type="date" value={editDraft.date_start?.slice(0,10) ?? ''} onChange={(e) => setEditDraft({ ...editDraft, date_start: e.target.value })}
-                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
-                    <input type="date" value={editDraft.date_end?.slice(0,10) ?? ''} onChange={(e) => setEditDraft({ ...editDraft, date_end: e.target.value })}
-                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
-                  </div>
-                  <div className="flex gap-2">
-                    <input placeholder="Heure" value={editDraft.time} onChange={(e) => setEditDraft({ ...editDraft, time: e.target.value })}
-                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
                     <input placeholder="Durée" value={editDraft.duration} onChange={(e) => setEditDraft({ ...editDraft, duration: e.target.value })}
                       style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
                   </div>
@@ -3837,13 +3892,66 @@ function EventsCalendarView({ events, renderEventCard }: { events: any[]; render
   );
 }
 
+type EventSlotDraft = {
+  id?: string;
+  date_start: string;
+  date_end: string;
+  time: string;
+};
+
+const emptyEventSlot = (): EventSlotDraft => ({ date_start: '', date_end: '', time: '' });
+
+function SlotsEditor({
+  slots,
+  onUpdate,
+  onAdd,
+  onRemove,
+}: {
+  slots: EventSlotDraft[];
+  onUpdate: (i: number, patch: Partial<EventSlotDraft>) => void;
+  onAdd: () => void;
+  onRemove: (i: number) => void;
+}) {
+  return (
+    <div>
+      <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+        Créneaux {slots.length > 1 ? `(${slots.length})` : ''} *
+      </label>
+      <div className="flex gap-2" style={{ marginBottom: 4 }}>
+        <span style={{ flex: 1, fontSize: '11px', fontFamily: 'DM Sans', color: 'var(--text-muted)' }}>Début</span>
+        <span style={{ flex: 1, fontSize: '11px', fontFamily: 'DM Sans', color: 'var(--text-muted)' }}>Fin (optionnel)</span>
+        <span style={{ flex: 1, fontSize: '11px', fontFamily: 'DM Sans', color: 'var(--text-muted)' }}>Heure</span>
+        <span style={{ width: 32 }} />
+      </div>
+      <div className="flex flex-col gap-2">
+        {slots.map((slot, i) => (
+          <div key={i} className="flex gap-2" style={{ alignItems: 'center', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: 8 }}>
+            <input type="date" value={slot.date_start} onChange={(e) => onUpdate(i, { date_start: e.target.value })}
+              style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+            <input type="date" value={slot.date_end} onChange={(e) => onUpdate(i, { date_end: e.target.value })}
+              style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+            <input placeholder="Ex: 14h30" value={slot.time} onChange={(e) => onUpdate(i, { time: e.target.value })}
+              style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+            <button type="button" onClick={() => onRemove(i)} disabled={slots.length <= 1}
+              title="Supprimer ce créneau"
+              style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 8, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: slots.length <= 1 ? 'not-allowed' : 'pointer', opacity: slots.length <= 1 ? 0.4 : 1 }}>
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={onAdd}
+        style={{ marginTop: 8, width: '100%', padding: '8px', borderRadius: 8, border: '1.5px dashed var(--border)', background: 'transparent', color: 'var(--primary)', fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+        + Ajouter un créneau
+      </button>
+    </div>
+  );
+}
+
 const emptyEventForm = {
   name: '',
   category: 'Spectacle' as string,
   address: '',
-  date_start: '',
-  date_end: '',
-  time: '',
   age_min: '',
   age_max: '',
   duration: '',
@@ -3862,6 +3970,11 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
 }) {
   const [form, setForm] = useState(emptyEventForm);
   const updateForm = (key: keyof typeof emptyEventForm, value: string) => setForm((p) => ({ ...p, [key]: value }));
+  const [slots, setSlots] = useState<EventSlotDraft[]>([emptyEventSlot()]);
+  const updateSlot = (i: number, patch: Partial<EventSlotDraft>) =>
+    setSlots((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  const addSlot = () => setSlots((prev) => [...prev, emptyEventSlot()]);
+  const removeSlot = (i: number) => setSlots((prev) => prev.filter((_, idx) => idx !== i));
   const [submitting, setSubmitting] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -3870,8 +3983,8 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
   const [manualLng, setManualLng] = useState('-1.5536');
 
   const handleAddEvent = async () => {
-    if (!form.name || !form.date_start) {
-      toast({ title: 'Erreur', description: 'Le nom et la date de début sont obligatoires', variant: 'destructive' });
+    if (!form.name || !slots[0]?.date_start) {
+      toast({ title: 'Erreur', description: 'Le nom et la date de début du premier créneau sont obligatoires', variant: 'destructive' });
       return;
     }
     setSubmitting(true);
@@ -3907,15 +4020,16 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
       photoUrl = urlData.publicUrl;
     }
 
+    const firstSlot = slots[0];
     const insertData: any = {
       name: form.name,
       category: form.category,
       address: form.address || null,
       lat: coords?.lat ?? null,
       lng: coords?.lng ?? null,
-      date_start: form.date_start,
-      date_end: form.date_end || null,
-      time: form.time || null,
+      date_start: firstSlot.date_start,
+      date_end: firstSlot.date_end || null,
+      time: firstSlot.time || null,
       age_min: form.age_min === '' ? null : Number(form.age_min),
       age_max: form.age_max === '' ? null : Number(form.age_max),
       duration: form.duration || null,
@@ -3928,17 +4042,38 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
       status: form.status,
     };
 
-    const { error } = await supabase.from('events' as any).insert(insertData as any);
-    setSubmitting(false);
+    const { data: inserted, error } = await supabase.from('events' as any).insert(insertData as any).select('id').single();
     if (error) {
+      setSubmitting(false);
       toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
       return;
     }
+
+    // Le trigger events_create_default_occurrence a déjà créé le créneau n°1 ;
+    // on ajoute seulement les créneaux supplémentaires saisis dans le formulaire.
+    const extraSlots = slots.slice(1).filter((s) => s.date_start);
+    if (extraSlots.length > 0) {
+      const { error: slotsError } = await supabase.from('event_occurrences' as any).insert(
+        extraSlots.map((s) => ({
+          event_id: (inserted as any).id,
+          date_start: s.date_start,
+          date_end: s.date_end || null,
+          time: s.time || null,
+        })) as any
+      );
+      if (slotsError) {
+        toast({ title: 'Événement ajouté, mais erreur sur les créneaux supplémentaires', description: slotsError.message, variant: 'destructive' });
+      }
+    }
+
+    setSubmitting(false);
     queryClient.invalidateQueries({ queryKey: ['admin-events'] });
     queryClient.invalidateQueries({ queryKey: ['events'] });
     queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-event-occurrence-counts'] });
     toast({ title: 'Événement ajouté ✓' });
     setForm(emptyEventForm);
+    setSlots([emptyEventSlot()]);
     setPhotoFile(null);
     setPhotoPreview(null);
     setShowManualCoords(false);
@@ -3992,15 +4127,9 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
             )}
           </div>
 
-          <div className="flex gap-2">
-            <FormField label="Date de début *" type="date" value={form.date_start} onChange={(v) => updateForm('date_start', v)} />
-            <FormField label="Date de fin" type="date" value={form.date_end} onChange={(v) => updateForm('date_end', v)} />
-          </div>
+          <SlotsEditor slots={slots} onUpdate={updateSlot} onAdd={addSlot} onRemove={removeSlot} />
 
-          <div className="flex gap-2">
-            <FormField label="Heure" value={form.time} onChange={(v) => updateForm('time', v)} placeholder="Ex: 14h30" />
-            <FormField label="Durée" value={form.duration} onChange={(v) => updateForm('duration', v)} placeholder="Ex: 1h30" />
-          </div>
+          <FormField label="Durée" value={form.duration} onChange={(v) => updateForm('duration', v)} placeholder="Ex: 1h30" />
 
           <div className="flex gap-2">
             <FormField label="Âge min" type="number" value={form.age_min} onChange={(v) => updateForm('age_min', v)} />
