@@ -3966,6 +3966,25 @@ type EventSlotDraft = {
 
 const emptyEventSlot = (): EventSlotDraft => ({ date_start: '', date_end: '', time: '' });
 
+const ALLOWED_SCREENSHOT_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_SCREENSHOT_BYTES = 6 * 1024 * 1024;
+
+const readFileAsBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(',')[1] ?? '');
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+
+// Le champ créneau attend un format libre à la "14h30" (cf. placeholder), pas le HH:MM renvoyé par l'extraction.
+const formatSlotTime = (time?: string | null): string => {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(time || '');
+  if (!m) return '';
+  const [, h, mm] = m;
+  return mm === '00' ? `${h}h` : `${h}h${mm}`;
+};
+
 function SlotsEditor({
   slots,
   onUpdate,
@@ -4046,6 +4065,60 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
   const [showManualCoords, setShowManualCoords] = useState(false);
   const [manualLat, setManualLat] = useState('47.2184');
   const [manualLng, setManualLng] = useState('-1.5536');
+  const [extracting, setExtracting] = useState(false);
+
+  const handleImportScreenshot = async (file: File) => {
+    if (!ALLOWED_SCREENSHOT_TYPES.includes(file.type)) {
+      toast({ title: 'Format non supporté', description: 'Utilisez une image JPEG, PNG ou WebP.', variant: 'destructive' });
+      return;
+    }
+    if (file.size > MAX_SCREENSHOT_BYTES) {
+      toast({ title: 'Image trop lourde', description: '6 Mo maximum.', variant: 'destructive' });
+      return;
+    }
+    setExtracting(true);
+    try {
+      const imageBase64 = await readFileAsBase64(file);
+      const { data, error } = await supabase.functions.invoke('extract-event-from-image', {
+        body: { imageBase64, mimeType: file.type },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast({ title: 'Extraction impossible', description: data.error, variant: 'destructive' });
+        return;
+      }
+
+      setForm((p) => ({
+        ...p,
+        name: data.name || p.name,
+        category: (EVENT_CATEGORIES as readonly string[]).includes(data.category) ? data.category : p.category,
+        address: data.address || p.address,
+        age_min: data.age_min != null ? String(data.age_min) : p.age_min,
+        age_max: data.age_max != null ? String(data.age_max) : p.age_max,
+        duration: data.duration || p.duration,
+        weather: (EVENT_WEATHERS as readonly string[]).includes(data.weather) ? data.weather : p.weather,
+        price: data.price || p.price,
+        website: data.website || p.website,
+        instagram: data.instagram || p.instagram,
+        note: data.note || p.note,
+      }));
+
+      const slotPatch: Partial<EventSlotDraft> = {};
+      if (data.date_start) slotPatch.date_start = data.date_start;
+      if (data.date_end && data.date_end !== data.date_start) slotPatch.date_end = data.date_end;
+      const formattedTime = formatSlotTime(data.time);
+      if (formattedTime) slotPatch.time = formattedTime;
+      if (Object.keys(slotPatch).length > 0) updateSlot(0, slotPatch);
+
+      setPhotoFile(file);
+      setPhotoPreview(URL.createObjectURL(file));
+      toast({ title: 'Infos extraites ✓', description: 'Relisez les champs avant de valider.' });
+    } catch (e: any) {
+      toast({ title: 'Erreur', description: e?.message || 'Extraction impossible.', variant: 'destructive' });
+    } finally {
+      setExtracting(false);
+    }
+  };
 
   const handleAddEvent = async () => {
     if (!form.name || !slots[0]?.date_start) {
@@ -4148,6 +4221,29 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '20px', boxShadow: 'var(--shadow)' }}>
         <div className="flex flex-col gap-4">
+          <div style={{ background: 'var(--accent-light)', border: '1.5px dashed var(--primary)', borderRadius: 'var(--radius-sm)', padding: '14px' }}>
+            <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text)', fontWeight: 600, marginBottom: 8 }}>
+              ✦ Importer depuis une capture d'écran
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', border: '1.5px dashed var(--border)', borderRadius: 'var(--radius-sm)', cursor: extracting ? 'not-allowed' : 'pointer', color: 'var(--text-muted)', fontSize: '14px', fontFamily: 'DM Sans', background: 'var(--surface)', opacity: extracting ? 0.6 : 1 }}>
+              {extracting ? 'Extraction en cours…' : 'Choisir une capture (flyer, post Instagram…)'}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={extracting}
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImportScreenshot(file);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+            <div style={{ fontFamily: 'Caveat', fontSize: '12px', color: 'var(--text-muted)', marginTop: 6 }}>
+              Les champs détectés préremplissent le formulaire ci-dessous — relisez avant de valider.
+            </div>
+          </div>
+
           <FormField label="Nom *" value={form.name} onChange={(v) => updateForm('name', v)} />
 
           <div>
