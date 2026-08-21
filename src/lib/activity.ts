@@ -13,13 +13,19 @@ export type Price = typeof PRICES[number];
 export { isActivity };
 export type { ActivityCategory, LocationCategory };
 
-// Contextual weather match: a location marked "Tout temps" matches every filter,
-// and a filter of "Tout temps" matches everything.
+// Correspondance météo : « Tout temps » est un joker ASYMÉTRIQUE, et c'est voulu.
+// Un lieu couvert doit ressortir quand le parent cherche quoi faire un jour de pluie —
+// sans ça le chip « Pluie » ne renvoie jamais rien, aucune activité n'étant taguée
+// « Pluie » en base (les lieux fermés sont tous en « Tout temps »). L'inverse serait
+// faux : demander « Soleil », c'est vouloir sortir dehors, pas récupérer les 49 lieux
+// couverts. Le joker symétrique précédent faisait renvoyer les 100 activités aux chips
+// « Soleil » et « Tout temps », qui ne filtraient donc plus rien.
+// Une donnée absente ne cache jamais l'activité.
 export const matchesWeather = (locWeather: string | null | undefined, filter: string | null): boolean => {
   if (!filter) return true;
   if (!locWeather) return true;
-  if (locWeather === 'Tout temps' || filter === 'Tout temps') return true;
-  return locWeather === filter;
+  if (locWeather === filter) return true;
+  return filter === 'Pluie' && locWeather === 'Tout temps';
 };
 
 export const matchesDuration = (locDuration: string | null | undefined, filter: string | null): boolean => {
