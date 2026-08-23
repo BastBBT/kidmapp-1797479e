@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import type { LocationMedia } from '@/lib/gallery';
-import { supabaseResized } from '@/lib/imageUrl';
+import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 
 interface LocationGalleryProps {
   media: LocationMedia[];
@@ -53,6 +53,7 @@ export default function LocationGallery({ media, gradient, name }: LocationGalle
       {current?.coverUrl ? (
         <img
           src={supabaseResized(current.coverUrl, { width: 1280, height: 720, quality: 80 })}
+          onError={onResizedImageError(current.coverUrl)}
           alt={name}
           className="absolute inset-0 w-full h-full object-cover"
           style={{ zIndex: 1 }}
@@ -160,6 +161,7 @@ export default function LocationGallery({ media, gradient, name }: LocationGalle
                 {m.coverUrl ? (
                   <img
                     src={supabaseResized(m.coverUrl, { width: 400, height: 400, quality: 70 })}
+                    onError={onResizedImageError(m.coverUrl)}
                     alt=""
                     loading="lazy"
                     className="absolute inset-0 w-full h-full object-cover"
@@ -205,6 +207,7 @@ export default function LocationGallery({ media, gradient, name }: LocationGalle
               <img
                 // Visionneuse plein écran : pas de recadrage, on borne la largeur.
                 src={supabaseResized(photos[lightboxIndex], { width: 1280, quality: 85, resize: 'contain' })}
+                onError={onResizedImageError(photos[lightboxIndex])}
                 alt={name}
                 className="max-h-[80vh] max-w-full object-contain"
               />

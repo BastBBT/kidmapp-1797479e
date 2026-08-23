@@ -17,6 +17,7 @@ import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryHex, eventCategoryEmoji 
 import RejectDialog from '@/components/admin/RejectDialog';
 import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
+import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events';
 
@@ -1011,7 +1012,8 @@ const AdminPage = () => {
               >
                 <div className="flex items-center gap-3">
                   <img
-                    src={loc.photo ?? '/placeholder.svg'}
+                    src={supabaseResized(loc.photo, { width: 100, height: 100, quality: 70 }) ?? '/placeholder.svg'}
+                    onError={onResizedImageError(loc.photo)}
                     alt={loc.name}
                     style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
                   />
@@ -2884,7 +2886,12 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 {proposal.photo && (
-                  <img src={proposal.photo} alt={proposal.name} style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                  <img
+                    src={supabaseResized(proposal.photo, { width: 120, height: 120, quality: 70 })}
+                    onError={onResizedImageError(proposal.photo)}
+                    alt={proposal.name}
+                    style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
+                  />
                 )}
                 <span style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, color: 'var(--text)' }}>
                   {proposal.name}
@@ -3502,7 +3509,12 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
             <div className="flex items-start justify-between mb-2 gap-2">
               <div className="flex items-center gap-2 flex-wrap">
                 {ev.photo && (
-                  <img src={ev.photo} alt={ev.name} style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                  <img
+                    src={supabaseResized(ev.photo, { width: 120, height: 120, quality: 70 })}
+                    onError={onResizedImageError(ev.photo)}
+                    alt={ev.name}
+                    style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
+                  />
                 )}
                 <span style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, color: 'var(--text)' }}>
                   {eventCategoryEmoji(ev.category)} {ev.name}
@@ -3614,7 +3626,12 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                     style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
                   {(photoPreview || editDraft.photo) && (
                     <div style={{ position: 'relative', width: '100%', height: 120, borderRadius: 8, overflow: 'hidden', background: 'var(--bg)' }}>
-                      <img src={photoPreview || editDraft.photo} alt="Aperçu" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img
+                        src={photoPreview || supabaseResized(editDraft.photo, { width: 400, height: 240, quality: 75 }) || editDraft.photo}
+                        onError={onResizedImageError(editDraft.photo)}
+                        alt="Aperçu"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
                       {photoFile && (
                         <button
                           onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
