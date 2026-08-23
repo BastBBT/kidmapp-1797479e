@@ -6,6 +6,7 @@ import { Location } from '@/types/location';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { EQUIP_ICONS, EquipKey, CATEGORY_ICONS } from '@/assets/icons';
+import { supabaseResized } from '@/lib/imageUrl';
 
 // Fix leaflet default icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -212,8 +213,9 @@ const MapView = ({ locations, selectedId, initialCenter, initialZoom, onViewChan
                   }}>
                     {loc.photo && (
                       <img
-                        src={loc.photo}
+                        src={supabaseResized(loc.photo, { width: 440, height: 220, quality: 75 })}
                         alt={loc.name}
+                        loading="lazy"
                         style={{
                           width: '100%', height: '110px',
                           objectFit: 'cover',
