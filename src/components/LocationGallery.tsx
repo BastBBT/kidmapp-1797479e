@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import type { LocationMedia } from '@/lib/gallery';
+import { supabaseResized } from '@/lib/imageUrl';
 
 interface LocationGalleryProps {
   media: LocationMedia[];
@@ -51,7 +52,7 @@ export default function LocationGallery({ media, gradient, name }: LocationGalle
       {/* Média courant, sous les overlays de l'en-tête */}
       {current?.coverUrl ? (
         <img
-          src={current.coverUrl}
+          src={supabaseResized(current.coverUrl, { width: 1280, height: 720, quality: 80 })}
           alt={name}
           className="absolute inset-0 w-full h-full object-cover"
           style={{ zIndex: 1 }}
@@ -157,7 +158,12 @@ export default function LocationGallery({ media, gradient, name }: LocationGalle
                 className="relative aspect-square rounded-xl overflow-hidden"
               >
                 {m.coverUrl ? (
-                  <img src={m.coverUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  <img
+                    src={supabaseResized(m.coverUrl, { width: 400, height: 400, quality: 70 })}
+                    alt=""
+                    loading="lazy"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="absolute inset-0" style={{ background: gradient }} />
                 )}
@@ -197,7 +203,8 @@ export default function LocationGallery({ media, gradient, name }: LocationGalle
           {lightboxIndex !== null && photos[lightboxIndex] && (
             <div className="relative flex items-center justify-center min-h-[60vh]">
               <img
-                src={photos[lightboxIndex]}
+                // Visionneuse plein écran : pas de recadrage, on borne la largeur.
+                src={supabaseResized(photos[lightboxIndex], { width: 1280, quality: 85, resize: 'contain' })}
                 alt={name}
                 className="max-h-[80vh] max-w-full object-contain"
               />

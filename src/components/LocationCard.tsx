@@ -7,6 +7,7 @@ import { MEAL_ICONS, EQUIP_ICONS, EQUIP_SHORT_LABELS, EquipKey, CATEGORY_ICONS }
 import { AgeBucket, getPriorityEquip } from '@/lib/ageFilter';
 import { translateToken } from '@/i18n/tokenMaps';
 import { FavoriteCountBadge, shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
+import { supabaseResized } from '@/lib/imageUrl';
 
 interface LocationCardProps {
   location: Location;
@@ -106,8 +107,9 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: 
       <div className="relative" style={{ height: '118px', background: gradient, overflow: 'hidden' }}>
         {location.photo ? (
           <img
-            src={location.photo}
+            src={supabaseResized(location.photo, { width: 600, height: 300, quality: 75 })}
             alt={location.name}
+            loading="lazy"
             className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
