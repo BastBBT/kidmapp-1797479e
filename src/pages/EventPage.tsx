@@ -13,6 +13,7 @@ import { eventCategoryColor, eventCategoryEmoji, eventCategoryHex } from '@/type
 import { downloadIcs } from '@/lib/ics';
 import { isPastEvent } from '@/lib/weekend';
 import EventFeedbackCard from '@/components/EventFeedbackCard';
+import { supabaseResized } from '@/lib/imageUrl';
 import { translateToken } from '@/i18n/tokenMaps';
 import { formatDateLong, localeOf } from '@/lib/formatDate';
 
@@ -246,7 +247,7 @@ const EventPage = () => {
       {event.photo && (
         <div style={{ padding: '16px 16px 0' }}>
           <img
-            src={event.photo}
+            src={supabaseResized(event.photo, { width: 900, height: 440, quality: 80 })}
             alt={event.name}
             style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 'var(--radius)' }}
           />

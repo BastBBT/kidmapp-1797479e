@@ -8,6 +8,7 @@ import { translateToken } from '@/i18n/tokenMaps';
 import { formatEventDateRange } from '@/lib/formatDate';
 import { Heart } from 'lucide-react';
 import { shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
+import { supabaseResized } from '@/lib/imageUrl';
 
 interface Props {
   event: EventItem;
@@ -64,7 +65,12 @@ const EventCard = ({ event, showPast = false, occurrence, occurrenceCount = 1 }:
       />
       {event.photo && (
         <div style={{ width: '100%', height: 140, overflow: 'hidden' }}>
-          <img src={event.photo} alt={event.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img
+            src={supabaseResized(event.photo, { width: 600, height: 300, quality: 75 })}
+            alt={event.name}
+            loading="lazy"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
         </div>
       )}
       <div style={{ padding: 14 }}>
