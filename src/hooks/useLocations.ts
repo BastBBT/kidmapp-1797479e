@@ -46,9 +46,10 @@ export const useAllLocations = () => {
   });
 };
 
-export const useContributions = () => {
+export const useContributions = (enabled = true) => {
   return useQuery({
     queryKey: ['contributions'],
+    enabled,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('contributions')
