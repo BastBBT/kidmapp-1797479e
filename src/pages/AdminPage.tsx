@@ -132,7 +132,7 @@ const AdminPage = () => {
   }, [authLoading, isAdmin, profile, user, navigate]);
 
   const { data: locations = [] } = useAllLocations();
-  const { data: contributions = [] } = useContributions();
+  const { data: contributions = [] } = useContributions(isAdmin);
   const contributionUserIds = useMemo(
     () => Array.from(new Set((contributions as any[]).map((c) => c.user_id).filter(Boolean))),
     [contributions]
