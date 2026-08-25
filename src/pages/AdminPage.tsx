@@ -3515,7 +3515,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     }
   };
 
-  const BOT_SOURCING_EMAIL = 'bastien.boubat+event@gmail.com';
+  // BOT_SOURCING_EMAIL importé depuis @/lib/adminBot
   const isSourcing = (ev: any) =>
     !ev.user_id || (ev.user_id && emails[ev.user_id] === BOT_SOURCING_EMAIL);
 
