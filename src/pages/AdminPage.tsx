@@ -262,28 +262,26 @@ const AdminPage = () => {
 
   const visitsChartData = useMemo(() => {
     const days = getLast7Days();
-    const counts = days.map((day) => {
-      const count = (stats?.visitsLast7d ?? []).filter(
-        (v: any) => v.created_at?.slice(0, 10) === day
-      ).length;
-      return { day, count, label: getDayLabel(day) };
-    });
+    const counts = days.map((day) => ({
+      day,
+      count: stats?.daily7d?.[day]?.visits ?? 0,
+      label: getDayLabel(day),
+    }));
     const max = Math.max(...counts.map((c) => c.count), 1);
     return { counts, max };
-  }, [stats?.visitsLast7d]);
+  }, [stats?.daily7d]);
 
   const uniqueVisitorsChartData = useMemo(() => {
     const days = getLast7Days();
-    const counts = days.map((day) => {
-      const uniques = new Set<string>();
-      for (const v of (stats?.visitsLast7d ?? []) as any[]) {
-        if (v.user_id && v.created_at?.slice(0, 10) === day) uniques.add(v.user_id);
-      }
-      return { day, count: uniques.size, label: getDayLabel(day) };
-    });
+    const counts = days.map((day) => ({
+      day,
+      count: stats?.daily7d?.[day]?.uniques ?? 0,
+      label: getDayLabel(day),
+    }));
     const max = Math.max(...counts.map((c) => c.count), 1);
     return { counts, max };
-  }, [stats?.visitsLast7d]);
+  }, [stats?.daily7d]);
+
 
   // Add location form
   const [form, setForm] = useState({
