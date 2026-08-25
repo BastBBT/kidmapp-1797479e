@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     } else if (type === 'event') {
       const { data, error } = await supabase
         .from('events')
-        .select('user_id, title, category, start_date')
+        .select('user_id, name, category, date_start')
         .eq('id', recordId)
         .single()
       if (error || !data) {
@@ -105,9 +105,9 @@ Deno.serve(async (req) => {
         })
       }
       userId = data.user_id
-      eventTitle = data.title
+      eventTitle = data.name
       eventCategory = data.category
-      eventStartDate = data.start_date
+      eventStartDate = data.date_start
       templateName = 'event-published'
     } else {
       const { data, error } = await supabase
