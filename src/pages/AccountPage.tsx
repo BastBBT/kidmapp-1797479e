@@ -10,7 +10,7 @@ import DeleteAccountSection from '@/components/DeleteAccountSection';
 import LevelCard from '@/components/LevelCard';
 import { EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
 import { translateToken } from '@/i18n/tokenMaps';
-import { supabaseResized } from '@/lib/imageUrl';
+import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 
 
 const CategoryThumb = ({ category }: { category?: string | null }) => {
@@ -414,7 +414,7 @@ const AccountPage = () => {
             <div style={{ flex: 1 }}>
               {p.photo && (
                 <div style={{ width: '100%', height: '80px', borderRadius: '10px', overflow: 'hidden', marginBottom: '10px' }}>
-                  <img src={supabaseResized(p.photo, { width: 160, height: 160, quality: 70 })} alt={p.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={supabaseResized(p.photo, { width: 160, height: 160, quality: 70 })} onError={onResizedImageError(p.photo)} alt={p.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               )}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '4px' }}>

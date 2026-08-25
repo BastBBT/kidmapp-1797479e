@@ -46,3 +46,20 @@ export function supabaseResized(
     return url;
   }
 }
+
+/**
+ * À poser en `onError` sur tout `<img src={supabaseResized(url, ...)}>` : le
+ * `try/catch` de `supabaseResized` ne protège que la construction de l'URL, pas la
+ * requête HTTP réelle. Si l'endpoint de transformation refuse la source (au-delà de
+ * ses bornes de taille/pixels, format non supporté...), il répond en erreur au lieu
+ * de l'image, et sans repli l'utilisateur voit une icône cassée pour une photo qui
+ * s'affichait très bien avant l'introduction de ce redimensionnement serveur.
+ */
+export function onResizedImageError(rawUrl: string | null | undefined) {
+  return (event: { currentTarget: HTMLImageElement }) => {
+    const img = event.currentTarget;
+    if (!rawUrl || img.src === rawUrl) return; // pas de brut connu, ou déjà retombé dessus
+    img.onerror = null;
+    img.src = rawUrl;
+  };
+}
