@@ -18,6 +18,8 @@ import RejectDialog from '@/components/admin/RejectDialog';
 import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
+import { BOT_SOURCING_EMAIL, isBotEmail } from '@/lib/adminBot';
+
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events';
 
@@ -185,21 +187,20 @@ const AdminPage = () => {
           body: { user_ids: nonAdminIds },
         });
         const emails = (emailsData?.emails ?? {}) as Record<string, string>;
-        const BOT_EMAIL = 'bastien.boubat+event@gmail.com';
         for (const [uid, email] of Object.entries(emails)) {
-          if (email.toLowerCase() === BOT_EMAIL) excludedIds.add(uid);
+          if (isBotEmail(email)) excludedIds.add(uid);
         }
       } catch (e) {
         console.warn('[admin-stats] bot email lookup failed', e);
       }
-      const notAdmin = (uid: string | null | undefined) => !!uid && !adminIds.has(uid);
       const notExcluded = (uid: string | null | undefined) => !!uid && !excludedIds.has(uid);
       const notExcludedOrAnon = (uid: string | null | undefined) => !uid || !excludedIds.has(uid);
 
-      const contribs = (contributionsRes.data ?? []).filter((c: any) => notAdmin(c.user_id));
-      const proposals = ((proposalsRes.data ?? []) as any[]).filter((p) => notAdmin(p.user_id));
-      const newUsers = (usersRes.data ?? []).filter((u: any) => u.role !== 'admin');
-      const daily = (dailyRes.data ?? []).filter((c: any) => notAdmin(c.user_id));
+      const contribs = (contributionsRes.data ?? []).filter((c: any) => notExcluded(c.user_id));
+      const proposals = ((proposalsRes.data ?? []) as any[]).filter((p) => notExcluded(p.user_id));
+      const newUsers = (usersRes.data ?? []).filter((u: any) => u.role !== 'admin' && !excludedIds.has(u.id));
+      const daily = (dailyRes.data ?? []).filter((c: any) => notExcluded(c.user_id));
+
 
       const views = (((viewsRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[])
         .filter((v) => notExcludedOrAnon(v.user_id));
