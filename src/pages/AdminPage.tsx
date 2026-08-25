@@ -165,18 +165,29 @@ const AdminPage = () => {
         .eq('role', 'admin');
       const adminIds = new Set<string>(((adminProfiles ?? []) as any[]).map((p) => p.id));
 
-      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, viewsRes, views7dRes, acquisitionRes, eventsRes, allProfilesRes] = await Promise.all([
+      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, audienceRes, acquisitionRes, eventsRes, allProfilesRes] = await Promise.all([
         supabase.from('locations').select('id, status'),
         supabase.from('contributions').select('id, user_id, created_at, status'),
         supabase.from('profiles').select('id, role, created_at').gte('created_at', since),
         supabase.from('contributions').select('user_id, created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
         supabase.from('location_proposals' as any).select('id, user_id, status'),
-        supabase.from('page_views' as any).select('user_id, created_at').gte('created_at', since),
-        supabase.from('page_views' as any).select('user_id, created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
+        // Agrégats d'audience calculés en base : les page_views dépassent la limite
+        // de 1000 lignes de l'API, un comptage côté client serait tronqué.
+        supabase.rpc('admin_audience_stats' as any),
         supabase.from('profiles').select('id, acquisition_source').not('acquisition_source', 'is', null),
         supabase.from('events' as any).select('id, name, status, user_id, created_at, date_start').order('created_at', { ascending: false }),
         supabase.from('profiles').select('id, role'),
       ]);
+
+      if (audienceRes.error) console.error('[admin-stats] audience rpc error', audienceRes.error);
+      const audience = (audienceRes.data ?? {}) as {
+        totalVisits30d?: number;
+        uniqueLoggedVisitors30d?: number;
+        recurringVisitors30d?: number;
+        daily7d?: Record<string, { visits: number; uniques: number }>;
+        totalRegistered?: number;
+        activePct30d?: number;
+      };
 
       // Résoudre le compte bot de sourcing par email pour l'exclure des stats Audience.
       const allProfiles = (allProfilesRes.data ?? []) as { id: string; role: string }[];
@@ -194,31 +205,11 @@ const AdminPage = () => {
         console.warn('[admin-stats] bot email lookup failed', e);
       }
       const notExcluded = (uid: string | null | undefined) => !!uid && !excludedIds.has(uid);
-      const notExcludedOrAnon = (uid: string | null | undefined) => !uid || !excludedIds.has(uid);
 
       const contribs = (contributionsRes.data ?? []).filter((c: any) => notExcluded(c.user_id));
       const proposals = ((proposalsRes.data ?? []) as any[]).filter((p) => notExcluded(p.user_id));
       const newUsers = (usersRes.data ?? []).filter((u: any) => u.role !== 'admin' && !excludedIds.has(u.id));
       const daily = (dailyRes.data ?? []).filter((c: any) => notExcluded(c.user_id));
-
-
-      const views = (((viewsRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[])
-        .filter((v) => notExcludedOrAnon(v.user_id));
-      const totalVisits = views.length;
-      const loggedInUsers = new Set<string>();
-      const userDays = new Map<string, Set<string>>();
-      for (const v of views) {
-        if (!v.user_id) continue;
-        loggedInUsers.add(v.user_id);
-        const day = v.created_at.slice(0, 10);
-        if (!userDays.has(v.user_id)) userDays.set(v.user_id, new Set());
-        userDays.get(v.user_id)!.add(day);
-      }
-      let recurring = 0;
-      userDays.forEach((days) => { if (days.size >= 2) recurring++; });
-
-      const visits7d = (((views7dRes.data ?? []) as unknown) as { user_id: string | null; created_at: string }[])
-        .filter((v) => notExcludedOrAnon(v.user_id));
 
       const acquisitionProfiles = (acquisitionRes.data ?? []).filter((p: any) => !excludedIds.has(p.id));
       const acquisitionCounts: Record<string, number> = {};
@@ -226,12 +217,6 @@ const AdminPage = () => {
         const src = p.acquisition_source as string;
         acquisitionCounts[src] = (acquisitionCounts[src] ?? 0) + 1;
       }
-
-      // Inscrits (hors admins + bot) + % actifs sur 30j (au moins un page_view).
-      const totalRegistered = allProfiles.filter((p) => !excludedIds.has(p.id)).length;
-      const activePct30d = totalRegistered > 0
-        ? Math.round((loggedInUsers.size / totalRegistered) * 100)
-        : 0;
 
       const allEvents = ((eventsRes.data ?? []) as any[]);
       const pendingEventsList = allEvents.filter((e) => e.status === 'pending');
@@ -247,15 +232,16 @@ const AdminPage = () => {
         pendingEventsList: pendingEventsList.slice(0, 5),
         activeUsers30d: newUsers.length,
         contributionsLast7d: daily,
-        visitsLast7d: visits7d,
-        totalVisits30d: totalVisits,
-        uniqueLoggedVisitors30d: loggedInUsers.size,
-        recurringVisitors30d: recurring,
+        daily7d: audience.daily7d ?? {},
+        totalVisits30d: audience.totalVisits30d ?? 0,
+        uniqueLoggedVisitors30d: audience.uniqueLoggedVisitors30d ?? 0,
+        recurringVisitors30d: audience.recurringVisitors30d ?? 0,
         acquisitionDistribution: acquisitionCounts,
         acquisitionTotal: acquisitionProfiles.length,
-        totalRegistered,
-        activePct30d,
+        totalRegistered: audience.totalRegistered ?? 0,
+        activePct30d: audience.activePct30d ?? 0,
       };
+
     },
   });
 
