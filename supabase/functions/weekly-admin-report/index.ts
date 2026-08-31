@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -162,30 +163,31 @@ async function runReport(callerAuth: string, overrideWeekStart?: Date) {
 
   for (const recipient of recipients) {
     const idempotencyKey = `weekly-admin-report-${weekKey}-${recipient}`
-    const sendRes = await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: callerAuth,
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-      },
-      body: JSON.stringify({
-        templateName: 'weekly-admin-report',
-        recipientEmail: recipient,
-        idempotencyKey,
+    try {
+      const result = await sendTemplateEmail('weekly-admin-report', recipient, {
         templateData: { periodLabel, totalContributions, totalProposals, activeUsers, visits, rows },
-      }),
-    })
-
-    if (!sendRes.ok) {
-      const text = await sendRes.text()
-      console.error('weekly-admin-report send error', recipient, sendRes.status, text)
-      continue
+        idempotencyKey,
+      })
+      const { error: logError } = await supabase.from('email_send_log').insert({
+        template_name: 'weekly-admin-report',
+        recipient_email: recipient,
+        status: result.sent ? 'sent' : 'suppressed',
+      })
+      if (logError) console.error('email_send_log insert failed', logError)
+    } catch (sendError) {
+      const message = sendError instanceof Error ? sendError.message : String(sendError)
+      console.error('weekly-admin-report send error', recipient, message)
+      const { error: logError } = await supabase.from('email_send_log').insert({
+        template_name: 'weekly-admin-report',
+        recipient_email: recipient,
+        status: 'failed',
+        error_message: message.slice(0, 1000),
+      })
+      if (logError) console.error('email_send_log insert failed', logError)
     }
-    await sendRes.text()
   }
 
-  console.log('weekly-admin-report enqueued', {
+  console.log('weekly-admin-report sent', {
     periodLabel,
     totalContributions,
     totalProposals,
