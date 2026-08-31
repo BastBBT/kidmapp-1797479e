@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,7 +39,6 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
 
   try {
@@ -191,33 +191,36 @@ Deno.serve(async (req) => {
       }
     }
 
-    // send-transactional-email enforces service_role caller — use the service key.
-    const sendRes = await fetch(
-      `${Deno.env.get('SUPABASE_URL')!}/functions/v1/send-transactional-email`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: authHeader,
-          apikey: serviceRoleKey,
-        },
-        body: JSON.stringify({
-          templateName,
-          recipientEmail,
-          idempotencyKey: `${type}-${recordId}`,
-          templateData,
-        }),
-      },
-    )
+    // Send through Lovable's managed email delivery.
+    try {
+      const result = await sendTemplateEmail(templateName, recipientEmail, {
+        templateData,
+        idempotencyKey: `${type}-${recordId}`,
+      })
 
-    if (!sendRes.ok) {
-      const text = await sendRes.text()
-      console.error('send-transactional-email failed', sendRes.status, text)
-      return new Response(JSON.stringify({ error: 'Failed to enqueue email' }), {
+      const { error: logError } = await supabase.from('email_send_log').insert({
+        template_name: templateName,
+        recipient_email: recipientEmail,
+        status: result.sent ? 'sent' : 'suppressed',
+      })
+      if (logError) console.error('email_send_log insert failed', logError)
+    } catch (sendError) {
+      const message = sendError instanceof Error ? sendError.message : String(sendError)
+      console.error('sendTemplateEmail failed', message)
+      const { error: logError } = await supabase.from('email_send_log').insert({
+        template_name: templateName,
+        recipient_email: recipientEmail,
+        status: 'failed',
+        error_message: message.slice(0, 1000),
+      })
+      if (logError) console.error('email_send_log insert failed', logError)
+
+      return new Response(JSON.stringify({ error: 'Failed to send email' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
