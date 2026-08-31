@@ -5,6 +5,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Sourcing bot account: it authors events/contributions in bulk, so it must
+// never receive its own validation notifications.
+const BOT_USER_ID = '06f50405-0211-4634-8bff-05741e08e107'
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -142,6 +146,13 @@ Deno.serve(async (req) => {
 
     if (!userId) {
       return new Response(JSON.stringify({ skipped: 'no user_id' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (userId === BOT_USER_ID) {
+      return new Response(JSON.stringify({ skipped: 'bot account' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
