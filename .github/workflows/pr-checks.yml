@@ -1,0 +1,62 @@
+name: PR checks
+
+# Barrière mécanique avant merge dans main (branche suivie par Lovable).
+# Le jugement — sécurité fine, dette, legacy — est fait par l'agent local `/check-pr`.
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  securite:
+    name: Sécurité (secrets, RLS, migrations)
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 — les gardes comparent la PR à sa base, il faut l'historique.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # Aucune dépendance à installer : la garde n'utilise que git et la stdlib Node.
+      - name: Garde sécurité
+        run: node scripts/security-guard.mjs --base origin/${{ github.base_ref }}
+
+  qualite:
+    name: Types, tests, lint, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # bun.lock est le lockfile de référence (Lovable installe avec bun).
+      # package-lock.json est périmé : ne pas l'utiliser ici.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Installer les dépendances
+        run: bun install --frozen-lockfile
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: Tests
+        run: npx vitest run
+
+      # Ne bloque pas sur la dette eslint gelée, seulement sur son augmentation.
+      - name: Ratchet eslint
+        run: node scripts/eslint-ratchet.mjs --base origin/${{ github.base_ref }}
+
+      - name: Build de production
+        run: npx vite build
