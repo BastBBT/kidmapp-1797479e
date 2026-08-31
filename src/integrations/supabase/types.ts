@@ -316,8 +316,8 @@ export type Database = {
           admin_fav: boolean
           admin_fav_at: string | null
           admin_fav_visual_at: string | null
-          age_max: number | null
-          age_min: number | null
+          age_max_months: number | null
+          age_min_months: number | null
           category: string
           created_at: string
           date_end: string | null
@@ -344,8 +344,8 @@ export type Database = {
           admin_fav?: boolean
           admin_fav_at?: string | null
           admin_fav_visual_at?: string | null
-          age_max?: number | null
-          age_min?: number | null
+          age_max_months?: number | null
+          age_min_months?: number | null
           category: string
           created_at?: string
           date_end?: string | null
@@ -372,8 +372,8 @@ export type Database = {
           admin_fav?: boolean
           admin_fav_at?: string | null
           admin_fav_visual_at?: string | null
-          age_max?: number | null
-          age_min?: number | null
+          age_max_months?: number | null
+          age_min_months?: number | null
           category?: string
           created_at?: string
           date_end?: string | null
@@ -480,8 +480,8 @@ export type Database = {
       location_proposals: {
         Row: {
           address: string
-          age_max: number | null
-          age_min: number | null
+          age_max_months: number | null
+          age_min_months: number | null
           bookable: string | null
           category: string
           changing_table: boolean | null
@@ -505,8 +505,8 @@ export type Database = {
         }
         Insert: {
           address: string
-          age_max?: number | null
-          age_min?: number | null
+          age_max_months?: number | null
+          age_min_months?: number | null
           bookable?: string | null
           category: string
           changing_table?: boolean | null
@@ -530,8 +530,8 @@ export type Database = {
         }
         Update: {
           address?: string
-          age_max?: number | null
-          age_min?: number | null
+          age_max_months?: number | null
+          age_min_months?: number | null
           bookable?: string | null
           category?: string
           changing_table?: boolean | null
@@ -558,8 +558,8 @@ export type Database = {
       locations: {
         Row: {
           address: string | null
-          age_max: number | null
-          age_min: number | null
+          age_max_months: number | null
+          age_min_months: number | null
           bookable: string | null
           category: string
           changing_table: boolean
@@ -588,8 +588,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
-          age_max?: number | null
-          age_min?: number | null
+          age_max_months?: number | null
+          age_min_months?: number | null
           bookable?: string | null
           category: string
           changing_table?: boolean
@@ -618,8 +618,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
-          age_max?: number | null
-          age_min?: number | null
+          age_max_months?: number | null
+          age_min_months?: number | null
           bookable?: string | null
           category?: string
           changing_table?: boolean
