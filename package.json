@@ -12,8 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "guard": "node scripts/security-guard.mjs",
-    "lint:ratchet": "node scripts/eslint-ratchet.mjs",
-    "lint:baseline": "node scripts/eslint-ratchet.mjs --update"
+    "lint:ratchet": "node scripts/eslint-ratchet.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

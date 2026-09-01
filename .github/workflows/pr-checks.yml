@@ -2,6 +2,10 @@ name: PR checks
 
 # Barrière mécanique avant merge dans main (branche suivie par Lovable).
 # Le jugement — sécurité fine, dette, legacy — est fait par l'agent local `/check-pr`.
+#
+# ATTENTION : ce workflow exécute les scripts de garde VENANT DE LA PR. Une PR peut donc
+# neutraliser la barrière en éditant `scripts/` ou `.github/`. Protéger ces deux chemins
+# par CODEOWNERS + branch protection, sinon la barrière n'est que déclarative.
 on:
   pull_request:
     branches: [main]
@@ -18,8 +22,10 @@ jobs:
   securite:
     name: Sécurité (secrets, RLS, migrations)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      # fetch-depth: 0 — les gardes comparent la PR à sa base, il faut l'historique.
+      # fetch-depth: 0 — les gardes comparent la PR à sa base. Sans l'historique complet,
+      # la garde échoue volontairement (fail-closed) au lieu de rendre un vert non fondé.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -28,11 +34,14 @@ jobs:
           node-version: '22'
       # Aucune dépendance à installer : la garde n'utilise que git et la stdlib Node.
       - name: Garde sécurité
-        run: node scripts/security-guard.mjs --base origin/${{ github.base_ref }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: node scripts/security-guard.mjs --base "origin/${BASE_REF}"
 
   qualite:
     name: Types, tests, lint, build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,7 +50,6 @@ jobs:
         with:
           node-version: '22'
       # bun.lock est le lockfile de référence (Lovable installe avec bun).
-      # package-lock.json est périmé : ne pas l'utiliser ici.
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -54,9 +62,12 @@ jobs:
       - name: Tests
         run: npx vitest run
 
-      # Ne bloque pas sur la dette eslint gelée, seulement sur son augmentation.
+      # Mesure la dette eslint à la merge-base et n'échoue que si elle augmente.
+      # Nécessite l'historique complet et node_modules (réutilisé pour le worktree de base).
       - name: Ratchet eslint
-        run: node scripts/eslint-ratchet.mjs --base origin/${{ github.base_ref }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: node scripts/eslint-ratchet.mjs --base "origin/${BASE_REF}"
 
       - name: Build de production
         run: npx vite build

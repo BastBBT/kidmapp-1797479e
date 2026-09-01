@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# bun.lock est le lockfile de reference (Lovable installe avec bun).
+# Un package-lock.json se desynchronise et casse `npm ci`.
+package-lock.json
