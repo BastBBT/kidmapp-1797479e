@@ -4,6 +4,7 @@ import { X, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
+import { submitFailureText } from '@/lib/submitFailure';
 import { useAuth } from '@/hooks/useAuth';
 import { useMealTypes } from '@/hooks/useMeals';
 import { useQueryClient } from '@tanstack/react-query';
@@ -162,8 +163,9 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
       toast.success('Merci pour ta contribution !');
       queryClient.invalidateQueries({ queryKey: ['contributions'] });
       onClose();
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Une erreur est survenue.');
+    } catch (err) {
+      console.error('Insert into contributions failed:', err);
+      toast.error(submitFailureText(err, t, t('submit_error.retry')));
     } finally {
       setSubmitting(false);
     }

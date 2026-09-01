@@ -364,5 +364,13 @@
   "ios_banner": {
     "subtitle": "Disponible en App Store",
     "open": "Abrir"
+  },
+  "submit_error": {
+    "app_outdated": "Esta versión del sitio ya no es compatible con el servidor. Recarga la página e inténtalo de nuevo.",
+    "session_expired": "Tu sesión ha caducado. Vuelve a iniciar sesión e inténtalo de nuevo.",
+    "invalid_field": "Uno de los campos no es válido. Revisa lo que has escrito e inténtalo de nuevo.",
+    "photo_upload": "No se pudo subir la imagen. Inténtalo de nuevo o quítala antes de enviar.",
+    "network": "Conexión interrumpida. Comprueba tu conexión e inténtalo de nuevo.",
+    "retry": "Inténtalo de nuevo en un momento."
   }
 }

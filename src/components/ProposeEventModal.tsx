@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { X, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { submitFailureText } from '@/lib/submitFailure';
 import { useAuth } from '@/hooks/useAuth';
 import { useProposalModal } from '@/hooks/useProposalModal';
 import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryEmoji } from '@/types/event';
@@ -75,6 +77,7 @@ const Pills = ({
 
 const ProposeEventModal = () => {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { isOpen, mode, close, setMode } = useProposalModal();
   const [submitting, setSubmitting] = useState(false);
@@ -175,10 +178,13 @@ const ProposeEventModal = () => {
         description: 'Merci ! On vérifie avant publication.',
       });
       handleClose();
-    } catch (err: any) {
+    } catch (err) {
+      // Un message par famille de cause, code technique affiché avec : voir
+      // src/lib/submitFailure.ts.
+      console.error('Insert into events failed:', err);
       toast({
-        title: 'Une erreur est survenue',
-        description: err?.message || 'Réessaie dans quelques instants.',
+        title: t('common.error'),
+        description: submitFailureText(err, t, t('submit_error.retry')),
         variant: 'destructive',
       });
     } finally {

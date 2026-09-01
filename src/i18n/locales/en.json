@@ -364,5 +364,13 @@
   "ios_banner": {
     "subtitle": "Available on the App Store",
     "open": "Open"
+  },
+  "submit_error": {
+    "app_outdated": "This version of the site is no longer compatible with the server. Reload the page and try again.",
+    "session_expired": "Your session expired. Sign in again and retry.",
+    "invalid_field": "One of the fields isn't valid. Check what you entered and try again.",
+    "photo_upload": "The image couldn't be uploaded. Try again, or remove it before sending.",
+    "network": "Connection lost. Check your connection and try again.",
+    "retry": "Try again in a moment."
   }
 }

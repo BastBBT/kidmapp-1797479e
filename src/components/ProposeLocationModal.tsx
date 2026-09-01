@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { X, Send, Loader2, ChevronLeft, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { submitFailureText } from '@/lib/submitFailure';
 import { useAuth } from '@/hooks/useAuth';
 import { useMealTypes } from '@/hooks/useMeals';
 import { MEAL_ICONS, EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
@@ -62,6 +64,8 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
   const CATEGORY_OPTIONS = mode === 'activity' ? ACTIVITY_CATEGORY_OPTIONS : PLACE_CATEGORY_OPTIONS;
 
   const { toast } = useToast();
+
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { data: mealTypes = [] } = useMealTypes();
   const [submitting, setSubmitting] = useState(false);
@@ -231,8 +235,11 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
         description: copy.successDesc,
       });
       handleClose();
-    } catch (err: any) {
-      toast({ title: 'Une erreur est survenue', description: err?.message || 'Réessaie dans quelques instants.', variant: 'destructive' });
+    } catch (err) {
+      // Un message par famille de cause, code technique affiché avec : voir
+      // src/lib/submitFailure.ts.
+      console.error('Insert into location_proposals failed:', err);
+      toast({ title: t('common.error'), description: submitFailureText(err, t, t('submit_error.retry')), variant: 'destructive' });
     } finally {
       setSubmitting(false);
     }
