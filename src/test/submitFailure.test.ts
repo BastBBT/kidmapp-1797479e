@@ -63,15 +63,18 @@ describe('classifySubmitFailure', () => {
     expect(classifySubmitFailure({ code: 'PGRST204' }).kind).toBe('app_outdated');
   });
 
-  it('garde le statut du bucket quand une photo est refusée', () => {
+  it('désigne la photo, avec le statut du bucket, quand un envoi d’image échoue', () => {
     vi.stubGlobal('navigator', { onLine: true });
+    // Sans garde de taille côté client sur le formulaire événement, un fichier
+    // trop lourd arrivait à l'écran sans message ni code.
     expect(classifySubmitFailure(storageError('Payload too large', 413, '413'))).toEqual({
-      kind: 'unknown',
+      kind: 'photo_upload',
       code: '413',
     });
-    expect(classifySubmitFailure(storageError('Unauthorized', 401, '401')).kind).toBe(
-      'session_expired',
-    );
+    expect(classifySubmitFailure(storageError('Unauthorized', 401, '401'))).toEqual({
+      kind: 'photo_upload',
+      code: '401',
+    });
   });
 
   it('garde le code serveur inconnu pour pouvoir diagnostiquer', () => {

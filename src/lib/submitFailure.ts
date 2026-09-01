@@ -23,17 +23,14 @@ export type SubmitFailureKind =
   | 'app_outdated'
   | 'session_expired'
   | 'invalid_field'
+  | 'photo_upload'
   | 'network'
   | 'unknown';
 
 /** Le schéma attendu par ce bundle n'existe plus côté base. */
 const SCHEMA_MISMATCH = ['PGRST204', 'PGRST202', '42703', '42P01', '42883'];
-/**
- * RLS ou JWT : la session ne permet plus l'écriture. `401` ne vient jamais de
- * PostgREST (qui répond `PGRST301`) mais du bucket de storage, dont le code est
- * un statut HTTP.
- */
-const NOT_AUTHORIZED = ['401', 'PGRST301', '42501'];
+/** RLS ou JWT : la session ne permet plus l'écriture. */
+const NOT_AUTHORIZED = ['PGRST301', '42501'];
 /** Contrainte de validation : CHECK, NOT NULL, unicité, type, longueur. */
 const INVALID_FIELD = ['23514', '23502', '23505', '22001', '22007', '22P02'];
 
@@ -55,13 +52,13 @@ function field(err: unknown, name: string): string {
 }
 
 /**
- * Code technique de l'erreur. `postgrest-js` le met dans `code` (SQLSTATE ou
- * `PGRSTxxx`) ; `storage-js` n'a pas de `code` mais un `statusCode` (chaîne) et
- * un `status` (nombre), sans quoi un refus du bucket arriverait sans aucun
- * indice à l'écran.
+ * `storage-js` n'a pas de champ `code` mais un `statusCode` (chaîne) et un
+ * `status` (nombre) : sans ce repli, une photo refusée par le bucket (trop
+ * lourde, type interdit) arrivait à l'écran sans aucun indice.
  */
-function errorCode(err: unknown): string {
-  return field(err, 'code') || field(err, 'statusCode') || field(err, 'status');
+function storageStatus(err: unknown): string {
+  if (field(err, 'code')) return '';
+  return field(err, 'statusCode') || field(err, 'status');
 }
 
 /** Seule famille qui mérite « vérifie ta connexion ». */
@@ -77,11 +74,18 @@ export function classifySubmitFailure(err: unknown): {
   kind: SubmitFailureKind;
   code?: string;
 } {
-  const code = errorCode(err);
+  const code = field(err, 'code');
 
   if (SCHEMA_MISMATCH.includes(code)) return { kind: 'app_outdated', code };
   if (NOT_AUTHORIZED.includes(code)) return { kind: 'session_expired', code };
   if (INVALID_FIELD.includes(code)) return { kind: 'invalid_field', code };
+
+  // Échec de l'envoi de la photo : le formulaire reste ouvert avec la saisie,
+  // l'utilisateur peut réessayer ou la retirer. Même comportement sur iOS et
+  // Android.
+  const status = storageStatus(err);
+  if (status) return { kind: 'photo_upload', code: status };
+
   if (isNetworkFailure(err, code)) return { kind: 'network' };
 
   return code ? { kind: 'unknown', code } : { kind: 'unknown' };
