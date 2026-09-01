@@ -183,7 +183,7 @@ const ProposeEventModal = () => {
       // src/lib/submitFailure.ts.
       console.error('Insert into events failed:', err);
       toast({
-        title: 'Une erreur est survenue',
+        title: t('common.error'),
         description: submitFailureText(err, t, t('submit_error.retry')),
         variant: 'destructive',
       });

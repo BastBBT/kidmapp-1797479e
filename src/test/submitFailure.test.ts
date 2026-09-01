@@ -5,6 +5,23 @@ import { classifySubmitFailure, submitFailureText } from '@/lib/submitFailure';
 // de message est choisie.
 const t = ((key: string) => key) as unknown as Parameters<typeof submitFailureText>[1];
 
+/**
+ * Forme exacte que `postgrest-js` relance quand `fetch` échoue : un objet
+ * simple, pas une instance d'Error (`PostgrestBuilder.then`, branche
+ * `res.catch`). C'est ce que reçoit le `catch` des formulaires.
+ */
+const postgrestFetchFailure = {
+  message: 'TypeError: Failed to fetch',
+  details: 'TypeError: Failed to fetch\n    at …',
+  hint: '',
+  code: '',
+};
+
+/** Forme d'une `StorageApiError` : pas de `code`, mais `status` + `statusCode`. */
+function storageError(message: string, status: number, statusCode: string) {
+  return Object.assign(new Error(message), { status, statusCode });
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
@@ -28,12 +45,33 @@ describe('classifySubmitFailure', () => {
     expect(classifySubmitFailure({ code: '23514' }).kind).toBe('invalid_field');
   });
 
-  it('ne retient le réseau que pour un échec de requête sans code', () => {
+  it('reconnaît la coupure réseau telle que postgrest-js la relance', () => {
+    // Navigateur qui se croit en ligne (Wi-Fi sans internet, portail captif,
+    // projet Supabase injoignable) : c'est le cas majoritaire, et l'objet
+    // relancé n'est pas une instance de TypeError.
     vi.stubGlobal('navigator', { onLine: true });
+    expect(classifySubmitFailure(postgrestFetchFailure).kind).toBe('network');
     expect(classifySubmitFailure(new TypeError('Failed to fetch')).kind).toBe('network');
-    // Un code serveur inconnu n'est pas une panne réseau : la requête est bien
-    // arrivée.
+    expect(classifySubmitFailure({ message: 'Load failed', code: '' }).kind).toBe('network');
+  });
+
+  it('ne parle pas de réseau quand la requête est arrivée au serveur', () => {
+    vi.stubGlobal('navigator', { onLine: false });
+    // Même hors ligne d'après le navigateur : un code serveur prouve que la
+    // requête a abouti.
     expect(classifySubmitFailure({ code: '23503' }).kind).toBe('unknown');
+    expect(classifySubmitFailure({ code: 'PGRST204' }).kind).toBe('app_outdated');
+  });
+
+  it('garde le statut du bucket quand une photo est refusée', () => {
+    vi.stubGlobal('navigator', { onLine: true });
+    expect(classifySubmitFailure(storageError('Payload too large', 413, '413'))).toEqual({
+      kind: 'unknown',
+      code: '413',
+    });
+    expect(classifySubmitFailure(storageError('Unauthorized', 401, '401')).kind).toBe(
+      'session_expired',
+    );
   });
 
   it('garde le code serveur inconnu pour pouvoir diagnostiquer', () => {
@@ -56,5 +94,10 @@ describe('submitFailureText', () => {
     vi.stubGlobal('navigator', { onLine: true });
     expect(submitFailureText({}, t, 'repli')).toBe('repli');
     expect(submitFailureText({ code: 'PGRST100' }, t, 'repli')).toBe('repli (PGRST100)');
+  });
+
+  it('annonce une coupure réseau sans code technique', () => {
+    vi.stubGlobal('navigator', { onLine: true });
+    expect(submitFailureText(postgrestFetchFailure, t, 'repli')).toBe('submit_error.network');
   });
 });

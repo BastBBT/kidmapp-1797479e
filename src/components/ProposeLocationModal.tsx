@@ -239,7 +239,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
       // Un message par famille de cause, code technique affiché avec : voir
       // src/lib/submitFailure.ts.
       console.error('Insert into location_proposals failed:', err);
-      toast({ title: 'Une erreur est survenue', description: submitFailureText(err, t, t('submit_error.retry')), variant: 'destructive' });
+      toast({ title: t('common.error'), description: submitFailureText(err, t, t('submit_error.retry')), variant: 'destructive' });
     } finally {
       setSubmitting(false);
     }
