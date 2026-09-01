@@ -9,6 +9,8 @@ import { MEAL_ICONS, EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
 
 import { DURATIONS, WEATHERS, EFFORTS, PRICES } from '@/lib/activity';
 import { isActivity } from '@/types/location';
+import { ageToMonths, ageRangeError, type AgeUnit } from '@/lib/ageFormat';
+import AgeRangeInput from '@/components/AgeRangeInput';
 
 const PLACE_CATEGORY_OPTIONS: { id: string; label: string }[] = [
   { id: 'restaurant', label: 'Restaurant' },
@@ -82,6 +84,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
     instagram: '',
     age_min: '' as string,
     age_max: '' as string,
+    age_unit: 'years' as AgeUnit,
     duration: '' as string,
     weather: '' as string,
     effort: '' as string,
@@ -112,7 +115,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
       name: '', category: initialCategory, address: '',
       high_chair: false, changing_table: false, kids_area: false, kids_menu: false,
       bookable: 'unknown', note: '', website: '', instagram: '',
-      age_min: '', age_max: '',
+      age_min: '', age_max: '', age_unit: 'years',
       duration: '', weather: '', effort: '', price: '',
     });
     setSelectedMeals([]);
@@ -149,6 +152,11 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
     if (!form.name || !form.address) {
       toast({ title: 'Champs requis', description: 'Nom, catégorie et adresse sont obligatoires.', variant: 'destructive' });
       setStep(0);
+      return;
+    }
+    const ageErr = ageRangeError(form.age_min, form.age_max, form.age_unit);
+    if (ageErr) {
+      toast({ title: 'Erreur', description: ageErr, variant: 'destructive' });
       return;
     }
     setSubmitting(true);
@@ -204,8 +212,8 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
         instagram: form.instagram || null,
         status: 'pending',
         metadata: { meal_types: selectedMeals },
-        age_min: form.age_min.trim() === '' ? null : Math.max(0, parseInt(form.age_min, 10)) || null,
-        age_max: form.age_max.trim() === '' ? null : Math.max(0, parseInt(form.age_max, 10)) || null,
+        age_min_months: form.age_min.trim() === '' ? null : ageToMonths(Math.max(0, parseInt(form.age_min, 10)), form.age_unit) || null,
+        age_max_months: form.age_max.trim() === '' ? null : ageToMonths(Math.max(0, parseInt(form.age_max, 10)), form.age_unit) || null,
       };
       if (form.category === 'restaurant' || form.category === 'cafe') {
         insertData.bookable = form.bookable;
@@ -451,35 +459,15 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
 
                   {/* Age range (optional) */}
                   <div>
-                    <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 6 }}>
-                      Âge conseillé <span style={{ opacity: 0.7 }}>(optionnel)</span>
-                    </label>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <div style={{ flex: 1 }}>
-                        <input
-                          type="number"
-                          min={0}
-                          max={99}
-                          inputMode="numeric"
-                          value={form.age_min}
-                          onChange={(e) => updateForm('age_min', e.target.value.replace(/[^\d]/g, ''))}
-                          placeholder="Dès X ans"
-                          style={inputStyle}
-                        />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <input
-                          type="number"
-                          min={0}
-                          max={99}
-                          inputMode="numeric"
-                          value={form.age_max}
-                          onChange={(e) => updateForm('age_max', e.target.value.replace(/[^\d]/g, ''))}
-                          placeholder="Jusqu'à Y ans"
-                          style={inputStyle}
-                        />
-                      </div>
-                    </div>
+                    <AgeRangeInput
+                      label="Âge conseillé (optionnel)"
+                      minValue={form.age_min}
+                      maxValue={form.age_max}
+                      unit={form.age_unit}
+                      onMinChange={(v) => updateForm('age_min', v)}
+                      onMaxChange={(v) => updateForm('age_max', v)}
+                      onUnitChange={(u) => updateForm('age_unit', u)}
+                    />
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 4, fontFamily: 'DM Sans' }}>
                       Laisse vide si adapté à tous les âges.
                     </div>

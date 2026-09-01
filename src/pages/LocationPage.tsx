@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EQUIP_ICONS, EQUIP_LABELS, EquipKey } from '@/assets/icons';
 import { AGE_BUCKETS, AgeBucket, ageVerdict, getPriorityEquip } from '@/lib/ageFilter';
+import { formatAgeRangeI18n } from '@/lib/ageFormat';
 import { translateToken } from '@/i18n/tokenMaps';
 import { galleryMedia } from '@/lib/gallery';
 import LocationGallery from '@/components/LocationGallery';
@@ -340,8 +341,8 @@ const LocationPage = () => {
               </h2>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {[
-                  { label: t('location_page.info_age'), value: (location as any).age_min != null || (location as any).age_max != null
-                    ? `${(location as any).age_min ?? 0}${(location as any).age_max ? `–${(location as any).age_max}` : '+'} ans`
+                  { label: t('location_page.info_age'), value: (location as any).age_min_months != null || (location as any).age_max_months != null
+                    ? formatAgeRangeI18n(t, (location as any).age_min_months, (location as any).age_max_months)
                     : null },
                   { label: t('location_page.info_duration'), value: (location as any).duration ? translateToken('duration', (location as any).duration) : null },
                   { label: t('location_page.info_weather'), value: (location as any).weather ? translateToken('weather', (location as any).weather) : null },

@@ -18,7 +18,13 @@
     "months_ago": "Il y a {{count}} mois",
     "privacy": "Confidentialité",
     "support": "Support",
-    "example_name": "Ex. Camille"
+    "example_name": "Ex. Camille",
+    "age_all": "Tous âges",
+    "age_from": "Dès {{age}}",
+    "age_up_to": "Jusqu'à {{age}}",
+    "age_range": "{{min}} – {{max}}",
+    "age_in_months": "{{age}} mois",
+    "age_in_years": "{{age}} ans"
   },
   "nav": {
     "explore": "EXPLORER",
@@ -171,11 +177,6 @@
     "info_duration": "Durée",
     "info_price": "Prix",
     "info_weather": "Météo",
-    "age_all": "Tous âges",
-    "age_up_to": "Jusqu'à {{max}} ans",
-    "age_from": "Dès {{min}} ans",
-    "age_exact": "{{age}} ans",
-    "age_range": "{{min}}–{{max}} ans",
     "feedback_auth_prompt": "Connecte-toi pour partager ton avis",
     "next_date": "Prochaine : {{date}}",
     "extra_dates_one": "+1 date",

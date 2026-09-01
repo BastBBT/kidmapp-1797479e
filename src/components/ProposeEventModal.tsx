@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProposalModal } from '@/hooks/useProposalModal';
 import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryEmoji } from '@/types/event';
 import { DURATIONS } from '@/lib/activity';
+import { ageToMonths, ageRangeError, type AgeUnit } from '@/lib/ageFormat';
+import AgeRangeInput from '@/components/AgeRangeInput';
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -87,6 +89,7 @@ const ProposeEventModal = () => {
     time: '',
     age_min: '',
     age_max: '',
+    age_unit: 'years' as AgeUnit,
     duration: '',
     weather: '',
     price: '',
@@ -100,7 +103,7 @@ const ProposeEventModal = () => {
   const reset = () => {
     setForm({
       name: '', category: 'Spectacle', address: '', date_start: '', date_end: '',
-      time: '', age_min: '', age_max: '', duration: '', weather: '',
+      time: '', age_min: '', age_max: '', age_unit: 'years', duration: '', weather: '',
       price: '', website: '', instagram: '', note: '',
     });
     setPhotoFile(null);
@@ -123,7 +126,8 @@ const ProposeEventModal = () => {
     }
   };
 
-  const canSubmit = form.name.trim() && form.category && form.date_start;
+  const canSubmit = Boolean(form.name.trim() && form.category && form.date_start)
+    && !ageRangeError(form.age_min, form.age_max, form.age_unit);
 
   const handleSubmit = async () => {
     if (!user) return;
@@ -151,8 +155,8 @@ const ProposeEventModal = () => {
         date_start: form.date_start,
         date_end: form.date_end || null,
         time: form.time || null,
-        age_min: form.age_min === '' ? null : Math.max(0, parseInt(form.age_min, 10)) || null,
-        age_max: form.age_max === '' ? null : Math.max(0, parseInt(form.age_max, 10)) || null,
+        age_min_months: form.age_min === '' ? null : ageToMonths(Math.max(0, parseInt(form.age_min, 10)), form.age_unit) || null,
+        age_max_months: form.age_max === '' ? null : ageToMonths(Math.max(0, parseInt(form.age_max, 10)), form.age_unit) || null,
         duration: form.duration || null,
         weather: form.weather || null,
         price: form.price.trim() || null,
@@ -316,32 +320,14 @@ const ProposeEventModal = () => {
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <div>
-                    <Label>Dès (âge)</Label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={18}
-                      style={inputStyle}
-                      value={form.age_min}
-                      onChange={(e) => update('age_min', e.target.value)}
-                      placeholder="Ex: 3"
-                    />
-                  </div>
-                  <div>
-                    <Label>Jusqu'à (âge)</Label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={18}
-                      style={inputStyle}
-                      value={form.age_max}
-                      onChange={(e) => update('age_max', e.target.value)}
-                      placeholder="Ex: 10"
-                    />
-                  </div>
-                </div>
+                <AgeRangeInput
+                  minValue={form.age_min}
+                  maxValue={form.age_max}
+                  unit={form.age_unit}
+                  onMinChange={(v) => update('age_min', v)}
+                  onMaxChange={(v) => update('age_max', v)}
+                  onUnitChange={(u) => update('age_unit', u)}
+                />
 
                 <div>
                   <Label>Durée</Label>

@@ -16,6 +16,7 @@ import EventFeedbackCard from '@/components/EventFeedbackCard';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 import { translateToken } from '@/i18n/tokenMaps';
 import { formatDateLong, localeOf } from '@/lib/formatDate';
+import { formatAgeRangeI18n } from '@/lib/ageFormat';
 
 const EventPage = () => {
   const { id } = useParams();
@@ -258,7 +259,7 @@ const EventPage = () => {
       {/* Info grid */}
       <div style={{ padding: '20px 16px 0' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <InfoCell label={t('event.info_age')} value={ageLabel(event.age_min, event.age_max, t)} />
+          <InfoCell label={t('event.info_age')} value={formatAgeRangeI18n(t, event.age_min_months, event.age_max_months)} />
           <InfoCell label={t('event.info_duration')} value={event.duration ? translateToken('duration', event.duration) : null} />
           <InfoCell label={t('event.info_price')} value={event.price ? translateToken('price', event.price) : null} />
           <InfoCell label={t('event.info_weather')} value={event.weather ? translateToken('weather', event.weather) : null} />
@@ -434,13 +435,5 @@ const InfoCell = ({ label, value }: { label: string; value: string | number | nu
     </div>
   </div>
 );
-
-const ageLabel = (min: number | null, max: number | null, t: (k: string, o?: any) => string) => {
-  if (min == null && max == null) return t('event.age_all');
-  if (min == null) return t('event.age_up_to', { max });
-  if (max == null) return t('event.age_from', { min });
-  if (min === max) return t('event.age_exact', { age: min });
-  return t('event.age_range', { min, max });
-};
 
 export default EventPage;

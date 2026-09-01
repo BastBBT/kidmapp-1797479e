@@ -9,10 +9,11 @@ export const AGE_BUCKETS: { id: AgeBucket; label: string }[] = [
   { id: '6+', label: '6+ ans' },
 ];
 
+// En mois (age_min_months / age_max_months), comme AgeBand côté iOS/Android.
 export const AGE_RANGES: Record<Exclude<AgeBucket, 'all'>, { min: number; max: number }> = {
-  '0-2': { min: 0, max: 2 },
-  '3-5': { min: 3, max: 5 },
-  '6+': { min: 6, max: 99 },
+  '0-2': { min: 0, max: 24 },
+  '3-5': { min: 36, max: 60 },
+  '6+': { min: 72, max: 1188 },
 };
 
 // Priority equipment for each age bucket (used for scoring + highlighting).
@@ -23,8 +24,8 @@ export const PRIORITY_EQUIP: Record<Exclude<AgeBucket, 'all'>, EquipKey[]> = {
 };
 
 type AgedLoc = {
-  age_min?: number | null;
-  age_max?: number | null;
+  age_min_months?: number | null;
+  age_max_months?: number | null;
   high_chair?: boolean | null;
   changing_table?: boolean | null;
   kids_area?: boolean | null;
@@ -34,13 +35,13 @@ type AgedLoc = {
 /**
  * Age overlap: a location with null/null ages is treated as "all ages" and
  * ALWAYS matches (never hidden). Otherwise use overlap:
- *   (age_min ?? 0) <= bucket.max AND (age_max ?? 99) >= bucket.min
+ *   (age_min_months ?? 0) <= bucket.max AND (age_max_months ?? 1188) >= bucket.min
  */
 export const matchesAgeBucket = (loc: AgedLoc, bucket: AgeBucket): boolean => {
   if (bucket === 'all') return true;
   const range = AGE_RANGES[bucket];
-  const lmin = loc.age_min ?? 0;
-  const lmax = loc.age_max ?? 99;
+  const lmin = loc.age_min_months ?? 0;
+  const lmax = loc.age_max_months ?? AGE_RANGES['6+'].max;
   return lmin <= range.max && lmax >= range.min;
 };
 

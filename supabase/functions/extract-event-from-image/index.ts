@@ -34,8 +34,8 @@ const SYSTEM_PROMPT = `Tu es un assistant qui extrait les informations d'un év�
   "date_start": "YYYY-MM-DD | null",
   "date_end": "YYYY-MM-DD | null",
   "time": "HH:MM | null",
-  "age_min": "number | null",
-  "age_max": "number | null",
+  "age_min_months": "number | null (âge minimum en MOIS, ex: 18 pour 'dès 18 mois', 36 pour 'dès 3 ans')",
+  "age_max_months": "number | null (âge maximum en MOIS, même unité que age_min_months)",
   "duration": "string | null",
   "weather": "En intérieur" | "En extérieur" | "Les deux" | null,
   "price": "string | null",
@@ -45,6 +45,7 @@ const SYSTEM_PROMPT = `Tu es un assistant qui extrait les informations d'un év�
 }
 
 Règles strictes :
+- "age_min_months"/"age_max_months" sont TOUJOURS en mois, même si l'affiche indique un âge en années : convertis (ex: "dès 3 ans" → 36, "jusqu'à 10 ans" → 120). Ne jamais renvoyer un nombre d'années brut dans ces champs.
 - "category" doit être STRICTEMENT une des 7 valeurs listées. Si aucune ne correspond, choisis "Autre".
 - "weather" doit être STRICTEMENT une des 3 valeurs listées, ou null si non déductible.
 - "date_start" : date la plus proche/pertinente si plusieurs dates. Format YYYY-MM-DD.
@@ -93,10 +94,12 @@ function normalizeTime(v: unknown): string | null {
   return null;
 }
 
-function normalizeInt(v: unknown): number | null {
+// Plafond en mois (18 ans révolus) : mêmes bornes que le reste du produit,
+// que l'affiche donne un âge en mois ou en années (converti par le prompt).
+function normalizeAgeMonths(v: unknown): number | null {
   if (v === null || v === undefined || v === '') return null;
   const n = typeof v === 'number' ? v : parseInt(String(v), 10);
-  if (Number.isNaN(n) || n < 0 || n > 18) return null;
+  if (Number.isNaN(n) || n < 0 || n > 18 * 12) return null;
   return n;
 }
 
@@ -137,8 +140,8 @@ function normalizeExtracted(raw: any): Record<string, unknown> {
     date_start: normalizeDate(raw?.date_start),
     date_end: normalizeDate(raw?.date_end),
     time: normalizeTime(raw?.time),
-    age_min: normalizeInt(raw?.age_min),
-    age_max: normalizeInt(raw?.age_max),
+    age_min_months: normalizeAgeMonths(raw?.age_min_months),
+    age_max_months: normalizeAgeMonths(raw?.age_max_months),
     duration: normalizeStr(raw?.duration),
     weather: normalizeWeather(raw?.weather),
     price: normalizeStr(raw?.price),
