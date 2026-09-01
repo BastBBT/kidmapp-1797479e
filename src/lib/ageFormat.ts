@@ -6,6 +6,15 @@ export type AgeUnit = 'years' | 'months';
 export const ageToMonths = (value: number, unit: AgeUnit): number =>
   unit === 'years' ? value * 12 : value;
 
+/**
+ * Convertit un âge issu d'une contribution (JSONB `contributions.content.activity`)
+ * en mois. Les contributions écrites avant le 31/08/2026 sont en années, sans
+ * marqueur d'unité — seules celles portant `age_unit: 'months'` (écrites depuis)
+ * sont déjà en mois. Absence de marqueur = traité comme années (×12).
+ */
+export const contributionAgeToMonths = (value: number | null | undefined, ageUnit: unknown): number | null =>
+  value == null ? null : ageToMonths(value, ageUnit === 'months' ? 'months' : 'years');
+
 // "18 mois" sous 2 ans, arrondi en années au-delà ("2 ans", "6 ans").
 export const formatAge = (months: number): string => {
   if (months < 24) return `${months} mois`;
@@ -32,6 +41,27 @@ export const formatAgeRangeI18n = (t: TFunc, min?: number | null, max?: number |
   if (max == null) return t('common.age_from', { age: formatAgeI18n(t, min!) });
   if (min == null) return t('common.age_up_to', { age: formatAgeI18n(t, max) });
   return t('common.age_range', { min: formatAgeI18n(t, min), max: formatAgeI18n(t, max) });
+};
+
+/**
+ * Valide une paire de champs âge saisis en texte, dans l'unité choisie.
+ * Miroir de `ageError` (ProposeLocationSheet.swift côté iOS) : aucun de ces
+ * formulaires web n'est un <form>, donc les attributs min/max HTML ne
+ * bloquent jamais rien — cette fonction est le seul vrai garde-fou.
+ */
+export const ageRangeError = (minValue: string, maxValue: string, unit: AgeUnit): string | null => {
+  const trimmedMin = minValue.trim();
+  const trimmedMax = maxValue.trim();
+  const minV = trimmedMin === '' ? null : Number(trimmedMin);
+  const maxV = trimmedMax === '' ? null : Number(trimmedMax);
+  if (trimmedMin !== '' && (minV === null || Number.isNaN(minV))) return 'Âge invalide';
+  if (trimmedMax !== '' && (maxV === null || Number.isNaN(maxV))) return 'Âge invalide';
+  const maxAllowed = unit === 'years' ? 99 : 36;
+  const rangeMsg = unit === 'years' ? 'Âge entre 0 et 99 ans' : 'Âge entre 0 et 36 mois';
+  if (minV != null && (minV < 0 || minV > maxAllowed)) return rangeMsg;
+  if (maxV != null && (maxV < 0 || maxV > maxAllowed)) return rangeMsg;
+  if (minV != null && maxV != null && maxV < minV) return "L'âge max doit être ≥ l'âge min";
+  return null;
 };
 
 /**

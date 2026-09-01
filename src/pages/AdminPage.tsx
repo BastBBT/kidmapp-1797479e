@@ -19,7 +19,7 @@ import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 import { BOT_SOURCING_EMAIL, isBotEmail } from '@/lib/adminBot';
-import { ageToMonths, formatAgeRange, monthsPairToDraft, type AgeUnit } from '@/lib/ageFormat';
+import { ageToMonths, ageRangeError, contributionAgeToMonths, formatAgeRange, monthsPairToDraft, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
 
 
@@ -484,10 +484,13 @@ const AdminPage = () => {
         if (typeof act.age_min === 'number') {
           const curMin = (locRow as any)?.age_min_months;
           const curMax = (locRow as any)?.age_max_months;
-          updateData.age_min_months = typeof curMin === 'number' ? Math.min(curMin, act.age_min) : act.age_min;
+          // Contributions écrites avant le 31/08/2026 : en années, sans `age_unit`.
+          const actMinMonths = contributionAgeToMonths(act.age_min, act.age_unit)!;
+          const actMaxMonths = contributionAgeToMonths(act.age_max, act.age_unit);
+          updateData.age_min_months = typeof curMin === 'number' ? Math.min(curMin, actMinMonths) : actMinMonths;
           // null d'un côté ou de l'autre = pas de borne haute.
           updateData.age_max_months =
-            act.age_max == null || curMax == null ? null : Math.max(curMax, act.age_max);
+            actMaxMonths == null || curMax == null ? null : Math.max(curMax, actMaxMonths);
         }
       }
       if (Object.keys(updateData).length > 0) {
@@ -562,6 +565,11 @@ const AdminPage = () => {
   const handleAddLocation = async () => {
     if (!form.name || !form.address) {
       toast({ title: 'Erreur', description: 'Remplissez tous les champs obligatoires', variant: 'destructive' });
+      return;
+    }
+    const ageErr = ageRangeError(form.age_min, form.age_max, form.age_unit);
+    if (ageErr) {
+      toast({ title: 'Erreur', description: ageErr, variant: 'destructive' });
       return;
     }
     setSubmitting(true);
@@ -1187,7 +1195,10 @@ const AdminPage = () => {
                           activityInfo.price && { emoji: '💶', label: `Prix : ${activityInfo.price}` },
                           typeof activityInfo.age_min === 'number' && {
                             emoji: '👤',
-                            label: `Âge : ${formatAgeRange(activityInfo.age_min, activityInfo.age_max)}`,
+                            label: `Âge : ${formatAgeRange(
+                              contributionAgeToMonths(activityInfo.age_min, activityInfo.age_unit),
+                              contributionAgeToMonths(activityInfo.age_max, activityInfo.age_unit)
+                            )}`,
                           },
                         ].filter(Boolean) as { emoji: string; label: string }[]
                       : [];
@@ -1919,6 +1930,11 @@ const AdminPage = () => {
 
               <button
                 onClick={async () => {
+                  const ageErr = ageRangeError(editForm.age_min ?? '', editForm.age_max ?? '', editForm.age_unit ?? 'years');
+                  if (ageErr) {
+                    toast({ title: 'Erreur', description: ageErr, variant: 'destructive' });
+                    return;
+                  }
                   // Upload new photo if user selected a file
                   let finalPhotoUrl: string | null = editForm.photo || null;
                   if (editPhotoFile) {
@@ -2532,6 +2548,11 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
     if (!editDraft) return;
     if (!editDraft.name || !editDraft.address) {
       toast({ title: 'Erreur', description: 'Nom et adresse obligatoires', variant: 'destructive' });
+      return;
+    }
+    const ageErr = ageRangeError(editDraft.age_min ?? '', editDraft.age_max ?? '', editDraft.age_unit ?? 'years');
+    if (ageErr) {
+      toast({ title: 'Erreur', description: ageErr, variant: 'destructive' });
       return;
     }
     setProcessingId(proposal.id);
@@ -3285,6 +3306,11 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     if (!editingId || !editDraft) return;
     if (!editSlots.some((s) => s.date_start)) {
       toast({ title: 'Erreur', description: 'Au moins un créneau doit avoir une date de début', variant: 'destructive' });
+      return;
+    }
+    const ageErr = ageRangeError(editDraft.age_min ?? '', editDraft.age_max ?? '', editDraft.age_unit ?? 'years');
+    if (ageErr) {
+      toast({ title: 'Erreur', description: ageErr, variant: 'destructive' });
       return;
     }
     setProcessingId(editingId);
@@ -4168,6 +4194,11 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
   const handleAddEvent = async () => {
     if (!form.name || !slots[0]?.date_start) {
       toast({ title: 'Erreur', description: 'Le nom et la date de début du premier créneau sont obligatoires', variant: 'destructive' });
+      return;
+    }
+    const ageErr = ageRangeError(form.age_min, form.age_max, form.age_unit);
+    if (ageErr) {
+      toast({ title: 'Erreur', description: ageErr, variant: 'destructive' });
       return;
     }
     setSubmitting(true);

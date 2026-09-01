@@ -1,4 +1,4 @@
-import type { AgeUnit } from '@/lib/ageFormat';
+import { ageRangeError, type AgeUnit } from '@/lib/ageFormat';
 
 /**
  * Saisie d'un âge conseillé min/max avec sélecteur d'unité (ans/mois).
@@ -25,6 +25,7 @@ export default function AgeRangeInput({
   onUnitChange: (u: AgeUnit) => void;
 }) {
   const maxAllowed = unit === 'years' ? 99 : 36;
+  const error = ageRangeError(minValue, maxValue, unit);
   const inputStyle: React.CSSProperties = {
     flex: 1,
     padding: '10px 12px',
@@ -79,6 +80,11 @@ export default function AgeRangeInput({
           })}
         </div>
       </div>
+      {error && (
+        <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#DC2626', marginTop: 6 }}>
+          {error}
+        </div>
+      )}
     </div>
   );
 }

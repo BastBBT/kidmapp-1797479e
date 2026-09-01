@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProposalModal } from '@/hooks/useProposalModal';
 import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryEmoji } from '@/types/event';
 import { DURATIONS } from '@/lib/activity';
-import { ageToMonths, type AgeUnit } from '@/lib/ageFormat';
+import { ageToMonths, ageRangeError, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
 
 const inputStyle: React.CSSProperties = {
@@ -126,7 +126,8 @@ const ProposeEventModal = () => {
     }
   };
 
-  const canSubmit = form.name.trim() && form.category && form.date_start;
+  const canSubmit = Boolean(form.name.trim() && form.category && form.date_start)
+    && !ageRangeError(form.age_min, form.age_max, form.age_unit);
 
   const handleSubmit = async () => {
     if (!user) return;

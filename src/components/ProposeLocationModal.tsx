@@ -9,7 +9,7 @@ import { MEAL_ICONS, EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
 
 import { DURATIONS, WEATHERS, EFFORTS, PRICES } from '@/lib/activity';
 import { isActivity } from '@/types/location';
-import { ageToMonths, type AgeUnit } from '@/lib/ageFormat';
+import { ageToMonths, ageRangeError, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
 
 const PLACE_CATEGORY_OPTIONS: { id: string; label: string }[] = [
@@ -152,6 +152,11 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
     if (!form.name || !form.address) {
       toast({ title: 'Champs requis', description: 'Nom, catégorie et adresse sont obligatoires.', variant: 'destructive' });
       setStep(0);
+      return;
+    }
+    const ageErr = ageRangeError(form.age_min, form.age_max, form.age_unit);
+    if (ageErr) {
+      toast({ title: 'Erreur', description: ageErr, variant: 'destructive' });
       return;
     }
     setSubmitting(true);
