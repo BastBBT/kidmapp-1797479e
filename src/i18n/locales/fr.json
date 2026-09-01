@@ -40,6 +40,8 @@
     "reviews": "{{count}} avis",
     "a_family": "Une famille",
     "thanks": "Merci pour ta contribution !",
+    "toast_success_title": "Merci, c'est envoyé !",
+    "toast_success_subtitle": "Vérifié sous 48h",
     "submit": "Envoyer",
     "submit_auth": "Se connecter pour contribuer",
     "auth_hint": "Connecte-toi pour pouvoir contribuer.",
