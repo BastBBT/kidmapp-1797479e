@@ -19,6 +19,8 @@ import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 import { BOT_SOURCING_EMAIL, isBotEmail } from '@/lib/adminBot';
+import { ageToMonths, formatAgeRange, monthsPairToDraft, type AgeUnit } from '@/lib/ageFormat';
+import AgeRangeInput from '@/components/AgeRangeInput';
 
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events';
@@ -299,6 +301,7 @@ const AdminPage = () => {
     note: '',
     age_min: '' as string,
     age_max: '' as string,
+    age_unit: 'years' as AgeUnit,
     duration: '' as string,
     weather: '' as string,
     effort: '' as string,
@@ -475,15 +478,15 @@ const AdminPage = () => {
         // existante au lieu de l'écraser (sinon un « 6+ » effacerait le « dès 3 ans »).
         const { data: locRow } = await supabase
           .from('locations')
-          .select('age_min, age_max')
+          .select('age_min_months, age_max_months')
           .eq('id', contrib.location_id)
           .maybeSingle();
         if (typeof act.age_min === 'number') {
-          const curMin = (locRow as any)?.age_min;
-          const curMax = (locRow as any)?.age_max;
-          updateData.age_min = typeof curMin === 'number' ? Math.min(curMin, act.age_min) : act.age_min;
+          const curMin = (locRow as any)?.age_min_months;
+          const curMax = (locRow as any)?.age_max_months;
+          updateData.age_min_months = typeof curMin === 'number' ? Math.min(curMin, act.age_min) : act.age_min;
           // null d'un côté ou de l'autre = pas de borne haute.
-          updateData.age_max =
+          updateData.age_max_months =
             act.age_max == null || curMax == null ? null : Math.max(curMax, act.age_max);
         }
       }
@@ -614,8 +617,8 @@ const AdminPage = () => {
       website: form.website || null,
       instagram: form.instagram || null,
       note: form.note || null,
-      age_min: form.age_min.trim() === '' ? null : Math.max(0, parseInt(form.age_min, 10)) || null,
-      age_max: form.age_max.trim() === '' ? null : Math.max(0, parseInt(form.age_max, 10)) || null,
+      age_min_months: form.age_min.trim() === '' ? null : ageToMonths(Math.max(0, parseInt(form.age_min, 10)), form.age_unit) || null,
+      age_max_months: form.age_max.trim() === '' ? null : ageToMonths(Math.max(0, parseInt(form.age_max, 10)), form.age_unit) || null,
     };
     if (form.category === 'restaurant' || form.category === 'cafe') {
       insertData.bookable = form.bookable;
@@ -662,7 +665,7 @@ const AdminPage = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     queryClient.invalidateQueries({ queryKey: ['location_meals'] });
     toast({ title: 'Lieu ajouté ✓' });
-    setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, kids_menu: false, bookable: 'unknown', status: 'pending', website: '', instagram: '', note: '', age_min: '', age_max: '', duration: '', weather: '', effort: '', price: '' });
+    setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, kids_menu: false, bookable: 'unknown', status: 'pending', website: '', instagram: '', note: '', age_min: '', age_max: '', age_unit: 'years', duration: '', weather: '', effort: '', price: '' });
     setPhotoFile(null);
     setPhotoPreview(null);
     setAddMeals(buildEmptyMealsState(mealTypes));
@@ -1060,8 +1063,10 @@ const AdminPage = () => {
                         kids_menu: (loc as any).kids_menu ?? false,
                         bookable: (loc as any).bookable ?? 'unknown',
                         status: loc.status,
-                        age_min: (loc as any).age_min != null ? String((loc as any).age_min) : '',
-                        age_max: (loc as any).age_max != null ? String((loc as any).age_max) : '',
+                        ...(() => {
+                          const { minValue, maxValue, unit } = monthsPairToDraft((loc as any).age_min_months, (loc as any).age_max_months);
+                          return { age_min: minValue, age_max: maxValue, age_unit: unit };
+                        })(),
                         duration: (loc as any).duration ?? '',
                         weather: (loc as any).weather ?? '',
                         effort: (loc as any).effort ?? '',
@@ -1182,7 +1187,7 @@ const AdminPage = () => {
                           activityInfo.price && { emoji: '💶', label: `Prix : ${activityInfo.price}` },
                           typeof activityInfo.age_min === 'number' && {
                             emoji: '👤',
-                            label: `Âge : ${activityInfo.age_min}${activityInfo.age_max != null ? `-${activityInfo.age_max} ans` : ' ans +'}`,
+                            label: `Âge : ${formatAgeRange(activityInfo.age_min, activityInfo.age_max)}`,
                           },
                         ].filter(Boolean) as { emoji: string; label: string }[]
                       : [];
@@ -1634,27 +1639,14 @@ const AdminPage = () => {
                   </div>
                 )}
 
-                <div>
-                  <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
-                    Âge conseillé (optionnel)
-                  </label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input
-                      type="number" min={0} max={99} inputMode="numeric"
-                      value={form.age_min}
-                      onChange={(e) => updateForm('age_min', e.target.value.replace(/[^\d]/g, ''))}
-                      placeholder="Dès X ans"
-                      style={{ flex: 1, padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
-                    />
-                    <input
-                      type="number" min={0} max={99} inputMode="numeric"
-                      value={form.age_max}
-                      onChange={(e) => updateForm('age_max', e.target.value.replace(/[^\d]/g, ''))}
-                      placeholder="Jusqu'à Y ans"
-                      style={{ flex: 1, padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
-                    />
-                  </div>
-                </div>
+                <AgeRangeInput
+                  minValue={form.age_min}
+                  maxValue={form.age_max}
+                  unit={form.age_unit}
+                  onMinChange={(v) => updateForm('age_min', v)}
+                  onMaxChange={(v) => updateForm('age_max', v)}
+                  onUnitChange={(u) => updateForm('age_unit', u)}
+                />
 
                 {(form.category === 'restaurant' || form.category === 'cafe') && (
                   <div>
@@ -1894,27 +1886,14 @@ const AdminPage = () => {
                   <Toggle label="🍽️ Menu enfant" checked={!!editForm.kids_menu} onChange={(v) => setEditForm((f: any) => ({ ...f, kids_menu: v }))} />
                 </div>
               )}
-              <div>
-                <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
-                  Âge conseillé (optionnel)
-                </label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input
-                    type="number" min={0} max={99} inputMode="numeric"
-                    value={editForm.age_min ?? ''}
-                    onChange={(e) => setEditForm((f: any) => ({ ...f, age_min: e.target.value.replace(/[^\d]/g, '') }))}
-                    placeholder="Dès X ans"
-                    style={{ flex: 1, padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
-                  />
-                  <input
-                    type="number" min={0} max={99} inputMode="numeric"
-                    value={editForm.age_max ?? ''}
-                    onChange={(e) => setEditForm((f: any) => ({ ...f, age_max: e.target.value.replace(/[^\d]/g, '') }))}
-                    placeholder="Jusqu'à Y ans"
-                    style={{ flex: 1, padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: '14px', color: 'var(--text)', outline: 'none' }}
-                  />
-                </div>
-              </div>
+              <AgeRangeInput
+                minValue={editForm.age_min ?? ''}
+                maxValue={editForm.age_max ?? ''}
+                unit={editForm.age_unit ?? 'years'}
+                onMinChange={(v) => setEditForm((f: any) => ({ ...f, age_min: v }))}
+                onMaxChange={(v) => setEditForm((f: any) => ({ ...f, age_max: v }))}
+                onUnitChange={(u) => setEditForm((f: any) => ({ ...f, age_unit: u }))}
+              />
               {(editForm.category === 'restaurant' || editForm.category === 'cafe') && (
                 <div>
                   <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Réservation</label>
@@ -2050,8 +2029,8 @@ const AdminPage = () => {
                     kids_menu: !!editForm.kids_menu,
                     bookable: editForm.bookable,
                     status: editForm.status,
-                    age_min: (editForm.age_min ?? '').toString().trim() === '' ? null : Math.max(0, parseInt(editForm.age_min, 10)) || null,
-                    age_max: (editForm.age_max ?? '').toString().trim() === '' ? null : Math.max(0, parseInt(editForm.age_max, 10)) || null,
+                    age_min_months: (editForm.age_min ?? '').toString().trim() === '' ? null : ageToMonths(Math.max(0, parseInt(editForm.age_min, 10)), editForm.age_unit ?? 'years') || null,
+                    age_max_months: (editForm.age_max ?? '').toString().trim() === '' ? null : ageToMonths(Math.max(0, parseInt(editForm.age_max, 10)), editForm.age_unit ?? 'years') || null,
                   };
                   if (isActivity(editForm.category)) {
                     updatePayload.duration = editForm.duration || null;
@@ -2538,8 +2517,10 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
       kids_area: !!proposal.kids_area,
       kids_menu: !!proposal.kids_menu,
       bookable: proposal.bookable ?? 'unknown',
-      age_min: proposal.age_min ?? '',
-      age_max: proposal.age_max ?? '',
+      ...(() => {
+        const { minValue, maxValue, unit } = monthsPairToDraft(proposal.age_min_months, proposal.age_max_months);
+        return { age_min: minValue, age_max: maxValue, age_unit: unit };
+      })(),
       duration: proposal.duration ?? '',
       weather: proposal.weather ?? '',
       effort: proposal.effort ?? '',
@@ -2599,8 +2580,8 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         website: editDraft.website || null,
         instagram: editDraft.instagram || null,
         note: editDraft.note || null,
-        age_min: editDraft.age_min === '' || editDraft.age_min == null ? null : Number(editDraft.age_min),
-        age_max: editDraft.age_max === '' || editDraft.age_max == null ? null : Number(editDraft.age_max),
+        age_min_months: editDraft.age_min === '' || editDraft.age_min == null ? null : ageToMonths(Number(editDraft.age_min), editDraft.age_unit ?? 'years'),
+        age_max_months: editDraft.age_max === '' || editDraft.age_max == null ? null : ageToMonths(Number(editDraft.age_max), editDraft.age_unit ?? 'years'),
         status: 'published',
       };
       if (editDraft.category === 'restaurant' || editDraft.category === 'cafe') {
@@ -2644,11 +2625,13 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
 
       // Track admin edits diff for traceability
       const editedFields: string[] = [];
-      ['name','category','address','website','instagram','note','high_chair','changing_table','kids_area','kids_menu','bookable','photo','age_min','age_max','duration','weather','effort','price'].forEach((k) => {
+      ['name','category','address','website','instagram','note','high_chair','changing_table','kids_area','kids_menu','bookable','photo','duration','weather','effort','price'].forEach((k) => {
         const before = (proposal as any)[k] ?? null;
         const after = (editDraft as any)[k] ?? null;
         if (JSON.stringify(before) !== JSON.stringify(after)) editedFields.push(k);
       });
+      if (proposal.age_min_months !== insertData.age_min_months) editedFields.push('age_min');
+      if (proposal.age_max_months !== insertData.age_max_months) editedFields.push('age_max');
       const newMetadata = {
         ...(proposal.metadata ?? {}),
         admin_edits: { edited_at: new Date().toISOString(), fields: editedFields },
@@ -2706,8 +2689,8 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         website: proposal.website ?? null,
         instagram: proposal.instagram ?? null,
         note: proposal.note ?? null,
-        age_min: proposal.age_min ?? null,
-        age_max: proposal.age_max ?? null,
+        age_min_months: proposal.age_min_months ?? null,
+        age_max_months: proposal.age_max_months ?? null,
         status: 'published',
       };
       if ((proposal.category === 'restaurant' || proposal.category === 'cafe') && proposal.bookable) {
@@ -2928,9 +2911,9 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                   {proposal.kids_menu && <span style={{ color: '#2E7D32' }}>🍽️ Menu enfant</span>}
                 </>
               )}
-              {(proposal.age_min || proposal.age_max) && (
+              {(proposal.age_min_months || proposal.age_max_months) && (
                 <span style={{ color: 'var(--text-muted)' }}>
-                  🎈 {proposal.age_min ?? '0'}–{proposal.age_max ?? '+'} ans
+                  🎈 {formatAgeRange(proposal.age_min_months, proposal.age_max_months)}
                 </span>
               )}
             </div>
@@ -3007,23 +2990,14 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                   </div>
                 )}
                 <div>
-                  <label style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 6 }}>Âge conseillé (optionnel)</label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input
-                      type="number" min={0} max={99} inputMode="numeric"
-                      value={editDraft.age_min ?? ''}
-                      onChange={(e) => setEditDraft({ ...editDraft, age_min: e.target.value.replace(/[^\d]/g, '') })}
-                      placeholder="Dès X ans"
-                      style={{ flex: 1, padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 14 }}
-                    />
-                    <input
-                      type="number" min={0} max={99} inputMode="numeric"
-                      value={editDraft.age_max ?? ''}
-                      onChange={(e) => setEditDraft({ ...editDraft, age_max: e.target.value.replace(/[^\d]/g, '') })}
-                      placeholder="Jusqu'à Y ans"
-                      style={{ flex: 1, padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 14 }}
-                    />
-                  </div>
+                  <AgeRangeInput
+                    minValue={editDraft.age_min ?? ''}
+                    maxValue={editDraft.age_max ?? ''}
+                    unit={editDraft.age_unit ?? 'years'}
+                    onMinChange={(v) => setEditDraft({ ...editDraft, age_min: v })}
+                    onMaxChange={(v) => setEditDraft({ ...editDraft, age_max: v })}
+                    onUnitChange={(u) => setEditDraft({ ...editDraft, age_unit: u })}
+                  />
                 </div>
                 {(editDraft.category === 'restaurant' || editDraft.category === 'cafe') && (
                   <div>
@@ -3252,8 +3226,10 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       name: ev.name ?? '',
       category: ev.category ?? 'Spectacle',
       address: ev.address ?? '',
-      age_min: ev.age_min ?? '',
-      age_max: ev.age_max ?? '',
+      ...(() => {
+        const { minValue, maxValue, unit } = monthsPairToDraft(ev.age_min_months, ev.age_max_months);
+        return { age_min: minValue, age_max: maxValue, age_unit: unit };
+      })(),
       duration: ev.duration ?? '',
       weather: ev.weather ?? '',
       price: ev.price ?? '',
@@ -3338,8 +3314,8 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         name: editDraft.name,
         category: editDraft.category,
         address: editDraft.address || null,
-        age_min: editDraft.age_min === '' ? null : Number(editDraft.age_min),
-        age_max: editDraft.age_max === '' ? null : Number(editDraft.age_max),
+        age_min_months: editDraft.age_min === '' ? null : ageToMonths(Number(editDraft.age_min), editDraft.age_unit ?? 'years'),
+        age_max_months: editDraft.age_max === '' ? null : ageToMonths(Number(editDraft.age_max), editDraft.age_unit ?? 'years'),
         duration: editDraft.duration || null,
         weather: editDraft.weather || null,
         price: editDraft.price || null,
@@ -3618,7 +3594,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
               {(occurrenceCounts[ev.id] ?? 1) > 1 && ` · 🔁 ${occurrenceCounts[ev.id]} créneaux`}
             </div>
             <div className="flex gap-3 flex-wrap mb-2" style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)' }}>
-              {(ev.age_min != null || ev.age_max != null) && <span>👶 {ev.age_min ?? 0}-{ev.age_max ?? '∞'} ans</span>}
+              {(ev.age_min_months != null || ev.age_max_months != null) && <span>👶 {formatAgeRange(ev.age_min_months, ev.age_max_months)}</span>}
               {ev.duration && <span>⏱️ {ev.duration}</span>}
               {ev.weather && <span>🌤️ {ev.weather}</span>}
               {ev.price && <span>💶 {ev.price}</span>}
@@ -3652,11 +3628,15 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                     <input placeholder="Durée" value={editDraft.duration} onChange={(e) => setEditDraft({ ...editDraft, duration: e.target.value })}
                       style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
                   </div>
+                  <AgeRangeInput
+                    minValue={editDraft.age_min}
+                    maxValue={editDraft.age_max}
+                    unit={editDraft.age_unit ?? 'years'}
+                    onMinChange={(v) => setEditDraft({ ...editDraft, age_min: v })}
+                    onMaxChange={(v) => setEditDraft({ ...editDraft, age_max: v })}
+                    onUnitChange={(u) => setEditDraft({ ...editDraft, age_unit: u })}
+                  />
                   <div className="flex gap-2">
-                    <input placeholder="Âge min" type="number" value={editDraft.age_min} onChange={(e) => setEditDraft({ ...editDraft, age_min: e.target.value })}
-                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
-                    <input placeholder="Âge max" type="number" value={editDraft.age_max} onChange={(e) => setEditDraft({ ...editDraft, age_max: e.target.value })}
-                      style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
                     <input placeholder="Prix" value={editDraft.price} onChange={(e) => setEditDraft({ ...editDraft, price: e.target.value })}
                       style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
                   </div>
@@ -4102,6 +4082,7 @@ const emptyEventForm = {
   address: '',
   age_min: '',
   age_max: '',
+  age_unit: 'years' as AgeUnit,
   duration: '',
   weather: '',
   price: '',
@@ -4232,8 +4213,8 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
       date_start: firstSlot.date_start,
       date_end: firstSlot.date_end || null,
       time: firstSlot.time || null,
-      age_min: form.age_min === '' ? null : Number(form.age_min),
-      age_max: form.age_max === '' ? null : Number(form.age_max),
+      age_min_months: form.age_min === '' ? null : ageToMonths(Number(form.age_min), form.age_unit),
+      age_max_months: form.age_max === '' ? null : ageToMonths(Number(form.age_max), form.age_unit),
       duration: form.duration || null,
       weather: form.weather || null,
       price: form.price || null,
@@ -4356,9 +4337,16 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
 
           <FormField label="Durée" value={form.duration} onChange={(v) => updateForm('duration', v)} placeholder="Ex: 1h30" />
 
+          <AgeRangeInput
+            minValue={form.age_min}
+            maxValue={form.age_max}
+            unit={form.age_unit}
+            onMinChange={(v) => updateForm('age_min', v)}
+            onMaxChange={(v) => updateForm('age_max', v)}
+            onUnitChange={(u) => updateForm('age_unit', u)}
+          />
+
           <div className="flex gap-2">
-            <FormField label="Âge min" type="number" value={form.age_min} onChange={(v) => updateForm('age_min', v)} />
-            <FormField label="Âge max" type="number" value={form.age_max} onChange={(v) => updateForm('age_max', v)} />
             <FormField label="Prix" value={form.price} onChange={(v) => updateForm('price', v)} placeholder="Ex: Gratuit" />
           </div>
 

@@ -14,8 +14,8 @@ export interface EventItem {
   date_start: string;
   date_end: string | null;
   time: string | null;
-  age_min: number | null;
-  age_max: number | null;
+  age_min_months: number | null;
+  age_max_months: number | null;
   duration: string | null;
   weather: string | null;
   price: string | null;

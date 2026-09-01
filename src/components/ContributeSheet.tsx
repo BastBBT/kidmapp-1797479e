@@ -133,9 +133,10 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
                 weather,
                 effort,
                 price,
+                // En mois (age_min_months / age_max_months une fois appliqué sur la fiche).
                 age_min: age ? AGE_RANGES[age].min : null,
-                // « 6+ » n'a pas de borne haute : on n'envoie pas 99, qui serait
-                // interprété comme un âge max réel sur la fiche.
+                // « 6+ » n'a pas de borne haute : on n'envoie pas la borne de la tranche,
+                // qui serait interprétée comme un âge max réel sur la fiche.
                 age_max: age && age !== '6+' ? AGE_RANGES[age].max : null,
               },
               comment: trimmedComment || null,
