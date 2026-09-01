@@ -4164,8 +4164,11 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
         name: data.name || p.name,
         category: (EVENT_CATEGORIES as readonly string[]).includes(data.category) ? data.category : p.category,
         address: data.address || p.address,
-        age_min: data.age_min != null ? String(data.age_min) : p.age_min,
-        age_max: data.age_max != null ? String(data.age_max) : p.age_max,
+        age_min: data.age_min_months != null ? String(data.age_min_months) : p.age_min,
+        age_max: data.age_max_months != null ? String(data.age_max_months) : p.age_max,
+        // L'extraction renvoie toujours l'âge en mois (cf. prompt de la fonction) :
+        // forcer l'unité évite qu'une valeur mois soit relue comme des années.
+        age_unit: (data.age_min_months != null || data.age_max_months != null) ? 'months' : p.age_unit,
         duration: data.duration || p.duration,
         weather: (EVENT_WEATHERS as readonly string[]).includes(data.weather) ? data.weather : p.weather,
         price: data.price || p.price,

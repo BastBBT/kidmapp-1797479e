@@ -1,11 +1,12 @@
-import { ageRangeError, type AgeUnit } from '@/lib/ageFormat';
+import { ageRangeError, convertAgeDraftValue, type AgeUnit } from '@/lib/ageFormat';
 
 /**
  * Saisie d'un âge conseillé min/max avec sélecteur d'unité (ans/mois).
- * Les valeurs affichées restent dans l'unité choisie ; la conversion en mois
- * (unité de stockage, age_min_months/age_max_months) se fait à la soumission
- * du formulaire appelant, via `ageToMonths`. Miroir du sélecteur iOS/Android
- * (AgeUnit) et de `monthsPairToDraft` pour l'édition.
+ * Basculer l'unité convertit les valeurs déjà saisies (`convertAgeDraftValue`)
+ * pour qu'elles restent le même âge, pas le même nombre. La conversion finale
+ * en mois (unité de stockage, age_min_months/age_max_months) se fait à la
+ * soumission du formulaire appelant, via `ageToMonths`. Miroir du sélecteur
+ * iOS/Android (AgeUnit) et de `monthsPairToDraft` pour l'édition.
  */
 export default function AgeRangeInput({
   label = 'Âge conseillé (optionnel)',
@@ -26,6 +27,12 @@ export default function AgeRangeInput({
 }) {
   const maxAllowed = unit === 'years' ? 99 : 36;
   const error = ageRangeError(minValue, maxValue, unit);
+  const switchUnit = (u: AgeUnit) => {
+    if (u === unit) return;
+    onMinChange(convertAgeDraftValue(minValue, unit, u));
+    onMaxChange(convertAgeDraftValue(maxValue, unit, u));
+    onUnitChange(u);
+  };
   const inputStyle: React.CSSProperties = {
     flex: 1,
     padding: '10px 12px',
@@ -65,7 +72,7 @@ export default function AgeRangeInput({
               <button
                 type="button"
                 key={u}
-                onClick={() => onUnitChange(u)}
+                onClick={() => switchUnit(u)}
                 style={{
                   padding: '6px 10px', borderRadius: 8,
                   border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',

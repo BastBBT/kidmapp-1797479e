@@ -68,15 +68,31 @@ export const ageRangeError = (minValue: string, maxValue: string, unit: AgeUnit)
  * Pré-remplit un formulaire d'édition à partir de valeurs en mois : si les deux
  * bornes définies sont des années pleines (≥ 24 et multiples de 12), l'unité
  * "ans" est plus lisible pour l'admin ; sinon on reste en mois pour ne pas
- * perdre de précision (ex: 18 mois affiché "36 mois" plutôt que "3 ans" faux).
+ * perdre de précision (ex: 18 mois reste affiché "18 mois", pas "2 ans" faux).
+ * Sans aucune borne définie (fiche/proposition sans âge), on retombe sur "ans"
+ * — c'est aussi l'unité par défaut du formulaire de création, à ne pas
+ * désaccorder entre "créer" et "éditer une fiche vierge".
  */
 export const monthsPairToDraft = (
   min?: number | null,
   max?: number | null
 ): { minValue: string; maxValue: string; unit: AgeUnit } => {
   const defined = [min, max].filter((v): v is number => v != null);
-  const allCleanYears = defined.length > 0 && defined.every((v) => v >= 24 && v % 12 === 0);
+  const allCleanYears = defined.every((v) => v >= 24 && v % 12 === 0);
   const unit: AgeUnit = allCleanYears ? 'years' : 'months';
   const toDraft = (v?: number | null) => (v == null ? '' : String(unit === 'years' ? v / 12 : v));
   return { minValue: toDraft(min), maxValue: toDraft(max), unit };
+};
+
+/**
+ * Convertit une valeur de champ (texte) d'une unité vers une autre, pour le
+ * toggle ans/mois d'AgeRangeInput — sans ça, changer l'unité change juste
+ * l'interprétation du nombre déjà saisi (12 "mois" devient 12 "ans" au clic).
+ */
+export const convertAgeDraftValue = (value: string, fromUnit: AgeUnit, toUnit: AgeUnit): string => {
+  if (value.trim() === '' || fromUnit === toUnit) return value;
+  const n = parseInt(value, 10);
+  if (Number.isNaN(n)) return value;
+  const months = ageToMonths(n, fromUnit);
+  return String(toUnit === 'years' ? Math.round(months / 12) : months);
 };
