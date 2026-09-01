@@ -40,6 +40,8 @@
     "reviews": "{{count}} reviews",
     "a_family": "A family",
     "thanks": "Thanks for your contribution!",
+    "toast_success_title": "Thanks, it's sent!",
+    "toast_success_subtitle": "Verified within 48h",
     "submit": "Send",
     "submit_auth": "Sign in to contribute",
     "auth_hint": "Sign in to contribute.",

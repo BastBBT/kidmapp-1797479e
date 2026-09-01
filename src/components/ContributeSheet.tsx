@@ -159,7 +159,12 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
       } as any);
       if (error) throw error;
 
-      toast.success('Merci pour ta contribution !');
+      toast.success(t('contribution.toast_success_title', { defaultValue: "Merci, c'est envoyé !" }), {
+        description: t('contribution.toast_success_subtitle', { defaultValue: 'Vérifié sous 48h' }),
+        duration: 5000,
+        className: 'bg-secondary text-secondary-foreground border-none',
+        descriptionClassName: 'text-secondary-foreground/85',
+      });
       queryClient.invalidateQueries({ queryKey: ['contributions'] });
       onClose();
     } catch (err: any) {
