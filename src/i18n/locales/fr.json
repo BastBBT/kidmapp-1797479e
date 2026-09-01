@@ -364,5 +364,12 @@
   "ios_banner": {
     "subtitle": "Disponible sur l'App Store",
     "open": "Ouvrir"
+  },
+  "submit_error": {
+    "app_outdated": "Cette version du site n'est plus compatible avec le serveur. Recharge la page et réessaie.",
+    "session_expired": "Ta session a expiré. Reconnecte-toi et réessaie.",
+    "invalid_field": "Un des champs n'est pas valide. Vérifie ta saisie et réessaie.",
+    "network": "Connexion interrompue. Vérifie ta connexion et réessaie.",
+    "retry": "Réessaie dans un instant."
   }
 }
