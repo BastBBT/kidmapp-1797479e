@@ -56,8 +56,14 @@ export const ageRangeError = (minValue: string, maxValue: string, unit: AgeUnit)
   const maxV = trimmedMax === '' ? null : Number(trimmedMax);
   if (trimmedMin !== '' && (minV === null || Number.isNaN(minV))) return 'Âge invalide';
   if (trimmedMax !== '' && (maxV === null || Number.isNaN(maxV))) return 'Âge invalide';
-  const maxAllowed = unit === 'years' ? 99 : 36;
-  const rangeMsg = unit === 'years' ? 'Âge entre 0 et 99 ans' : 'Âge entre 0 et 36 mois';
+  // Même limite réelle (99 ans) des deux côtés. Le plafond était à 36 mois, ce
+  // qui refusait « 60 mois » — un âge parfaitement valide, qui veut simplement
+  // dire 5 ans. Combiné à monthsPairToDraft, il rendait inéditable toute fiche
+  // dont la borne basse était sous 2 ans : le formulaire l'ouvrait en mois puis
+  // refusait la valeur qu'il venait lui-même d'afficher.
+  const maxAllowed = unit === 'years' ? 99 : 99 * 12;
+  const rangeMsg =
+    unit === 'years' ? 'Âge entre 0 et 99 ans' : 'Âge entre 0 et 1188 mois (99 ans)';
   if (minV != null && (minV < 0 || minV > maxAllowed)) return rangeMsg;
   if (maxV != null && (maxV < 0 || maxV > maxAllowed)) return rangeMsg;
   if (minV != null && maxV != null && maxV < minV) return "L'âge max doit être ≥ l'âge min";
@@ -66,19 +72,24 @@ export const ageRangeError = (minValue: string, maxValue: string, unit: AgeUnit)
 
 /**
  * Pré-remplit un formulaire d'édition à partir de valeurs en mois : si les deux
- * bornes définies sont des années pleines (≥ 24 et multiples de 12), l'unité
- * "ans" est plus lisible pour l'admin ; sinon on reste en mois pour ne pas
- * perdre de précision (ex: 18 mois reste affiché "18 mois", pas "2 ans" faux).
+ * bornes définies sont des années pleines (multiples de 12), l'unité "ans" est
+ * plus lisible pour l'admin ; sinon on reste en mois pour ne pas perdre de
+ * précision (ex: 18 mois reste affiché "18 mois", pas "2 ans" faux).
  * Sans aucune borne définie (fiche/proposition sans âge), on retombe sur "ans"
  * — c'est aussi l'unité par défaut du formulaire de création, à ne pas
  * désaccorder entre "créer" et "éditer une fiche vierge".
+ *
+ * Le seuil `>= 24` qui existait ici venait de la convention d'AFFICHAGE
+ * (« sous 2 ans, on parle en mois »). Appliqué à la saisie, il forçait le mode
+ * mois pour une fiche « de 1 an à 5 ans » : 12 est une année pleine, elle
+ * s'affiche donc en ans comme les autres.
  */
 export const monthsPairToDraft = (
   min?: number | null,
   max?: number | null
 ): { minValue: string; maxValue: string; unit: AgeUnit } => {
   const defined = [min, max].filter((v): v is number => v != null);
-  const allCleanYears = defined.every((v) => v >= 24 && v % 12 === 0);
+  const allCleanYears = defined.every((v) => v % 12 === 0);
   const unit: AgeUnit = allCleanYears ? 'years' : 'months';
   const toDraft = (v?: number | null) => (v == null ? '' : String(unit === 'years' ? v / 12 : v));
   return { minValue: toDraft(min), maxValue: toDraft(max), unit };
