@@ -788,9 +788,13 @@ export type Database = {
           acquisition_detail: string | null
           acquisition_source: string | null
           acquisition_source_at: string | null
+          coachmarks_outcome: string | null
           created_at: string
           full_name: string | null
           id: string
+          onboarding_completed_at: string | null
+          onboarding_outcome: string | null
+          onboarding_step_max: number | null
           points: number
           role: string
         }
@@ -798,9 +802,13 @@ export type Database = {
           acquisition_detail?: string | null
           acquisition_source?: string | null
           acquisition_source_at?: string | null
+          coachmarks_outcome?: string | null
           created_at?: string
           full_name?: string | null
           id: string
+          onboarding_completed_at?: string | null
+          onboarding_outcome?: string | null
+          onboarding_step_max?: number | null
           points?: number
           role?: string
         }
@@ -808,9 +816,13 @@ export type Database = {
           acquisition_detail?: string | null
           acquisition_source?: string | null
           acquisition_source_at?: string | null
+          coachmarks_outcome?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
+          onboarding_completed_at?: string | null
+          onboarding_outcome?: string | null
+          onboarding_step_max?: number | null
           points?: number
           role?: string
         }
