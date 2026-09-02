@@ -13,7 +13,8 @@ import PhotoUpload from '@/components/admin/PhotoUpload';
 import GalleryUpload from '@/components/admin/GalleryUpload';
 import { useUserEmails } from '@/hooks/useUserEmails';
 import { useTopContributors } from '@/hooks/useTopContributors';
-import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryHex, eventCategoryEmoji } from '@/types/event';
+import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryHex, eventCategoryEmoji, type EventOccurrence } from '@/types/event';
+import { occurrencesOf } from '@/lib/eventCalendar';
 import RejectDialog from '@/components/admin/RejectDialog';
 import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
@@ -3241,6 +3242,22 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     },
   });
 
+  // Créneau par créneau, pas le seul `date_start` (resynchronisé sur le "prochain
+  // créneau" côté trigger SQL) : sinon un event à plusieurs dates ne pose sa
+  // pastille que sur une date, parfois déjà obsolète vue de « aujourd'hui ».
+  const { data: occurrencesByEvent = {} } = useQuery({
+    queryKey: ['admin-event-occurrences-all'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('event_occurrences' as any)
+        .select('*')
+        .order('date_start', { ascending: true });
+      const byEvent: Record<string, EventOccurrence[]> = {};
+      (data ?? []).forEach((row: any) => { (byEvent[row.event_id] ??= []).push(row); });
+      return byEvent;
+    },
+  });
+
   const startEdit = async (ev: any) => {
     setEditingId(ev.id);
     setEditDraft({
@@ -3852,7 +3869,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       {viewMode === 'list' && sorted.map(renderEventCard)}
 
       {viewMode === 'calendar' && (
-        <EventsCalendarView events={filtered} renderEventCard={renderEventCard} />
+        <EventsCalendarView events={filtered} renderEventCard={renderEventCard} occurrencesByEvent={occurrencesByEvent} />
       )}
 
       <RejectDialog
@@ -3867,19 +3884,33 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   );
 }
 
-function EventsCalendarView({ events, renderEventCard }: { events: any[]; renderEventCard: (ev: any, i: number) => JSX.Element }) {
+function EventsCalendarView({
+  events,
+  renderEventCard,
+  occurrencesByEvent,
+}: {
+  events: any[];
+  renderEventCard: (ev: any, i: number) => JSX.Element;
+  occurrencesByEvent: Record<string, EventOccurrence[]>;
+}) {
   const [calendarDate, setCalendarDate] = useState(() => new Date());
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
+  // Une pastille par créneau réel (table `event_occurrences`), pas par
+  // `date_start` : ce champ n'est qu'un instantané resynchronisé côté SQL sur
+  // le prochain créneau à venir, il n'a jamais représenté toutes les dates
+  // d'un event à plusieurs créneaux.
   const byDate = useMemo(() => {
     const map: Record<string, any[]> = {};
     events.forEach((ev) => {
-      const key = ev.date_start ? String(ev.date_start).slice(0, 10) : null;
-      if (!key) return;
-      (map[key] = map[key] || []).push(ev);
+      occurrencesOf(ev, occurrencesByEvent).forEach((occ) => {
+        const key = occ.date_start ? String(occ.date_start).slice(0, 10) : null;
+        if (!key) return;
+        (map[key] = map[key] || []).push(ev);
+      });
     });
     return map;
-  }, [events]);
+  }, [events, occurrencesByEvent]);
 
   const year = calendarDate.getFullYear();
   const month = calendarDate.getMonth();
