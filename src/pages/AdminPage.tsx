@@ -3903,9 +3903,14 @@ function EventsCalendarView({
   const byDate = useMemo(() => {
     const map: Record<string, any[]> = {};
     events.forEach((ev) => {
+      // Un même event peut avoir deux créneaux le même jour (saisie admin en
+      // doublon, pas de contrainte unique en base) : une seule pastille par
+      // event et par jour.
+      const daysSeen = new Set<string>();
       occurrencesOf(ev, occurrencesByEvent).forEach((occ) => {
         const key = occ.date_start ? String(occ.date_start).slice(0, 10) : null;
-        if (!key) return;
+        if (!key || daysSeen.has(key)) return;
+        daysSeen.add(key);
         (map[key] = map[key] || []).push(ev);
       });
     });
