@@ -86,6 +86,33 @@ export type Database = {
         }
         Relationships: []
       }
+      children: {
+        Row: {
+          birth_month: number
+          birth_year: number
+          created_at: string
+          first_name: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          birth_month: number
+          birth_year: number
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          birth_month?: number
+          birth_year?: number
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contributions: {
         Row: {
           bookable: string | null
@@ -790,6 +817,8 @@ export type Database = {
           acquisition_source_at: string | null
           coachmarks_outcome: string | null
           created_at: string
+          digest_channel: string
+          digest_day: number
           full_name: string | null
           id: string
           onboarding_completed_at: string | null
@@ -797,6 +826,11 @@ export type Database = {
           onboarding_step_max: number | null
           points: number
           role: string
+          zone_city: string | null
+          zone_district: string | null
+          zone_lat: number | null
+          zone_lng: number | null
+          zone_radius_km: number
         }
         Insert: {
           acquisition_detail?: string | null
@@ -804,6 +838,8 @@ export type Database = {
           acquisition_source_at?: string | null
           coachmarks_outcome?: string | null
           created_at?: string
+          digest_channel?: string
+          digest_day?: number
           full_name?: string | null
           id: string
           onboarding_completed_at?: string | null
@@ -811,6 +847,11 @@ export type Database = {
           onboarding_step_max?: number | null
           points?: number
           role?: string
+          zone_city?: string | null
+          zone_district?: string | null
+          zone_lat?: number | null
+          zone_lng?: number | null
+          zone_radius_km?: number
         }
         Update: {
           acquisition_detail?: string | null
@@ -818,6 +859,8 @@ export type Database = {
           acquisition_source_at?: string | null
           coachmarks_outcome?: string | null
           created_at?: string
+          digest_channel?: string
+          digest_day?: number
           full_name?: string | null
           id?: string
           onboarding_completed_at?: string | null
@@ -825,8 +868,61 @@ export type Database = {
           onboarding_step_max?: number | null
           points?: number
           role?: string
+          zone_city?: string | null
+          zone_district?: string | null
+          zone_lat?: number | null
+          zone_lng?: number | null
+          zone_radius_km?: number
         }
         Relationships: []
+      }
+      recommendation_feedback: {
+        Row: {
+          created_at: string
+          event_id: string | null
+          id: string
+          location_id: string | null
+          reason: string | null
+          source: string
+          user_id: string
+          verdict: string
+        }
+        Insert: {
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          location_id?: string | null
+          reason?: string | null
+          source: string
+          user_id: string
+          verdict: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          location_id?: string | null
+          reason?: string | null
+          source?: string
+          user_id?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_feedback_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendation_feedback_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       suppressed_emails: {
         Row: {
@@ -849,6 +945,27 @@ export type Database = {
           id?: string
           metadata?: Json | null
           reason?: string
+        }
+        Relationships: []
+      }
+      zones_reference: {
+        Row: {
+          kind: string
+          label: string
+          lat: number
+          lng: number
+        }
+        Insert: {
+          kind: string
+          label: string
+          lat: number
+          lng: number
+        }
+        Update: {
+          kind?: string
+          label?: string
+          lat?: number
+          lng?: number
         }
         Relationships: []
       }
