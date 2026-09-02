@@ -25,8 +25,8 @@ interface Props {
 }
 
 const MEAL_CATEGORIES = new Set(['restaurant', 'cafe']);
-const MAX_COMMENT_MEAL = 200;
-const MAX_COMMENT_GENERIC = 300;
+const MAX_COMMENT_MEAL = 2000;
+const MAX_COMMENT_GENERIC = 2000;
 
 type EquipValue = boolean | null;
 
