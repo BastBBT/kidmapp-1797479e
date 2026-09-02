@@ -4188,7 +4188,18 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
       setPhotoPreview(URL.createObjectURL(file));
       toast({ title: 'Infos extraites ✓', description: 'Relisez les champs avant de valider.' });
     } catch (e: any) {
-      toast({ title: 'Erreur', description: e?.message || 'Extraction impossible.', variant: 'destructive' });
+      // FunctionsHttpError ne porte que "Edge Function returned a non-2xx status code" :
+      // le vrai détail ({error, message}) est dans le corps JSON de la Response brute (context).
+      let description = e?.message || 'Extraction impossible.';
+      if (e?.context instanceof Response) {
+        try {
+          const body = await e.context.json();
+          description = body?.message || body?.error || description;
+        } catch {
+          // corps non JSON ou déjà consommé : on garde le message générique
+        }
+      }
+      toast({ title: 'Erreur', description, variant: 'destructive' });
     } finally {
       setExtracting(false);
     }
