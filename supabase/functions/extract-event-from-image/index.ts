@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
         ],
         response_format: { type: 'json_object' },
         temperature: 0.1,
-        max_tokens: 1200,
+        max_tokens: 2048,
       }),
     });
 
@@ -225,6 +225,7 @@ Deno.serve(async (req) => {
 
     const gwData = await gwRes.json();
     const content: string = gwData?.choices?.[0]?.message?.content ?? '';
+    const finishReason: string | undefined = gwData?.choices?.[0]?.finish_reason;
 
     let extracted: any = null;
     try {
@@ -239,8 +240,25 @@ Deno.serve(async (req) => {
           extracted = null;
         }
       }
+      // Or wrapped in stray prose before/after the object: take the outermost braces
+      if (!extracted) {
+        const start = content.indexOf('{');
+        const end = content.lastIndexOf('}');
+        if (start !== -1 && end > start) {
+          try {
+            extracted = JSON.parse(content.slice(start, end + 1));
+          } catch {
+            extracted = null;
+          }
+        }
+      }
     }
     if (!extracted || typeof extracted !== 'object') {
+      console.error(
+        'extract-event-from-image parse_failed',
+        'finish_reason:', finishReason,
+        'content:', content.slice(0, 2000),
+      );
       return jsonRes({ error: 'parse_failed', message: 'Le modèle n’a pas renvoyé un JSON exploitable.' }, 502);
     }
 
