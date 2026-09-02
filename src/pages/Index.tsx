@@ -32,6 +32,7 @@ const VALID_CATEGORIES = new Set<string>([
 ]);
 const VALID_AGES = new Set<string>(['all', '0-2', '3-5', '6+']);
 const VALID_GROUPS = new Set<string>(['places', 'activities']);
+const AGE_BAND_KEY = 'explore.ageBand';
 
 const NANTES_CENTER: [number, number] = [47.1984, -1.5536];
 const DEFAULT_ZOOM = 12;
@@ -47,9 +48,13 @@ const Index = () => {
   })();
   const initialQuery = searchParams.get('q') ?? '';
   const initialMeal = searchParams.get('meal');
+  // L'URL fait foi (lien partagé/rechargé) ; à défaut, la dernière tranche
+  // choisie survit à la fermeture de l'onglet via localStorage.
   const initialAge = (() => {
     const a = searchParams.get('age');
-    return a && VALID_AGES.has(a) ? (a as AgeBucket) : 'all';
+    if (a && VALID_AGES.has(a)) return a as AgeBucket;
+    const stored = typeof window !== 'undefined' ? window.localStorage.getItem(AGE_BAND_KEY) : null;
+    return stored && VALID_AGES.has(stored) ? (stored as AgeBucket) : 'all';
   })();
   // Le groupe suit la catégorie quand elle est précise ; sinon l'URL, sinon Lieux
   // (on n'atterrit jamais sur une liste mélangée lieux + activités).
@@ -149,6 +154,14 @@ const Index = () => {
     updateUrl();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, selectedCategory, selectedGroup, selectedMeal, selectedAge]);
+
+  // Persistée : rouvrir l'app doit retrouver la dernière tranche choisie
+  // plutôt que de repartir sans filtre à chaque lancement.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (selectedAge === 'all') window.localStorage.removeItem(AGE_BAND_KEY);
+    else window.localStorage.setItem(AGE_BAND_KEY, selectedAge);
+  }, [selectedAge]);
 
   const handleMapViewChange = useCallback((center: [number, number], zoom: number) => {
     mapViewRef.current = { center, zoom };

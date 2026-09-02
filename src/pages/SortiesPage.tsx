@@ -32,11 +32,23 @@ import {
 import { eventCategoryEmoji, eventCategoryHex } from '@/types/event';
 
 const CALENDAR_MODE_KEY = 'sorties.calendarMode';
+const AGE_BAND_KEY = 'sorties.ageBand';
+const VALID_AGES = new Set<string>(['all', '0-2', '3-5', '6+']);
 
 const SortiesPage = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const [selectedAge, setSelectedAge] = useState<AgeBucket>('all');
+  // Persistée : rouvrir l'app doit retrouver la dernière tranche choisie
+  // plutôt que de repartir sans filtre à chaque lancement.
+  const [selectedAge, setSelectedAgeState] = useState<AgeBucket>(() => {
+    const stored = typeof window !== 'undefined' ? window.localStorage.getItem(AGE_BAND_KEY) : null;
+    return stored && VALID_AGES.has(stored) ? (stored as AgeBucket) : 'all';
+  });
+  const setSelectedAge = (age: AgeBucket) => {
+    setSelectedAgeState(age);
+    if (age === 'all') window.localStorage.removeItem(AGE_BAND_KEY);
+    else window.localStorage.setItem(AGE_BAND_KEY, age);
+  };
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
   const [showFinished, setShowFinished] = useState(false);
   const { data: events = [], isLoading } = useEvents();
