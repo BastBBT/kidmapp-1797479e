@@ -10,6 +10,10 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')!;
+// Le contenu brut loggé sur parse_failed est une transcription libre de l'image (affiche
+// uploadée par un admin) : elle peut porter un téléphone/email/nom de contact. On ne dumpe
+// l'intégralité qu'en debug explicite ; par défaut on garde un extrait suffisant pour diagnostiquer.
+const DEBUG_EXTRACT = Deno.env.get('DEBUG_EXTRACT') === '1';
 
 const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const MODEL = 'google/gemini-3.7-flash';
@@ -257,7 +261,8 @@ Deno.serve(async (req) => {
       console.error(
         'extract-event-from-image parse_failed',
         'finish_reason:', finishReason,
-        'content:', content.slice(0, 2000),
+        'content_length:', content.length,
+        'content:', content.slice(0, DEBUG_EXTRACT ? 2000 : 200),
       );
       return jsonRes({ error: 'parse_failed', message: 'Le modèle n’a pas renvoyé un JSON exploitable.' }, 502);
     }
