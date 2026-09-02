@@ -3249,11 +3249,11 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     queryKey: ['admin-event-occurrences-all'],
     queryFn: async () => {
       const { data } = await supabase
-        .from('event_occurrences' as any)
+        .from('event_occurrences')
         .select('*')
         .order('date_start', { ascending: true });
       const byEvent: Record<string, EventOccurrence[]> = {};
-      (data ?? []).forEach((row: any) => { (byEvent[row.event_id] ??= []).push(row); });
+      (data ?? []).forEach((row) => { (byEvent[row.event_id] ??= []).push(row); });
       return byEvent;
     },
   });
