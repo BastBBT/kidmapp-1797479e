@@ -9,7 +9,7 @@ interface Props {
   eventId: string;
 }
 
-const MAX = 200;
+const MAX = 2000;
 
 const EventFeedbackCard = ({ eventId }: Props) => {
   const { t } = useTranslation();

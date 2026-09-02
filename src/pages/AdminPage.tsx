@@ -1623,14 +1623,14 @@ const AdminPage = () => {
                   </label>
                   <textarea
                     value={form.note}
-                    onChange={(e) => updateForm('note', e.target.value.slice(0, 1000))}
+                    onChange={(e) => updateForm('note', e.target.value.slice(0, 2000))}
                     placeholder="Un mot sur ce lieu, une info pratique…"
-                    maxLength={1000}
+                    maxLength={2000}
                     rows={3}
                     style={{ width: '100%', padding: '13px 16px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px', resize: 'none' }}
                   />
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>
-                    {(form.note || '').length}/1000
+                    {(form.note || '').length}/2000
                   </div>
                 </div>
 
@@ -1874,13 +1874,13 @@ const AdminPage = () => {
                 <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>Note</label>
                 <textarea
                   value={editForm.note}
-                  onChange={(e) => setEditForm((f: any) => ({ ...f, note: e.target.value.slice(0, 1000) }))}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, note: e.target.value.slice(0, 2000) }))}
                   placeholder="Un mot sur ce lieu, une info pratique…"
-                  maxLength={1000}
+                  maxLength={2000}
                   rows={3}
                   style={{ width: '100%', padding: '13px 16px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px', resize: 'none' }}
                 />
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>{(editForm.note || '').length}/1000</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>{(editForm.note || '').length}/2000</div>
               </div>
               {isActivity(editForm.category) ? (
                 <div className="flex flex-col gap-3">
@@ -4460,14 +4460,14 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
             </label>
             <textarea
               value={form.note}
-              onChange={(e) => updateForm('note', e.target.value.slice(0, 500))}
+              onChange={(e) => updateForm('note', e.target.value.slice(0, 2000))}
               placeholder="Un mot sur cet événement, une info pratique…"
-              maxLength={500}
+              maxLength={2000}
               rows={3}
               style={{ width: '100%', padding: '13px 16px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px', resize: 'none' }}
             />
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>
-              {(form.note || '').length}/500
+              {(form.note || '').length}/2000
             </div>
           </div>
 

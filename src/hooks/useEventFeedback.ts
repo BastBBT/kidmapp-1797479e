@@ -56,7 +56,7 @@ export const useEventFeedback = (eventId: string) => {
         event_id: eventId,
         user_id: user.id,
         verdict,
-        comment: comment?.trim() ? comment.trim().slice(0, 200) : null,
+        comment: comment?.trim() ? comment.trim().slice(0, 2000) : null,
       };
       const { data, error } = await supabase
         .from('event_feedback' as any)
