@@ -407,12 +407,12 @@ const ProposeEventModal = () => {
                     rows={4}
                     style={{ ...inputStyle, resize: 'none' }}
                     value={form.note}
-                    onChange={(e) => update('note', e.target.value.slice(0, 800))}
+                    onChange={(e) => update('note', e.target.value.slice(0, 2000))}
                     placeholder="Décris l'événement en quelques mots…"
-                    maxLength={800}
+                    maxLength={2000}
                   />
                   <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--text-muted)', textAlign: 'right', marginTop: 2 }}>
-                    {form.note.length}/800
+                    {form.note.length}/2000
                   </div>
                 </div>
               </div>
