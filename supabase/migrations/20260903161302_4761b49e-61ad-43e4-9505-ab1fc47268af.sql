@@ -1,0 +1,2 @@
+ALTER TABLE public.zones_reference DROP CONSTRAINT zones_reference_kind_check;
+ALTER TABLE public.zones_reference ADD CONSTRAINT zones_reference_kind_check CHECK (kind IN ('commune', 'quartier', 'secteur'));
