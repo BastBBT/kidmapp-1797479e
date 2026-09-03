@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { EQUIP_ICONS, EquipKey, CATEGORY_ICONS } from '@/assets/icons';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
+import { CARTO_TILE_URL, CARTO_ATTRIBUTION } from '@/lib/mapTiles';
 
 // Fix leaflet default icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -172,8 +173,8 @@ const MapView = ({ locations, selectedId, initialCenter, initialZoom, onViewChan
         preferCanvas={true}
       >
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          attribution={CARTO_ATTRIBUTION}
+          url={CARTO_TILE_URL}
         />
         <RecenterMap center={center} zoom={zoom} />
         <ViewChangeReporter onViewChange={onViewChange} />
