@@ -169,6 +169,45 @@ export type Database = {
           },
         ]
       }
+      digest_sends: {
+        Row: {
+          created_at: string
+          id: string
+          occurrence_ids: string[]
+          reacted_at: string | null
+          reaction: string | null
+          send_date: string
+          token: string
+          token_expires_at: string
+          unsubscribed_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          occurrence_ids?: string[]
+          reacted_at?: string | null
+          reaction?: string | null
+          send_date: string
+          token: string
+          token_expires_at: string
+          unsubscribed_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          occurrence_ids?: string[]
+          reacted_at?: string | null
+          reaction?: string | null
+          send_date?: string
+          token?: string
+          token_expires_at?: string
+          unsubscribed_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
