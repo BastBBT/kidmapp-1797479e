@@ -819,6 +819,8 @@ export type Database = {
           created_at: string
           digest_channel: string
           digest_day: number
+          digest_email_enabled: boolean
+          digest_push_enabled: boolean
           full_name: string | null
           id: string
           onboarding_completed_at: string | null
@@ -840,6 +842,8 @@ export type Database = {
           created_at?: string
           digest_channel?: string
           digest_day?: number
+          digest_email_enabled?: boolean
+          digest_push_enabled?: boolean
           full_name?: string | null
           id: string
           onboarding_completed_at?: string | null
@@ -861,6 +865,8 @@ export type Database = {
           created_at?: string
           digest_channel?: string
           digest_day?: number
+          digest_email_enabled?: boolean
+          digest_push_enabled?: boolean
           full_name?: string | null
           id?: string
           onboarding_completed_at?: string | null
