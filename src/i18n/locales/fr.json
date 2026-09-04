@@ -374,5 +374,18 @@
     "photo_upload": "L'image n'a pas pu être envoyée. Réessaie, ou retire-la avant d'envoyer.",
     "network": "Connexion interrompue. Vérifie ta connexion et réessaie.",
     "retry": "Réessaie dans un instant."
+  },
+  "weekly_digest": {
+    "title_named": "La sélection de {{names}}",
+    "title_generic": "Votre sélection de la semaine",
+    "subtitle_range": "Du {{start}} au {{end}}",
+    "feedback_question": "Cette sélection vous a plu ?",
+    "feedback_thanks": "Merci pour votre avis !",
+    "feedback_recorded": "Réponse enregistrée",
+    "unsubscribe_button": "Se désabonner de la sélection hebdo",
+    "unsubscribe_confirmed": "Désabonné(e) de la sélection hebdo",
+    "expired_title": "Ce lien a expiré",
+    "expired_message": "Les sélections hebdo ne sont conservées que 30 jours. Ouvre l'app pour voir les nouveautés du moment.",
+    "not_found_title": "Sélection introuvable"
   }
 }

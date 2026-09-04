@@ -12,6 +12,7 @@ import SavedPage from "./pages/SavedPage";
 import AccountPage from "./pages/AccountPage";
 import SortiesPage from "./pages/SortiesPage";
 import EventPage from "./pages/EventPage";
+import WeeklyDigestLandingPage from "./pages/WeeklyDigestLandingPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import SupportPage from "./pages/SupportPage";
 import NotFound from "./pages/NotFound";
@@ -120,6 +121,7 @@ const AppContent = () => {
         <Route path="/location/:id" element={<LocationPage />} />
         <Route path="/sorties" element={<SortiesPage />} />
         <Route path="/event/:id" element={<EventPage />} />
+        <Route path="/semaine/:token" element={<WeeklyDigestLandingPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/support" element={<SupportPage />} />

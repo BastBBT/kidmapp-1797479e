@@ -374,5 +374,18 @@
     "photo_upload": "The image couldn't be uploaded. Try again, or remove it before sending.",
     "network": "Connection lost. Check your connection and try again.",
     "retry": "Try again in a moment."
+  },
+  "weekly_digest": {
+    "title_named": "This week's picks for {{names}}",
+    "title_generic": "Your weekly selection",
+    "subtitle_range": "{{start}} to {{end}}",
+    "feedback_question": "Did you like this selection?",
+    "feedback_thanks": "Thanks for your feedback!",
+    "feedback_recorded": "Response recorded",
+    "unsubscribe_button": "Unsubscribe from the weekly selection",
+    "unsubscribe_confirmed": "Unsubscribed from the weekly selection",
+    "expired_title": "This link has expired",
+    "expired_message": "Weekly selections are only kept for 30 days. Open the app to see what's new right now.",
+    "not_found_title": "Selection not found"
   }
 }

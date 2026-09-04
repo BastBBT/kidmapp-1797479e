@@ -9,3 +9,7 @@ project_id = "rcwepnqjyowlbtmltwxo"
     verify_jwt = false
   [functions.weekly-admin-report]
     verify_jwt = true
+  [functions.weekly-digest]
+    verify_jwt = true
+  [functions.digest-landing]
+    verify_jwt = true
