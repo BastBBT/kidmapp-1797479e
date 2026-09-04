@@ -104,6 +104,9 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
 
 export const template = {
   component: WeeklyDigestEmail,
+  // Signature imposée par `TemplateEntry['subject']` (registry.ts) — même
+  // patron que `weekly-admin-report.tsx`.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   subject: (data: Record<string, any>) => {
     const count = (data.items ?? []).length
     const names = greetingNames(data.childrenNames ?? [])

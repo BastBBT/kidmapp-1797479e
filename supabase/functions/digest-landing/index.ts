@@ -33,6 +33,14 @@ interface DigestSendRow {
   unsubscribed_at: string | null
 }
 
+interface EventLite {
+  id: string
+  name: string
+  category: string
+  address: string | null
+  status: string
+}
+
 function formatDateLabel(dateStart: string, time: string | null): string {
   const d = new Date(dateStart + 'T00:00:00Z')
   const label = d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'UTC' })
@@ -82,7 +90,7 @@ Deno.serve(async (req) => {
       const eventIds = Array.from(new Set((occurrences ?? []).map((o) => o.event_id)))
       const { data: events } = eventIds.length
         ? await supabase.from('events').select('id, name, category, address, status').in('id', eventIds)
-        : { data: [] as any[] }
+        : { data: [] as EventLite[] }
 
       const eventsById = new Map((events ?? []).filter((e) => e.status === 'published').map((e) => [e.id, e]))
       // Un event dépublié/supprimé depuis l'envoi disparaît silencieusement de

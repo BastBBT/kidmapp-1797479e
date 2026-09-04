@@ -267,7 +267,7 @@ async function runDigest() {
   console.log('weekly-digest terminé', { sendDate, candidats: candidates.length, sentCount, skippedCount, failedCount })
 }
 
-// @ts-ignore EdgeRuntime is provided by Supabase runtime
+// EdgeRuntime est fourni par le runtime Supabase — ce shim déclare juste sa forme.
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void }
 
 function parseJwtRole(authHeader: string | null): string | null {
@@ -295,7 +295,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // @ts-ignore
     EdgeRuntime.waitUntil(
       runDigest().catch((e) => console.error('weekly-digest background error', e)),
     )
