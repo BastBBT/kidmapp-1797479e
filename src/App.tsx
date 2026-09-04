@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import LocationPage from "./pages/LocationPage";
 import AdminPage from "./pages/AdminPage";
@@ -83,18 +83,24 @@ const AcquisitionOverlay = () => {
 const OnboardingOverlay = () => {
   const { user, isLoading } = useAuth();
   const { openAuth } = useRequireAuth();
+  const location = useLocation();
   const [show, setShow] = useState(false);
+  // Le destinataire type d'un lien /semaine/<token> arrive depuis un email,
+  // souvent sur un navigateur qui n'a jamais ouvert kidmapp.app (donc sans le
+  // flag localStorage) — sans cette exclusion, le carrousel plein écran
+  // recouvrirait la sélection qu'il vient justement de venir consulter.
+  const isDigestLanding = location.pathname.startsWith('/semaine/');
 
   useEffect(() => {
-    if (isLoading || user) return;
+    if (isLoading || user || isDigestLanding) return;
     try {
       if (!localStorage.getItem(ONBOARDING_KEY)) setShow(true);
     } catch {
       // ignore
     }
-  }, [isLoading, user]);
+  }, [isLoading, user, isDigestLanding]);
 
-  if (!show || user) return null;
+  if (!show || user || isDigestLanding) return null;
 
   return (
     <Onboarding

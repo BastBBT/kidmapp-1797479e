@@ -74,7 +74,11 @@ Deno.serve(async (req) => {
     return json({ error: 'lookup_failed' }, 500)
   }
   if (!send || new Date(send.token_expires_at).getTime() < Date.now()) {
-    return json({ error: 'expired' }, 404)
+    // 200, pas 404 : `supabase.functions.invoke` traite tout statut non-2xx
+    // comme une erreur de transport (`data` devient `null`), ce qui rendrait
+    // cet état « jeton expiré » injoignable côté page — jeton inconnu et
+    // jeton expiré rendent la même réponse (pas d'oracle d'énumération).
+    return json({ error: 'expired' })
   }
 
   if (action === 'view' || !action) {

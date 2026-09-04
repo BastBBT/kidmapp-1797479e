@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useNoIndex } from '@/hooks/useNoIndex';
+import { localeOf } from '@/lib/formatDate';
 
 interface DigestItem {
   emoji: string;
@@ -41,7 +42,7 @@ function dateRangeParts(sendDateISO: string, locale: string): { start: string; e
   const start = new Date(sendDateISO + 'T00:00:00Z');
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 6);
-  const fmt = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', timeZone: 'UTC' });
+  const fmt = new Intl.DateTimeFormat(localeOf(locale), { day: 'numeric', month: 'long', timeZone: 'UTC' });
   return { start: fmt.format(start), end: fmt.format(end) };
 }
 
@@ -51,6 +52,7 @@ const WeeklyDigestLandingPage = () => {
   const [state, setState] = useState<PageState>({ status: 'loading' });
   const [reacting, setReacting] = useState(false);
   const [unsubscribing, setUnsubscribing] = useState(false);
+  const [actionError, setActionError] = useState(false);
 
   useNoIndex();
 
@@ -74,11 +76,20 @@ const WeeklyDigestLandingPage = () => {
   const react = async (reaction: 'love' | 'neutral' | 'sad') => {
     if (state.status !== 'ready' || reacting || state.data.reaction) return;
     setReacting(true);
-    const { data } = await supabase.functions.invoke('digest-landing', {
+    setActionError(false);
+    const { data, error } = await supabase.functions.invoke('digest-landing', {
       body: { token, action: 'react', reaction },
     });
+    // Ne jamais afficher un état "enregistré" que le serveur n'a pas confirmé
+    // — sur une action de désabonnement/réaction, mentir sur le succès serait
+    // pire que de ne rien afficher.
+    if (error || !data?.reaction) {
+      setActionError(true);
+      setReacting(false);
+      return;
+    }
     setState((prev) =>
-      prev.status === 'ready' ? { ...prev, data: { ...prev.data, reaction: data?.reaction ?? reaction } } : prev,
+      prev.status === 'ready' ? { ...prev, data: { ...prev.data, reaction: data.reaction } } : prev,
     );
     setReacting(false);
   };
@@ -86,7 +97,15 @@ const WeeklyDigestLandingPage = () => {
   const unsubscribe = async () => {
     if (state.status !== 'ready' || unsubscribing || state.data.unsubscribed) return;
     setUnsubscribing(true);
-    await supabase.functions.invoke('digest-landing', { body: { token, action: 'unsubscribe' } });
+    setActionError(false);
+    const { data, error } = await supabase.functions.invoke('digest-landing', {
+      body: { token, action: 'unsubscribe' },
+    });
+    if (error || !data?.unsubscribed) {
+      setActionError(true);
+      setUnsubscribing(false);
+      return;
+    }
     setState((prev) => (prev.status === 'ready' ? { ...prev, data: { ...prev.data, unsubscribed: true } } : prev));
     setUnsubscribing(false);
   };
@@ -168,6 +187,8 @@ const WeeklyDigestLandingPage = () => {
           </button>
         )}
       </div>
+
+      {actionError ? <p style={{ ...sub, color: 'var(--destructive, #DC2626)', marginTop: 12 }}>{t('common.error')}</p> : null}
     </Shell>
   );
 };

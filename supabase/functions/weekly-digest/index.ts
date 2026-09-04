@@ -45,6 +45,13 @@ interface EventRow {
   status: string
 }
 
+/** Libère une réservation `digest_sends` après un échec d'envoi — sans ça, la
+ * contrainte unique (user_id, send_date) empêcherait tout retry le même jour. */
+async function releaseClaim(supabase: ReturnType<typeof createClient>, id: string): Promise<void> {
+  const { error } = await supabase.from('digest_sends').delete().eq('id', id)
+  if (error) console.error('weekly-digest: releaseClaim failed', id, error)
+}
+
 function todayISODate(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
@@ -116,11 +123,21 @@ async function runDigest() {
 
   // (b) Une seule requête batchée pour toute la fenêtre J→J+7, catalogue petit
   // (~260 lieux/events publiés) — pas une requête par utilisateur.
+  //
+  // Un simple `date_start` dans [J, J+7) exclurait une expo en cours (démarrée
+  // avant J, qui se termine après J) — même défaut que celui déjà repéré et
+  // corrigé côté web sur `useEvents.ts`/`eventCalendar.ts` (§ fix « Tous les
+  // âges affichait moins d'événements » du 2026-09-03). On reprend le même
+  // critère de chevauchement : occurrence commençant dans la fenêtre, OU
+  // encore en cours pendant la fenêtre (`date_end` non atteint), les deux
+  // bornées par un début avant la fin de fenêtre pour ne pas remonter un
+  // événement qui ne fait que démarrer bien plus tard.
   const { data: occurrences, error: occError } = await supabase
     .from('event_occurrences')
     .select('id, event_id, date_start, date_end, time')
-    .gte('date_start', sendDate)
-    .lt('date_start', windowEnd)
+    .or(
+      `and(date_start.gte.${sendDate},date_start.lt.${windowEnd}),and(date_end.gte.${sendDate},date_start.lt.${windowEnd})`,
+    )
     .returns<OccurrenceRow[]>()
 
   if (occError) {
@@ -221,6 +238,11 @@ async function runDigest() {
     const email = userData?.user?.email
     if (userError || !email) {
       console.error('weekly-digest: email introuvable', profile.id, userError)
+      // Sans ce retrait, l'échec consommerait définitivement le créneau du
+      // jour pour ce profil (contrainte unique user_id/send_date) : un
+      // re-run du cron le même jour ne retenterait jamais, jusqu'au prochain
+      // digest_day dans une semaine.
+      await releaseClaim(supabase, claimed[0].id)
       failedCount++
       continue
     }
@@ -260,6 +282,7 @@ async function runDigest() {
         error_message: message.slice(0, 1000),
       })
       if (logError) console.error('email_send_log insert failed', logError)
+      await releaseClaim(supabase, claimed[0].id)
       failedCount++
     }
   }
