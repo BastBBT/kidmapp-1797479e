@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { EventItem, eventCategoryHex, eventCategoryEmoji } from '@/types/event';
+import { CARTO_TILE_URL, CARTO_ATTRIBUTION } from '@/lib/mapTiles';
 
 const NANTES_CENTER: [number, number] = [47.1984, -1.5536];
 const DEFAULT_ZOOM = 12;
@@ -73,8 +74,8 @@ const EventsMap = ({ events, initialCenter, initialZoom }: Props) => {
     <div className="w-full h-full rounded-2xl overflow-hidden" style={{ minHeight: 200 }}>
       <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%' }} zoomControl={false}>
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          attribution={CARTO_ATTRIBUTION}
+          url={CARTO_TILE_URL}
         />
         <ResizeOnMount />
         <MarkerClusterGroup chunkedLoading iconCreateFunction={createClusterIcon} maxClusterRadius={50}>

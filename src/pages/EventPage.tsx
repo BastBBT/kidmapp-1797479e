@@ -17,6 +17,7 @@ import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 import { translateToken } from '@/i18n/tokenMaps';
 import { formatDateLong, localeOf } from '@/lib/formatDate';
 import { formatAgeRangeI18n } from '@/lib/ageFormat';
+import { CARTO_TILE_URL } from '@/lib/mapTiles';
 
 const EventPage = () => {
   const { id } = useParams();
@@ -308,7 +309,7 @@ const EventPage = () => {
               zoomControl={false}
               scrollWheelZoom={false}
             >
-              <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+              <TileLayer url={CARTO_TILE_URL} />
               <Marker
                 position={[event.lat, event.lng]}
                 icon={L.divIcon({
