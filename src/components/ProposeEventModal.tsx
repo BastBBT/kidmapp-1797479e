@@ -147,11 +147,9 @@ const ProposeEventModal = () => {
         // (ou admin) : tout autre préfixe fait échouer l'upload pour un utilisateur normal.
         const fileName = `proposals/${user.id}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage.from('location-photos').upload(fileName, photoFile);
-        if (upErr) {
-          toast({ title: 'Erreur upload photo', description: 'Réessaie ou continue sans photo.', variant: 'destructive' });
-          setSubmitting(false);
-          return;
-        }
+        // L'échec remonte au catch : classé `photo_upload` par submitFailure.ts,
+        // message traduit + code technique, formulaire conservé pour réessayer.
+        if (upErr) throw upErr;
         const { data } = supabase.storage.from('location-photos').getPublicUrl(fileName);
         photoUrl = data.publicUrl;
       }
