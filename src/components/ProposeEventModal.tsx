@@ -143,8 +143,12 @@ const ProposeEventModal = () => {
       let photoUrl: string | null = null;
       if (photoFile) {
         const ext = photoFile.name.split('.').pop();
-        const fileName = `events/${user.id}/${crypto.randomUUID()}.${ext}`;
+        // La policy RLS du bucket n'autorise l'écriture que sous `proposals/{auth.uid()}/...`
+        // (ou admin) : tout autre préfixe fait échouer l'upload pour un utilisateur normal.
+        const fileName = `proposals/${user.id}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage.from('location-photos').upload(fileName, photoFile);
+        // L'échec remonte au catch : classé `photo_upload` par submitFailure.ts,
+        // message traduit + code technique, formulaire conservé pour réessayer.
         if (upErr) throw upErr;
         const { data } = supabase.storage.from('location-photos').getPublicUrl(fileName);
         photoUrl = data.publicUrl;
