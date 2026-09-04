@@ -374,5 +374,18 @@
     "photo_upload": "No se pudo subir la imagen. Inténtalo de nuevo o quítala antes de enviar.",
     "network": "Conexión interrumpida. Comprueba tu conexión e inténtalo de nuevo.",
     "retry": "Inténtalo de nuevo en un momento."
+  },
+  "weekly_digest": {
+    "title_named": "La selección de {{names}}",
+    "title_generic": "Tu selección de la semana",
+    "subtitle_range": "Del {{start}} al {{end}}",
+    "feedback_question": "¿Te ha gustado esta selección?",
+    "feedback_thanks": "¡Gracias por tu opinión!",
+    "feedback_recorded": "Respuesta registrada",
+    "unsubscribe_button": "Darse de baja de la selección semanal",
+    "unsubscribe_confirmed": "Baja confirmada de la selección semanal",
+    "expired_title": "Este enlace ha caducado",
+    "expired_message": "Las selecciones semanales solo se conservan 30 días. Abre la app para ver las novedades del momento.",
+    "not_found_title": "Selección no encontrada"
   }
 }

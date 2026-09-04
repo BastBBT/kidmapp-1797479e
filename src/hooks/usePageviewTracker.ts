@@ -16,8 +16,13 @@ export function usePageviewTracker() {
 
   useEffect(() => {
     if (isLoading) return;
-    // Strip query/hash to avoid leaking tokens (e.g. OAuth fragment)
-    const path = location.pathname;
+    // Strip query/hash to avoid leaking tokens (e.g. OAuth fragment) — et le
+    // jeton du digest hebdo, qui lui est dans le chemin (`/semaine/<token>`,
+    // pas une query string) : sans ce cas particulier, un token qui donne
+    // accès aux prénoms des enfants et au désabonnement du compte finirait en
+    // clair dans `page_views` (rétention 12 mois, plus longue que la TTL de
+    // 30 jours du jeton lui-même).
+    const path = location.pathname.startsWith('/semaine/') ? '/semaine' : location.pathname;
     const key = `${path}|${user?.id ?? 'anon'}`;
     if (lastLoggedRef.current === key) return;
     lastLoggedRef.current = key;
