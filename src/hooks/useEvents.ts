@@ -46,7 +46,8 @@ export const useEvents = () => {
         .select('*')
         .eq('status', 'published')
         .or(filter)
-        .order('date_start', { ascending: true });
+        .order('date_start', { ascending: true })
+        .limit(2000);
       if (error) throw error;
       return (data ?? []) as unknown as EventItem[];
     },
@@ -102,7 +103,8 @@ export const useAllEvents = (enabled: boolean = true) => {
       const { data, error } = await supabase
         .from('events' as any)
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(2000);
       if (error) throw error;
       return (data ?? []) as unknown as EventItem[];
     },

@@ -48,7 +48,7 @@ export const useAllLocationMeals = () => {
   return useQuery({
     queryKey: ['location_meals', 'all'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('location_meals').select('*');
+      const { data, error } = await supabase.from('location_meals').select('*').limit(5000);
       if (error) throw error;
       return (data ?? []) as LocationMeal[];
     },
