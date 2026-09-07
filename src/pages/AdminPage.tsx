@@ -159,30 +159,16 @@ const AdminPage = () => {
     queryKey: ['admin-stats'],
     enabled: isAdmin,
     queryFn: async () => {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const since = thirtyDaysAgo.toISOString();
-      const { data: adminProfiles } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('role', 'admin');
-      const adminIds = new Set<string>(((adminProfiles ?? []) as any[]).map((p) => p.id));
-
-      const [locationsRes, contributionsRes, usersRes, dailyRes, proposalsRes, audienceRes, acquisitionRes, eventsRes, allProfilesRes] = await Promise.all([
-        supabase.from('locations').select('id, status'),
-        supabase.from('contributions').select('id, user_id, created_at, status'),
-        supabase.from('profiles').select('id, role, created_at').gte('created_at', since),
-        supabase.from('contributions').select('user_id, created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
-        supabase.from('location_proposals' as any).select('id, user_id, status'),
-        // Agrégats d'audience calculés en base : les page_views dépassent la limite
-        // de 1000 lignes de l'API, un comptage côté client serait tronqué.
+      // Agrégats calculés en base via les RPC admin_dashboard_stats /
+      // admin_audience_stats : évite de transférer des tables entières et de
+      // dépasser la limite de 1000 lignes de l'API Data.
+      const [statsRes, audienceRes] = await Promise.all([
+        supabase.rpc('admin_dashboard_stats' as any),
         supabase.rpc('admin_audience_stats' as any),
-        supabase.from('profiles').select('id, acquisition_source').not('acquisition_source', 'is', null),
-        supabase.from('events' as any).select('id, name, status, user_id, created_at, date_start').order('created_at', { ascending: false }),
-        supabase.from('profiles').select('id, role'),
       ]);
-
+      if (statsRes.error) console.error('[admin-stats] dashboard rpc error', statsRes.error);
       if (audienceRes.error) console.error('[admin-stats] audience rpc error', audienceRes.error);
+
       const audience = (audienceRes.data ?? {}) as {
         totalVisits30d?: number;
         uniqueLoggedVisitors30d?: number;
@@ -191,60 +177,43 @@ const AdminPage = () => {
         totalRegistered?: number;
         activePct30d?: number;
       };
-
-      // Résoudre le compte bot de sourcing par email pour l'exclure des stats Audience.
-      const allProfiles = (allProfilesRes.data ?? []) as { id: string; role: string }[];
-      const nonAdminIds = allProfiles.filter((p) => p.role !== 'admin').map((p) => p.id);
-      const excludedIds = new Set<string>(adminIds);
-      try {
-        const { data: emailsData } = await supabase.functions.invoke('admin-list-user-emails', {
-          body: { user_ids: nonAdminIds },
-        });
-        const emails = (emailsData?.emails ?? {}) as Record<string, string>;
-        for (const [uid, email] of Object.entries(emails)) {
-          if (isBotEmail(email)) excludedIds.add(uid);
-        }
-      } catch (e) {
-        console.warn('[admin-stats] bot email lookup failed', e);
-      }
-      const notExcluded = (uid: string | null | undefined) => !!uid && !excludedIds.has(uid);
-
-      const contribs = (contributionsRes.data ?? []).filter((c: any) => notExcluded(c.user_id));
-      const proposals = ((proposalsRes.data ?? []) as any[]).filter((p) => notExcluded(p.user_id));
-      const newUsers = (usersRes.data ?? []).filter((u: any) => u.role !== 'admin' && !excludedIds.has(u.id));
-      const daily = (dailyRes.data ?? []).filter((c: any) => notExcluded(c.user_id));
-
-      const acquisitionProfiles = (acquisitionRes.data ?? []).filter((p: any) => !excludedIds.has(p.id));
-      const acquisitionCounts: Record<string, number> = {};
-      for (const p of acquisitionProfiles) {
-        const src = p.acquisition_source as string;
-        acquisitionCounts[src] = (acquisitionCounts[src] ?? 0) + 1;
-      }
-
-      const allEvents = ((eventsRes.data ?? []) as any[]);
-      const pendingEventsList = allEvents.filter((e) => e.status === 'pending');
+      const d = (statsRes.data ?? {}) as {
+        totalLocations?: number;
+        publishedLocations?: number;
+        pendingLocations?: number;
+        totalContributions?: number;
+        pendingContributions?: number;
+        contributionsDaily7d?: Record<string, number>;
+        pendingProposals?: number;
+        pendingEvents?: number;
+        pendingEventsBotCount?: number;
+        pendingEventsList?: { id: string; name: string; date_start: string }[];
+        newUsers30d?: number;
+        acquisitionDistribution?: Record<string, number>;
+        acquisitionTotal?: number;
+      };
 
       return {
-        totalLocations: locationsRes.data?.length ?? 0,
-        publishedLocations: locationsRes.data?.filter((l) => l.status === 'published').length ?? 0,
-        pendingLocations: locationsRes.data?.filter((l) => l.status === 'pending').length ?? 0,
-        totalContributions: contribs.length,
-        pendingContributions: contribs.filter((c: any) => c.status === 'pending').length,
-        pendingProposals: proposals.filter((p) => p.status === 'pending').length,
-        pendingEvents: pendingEventsList.length,
-        pendingEventsList: pendingEventsList.slice(0, 5),
-        activeUsers30d: newUsers.length,
-        contributionsLast7d: daily,
+        totalLocations: d.totalLocations ?? 0,
+        publishedLocations: d.publishedLocations ?? 0,
+        pendingLocations: d.pendingLocations ?? 0,
+        totalContributions: d.totalContributions ?? 0,
+        pendingContributions: d.pendingContributions ?? 0,
+        pendingProposals: d.pendingProposals ?? 0,
+        pendingEvents: d.pendingEvents ?? 0,
+        pendingEventsBotCount: d.pendingEventsBotCount ?? 0,
+        pendingEventsList: d.pendingEventsList ?? [],
+        activeUsers30d: d.newUsers30d ?? 0,
+        contributionsDaily7d: d.contributionsDaily7d ?? {},
         daily7d: audience.daily7d ?? {},
         totalVisits30d: audience.totalVisits30d ?? 0,
         uniqueLoggedVisitors30d: audience.uniqueLoggedVisitors30d ?? 0,
         recurringVisitors30d: audience.recurringVisitors30d ?? 0,
-        acquisitionDistribution: acquisitionCounts,
-        acquisitionTotal: acquisitionProfiles.length,
+        acquisitionDistribution: d.acquisitionDistribution ?? {},
+        acquisitionTotal: d.acquisitionTotal ?? 0,
         totalRegistered: audience.totalRegistered ?? 0,
         activePct30d: audience.activePct30d ?? 0,
       };
-
     },
   });
 
@@ -254,14 +223,12 @@ const AdminPage = () => {
   const chartData = useMemo(() => {
     const days = getLast7Days();
     const counts = days.map((day) => {
-      const count = (stats?.contributionsLast7d ?? []).filter(
-        (c: any) => c.created_at?.slice(0, 10) === day
-      ).length;
+      const count = stats?.contributionsDaily7d?.[day] ?? 0;
       return { day, count, label: getDayLabel(day) };
     });
     const max = Math.max(...counts.map((c) => c.count), 1);
     return { counts, max };
-  }, [stats?.contributionsLast7d]);
+  }, [stats?.contributionsDaily7d]);
 
   const visitsChartData = useMemo(() => {
     const days = getLast7Days();
@@ -756,6 +723,12 @@ const AdminPage = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {(stats?.pendingEventsBotCount ?? 0) > 0 && (
+              <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px', padding: '0 4px' }}>
+                + {stats?.pendingEventsBotCount} événement(s) du bot en attente de validation
               </div>
             )}
 
