@@ -3195,6 +3195,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const [editDraft, setEditDraft] = useState<any>(null);
   const [editSlots, setEditSlots] = useState<EventSlotDraft[]>([]);
   const [removedSlotIds, setRemovedSlotIds] = useState<string[]>([]);
+  const [approveOnSave, setApproveOnSave] = useState(false);
   const updateEditSlot = (i: number, patch: Partial<EventSlotDraft>) =>
     setEditSlots((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
   const addEditSlot = () => setEditSlots((prev) => [...prev, emptyEventSlot()]);
@@ -3294,6 +3295,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     setRemovedSlotIds([]);
     setPhotoFile(null);
     setPhotoPreview(null);
+    setApproveOnSave(false);
   };
 
   const geocodeEditAddress = async () => {
@@ -3322,6 +3324,17 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     if (ageErr) {
       toast({ title: 'Erreur', description: ageErr, variant: 'destructive' });
       return;
+    }
+    let finalLat: number | null = editDraft.lat ?? null;
+    let finalLng: number | null = editDraft.lng ?? null;
+    if (approveOnSave && (finalLat == null || finalLng == null) && editDraft.address) {
+      const coords = await geocodeAddress(editDraft.address);
+      if (!coords) {
+        toast({ title: 'Adresse non trouvée', description: 'Renseignez les coordonnées manuellement (🌍 Géocoder) avant d’approuver.', variant: 'destructive' });
+        return;
+      }
+      finalLat = coords.lat;
+      finalLng = coords.lng;
     }
     setProcessingId(editingId);
     try {
@@ -3359,9 +3372,12 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         instagram: editDraft.instagram || null,
         photo: finalPhotoUrl,
         note: editDraft.note || null,
-        lat: editDraft.lat ?? null,
-        lng: editDraft.lng ?? null,
+        lat: finalLat,
+        lng: finalLng,
       };
+      if (approveOnSave) {
+        update.status = 'published';
+      }
       const { error } = await supabase.from('events' as any).update(update).eq('id', editingId);
       if (error) throw error;
 
@@ -3395,7 +3411,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-event-occurrence-counts'] });
-      toast({ title: 'Événement modifié ✓' });
+      toast({ title: approveOnSave ? 'Événement modifié & approuvé ✓' : 'Événement modifié ✓' });
       cancelEdit();
     } catch (err: any) {
       toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
@@ -3734,8 +3750,8 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                   </div>
                   <div className="flex gap-2">
                     <button onClick={saveEdit} disabled={isProcessing}
-                      style={{ flex: 1, padding: '10px', borderRadius: 100, border: 'none', background: 'var(--primary)', color: 'white', fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
-                      💾 Enregistrer
+                      style={{ flex: 1, padding: '10px', borderRadius: 100, border: 'none', background: approveOnSave ? 'var(--secondary)' : 'var(--primary)', color: 'white', fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
+                      {isProcessing ? 'En cours…' : approveOnSave ? '✓ Enregistrer & approuver' : '💾 Enregistrer'}
                     </button>
                     <button onClick={cancelEdit}
                       style={{ flex: 1, padding: '10px', borderRadius: 100, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
@@ -3779,13 +3795,17 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                       style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: 'none', background: '#3B7D6E', color: 'white', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
                       ✓ Approuver
                     </button>
+                    <button onClick={() => { startEdit(ev); setApproveOnSave(true); }} disabled={isProcessing}
+                      style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--secondary)', background: 'transparent', color: 'var(--secondary)', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
+                      ✏️ Modifier & approuver
+                    </button>
                     <button onClick={() => handleReject(ev)} disabled={isProcessing}
                       style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
                       ✗ Rejeter
                     </button>
                   </>
                 )}
-                <button onClick={() => startEdit(ev)} disabled={isProcessing}
+                <button onClick={() => { startEdit(ev); setApproveOnSave(false); }} disabled={isProcessing}
                   style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer' }}>
                   ✏️ Modifier
                 </button>
