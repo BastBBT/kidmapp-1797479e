@@ -1020,6 +1020,7 @@ export type Database = {
     }
     Functions: {
       admin_audience_stats: { Args: never; Returns: Json }
+      admin_dashboard_stats: { Args: never; Returns: Json }
       apply_data_retention: { Args: never; Returns: undefined }
       award_points: {
         Args: {
