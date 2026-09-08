@@ -3,8 +3,8 @@ import {
   Body,
   Container,
   Head,
-  Heading,
   Html,
+  Img,
   Link,
   Preview,
   Section,
@@ -13,6 +13,8 @@ import {
 import type { TemplateEntry } from './registry.ts'
 
 const SITE_NAME = 'Kidmapp'
+const SITE_URL = 'https://kidmapp.app'
+const ICON_URL = `${SITE_URL}/icon-192.png`
 
 interface DigestItem {
   emoji: string
@@ -41,60 +43,106 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
 
   return (
     <Html lang="fr" dir="ltr">
-      <Head />
-      <Preview>
-        {count} idée{count > 1 ? 's' : ''} pour {names} cette semaine
-      </Preview>
+      <Head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap"
+          rel="stylesheet"
+        />
+      </Head>
+      <Preview>{`${count} idée${count > 1 ? 's' : ''} pour ${names} cette semaine`}</Preview>
       <Body style={main}>
-        <Container style={container}>
-          <Section style={header}>
-            <Text style={logo}>kidmapp</Text>
-            <Text style={tagline}>Nantes pour les familles ✦</Text>
+        <Container style={card}>
+          {/* Header */}
+          <Section style={headerRow}>
+            <table width="100%" cellPadding={0} cellSpacing={0} role="presentation">
+              <tr>
+                <td style={{ verticalAlign: 'middle' }}>
+                  <Img
+                    src={ICON_URL}
+                    width="32"
+                    height="32"
+                    alt="Kidmapp"
+                    style={{
+                      display: 'inline-block',
+                      verticalAlign: 'middle',
+                      marginRight: '10px',
+                      borderRadius: '9px',
+                    }}
+                  />
+                  <span style={brandText}>kidmapp</span>
+                </td>
+                <td style={{ textAlign: 'right', verticalAlign: 'middle' }}>
+                  <span style={fromText}>noreply@kidmapp.app</span>
+                </td>
+              </tr>
+            </table>
           </Section>
 
-          <Section style={body}>
-            <Text style={greeting}>Bonjour !</Text>
-            <Text style={sub}>
-              Voici {count} idée{count > 1 ? 's' : ''} pour {names} cette semaine, près de chez vous.
+          {/* Hero */}
+          <Section style={hero}>
+            <div style={iconBubble}>
+              <span style={{ fontSize: '28px', lineHeight: '64px' }}>🎈</span>
+            </div>
+            <Text style={headline}>Ta sélection de la semaine</Text>
+            <div style={venueBadge}>
+              <span style={venueBadgeText}>
+                {count} idée{count > 1 ? 's' : ''} pour {names}
+              </span>
+            </div>
+          </Section>
+
+          {/* Body */}
+          <Section style={bodySection}>
+            <Text style={paragraph}>
+              Voici {count} idée{count > 1 ? 's' : ''} pour {names} cette semaine, près de chez
+              vous.
             </Text>
 
-            {items.map((item, idx) => (
-              <Section key={idx} style={idx === 0 ? itemFirst : itemRow}>
-                <table role="presentation" cellPadding={0} cellSpacing={0} style={{ width: '100%' }}>
-                  <tbody>
-                    <tr>
-                      <td style={itemEmojiCell}>{item.emoji}</td>
-                      <td>
-                        <Text style={itemTitle}>{item.name}</Text>
-                        <Text style={itemMeta}>
-                          {item.dateLabel}
-                          {item.address ? ` · ${item.address}` : ''}
-                        </Text>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </Section>
-            ))}
+            <div style={listBox}>
+              {items.map((item, idx) => (
+                <Section key={idx} style={idx === 0 ? itemFirst : itemRow}>
+                  <table role="presentation" cellPadding={0} cellSpacing={0} style={{ width: '100%' }}>
+                    <tbody>
+                      <tr>
+                        <td style={itemEmojiCell}>{item.emoji}</td>
+                        <td>
+                          <Text style={itemTitle}>{item.name}</Text>
+                          <Text style={itemMeta}>
+                            {item.dateLabel}
+                            {item.address ? ` · ${item.address}` : ''}
+                          </Text>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </Section>
+              ))}
+            </div>
 
-            <Link href={landingUrl} style={cta}>
-              Voir toute la sélection →
-            </Link>
+            <div style={{ textAlign: 'center' }}>
+              <Link href={landingUrl} style={ctaButton}>
+                Voir toute la sélection →
+              </Link>
+            </div>
 
-            <Section style={feedbackBox}>
+            <div style={feedbackBox}>
               <Text style={feedbackQ}>Cette sélection vous a plu ?</Text>
               <Text style={feedbackEmojis}>
                 <Link href={landingUrl} style={emojiLink}>😍</Link>
                 <Link href={landingUrl} style={emojiLink}>😐</Link>
                 <Link href={landingUrl} style={emojiLink}>🙁</Link>
               </Text>
-            </Section>
+            </div>
           </Section>
 
-          <Section style={footer}>
-            <Link href={landingUrl} style={footerLink}>
-              Se désabonner de la sélection hebdo
-            </Link>
+          {/* Footer */}
+          <Section style={footerCell}>
+            <Text style={footerBrand}>{SITE_NAME} — Nantes en famille</Text>
+            <Text style={footerNote}>
+              <Link href={landingUrl} style={footerLink}>
+                Se désabonner de la sélection hebdo
+              </Link>
+            </Text>
           </Section>
         </Container>
       </Body>
@@ -122,54 +170,89 @@ export const template = {
   },
 } satisfies TemplateEntry
 
-// Styles — repris du design system Kidmapp (mêmes tokens que weekly-admin-report.tsx)
 const main = {
   backgroundColor: '#ffffff',
-  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  margin: 0,
+  padding: '48px 16px',
+  fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif",
 }
-const container = {
-  backgroundColor: '#FAF9F6',
-  borderRadius: '16px',
-  overflow: 'hidden' as const,
-  margin: '20px auto',
-  maxWidth: '520px',
+const card = {
+  background: '#ffffff',
+  borderRadius: '20px',
+  overflow: 'hidden',
+  boxShadow: '0 6px 32px rgba(0,0,0,0.09)',
+  maxWidth: '560px',
+  width: '100%',
+  margin: '0 auto',
+  border: '1px solid #E7E3DC',
 }
-const header = {
-  backgroundColor: '#D95F3B',
-  padding: '24px',
+const headerRow = {
+  padding: '20px 32px',
+  borderBottom: '1px solid #E7E3DC',
+  background: '#ffffff',
+}
+const brandText = {
+  fontFamily: "'Fraunces', Georgia, serif",
+  fontSize: '18px',
+  fontWeight: 600,
+  color: '#1C1917',
+  verticalAlign: 'middle' as const,
+}
+const fromText = {
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontSize: '11px',
+  color: '#A8A29E',
+  letterSpacing: '0.02em',
+}
+const hero = {
+  padding: '44px 36px 0',
+  background: '#ffffff',
   textAlign: 'center' as const,
 }
-const logo = {
-  fontFamily: 'Georgia, serif',
-  fontWeight: 'bold',
-  color: '#ffffff',
-  fontSize: '22px',
-  margin: '0',
+const iconBubble = {
+  width: '64px',
+  height: '64px',
+  borderRadius: '32px',
+  background: '#FAF0EC',
+  textAlign: 'center' as const,
+  margin: '0 auto 18px',
 }
-const tagline = {
-  color: '#FAF0EC',
+const headline = {
+  fontFamily: "'Fraunces', Georgia, serif",
+  fontWeight: 600,
+  fontSize: '30px',
+  color: '#D95F3B',
+  lineHeight: 1.15,
+  margin: '0 0 14px',
+  textAlign: 'center' as const,
+}
+const venueBadge = {
+  display: 'inline-block',
+  background: '#EBF4F2',
+  borderRadius: '100px',
+  padding: '6px 14px',
+}
+const venueBadgeText = {
+  fontFamily: "'DM Sans', system-ui, sans-serif",
   fontSize: '13px',
-  margin: '2px 0 0',
-  fontStyle: 'italic' as const,
+  fontWeight: 600,
+  color: '#3B7D6E',
+  whiteSpace: 'nowrap' as const,
 }
-const body = {
-  padding: '24px',
+const bodySection = { padding: '32px 40px 36px', background: '#ffffff' }
+const paragraph = {
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontSize: '15px',
+  color: '#44403C',
+  lineHeight: 1.7,
+  margin: '0 0 24px',
 }
-const greeting = {
-  fontFamily: 'Georgia, serif',
-  fontWeight: 'bold',
-  fontSize: '18px',
-  color: '#1C1917',
-  margin: '0 0 6px',
-}
-const sub = {
-  color: '#78716C',
-  fontSize: '13px',
-  margin: '0 0 20px',
-  lineHeight: '1.5',
+const listBox = {
+  borderTop: '1px solid #E7E3DC',
+  margin: '0 0 28px',
 }
 const itemFirst = {
-  padding: '0 0 12px',
+  padding: '14px 0 12px',
 }
 const itemRow = {
   padding: '12px 0',
@@ -186,36 +269,39 @@ const itemEmojiCell = {
   paddingRight: '12px',
 }
 const itemTitle = {
-  fontWeight: 'bold',
-  fontSize: '13.5px',
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontWeight: 600,
+  fontSize: '14px',
   color: '#1C1917',
   margin: '0 0 2px',
 }
 const itemMeta = {
+  fontFamily: "'DM Sans', system-ui, sans-serif",
   fontSize: '12px',
   color: '#78716C',
   margin: '0',
 }
-const cta = {
-  display: 'block',
-  textAlign: 'center' as const,
-  backgroundColor: '#D95F3B',
+const ctaButton = {
+  display: 'inline-block',
+  background: '#3B7D6E',
   color: '#ffffff',
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontWeight: 600,
+  fontSize: '15px',
   textDecoration: 'none',
-  fontWeight: 'bold',
-  fontSize: '13.5px',
-  padding: '12px',
-  borderRadius: '999px',
-  margin: '20px 0 4px',
+  padding: '15px 36px',
+  borderRadius: '100px',
+  letterSpacing: '0.01em',
 }
 const feedbackBox = {
   textAlign: 'center' as const,
-  backgroundColor: '#FAF9F6',
+  background: '#FAF9F6',
   borderRadius: '12px',
   padding: '18px',
-  marginTop: '8px',
+  marginTop: '28px',
 }
 const feedbackQ = {
+  fontFamily: "'DM Sans', system-ui, sans-serif",
   fontSize: '13px',
   color: '#1C1917',
   margin: '0 0 10px',
@@ -228,12 +314,26 @@ const emojiLink = {
   textDecoration: 'none',
   margin: '0 10px',
 }
-const footer = {
+const footerCell = {
+  padding: '20px 40px 28px',
+  borderTop: '1px solid #E7E3DC',
+  background: '#FAF9F6',
   textAlign: 'center' as const,
-  padding: '4px 24px 20px',
+}
+const footerBrand = {
+  fontFamily: "'Caveat', cursive",
+  fontSize: '17px',
+  color: '#78716C',
+  margin: '0 0 4px',
+  lineHeight: 1.4,
+}
+const footerNote = {
+  fontFamily: "'Caveat', cursive",
+  fontSize: '13px',
+  color: '#A8A29E',
+  margin: 0,
 }
 const footerLink = {
-  fontSize: '11px',
-  color: '#78716C',
+  color: '#A8A29E',
   textDecoration: 'underline',
 }
