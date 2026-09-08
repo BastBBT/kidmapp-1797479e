@@ -18,6 +18,7 @@ import { translateToken } from '@/i18n/tokenMaps';
 import { formatDateLong, localeOf } from '@/lib/formatDate';
 import { formatAgeRangeI18n } from '@/lib/ageFormat';
 import { CARTO_TILE_URL } from '@/lib/mapTiles';
+import { trackLinkClick } from '@/lib/trackLinkClick';
 
 const EventPage = () => {
   const { id } = useParams();
@@ -331,6 +332,7 @@ const EventPage = () => {
             href={event.website}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => trackLinkClick({ entityType: 'event', entityId: event.id, url: event.website! })}
             style={{
               padding: 14,
               borderRadius: 100,

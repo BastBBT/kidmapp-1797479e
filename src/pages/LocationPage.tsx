@@ -275,6 +275,16 @@ const LocationPage = () => {
                   href={(location as any).website.startsWith('http') ? (location as any).website : `https://${(location as any).website}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() =>
+                    trackLinkClick({
+                      entityType: 'location',
+                      entityId: location.id,
+                      category: location.category,
+                      url: (location as any).website.startsWith('http')
+                        ? (location as any).website
+                        : `https://${(location as any).website}`,
+                    })
+                  }
                   style={{
                     display: 'flex', alignItems: 'center', gap: '6px',
                     padding: '7px 14px', borderRadius: '100px',
