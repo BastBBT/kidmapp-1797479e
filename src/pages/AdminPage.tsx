@@ -396,7 +396,7 @@ const AdminPage = () => {
     }
     queryClient.invalidateQueries({ queryKey: ['all-locations'] });
     queryClient.invalidateQueries({ queryKey: ['locations'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
     toast({ title: 'Statut mis à jour ✓' });
   };
 
@@ -423,7 +423,7 @@ const AdminPage = () => {
       reason,
     });
     queryClient.invalidateQueries({ queryKey: ['contributions'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
     queryClient.invalidateQueries({ queryKey: ['location-contributions'] });
     setRejectContribTarget(null);
     toast({
@@ -525,7 +525,7 @@ const AdminPage = () => {
     queryClient.invalidateQueries({ queryKey: ['contributions'] });
     queryClient.invalidateQueries({ queryKey: ['all-locations'] });
     queryClient.invalidateQueries({ queryKey: ['locations'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
     toast({ title: action === 'validated' ? 'Contribution validée ✓' : 'Contribution rejetée' });
   };
 
@@ -536,7 +536,7 @@ const AdminPage = () => {
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['contributions'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
     queryClient.invalidateQueries({ queryKey: ['location-contributions'] });
     toast({ title: 'Contribution masquée' });
   };
@@ -549,7 +549,7 @@ const AdminPage = () => {
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['contributions'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
     queryClient.invalidateQueries({ queryKey: ['location-contributions'] });
     toast({ title: 'Contribution supprimée' });
   };
@@ -663,7 +663,7 @@ const AdminPage = () => {
     setSubmitting(false);
     queryClient.invalidateQueries({ queryKey: ['all-locations'] });
     queryClient.invalidateQueries({ queryKey: ['locations'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
     queryClient.invalidateQueries({ queryKey: ['location_meals'] });
     toast({ title: 'Lieu ajouté ✓' });
     setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, kids_menu: false, bookable: 'unknown', status: 'pending', website: '', instagram: '', note: '', age_min: '', age_max: '', age_unit: 'years', duration: '', weather: '', effort: '', price: '' });
@@ -1760,7 +1760,7 @@ const AdminPage = () => {
                   await supabase.from('locations').delete().eq('id', deletingId);
                   queryClient.invalidateQueries({ queryKey: ['all-locations'] });
                   queryClient.invalidateQueries({ queryKey: ['locations'] });
-                  queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+                  queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
                   setDeletingId(null);
                   toast({ title: 'Lieu supprimé' });
                 }}
@@ -2660,7 +2660,8 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
       queryClient.invalidateQueries({ queryKey: ['all-locations'] });
       queryClient.invalidateQueries({ queryKey: ['locations'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-location-proposals'] });
       toast({ title: 'Proposition modifiée & approuvée ✓', description: editedFields.length ? `Champs édités : ${editedFields.join(', ')}` : 'Aucune modification' });
       setEditingId(null);
       setEditDraft(null);
@@ -2754,7 +2755,8 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
       queryClient.invalidateQueries({ queryKey: ['all-locations'] });
       queryClient.invalidateQueries({ queryKey: ['locations'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-location-proposals'] });
       toast({ title: 'Proposition approuvée ✓', description: `${proposal.name} a été ajouté aux lieux.` });
     } catch (err: any) {
       toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
@@ -2785,6 +2787,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         reason,
       });
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-location-proposals'] });
       setRejectTarget(null);
       toast({
         title: 'Proposition rejetée',
@@ -3409,7 +3412,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
 
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
       queryClient.invalidateQueries({ queryKey: ['admin-event-occurrence-counts'] });
       toast({ title: approveOnSave ? 'Événement modifié & approuvé ✓' : 'Événement modifié ✓' });
       cancelEdit();
@@ -3443,7 +3446,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
       toast({ title: 'Événement publié ✓', description: ev.name });
       setManualCoordsFor(null);
     } catch (err: any) {
@@ -3498,7 +3501,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         reason,
       });
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
       setRejectTarget(null);
       toast({
         title: 'Événement rejeté',
@@ -3518,7 +3521,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       const { error } = await supabase.from('events' as any).delete().eq('id', ev.id);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
       queryClient.invalidateQueries({ queryKey: ['admin-event-occurrence-counts'] });
       toast({ title: 'Événement supprimé' });
     } catch (err: any) {
@@ -4346,7 +4349,7 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
     setSubmitting(false);
     queryClient.invalidateQueries({ queryKey: ['admin-events'] });
     queryClient.invalidateQueries({ queryKey: ['events'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
     queryClient.invalidateQueries({ queryKey: ['admin-event-occurrence-counts'] });
     toast({ title: 'Événement ajouté ✓' });
     setForm(emptyEventForm);
