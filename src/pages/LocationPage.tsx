@@ -24,6 +24,7 @@ import { formatAgeRangeI18n } from '@/lib/ageFormat';
 import { translateToken } from '@/i18n/tokenMaps';
 import { galleryMedia } from '@/lib/gallery';
 import LocationGallery from '@/components/LocationGallery';
+import { trackLinkClick } from '@/lib/trackLinkClick';
 
 const categoryGradients: Record<string, string> = {
   restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
@@ -275,6 +276,16 @@ const LocationPage = () => {
                   href={(location as any).website.startsWith('http') ? (location as any).website : `https://${(location as any).website}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() =>
+                    trackLinkClick({
+                      entityType: 'location',
+                      entityId: location.id,
+                      category: location.category,
+                      url: (location as any).website.startsWith('http')
+                        ? (location as any).website
+                        : `https://${(location as any).website}`,
+                    })
+                  }
                   style={{
                     display: 'flex', alignItems: 'center', gap: '6px',
                     padding: '7px 14px', borderRadius: '100px',

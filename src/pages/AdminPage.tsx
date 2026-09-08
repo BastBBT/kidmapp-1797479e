@@ -22,9 +22,10 @@ import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 import { BOT_SOURCING_EMAIL } from '@/lib/adminBot';
 import { ageToMonths, ageRangeError, contributionAgeToMonths, formatAgeRange, monthsPairToDraft, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
+import { useLinkClicksStats, type LinkClickStatRow } from '@/hooks/useLinkClicksStats';
 
 
-type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events';
+type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events' | 'outbound';
 
 type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; confirmed_count: number }>;
 
@@ -42,6 +43,7 @@ const tabs: { key: AdminTab; label: string }[] = [
   { key: 'contributions', label: 'Contributions' },
   { key: 'proposals', label: 'Propositions' },
   { key: 'events', label: 'Événements' },
+  { key: 'outbound', label: 'Trafic sortant' },
   { key: 'add', label: 'Ajouter un lieu' },
   { key: 'add-event', label: 'Ajouter un événement' },
 ];
@@ -1440,6 +1442,9 @@ const AdminPage = () => {
           <EventsTab geocodeAddress={geocodeAddress} queryClient={queryClient} toast={toast} />
         )}
 
+        {/* Outbound traffic */}
+        {activeTab === 'outbound' && <OutboundTab isAdmin={isAdmin} />}
+
         {/* Add location */}
         {activeTab === 'add' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -2105,6 +2110,131 @@ const AdminPage = () => {
 };
 
 /* Sub-components */
+
+/**
+ * Onglet « Trafic sortant » : classement des fiches dont le lien « site web »
+ * a été ouvert. La séparation lieux / activités réutilise `isActivity`
+ * (source unique de vérité, comme dans Explore).
+ */
+function OutboundTab({ isAdmin }: { isAdmin: boolean }) {
+  const [days, setDays] = useState(30);
+  const { data: rows = [], isLoading, error } = useLinkClicksStats(days, isAdmin);
+
+  const groups = useMemo(() => {
+    const places: LinkClickStatRow[] = [];
+    const activities: LinkClickStatRow[] = [];
+    const events: LinkClickStatRow[] = [];
+    rows.forEach((r) => {
+      if (r.entity_type === 'event') events.push(r);
+      else if (isActivity(r.category)) activities.push(r);
+      else places.push(r);
+    });
+    return { places, activities, events };
+  }, [rows]);
+
+  const total = (list: LinkClickStatRow[]) => list.reduce((s, r) => s + r.click_count, 0);
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <div className="flex gap-2" style={{ marginBottom: '16px' }}>
+        {[{ v: 30, l: '30 derniers jours' }, { v: 180, l: '6 derniers mois' }].map((p) => (
+          <button
+            key={p.v}
+            onClick={() => setDays(p.v)}
+            style={{
+              padding: '7px 14px',
+              borderRadius: '100px',
+              fontFamily: 'DM Sans',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              border: days === p.v ? 'none' : '1px solid var(--border)',
+              background: days === p.v ? 'var(--primary)' : 'var(--bg)',
+              color: days === p.v ? '#fff' : 'var(--text)',
+            }}
+          >
+            {p.l}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+        <StatCard label="Clics lieux" value={total(groups.places)} sub="vers leur site web" />
+        <StatCard label="Clics activités" value={total(groups.activities)} sub="vers leur site web" />
+        <StatCard label="Clics événements" value={total(groups.events)} sub="vers leur site web" />
+      </div>
+
+      {isLoading && (
+        <div style={{ fontFamily: 'DM Sans', fontSize: '13px', color: 'var(--text-muted)' }}>Chargement…</div>
+      )}
+      {error && (
+        <div style={{ fontFamily: 'DM Sans', fontSize: '13px', color: 'var(--primary)' }}>
+          Impossible de charger les statistiques.
+        </div>
+      )}
+
+      {!isLoading && !error && (
+        <div className="flex flex-col gap-4">
+          <OutboundRanking title="Lieux" rows={groups.places} kind="location" />
+          <OutboundRanking title="Activités" rows={groups.activities} kind="location" />
+          <OutboundRanking title="Événements" rows={groups.events} kind="event" />
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+function OutboundRanking({ title, rows, kind }: { title: string; rows: LinkClickStatRow[]; kind: 'location' | 'event' }) {
+  return (
+    <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)' }}>
+      <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text)', fontWeight: 600, marginBottom: '10px' }}>
+        {title} ({rows.length})
+      </div>
+      {rows.length === 0 ? (
+        <div style={{ fontFamily: 'DM Sans', fontSize: '13px', color: 'var(--text-muted)' }}>Aucun clic sur la période 😴</div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {rows.map((r, i) => (
+            <div
+              key={`${r.entity_type}-${r.entity_id}`}
+              className="flex items-center justify-between"
+              style={{ padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--bg)', gap: '10px' }}
+            >
+              <div className="flex items-center" style={{ gap: '8px', minWidth: 0 }}>
+                <span style={{ fontFamily: 'Fraunces', fontSize: '14px', color: 'var(--text-muted)' }}>{i + 1}</span>
+                <a
+                  href={`/${kind === 'location' ? 'location' : 'event'}/${r.entity_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontFamily: 'DM Sans',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: 'var(--text)',
+                    textDecoration: 'none',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {r.name ?? 'Fiche supprimée'}
+                </a>
+                {r.category && (
+                  <span style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)' }}>
+                    {categoryLabels[r.category as keyof typeof categoryLabels] ?? r.category}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 700, color: 'var(--primary)', flexShrink: 0 }}>
+                {r.click_count}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function StatCard({ label, value, sub }: { label: string; value: number | string; sub: string }) {
   return (

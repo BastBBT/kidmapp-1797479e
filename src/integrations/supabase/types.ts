@@ -522,6 +522,39 @@ export type Database = {
           },
         ]
       }
+      link_clicks: {
+        Row: {
+          category: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          platform: string
+          url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          platform: string
+          url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          platform?: string
+          url?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       location_alert_sends: {
         Row: {
           created_at: string
@@ -1057,6 +1090,17 @@ export type Database = {
     Functions: {
       admin_audience_stats: { Args: never; Returns: Json }
       admin_dashboard_stats: { Args: never; Returns: Json }
+      admin_link_clicks_stats: {
+        Args: { p_days?: number }
+        Returns: {
+          category: string
+          click_count: number
+          entity_id: string
+          entity_type: string
+          name: string
+          website: string
+        }[]
+      }
       apply_data_retention: { Args: never; Returns: undefined }
       award_points: {
         Args: {
