@@ -19,7 +19,7 @@ import RejectDialog from '@/components/admin/RejectDialog';
 import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
-import { BOT_SOURCING_EMAIL, isBotEmail } from '@/lib/adminBot';
+import { BOT_SOURCING_EMAIL } from '@/lib/adminBot';
 import { ageToMonths, ageRangeError, contributionAgeToMonths, formatAgeRange, monthsPairToDraft, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
 
@@ -137,7 +137,7 @@ const AdminPage = () => {
     }
   }, [authLoading, isAdmin, profile, user, navigate]);
 
-  const { data: locations = [] } = useAllLocations();
+  const { data: locations = [] } = useAllLocations(activeTab === 'locations' || activeTab === 'contributions');
   const { data: contributions = [] } = useContributions(isAdmin);
   const contributionUserIds = useMemo(
     () => Array.from(new Set((contributions as any[]).map((c) => c.user_id).filter(Boolean))),
@@ -2479,7 +2479,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   const { data: proposals = [] } = useQuery({
     queryKey: ['proposals'],
     queryFn: async () => {
-      const { data } = await supabase.from('location_proposals' as any).select('*').order('created_at', { ascending: false });
+      const { data } = await supabase.from('location_proposals' as any).select('*').order('created_at', { ascending: false }).limit(2000);
       return (data ?? []) as any[];
     },
   });
@@ -2642,6 +2642,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
       queryClient.invalidateQueries({ queryKey: ['all-locations'] });
       queryClient.invalidateQueries({ queryKey: ['locations'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-location-proposals'] });
       toast({ title: 'Proposition modifiée & approuvée ✓', description: editedFields.length ? `Champs édités : ${editedFields.join(', ')}` : 'Aucune modification' });
       setEditingId(null);
       setEditDraft(null);
@@ -2736,6 +2737,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
       queryClient.invalidateQueries({ queryKey: ['all-locations'] });
       queryClient.invalidateQueries({ queryKey: ['locations'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-location-proposals'] });
       toast({ title: 'Proposition approuvée ✓', description: `${proposal.name} a été ajouté aux lieux.` });
     } catch (err: any) {
       toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
@@ -2766,6 +2768,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         reason,
       });
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-location-proposals'] });
       setRejectTarget(null);
       toast({
         title: 'Proposition rejetée',
@@ -3176,6 +3179,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const [editDraft, setEditDraft] = useState<any>(null);
   const [editSlots, setEditSlots] = useState<EventSlotDraft[]>([]);
   const [removedSlotIds, setRemovedSlotIds] = useState<string[]>([]);
+  const [approveOnSave, setApproveOnSave] = useState(false);
   const updateEditSlot = (i: number, patch: Partial<EventSlotDraft>) =>
     setEditSlots((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
   const addEditSlot = () => setEditSlots((prev) => [...prev, emptyEventSlot()]);
@@ -3194,7 +3198,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const { data: events = [] } = useQuery({
     queryKey: ['admin-events'],
     queryFn: async () => {
-      const { data } = await supabase.from('events' as any).select('*').order('created_at', { ascending: false });
+      const { data } = await supabase.from('events' as any).select('*').order('created_at', { ascending: false }).limit(2000);
       return (data ?? []) as any[];
     },
   });
@@ -3208,7 +3212,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const { data: occurrenceCounts = {} } = useQuery({
     queryKey: ['admin-event-occurrence-counts'],
     queryFn: async () => {
-      const { data } = await supabase.from('event_occurrences' as any).select('event_id');
+      const { data } = await supabase.from('event_occurrences' as any).select('event_id').limit(20000);
       const counts: Record<string, number> = {};
       (data ?? []).forEach((row: any) => { counts[row.event_id] = (counts[row.event_id] ?? 0) + 1; });
       return counts;
@@ -3224,7 +3228,8 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       const { data } = await supabase
         .from('event_occurrences')
         .select('*')
-        .order('date_start', { ascending: true });
+        .order('date_start', { ascending: true })
+        .limit(20000);
       const byEvent: Record<string, EventOccurrence[]> = {};
       (data ?? []).forEach((row) => { (byEvent[row.event_id] ??= []).push(row); });
       return byEvent;
@@ -3274,6 +3279,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     setRemovedSlotIds([]);
     setPhotoFile(null);
     setPhotoPreview(null);
+    setApproveOnSave(false);
   };
 
   const geocodeEditAddress = async () => {
@@ -3302,6 +3308,17 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     if (ageErr) {
       toast({ title: 'Erreur', description: ageErr, variant: 'destructive' });
       return;
+    }
+    let finalLat: number | null = editDraft.lat ?? null;
+    let finalLng: number | null = editDraft.lng ?? null;
+    if (approveOnSave && (finalLat == null || finalLng == null) && editDraft.address) {
+      const coords = await geocodeAddress(editDraft.address);
+      if (!coords) {
+        toast({ title: 'Adresse non trouvée', description: 'Renseignez les coordonnées manuellement (🌍 Géocoder) avant d’approuver.', variant: 'destructive' });
+        return;
+      }
+      finalLat = coords.lat;
+      finalLng = coords.lng;
     }
     setProcessingId(editingId);
     try {
@@ -3339,9 +3356,12 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         instagram: editDraft.instagram || null,
         photo: finalPhotoUrl,
         note: editDraft.note || null,
-        lat: editDraft.lat ?? null,
-        lng: editDraft.lng ?? null,
+        lat: finalLat,
+        lng: finalLng,
       };
+      if (approveOnSave) {
+        update.status = 'published';
+      }
       const { error } = await supabase.from('events' as any).update(update).eq('id', editingId);
       if (error) throw error;
 
@@ -3375,7 +3395,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-event-occurrence-counts'] });
-      toast({ title: 'Événement modifié ✓' });
+      toast({ title: approveOnSave ? 'Événement modifié & approuvé ✓' : 'Événement modifié ✓' });
       cancelEdit();
     } catch (err: any) {
       toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
@@ -3714,8 +3734,8 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                   </div>
                   <div className="flex gap-2">
                     <button onClick={saveEdit} disabled={isProcessing}
-                      style={{ flex: 1, padding: '10px', borderRadius: 100, border: 'none', background: 'var(--primary)', color: 'white', fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
-                      💾 Enregistrer
+                      style={{ flex: 1, padding: '10px', borderRadius: 100, border: 'none', background: approveOnSave ? 'var(--secondary)' : 'var(--primary)', color: 'white', fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
+                      {isProcessing ? 'En cours…' : approveOnSave ? '✓ Enregistrer & approuver' : '💾 Enregistrer'}
                     </button>
                     <button onClick={cancelEdit}
                       style={{ flex: 1, padding: '10px', borderRadius: 100, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
@@ -3759,13 +3779,17 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                       style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: 'none', background: '#3B7D6E', color: 'white', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
                       ✓ Approuver
                     </button>
+                    <button onClick={() => { startEdit(ev); setApproveOnSave(true); }} disabled={isProcessing}
+                      style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--secondary)', background: 'transparent', color: 'var(--secondary)', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
+                      ✏️ Modifier & approuver
+                    </button>
                     <button onClick={() => handleReject(ev)} disabled={isProcessing}
                       style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
                       ✗ Rejeter
                     </button>
                   </>
                 )}
-                <button onClick={() => startEdit(ev)} disabled={isProcessing}
+                <button onClick={() => { startEdit(ev); setApproveOnSave(false); }} disabled={isProcessing}
                   style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer' }}>
                   ✏️ Modifier
                 </button>
