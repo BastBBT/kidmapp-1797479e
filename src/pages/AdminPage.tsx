@@ -22,9 +22,10 @@ import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 import { BOT_SOURCING_EMAIL } from '@/lib/adminBot';
 import { ageToMonths, ageRangeError, contributionAgeToMonths, formatAgeRange, monthsPairToDraft, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
+import { useLinkClicksStats, type LinkClickStatRow } from '@/hooks/useLinkClicksStats';
 
 
-type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events';
+type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events' | 'outbound';
 
 type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; confirmed_count: number }>;
 
@@ -42,6 +43,7 @@ const tabs: { key: AdminTab; label: string }[] = [
   { key: 'contributions', label: 'Contributions' },
   { key: 'proposals', label: 'Propositions' },
   { key: 'events', label: 'Événements' },
+  { key: 'outbound', label: 'Trafic sortant' },
   { key: 'add', label: 'Ajouter un lieu' },
   { key: 'add-event', label: 'Ajouter un événement' },
 ];
