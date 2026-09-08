@@ -522,6 +522,39 @@ export type Database = {
           },
         ]
       }
+      location_alert_sends: {
+        Row: {
+          created_at: string
+          id: string
+          location_ids: string[]
+          send_date: string
+          token: string
+          token_expires_at: string
+          unsubscribed_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_ids?: string[]
+          send_date: string
+          token: string
+          token_expires_at: string
+          unsubscribed_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_ids?: string[]
+          send_date?: string
+          token?: string
+          token_expires_at?: string
+          unsubscribed_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       location_meals: {
         Row: {
           confirmed_count: number
@@ -684,6 +717,7 @@ export type Database = {
           photo: string | null
           photos: string[] | null
           price: string | null
+          published_at: string | null
           reel_url: string | null
           status: string
           updated_at: string
@@ -716,6 +750,7 @@ export type Database = {
           photo?: string | null
           photos?: string[] | null
           price?: string | null
+          published_at?: string | null
           reel_url?: string | null
           status?: string
           updated_at?: string
@@ -748,6 +783,7 @@ export type Database = {
           photo?: string | null
           photos?: string[] | null
           price?: string | null
+          published_at?: string | null
           reel_url?: string | null
           status?: string
           updated_at?: string
