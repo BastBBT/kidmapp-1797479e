@@ -24,6 +24,7 @@ import { formatAgeRangeI18n } from '@/lib/ageFormat';
 import { translateToken } from '@/i18n/tokenMaps';
 import { galleryMedia } from '@/lib/gallery';
 import LocationGallery from '@/components/LocationGallery';
+import { trackLinkClick } from '@/lib/trackLinkClick';
 
 const categoryGradients: Record<string, string> = {
   restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
