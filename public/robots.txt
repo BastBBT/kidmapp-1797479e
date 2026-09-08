@@ -1,19 +1,24 @@
 User-agent: Googlebot
 Allow: /
 Disallow: /semaine/
+Disallow: /nouveaux-lieux/
 
 User-agent: Bingbot
 Allow: /
 Disallow: /semaine/
+Disallow: /nouveaux-lieux/
 
 User-agent: Twitterbot
 Allow: /
 Disallow: /semaine/
+Disallow: /nouveaux-lieux/
 
 User-agent: facebookexternalhit
 Allow: /
 Disallow: /semaine/
+Disallow: /nouveaux-lieux/
 
 User-agent: *
 Allow: /
 Disallow: /semaine/
+Disallow: /nouveaux-lieux/

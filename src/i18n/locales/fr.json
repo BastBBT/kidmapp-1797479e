@@ -387,5 +387,14 @@
     "expired_title": "Ce lien a expiré",
     "expired_message": "Les sélections hebdo ne sont conservées que 30 jours. Ouvre l'app pour voir les nouveautés du moment.",
     "not_found_title": "Sélection introuvable"
+  },
+  "new_location_alert": {
+    "title": "Du nouveau près de chez vous !",
+    "subtitle": "De nouveaux lieux adaptés à vos enfants viennent d'être ajoutés dans votre zone.",
+    "unsubscribe_button": "Se désabonner des recommandations",
+    "unsubscribe_confirmed": "Désabonné(e) des recommandations",
+    "expired_title": "Ce lien a expiré",
+    "expired_message": "Ces alertes ne sont conservées que 30 jours. Ouvre l'app pour voir les nouveautés du moment.",
+    "not_found_title": "Alerte introuvable"
   }
 }
