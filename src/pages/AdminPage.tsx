@@ -13,7 +13,6 @@ import PhotoUpload from '@/components/admin/PhotoUpload';
 import GalleryUpload from '@/components/admin/GalleryUpload';
 import { useUserEmails } from '@/hooks/useUserEmails';
 import { useTopContributors } from '@/hooks/useTopContributors';
-import { useAdminProfiles, useAdminLocationProposals, useAdminExcludedUserIds } from '@/hooks/useAdminOverview';
 import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryHex, eventCategoryEmoji, type EventOccurrence } from '@/types/event';
 import { occurrencesOf } from '@/lib/eventCalendar';
 import RejectDialog from '@/components/admin/RejectDialog';
@@ -156,89 +155,67 @@ const AdminPage = () => {
   }, [topContributors]);
   const { data: topEmails = {} } = useUserEmails(topUserIds, isAdmin);
 
-  // `profiles`, `location_proposals` et les exclusions admin/bot sont lus une
-  // seule fois via ces hooks partagés (voir useAdminOverview.ts) au lieu d'être
-  // relus indépendamment ici et dans useTopContributors — c'était jusqu'à six
-  // lectures intégrales de `profiles` par ouverture du dashboard.
-  const { data: adminProfiles = [] } = useAdminProfiles(isAdmin);
-  const { data: locationProposalsAll = [] } = useAdminLocationProposals(isAdmin);
-  const excludedIds = useAdminExcludedUserIds(isAdmin);
-
-  // Seules les données vraiment propres à ce bloc (comptes de lieux, agrégats
-  // d'audience en base, events) restent fetchées ici.
-  const { data: remoteStats } = useQuery({
-    queryKey: ['admin-stats-remote'],
+  const { data: stats } = useQuery({
+    queryKey: ['admin-stats'],
     enabled: isAdmin,
     queryFn: async () => {
-      const [locationsRes, audienceRes, eventsRes] = await Promise.all([
-        supabase.from('locations').select('id, status'),
-        // Agrégats d'audience calculés en base : les page_views dépassent la limite
-        // de 1000 lignes de l'API, un comptage côté client serait tronqué.
+      // Agrégats calculés en base via les RPC admin_dashboard_stats /
+      // admin_audience_stats : évite de transférer des tables entières et de
+      // dépasser la limite de 1000 lignes de l'API Data.
+      const [statsRes, audienceRes] = await Promise.all([
+        supabase.rpc('admin_dashboard_stats' as any),
         supabase.rpc('admin_audience_stats' as any),
-        supabase.from('events' as any).select('id, name, status, user_id, created_at, date_start').order('created_at', { ascending: false }),
       ]);
-
+      if (statsRes.error) console.error('[admin-stats] dashboard rpc error', statsRes.error);
       if (audienceRes.error) console.error('[admin-stats] audience rpc error', audienceRes.error);
 
+      const audience = (audienceRes.data ?? {}) as {
+        totalVisits30d?: number;
+        uniqueLoggedVisitors30d?: number;
+        recurringVisitors30d?: number;
+        daily7d?: Record<string, { visits: number; uniques: number }>;
+        totalRegistered?: number;
+        activePct30d?: number;
+      };
+      const d = (statsRes.data ?? {}) as {
+        totalLocations?: number;
+        publishedLocations?: number;
+        pendingLocations?: number;
+        totalContributions?: number;
+        pendingContributions?: number;
+        contributionsDaily7d?: Record<string, number>;
+        pendingProposals?: number;
+        pendingEvents?: number;
+        pendingEventsBotCount?: number;
+        pendingEventsList?: { id: string; name: string; date_start: string }[];
+        newUsers30d?: number;
+        acquisitionDistribution?: Record<string, number>;
+        acquisitionTotal?: number;
+      };
+
       return {
-        locations: (locationsRes.data ?? []) as { id: string; status: string }[],
-        audience: (audienceRes.data ?? {}) as {
-          totalVisits30d?: number;
-          uniqueLoggedVisitors30d?: number;
-          recurringVisitors30d?: number;
-          daily7d?: Record<string, { visits: number; uniques: number }>;
-          totalRegistered?: number;
-          activePct30d?: number;
-        },
-        events: (eventsRes.data ?? []) as any[],
+        totalLocations: d.totalLocations ?? 0,
+        publishedLocations: d.publishedLocations ?? 0,
+        pendingLocations: d.pendingLocations ?? 0,
+        totalContributions: d.totalContributions ?? 0,
+        pendingContributions: d.pendingContributions ?? 0,
+        pendingProposals: d.pendingProposals ?? 0,
+        pendingEvents: d.pendingEvents ?? 0,
+        pendingEventsBotCount: d.pendingEventsBotCount ?? 0,
+        pendingEventsList: d.pendingEventsList ?? [],
+        activeUsers30d: d.newUsers30d ?? 0,
+        contributionsDaily7d: d.contributionsDaily7d ?? {},
+        daily7d: audience.daily7d ?? {},
+        totalVisits30d: audience.totalVisits30d ?? 0,
+        uniqueLoggedVisitors30d: audience.uniqueLoggedVisitors30d ?? 0,
+        recurringVisitors30d: audience.recurringVisitors30d ?? 0,
+        acquisitionDistribution: d.acquisitionDistribution ?? {},
+        acquisitionTotal: d.acquisitionTotal ?? 0,
+        totalRegistered: audience.totalRegistered ?? 0,
+        activePct30d: audience.activePct30d ?? 0,
       };
     },
   });
-
-  const stats = useMemo(() => {
-    if (!remoteStats) return undefined;
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const since = thirtyDaysAgo.toISOString();
-    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-
-    const notExcluded = (uid: string | null | undefined) => !!uid && !excludedIds.has(uid);
-
-    const contribs = (contributions as any[]).filter((c) => notExcluded(c.user_id));
-    const proposals = (locationProposalsAll as any[]).filter((p) => notExcluded(p.user_id));
-    const newUsers = adminProfiles.filter((u) => u.created_at >= since && u.role !== 'admin' && !excludedIds.has(u.id));
-    const daily = (contributions as any[]).filter((c) => notExcluded(c.user_id) && c.created_at >= sevenDaysAgo);
-
-    const acquisitionProfiles = adminProfiles.filter((p) => !!p.acquisition_source && !excludedIds.has(p.id));
-    const acquisitionCounts: Record<string, number> = {};
-    for (const p of acquisitionProfiles) {
-      const src = p.acquisition_source as string;
-      acquisitionCounts[src] = (acquisitionCounts[src] ?? 0) + 1;
-    }
-
-    const pendingEventsList = remoteStats.events.filter((e) => e.status === 'pending');
-
-    return {
-      totalLocations: remoteStats.locations.length,
-      publishedLocations: remoteStats.locations.filter((l) => l.status === 'published').length,
-      pendingLocations: remoteStats.locations.filter((l) => l.status === 'pending').length,
-      totalContributions: contribs.length,
-      pendingContributions: contribs.filter((c: any) => c.status === 'pending').length,
-      pendingProposals: proposals.filter((p: any) => p.status === 'pending').length,
-      pendingEvents: pendingEventsList.length,
-      pendingEventsList: pendingEventsList.slice(0, 5),
-      activeUsers30d: newUsers.length,
-      contributionsLast7d: daily,
-      daily7d: remoteStats.audience.daily7d ?? {},
-      totalVisits30d: remoteStats.audience.totalVisits30d ?? 0,
-      uniqueLoggedVisitors30d: remoteStats.audience.uniqueLoggedVisitors30d ?? 0,
-      recurringVisitors30d: remoteStats.audience.recurringVisitors30d ?? 0,
-      acquisitionDistribution: acquisitionCounts,
-      acquisitionTotal: acquisitionProfiles.length,
-      totalRegistered: remoteStats.audience.totalRegistered ?? 0,
-      activePct30d: remoteStats.audience.activePct30d ?? 0,
-    };
-  }, [remoteStats, contributions, locationProposalsAll, adminProfiles, excludedIds]);
 
 
 
@@ -246,14 +223,12 @@ const AdminPage = () => {
   const chartData = useMemo(() => {
     const days = getLast7Days();
     const counts = days.map((day) => {
-      const count = (stats?.contributionsLast7d ?? []).filter(
-        (c: any) => c.created_at?.slice(0, 10) === day
-      ).length;
+      const count = stats?.contributionsDaily7d?.[day] ?? 0;
       return { day, count, label: getDayLabel(day) };
     });
     const max = Math.max(...counts.map((c) => c.count), 1);
     return { counts, max };
-  }, [stats?.contributionsLast7d]);
+  }, [stats?.contributionsDaily7d]);
 
   const visitsChartData = useMemo(() => {
     const days = getLast7Days();
@@ -396,7 +371,7 @@ const AdminPage = () => {
     }
     queryClient.invalidateQueries({ queryKey: ['all-locations'] });
     queryClient.invalidateQueries({ queryKey: ['locations'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     toast({ title: 'Statut mis à jour ✓' });
   };
 
@@ -423,7 +398,7 @@ const AdminPage = () => {
       reason,
     });
     queryClient.invalidateQueries({ queryKey: ['contributions'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     queryClient.invalidateQueries({ queryKey: ['location-contributions'] });
     setRejectContribTarget(null);
     toast({
@@ -525,7 +500,7 @@ const AdminPage = () => {
     queryClient.invalidateQueries({ queryKey: ['contributions'] });
     queryClient.invalidateQueries({ queryKey: ['all-locations'] });
     queryClient.invalidateQueries({ queryKey: ['locations'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     toast({ title: action === 'validated' ? 'Contribution validée ✓' : 'Contribution rejetée' });
   };
 
@@ -536,7 +511,7 @@ const AdminPage = () => {
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['contributions'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     queryClient.invalidateQueries({ queryKey: ['location-contributions'] });
     toast({ title: 'Contribution masquée' });
   };
@@ -549,7 +524,7 @@ const AdminPage = () => {
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['contributions'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     queryClient.invalidateQueries({ queryKey: ['location-contributions'] });
     toast({ title: 'Contribution supprimée' });
   };
@@ -663,7 +638,7 @@ const AdminPage = () => {
     setSubmitting(false);
     queryClient.invalidateQueries({ queryKey: ['all-locations'] });
     queryClient.invalidateQueries({ queryKey: ['locations'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     queryClient.invalidateQueries({ queryKey: ['location_meals'] });
     toast({ title: 'Lieu ajouté ✓' });
     setForm({ name: '', category: 'restaurant', address: '', high_chair: false, changing_table: false, kids_area: false, kids_menu: false, bookable: 'unknown', status: 'pending', website: '', instagram: '', note: '', age_min: '', age_max: '', age_unit: 'years', duration: '', weather: '', effort: '', price: '' });
@@ -748,6 +723,12 @@ const AdminPage = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {(stats?.pendingEventsBotCount ?? 0) > 0 && (
+              <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px', padding: '0 4px' }}>
+                + {stats?.pendingEventsBotCount} événement(s) du bot en attente de validation
               </div>
             )}
 
@@ -1760,7 +1741,7 @@ const AdminPage = () => {
                   await supabase.from('locations').delete().eq('id', deletingId);
                   queryClient.invalidateQueries({ queryKey: ['all-locations'] });
                   queryClient.invalidateQueries({ queryKey: ['locations'] });
-                  queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+                  queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
                   setDeletingId(null);
                   toast({ title: 'Lieu supprimé' });
                 }}
@@ -2660,7 +2641,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
       queryClient.invalidateQueries({ queryKey: ['all-locations'] });
       queryClient.invalidateQueries({ queryKey: ['locations'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-location-proposals'] });
       toast({ title: 'Proposition modifiée & approuvée ✓', description: editedFields.length ? `Champs édités : ${editedFields.join(', ')}` : 'Aucune modification' });
       setEditingId(null);
@@ -2755,7 +2736,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
       queryClient.invalidateQueries({ queryKey: ['all-locations'] });
       queryClient.invalidateQueries({ queryKey: ['locations'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-location-proposals'] });
       toast({ title: 'Proposition approuvée ✓', description: `${proposal.name} a été ajouté aux lieux.` });
     } catch (err: any) {
@@ -3412,7 +3393,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
 
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-event-occurrence-counts'] });
       toast({ title: approveOnSave ? 'Événement modifié & approuvé ✓' : 'Événement modifié ✓' });
       cancelEdit();
@@ -3446,7 +3427,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       toast({ title: 'Événement publié ✓', description: ev.name });
       setManualCoordsFor(null);
     } catch (err: any) {
@@ -3501,7 +3482,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         reason,
       });
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       setRejectTarget(null);
       toast({
         title: 'Événement rejeté',
@@ -3521,7 +3502,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       const { error } = await supabase.from('events' as any).delete().eq('id', ev.id);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-event-occurrence-counts'] });
       toast({ title: 'Événement supprimé' });
     } catch (err: any) {
@@ -4349,7 +4330,7 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
     setSubmitting(false);
     queryClient.invalidateQueries({ queryKey: ['admin-events'] });
     queryClient.invalidateQueries({ queryKey: ['events'] });
-    queryClient.invalidateQueries({ queryKey: ['admin-stats-remote'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
     queryClient.invalidateQueries({ queryKey: ['admin-event-occurrence-counts'] });
     toast({ title: 'Événement ajouté ✓' });
     setForm(emptyEventForm);

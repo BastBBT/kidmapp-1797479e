@@ -15,11 +15,13 @@ export type AdminProfileRow = {
 };
 
 /**
- * Lecture unique de `profiles` (id/rôle/date d'inscription/source d'acquisition),
- * partagée par tout le dashboard admin. Avant ce hook, chaque bloc (stats,
- * top contributeurs) relisait la table en entier de son côté — jusqu'à six
- * lectures intégrales identiques ou quasi identiques à chaque ouverture de
- * la page, contribuant aux timeouts Postgres observés.
+ * Lecture unique de `profiles` (id/rôle/date d'inscription/source d'acquisition).
+ * Sert aujourd'hui uniquement à `useAdminExcludedUserIds` (classement « top
+ * contributeurs ») — le bloc stats du dashboard, qui relisait aussi cette table
+ * de son côté, passe désormais par la RPC `admin_dashboard_stats` (agrégats
+ * calculés en base). Avant cette consolidation, chaque bloc relisait la table
+ * en entier séparément — jusqu'à six lectures intégrales quasi identiques par
+ * ouverture de page, contribuant aux timeouts Postgres observés.
  */
 export const useAdminProfiles = (enabled = true) => {
   return useQuery({
@@ -36,7 +38,7 @@ export const useAdminProfiles = (enabled = true) => {
   });
 };
 
-/** Lecture unique de `location_proposals`, partagée entre stats et top contributeurs. */
+/** Lecture unique de `location_proposals`, pour le classement « top contributeurs » (les compteurs du dashboard passent par la RPC `admin_dashboard_stats`). */
 export const useAdminLocationProposals = (enabled = true) => {
   return useQuery({
     queryKey: ['admin-location-proposals'],
