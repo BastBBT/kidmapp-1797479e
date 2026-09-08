@@ -1,8 +1,11 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { useUserEmails } from './useUserEmails';
 import { isBotEmail } from '@/lib/adminBot';
+
+export type LocationProposalRow = Database['public']['Tables']['location_proposals']['Row'];
 
 export type AdminProfileRow = {
   id: string;
@@ -41,11 +44,11 @@ export const useAdminLocationProposals = (enabled = true) => {
     staleTime: 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('location_proposals' as any)
+        .from('location_proposals')
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as any[];
+      return (data ?? []) as LocationProposalRow[];
     },
   });
 };
