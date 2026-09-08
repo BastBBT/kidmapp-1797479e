@@ -387,5 +387,14 @@
     "expired_title": "Este enlace ha caducado",
     "expired_message": "Las selecciones semanales solo se conservan 30 días. Abre la app para ver las novedades del momento.",
     "not_found_title": "Selección no encontrada"
+  },
+  "new_location_alert": {
+    "title": "¡Novedades cerca de ti!",
+    "subtitle": "Se han añadido nuevos lugares adaptados a tus hijos en tu zona.",
+    "unsubscribe_button": "Darse de baja de las recomendaciones",
+    "unsubscribe_confirmed": "Baja confirmada de las recomendaciones",
+    "expired_title": "Este enlace ha caducado",
+    "expired_message": "Estas alertas solo se conservan 30 días. Abre la app para ver las novedades del momento.",
+    "not_found_title": "Alerta no encontrada"
   }
 }

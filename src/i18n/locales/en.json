@@ -387,5 +387,14 @@
     "expired_title": "This link has expired",
     "expired_message": "Weekly selections are only kept for 30 days. Open the app to see what's new right now.",
     "not_found_title": "Selection not found"
+  },
+  "new_location_alert": {
+    "title": "New nearby, just for you!",
+    "subtitle": "New places suited to your kids were just added in your area.",
+    "unsubscribe_button": "Unsubscribe from recommendations",
+    "unsubscribe_confirmed": "Unsubscribed from recommendations",
+    "expired_title": "This link has expired",
+    "expired_message": "These alerts are only kept for 30 days. Open the app to see what's new right now.",
+    "not_found_title": "Alert not found"
   }
 }

@@ -13,6 +13,7 @@ import AccountPage from "./pages/AccountPage";
 import SortiesPage from "./pages/SortiesPage";
 import EventPage from "./pages/EventPage";
 import WeeklyDigestLandingPage from "./pages/WeeklyDigestLandingPage";
+import NewLocationAlertLandingPage from "./pages/NewLocationAlertLandingPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import SupportPage from "./pages/SupportPage";
 import NotFound from "./pages/NotFound";
@@ -85,11 +86,13 @@ const OnboardingOverlay = () => {
   const { openAuth } = useRequireAuth();
   const location = useLocation();
   const [show, setShow] = useState(false);
-  // Le destinataire type d'un lien /semaine/<token> arrive depuis un email,
-  // souvent sur un navigateur qui n'a jamais ouvert kidmapp.app (donc sans le
-  // flag localStorage) — sans cette exclusion, le carrousel plein écran
-  // recouvrirait la sélection qu'il vient justement de venir consulter.
-  const isDigestLanding = location.pathname.startsWith('/semaine/');
+  // Le destinataire type d'un lien /semaine/<token> ou /nouveaux-lieux/<token>
+  // arrive depuis un email, souvent sur un navigateur qui n'a jamais ouvert
+  // kidmapp.app (donc sans le flag localStorage) — sans cette exclusion, le
+  // carrousel plein écran recouvrirait la sélection qu'il vient justement de
+  // venir consulter.
+  const isDigestLanding =
+    location.pathname.startsWith('/semaine/') || location.pathname.startsWith('/nouveaux-lieux/');
 
   useEffect(() => {
     if (isLoading || user || isDigestLanding) return;
@@ -128,6 +131,7 @@ const AppContent = () => {
         <Route path="/sorties" element={<SortiesPage />} />
         <Route path="/event/:id" element={<EventPage />} />
         <Route path="/semaine/:token" element={<WeeklyDigestLandingPage />} />
+        <Route path="/nouveaux-lieux/:token" element={<NewLocationAlertLandingPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/support" element={<SupportPage />} />
