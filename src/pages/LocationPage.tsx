@@ -4,9 +4,10 @@ import { categoryIcons, isActivity } from '@/types/location';
 import { ArrowLeft, ArrowUpFromLine, Heart } from 'lucide-react';
 import { shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import LocationServicesSection from '@/components/LocationServicesSection';
 import ContributeSheet from '@/components/ContributeSheet';
+import { useCoachmarks, useCoachmarkTarget } from '@/hooks/useCoachmarks';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { useLocation as useLocationData } from '@/hooks/useLocations';
@@ -90,8 +91,17 @@ const LocationPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [showContribute, setShowContribute] = useState(false);
+  const contributeTargetRef = useCoachmarkTarget('contribute');
+  const { locationDetailAppeared } = useCoachmarks();
   const [ageBucket, setAgeBucket] = useState<AgeBucket>('all');
   const { data: location, isLoading } = useLocationData(id ?? '');
+
+  // La visite guidée attendait une fiche : la voici. On n'annonce qu'une fois la
+  // donnée là — la carte visée n'existe pas encore dans le DOM avant.
+  useEffect(() => {
+    if (!location) return;
+    locationDetailAppeared();
+  }, [location, locationDetailAppeared]);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { data: contribData } = useLocationContributions(id ?? '');
   const votes = contribData
@@ -605,6 +615,7 @@ const LocationPage = () => {
 
           {/* Confirm-info invitation card (replaces the standalone Contribuer button) */}
           <div
+            ref={contributeTargetRef}
             style={{
               marginTop: 16,
               padding: 16,

@@ -21,6 +21,7 @@ import AuthGate from "./components/AuthGate";
 import IosAppBanner from "./components/IosAppBanner";
 import BottomNav from "./components/BottomNav";
 import Onboarding from "./components/Onboarding";
+import Coachmarks from "./components/Coachmarks";
 import AcquisitionModal from "./components/AcquisitionModal";
 import ProposeLocationModal from "./components/ProposeLocationModal";
 import ProposeEventModal from "./components/ProposeEventModal";
@@ -29,6 +30,8 @@ import { useAuth, AuthProvider } from "./hooks/useAuth";
 import { RequireAuthProvider, useRequireAuth } from "./hooks/useRequireAuth";
 import { ProposalModalProvider, useProposalModal } from "./hooks/useProposalModal";
 import { usePageviewTracker } from "./hooks/usePageviewTracker";
+import { CoachmarkProvider, useCoachmarks } from "./hooks/useCoachmarks";
+import { flush as flushOnboardingStats } from "./lib/onboardingTracker";
 
 const queryClient = new QueryClient();
 const ONBOARDING_KEY = 'kidmapp_hasSeenOnboarding';
@@ -81,7 +84,11 @@ const AcquisitionOverlay = () => {
   return <AcquisitionModal open={show} onClose={() => setShow(false)} />;
 };
 
-const OnboardingOverlay = () => {
+const OnboardingOverlay = ({
+  onVisibilityChange,
+}: {
+  onVisibilityChange: (visible: boolean) => void;
+}) => {
   const { user, isLoading } = useAuth();
   const { openAuth } = useRequireAuth();
   const location = useLocation();
@@ -103,7 +110,12 @@ const OnboardingOverlay = () => {
     }
   }, [isLoading, user, isDigestLanding]);
 
-  if (!show || user || isDigestLanding) return null;
+  const visible = show && !user && !isDigestLanding;
+  useEffect(() => {
+    onVisibilityChange(visible);
+  }, [visible, onVisibilityChange]);
+
+  if (!visible) return null;
 
   return (
     <Onboarding
@@ -116,9 +128,46 @@ const OnboardingOverlay = () => {
   );
 };
 
+/**
+ * Lance la visite guidée dès qu'aucun accueil plein écran ne la recouvre, et
+ * pousse les compteurs accumulés avant l'auth à la première session connectée.
+ *
+ * Les bulles se jouent pour TOUT LE MONDE une fois : un visiteur déjà installé
+ * n'a jamais vu l'onglet Sorties présenté ni l'invitation à contribuer, et ça
+ * garantit un `coachmarks_outcome` renseigné pour tous les comptes.
+ */
+const CoachmarkStarter = ({ onboardingVisible }: { onboardingVisible: boolean }) => {
+  const { start } = useCoachmarks();
+  const { user, isLoading } = useAuth();
+  const location = useLocation();
+
+  // Un lien /semaine/<token> ou /nouveaux-lieux/<token> arrive depuis un email :
+  // recouvrir la sélection qu'on vient consulter serait hostile. Même exclusion
+  // que pour l'accueil.
+  const isDigestLanding =
+    location.pathname.startsWith('/semaine/') || location.pathname.startsWith('/nouveaux-lieux/');
+
+  useEffect(() => {
+    if (onboardingVisible || isDigestLanding) return;
+    // Un temps de latence pour que la mise en page se stabilise : un halo mesuré
+    // trop tôt vise à côté.
+    const id = window.setTimeout(start, 800);
+    return () => window.clearTimeout(id);
+  }, [onboardingVisible, isDigestLanding, start]);
+
+  useEffect(() => {
+    if (isLoading || !user) return;
+    void flushOnboardingStats(user.id);
+  }, [isLoading, user]);
+
+  return null;
+};
+
 const AppContent = () => {
   usePageviewTracker();
   const { isOpen: isProposalOpen, mode: proposalMode, close: closeProposal } = useProposalModal();
+  // La visite guidée ne démarre pas sous le carrousel d'accueil.
+  const [onboardingVisible, setOnboardingVisible] = useState(false);
   const locationModalOpen = isProposalOpen && (proposalMode === 'location' || proposalMode === 'activity');
   const initialCategory = proposalMode === 'activity' ? 'nature' : 'restaurant';
   return (
@@ -157,7 +206,9 @@ const AppContent = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <BottomNav />
-      <OnboardingOverlay />
+      <OnboardingOverlay onVisibilityChange={setOnboardingVisible} />
+      <CoachmarkStarter onboardingVisible={onboardingVisible} />
+      <Coachmarks />
       <AcquisitionOverlay />
       <ProposalTypeChooser />
       <ProposeLocationModal open={locationModalOpen} onClose={closeProposal} initialCategory={initialCategory} mode={proposalMode === 'activity' ? 'activity' : 'location'} />
@@ -175,7 +226,9 @@ const App = () => (
         <BrowserRouter>
           <ProposalModalProvider>
             <RequireAuthProvider>
-              <AppContent />
+              <CoachmarkProvider>
+                <AppContent />
+              </CoachmarkProvider>
             </RequireAuthProvider>
           </ProposalModalProvider>
         </BrowserRouter>
