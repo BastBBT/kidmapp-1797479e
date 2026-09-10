@@ -30,7 +30,14 @@ import { RequireAuthProvider, useRequireAuth } from "./hooks/useRequireAuth";
 import { ProposalModalProvider, useProposalModal } from "./hooks/useProposalModal";
 import { usePageviewTracker } from "./hooks/usePageviewTracker";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 const ONBOARDING_KEY = 'kidmapp_hasSeenOnboarding';
 const ACQUISITION_FLAG = 'hasAnsweredAcquisition';
 
