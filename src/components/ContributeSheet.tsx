@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, Check } from 'lucide-react';
+import { X, Loader2, Check, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { submitFailureText } from '@/lib/submitFailure';
+import { compressImage } from '@/lib/compressImage';
 import { useAuth } from '@/hooks/useAuth';
 import { useMealTypes } from '@/hooks/useMeals';
 import { useQueryClient } from '@tanstack/react-query';
@@ -27,6 +28,10 @@ interface Props {
 const MEAL_CATEGORIES = new Set(['restaurant', 'cafe']);
 const MAX_COMMENT_MEAL = 2000;
 const MAX_COMMENT_GENERIC = 2000;
+const MAX_PHOTOS = 5;
+// Garde-fou d'entrée avant compression (une vraie photo raisonnable passe large en dessous) ;
+// compressImage() ramène ensuite le fichier à quelques centaines de Ko avant l'upload.
+const MAX_PHOTO_INPUT_SIZE = 8 * 1024 * 1024;
 
 type EquipValue = boolean | null;
 
@@ -72,6 +77,7 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
   const [effort, setEffort] = useState<string | null>(null);
   const [price, setPrice] = useState<string | null>(null);
   const [age, setAge] = useState<AgeChoice | null>(null);
+  const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -83,6 +89,12 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
       setEffort(null);
       setPrice(null);
       setAge(null);
+      // Révoque les previews d'un envoi précédent (elles ne meurent pas seules :
+      // `removePhoto` ne couvre que le retrait manuel d'une photo par l'utilisateur).
+      setPhotos((prev) => {
+        prev.forEach((p) => URL.revokeObjectURL(p.preview));
+        return [];
+      });
       // Pre-fill with current location values
       setEquipment({
         high_chair: location?.high_chair ?? null,
@@ -108,11 +120,34 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
   const hasActivityInput = [duration, weather, effort, price, age].some((v) => v !== null);
 
   const canSubmit =
-    variant === 'meals'
+    photos.length > 0 ||
+    (variant === 'meals'
       ? selected.length > 0 || hasEquipmentInput || comment.trim().length > 0
       : variant === 'activity'
         ? hasActivityInput || comment.trim().length > 0
-        : comment.trim().length > 0 || hasEquipmentInput;
+        : comment.trim().length > 0 || hasEquipmentInput);
+
+  const addPhotos = (files: FileList | null) => {
+    if (!files) return;
+    const remaining = MAX_PHOTOS - photos.length;
+    const accepted: { file: File; preview: string }[] = [];
+    for (const file of Array.from(files).slice(0, remaining)) {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) continue;
+      if (file.size > MAX_PHOTO_INPUT_SIZE) {
+        toast.error('Photo trop lourde (8 Mo max)');
+        continue;
+      }
+      accepted.push({ file, preview: URL.createObjectURL(file) });
+    }
+    setPhotos((p) => [...p, ...accepted]);
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos((p) => {
+      URL.revokeObjectURL(p[index].preview);
+      return p.filter((_, i) => i !== index);
+    });
+  };
 
   const handleSubmit = async () => {
     if (!user) {
@@ -123,10 +158,23 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
 
     setSubmitting(true);
     try {
+      const photoUrls: string[] = [];
+      for (const { file } of photos) {
+        const blob = await compressImage(file);
+        const fileName = `proposals/${user.id}/${crypto.randomUUID()}.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from('location-photos')
+          .upload(fileName, blob, { contentType: 'image/jpeg' });
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('location-photos').getPublicUrl(fileName);
+        photoUrls.push(urlData.publicUrl);
+      }
+
       const isMeals = variant === 'meals';
       const trimmedComment = comment.trim();
+      const photoField = photoUrls.length > 0 ? { photo_urls: photoUrls } : {};
       const payload: any = isMeals
-        ? { meal_types: selected, equipment, comment: trimmedComment || null }
+        ? { meal_types: selected, equipment, comment: trimmedComment || null, ...photoField }
         : variant === 'activity'
           ? {
               activity: {
@@ -147,8 +195,9 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
                 age_unit: 'months',
               },
               comment: trimmedComment || null,
+              ...photoField,
             }
-          : { equipment, comment: trimmedComment };
+          : { equipment, comment: trimmedComment, ...photoField };
       const detectedLang = trimmedComment ? detectLanguage(trimmedComment) : null;
       const { error } = await supabase.from('contributions').insert({
         location_id: locationId,
@@ -441,6 +490,62 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
               )}
 
               {variant === 'activity' ? renderActivitySection() : renderEquipmentSection()}
+
+              <div style={{ marginTop: 18 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                    Ajouter des photos
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    {photos.length}/{MAX_PHOTOS}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {photos.map((photo, i) => (
+                    <div key={photo.preview} style={{ position: 'relative', width: 72, height: 72 }}>
+                      <img
+                        src={photo.preview}
+                        alt=""
+                        style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover' }}
+                      />
+                      <button
+                        onClick={() => removePhoto(i)}
+                        style={{
+                          position: 'absolute', top: -6, right: -6,
+                          width: 20, height: 20, borderRadius: '50%',
+                          background: 'rgba(0,0,0,0.55)', border: 'none',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <X className="w-3 h-3" style={{ color: '#fff' }} />
+                      </button>
+                    </div>
+                  ))}
+                  {photos.length < MAX_PHOTOS && (
+                    <label
+                      style={{
+                        width: 72, height: 72, borderRadius: 12,
+                        background: 'var(--surface)', border: '1px solid var(--border)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Plus className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/jpeg,image/png,image/webp"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          addPhotos(e.target.files);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
 
               <div style={{ marginTop: 18 }}>
                 <label

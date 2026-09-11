@@ -28,6 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import type { DateRange } from 'react-day-picker';
 import { format, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { sanitizePhotoUrls } from '@/lib/sanitizePhotoUrls';
 
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events' | 'outbound';
@@ -574,6 +575,20 @@ const AdminPage = () => {
           updateData.age_max_months =
             actMaxMonths == null || curMax == null ? null : Math.max(curMax, actMaxMonths);
         }
+      }
+      // Photos proposées par un contributeur : fusionnées dans locations.photos existant
+      // (pas de nouvelle colonne — même tableau déjà géré par l'admin dans la galerie).
+      // `photo_urls` est revalidé ici (voir sanitizePhotoUrls) : le contenu vient d'un JSON
+      // libre que la RLS ne contraint pas, cette colonne étant publique côté fiche lieu.
+      const validatedPhotoUrls = sanitizePhotoUrls(parsedContent?.photo_urls);
+      if (validatedPhotoUrls.length > 0) {
+        const { data: locRow } = await supabase
+          .from('locations')
+          .select('photos')
+          .eq('id', contrib.location_id)
+          .maybeSingle();
+        const existingPhotos: string[] = locRow?.photos ?? [];
+        updateData.photos = Array.from(new Set([...existingPhotos, ...validatedPhotoUrls]));
       }
       if (Object.keys(updateData).length > 0) {
         await supabase.from('locations').update(updateData).eq('id', contrib.location_id);
@@ -1273,6 +1288,7 @@ const AdminPage = () => {
                     let mealComment: string | null = null;
                     let jsonEquipment: { high_chair?: boolean | null; changing_table?: boolean | null; kids_area?: boolean | null } | null = null;
                     let activityInfo: any = null;
+                    let photoUrls: string[] = [];
                     if (contrib.content) {
                       try {
                         const parsed = JSON.parse(contrib.content);
@@ -1286,6 +1302,9 @@ const AdminPage = () => {
                         if (parsed?.activity && typeof parsed.activity === 'object') {
                           activityInfo = parsed.activity;
                         }
+                        // Revalidé avant tout rendu <img> : `content` est un JSON libre,
+                        // une URL externe arbitraire ne doit jamais être chargée ici.
+                        photoUrls = sanitizePhotoUrls(parsed?.photo_urls);
                       } catch { /* ignore */ }
                     }
                     // Infos activité confirmées par le parent : ce sont elles qui seront
@@ -1344,6 +1363,16 @@ const AdminPage = () => {
                           letterSpacing: '0.04em', textTransform: 'uppercase',
                         }}>
                           Activité
+                        </span>
+                      )}
+                      {photoUrls.length > 0 && (
+                        <span style={{
+                          fontFamily: 'DM Sans', fontSize: '10px', fontWeight: 700,
+                          padding: '2px 8px', borderRadius: 100,
+                          background: '#D9A441', color: '#fff',
+                          letterSpacing: '0.04em', textTransform: 'uppercase',
+                        }}>
+                          Photos
                         </span>
                       )}
                     </div>
@@ -1469,6 +1498,19 @@ const AdminPage = () => {
                           « {mealComment} »
                         </div>
                       )}
+                    </div>
+                  )}
+                  {photoUrls.length > 0 && (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                      {photoUrls.map((url) => (
+                        <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={url}
+                            alt=""
+                            style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border)' }}
+                          />
+                        </a>
+                      ))}
                     </div>
                   )}
                   {contrib.status === 'pending' && (
