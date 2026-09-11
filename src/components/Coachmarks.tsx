@@ -33,7 +33,7 @@ const inset = (step: CoachmarkStep) => (step === 'propose' ? 6 : 8);
  */
 const Coachmarks = () => {
   const { t } = useTranslation();
-  const { current, registryVersion, targetOf, next, skip } = useCoachmarks();
+  const { current, targetOf, next, skip } = useCoachmarks();
   const [rect, setRect] = useState<Rect | null>(null);
   const scrolledFor = useRef<CoachmarkStep | null>(null);
 
@@ -62,11 +62,11 @@ const Coachmarks = () => {
     bring();
     const timers = [250, 600].map((d) => window.setTimeout(bring, d));
     return () => timers.forEach(window.clearTimeout);
-  }, [current, registryVersion, targetOf]);
+  }, [current, targetOf]);
 
   // La position d'une cible n'est connue qu'après peinture, et elle bouge :
   // défilement, redimensionnement, et surtout ré-enregistrement de la cible
-  // quand son écran se re-rend — d'où `registryVersion` dans les dépendances.
+  // quand son écran se re-rend.
   useLayoutEffect(() => {
     if (!current) {
       setRect(null);
@@ -103,7 +103,7 @@ const Coachmarks = () => {
       window.removeEventListener('resize', measure);
       window.removeEventListener('scroll', measure, true);
     };
-  }, [current, registryVersion, targetOf]);
+  }, [current, targetOf]);
 
   if (!current) return null;
 
