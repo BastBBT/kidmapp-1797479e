@@ -3043,9 +3043,9 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
             (PLACE_CATEGORIES as readonly string[]).includes(p.category)
           )
           .filter((p: any) =>
-            matchSearch(searchProposals, p.name, p.address, p.website)
-          )
-          .filter((p: any) => isDateInRange(p.created_at, proposalsDateRange));
+            matchSearch(searchProposals, p.name, p.address, p.website) &&
+            isDateInRange(p.created_at, proposalsDateRange)
+          );
         return (
           <>
             {proposals.length > 0 && (
