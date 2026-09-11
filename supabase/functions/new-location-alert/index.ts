@@ -3,6 +3,7 @@ import { sendTemplateEmail } from '../_shared/transactional-email-templates/send
 import { haversineKm } from '../_shared/digest/haversine.ts'
 import { ageInMonths, ageMatches } from '../_shared/digest/matching.ts'
 import { locationCategoryEmoji } from '../_shared/digest/locationStyle.ts'
+import { notifiedIdsByUser, withoutAlreadyNotified, type PreviousSendRow } from '../_shared/digest/dedupe.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -13,8 +14,14 @@ const TOKEN_TTL_DAYS = 30
 // Fenêtre de lookback volontairement plus large qu'un jour : filet de
 // sécurité si un run du cron a été manqué la veille, même raisonnement que
 // releaseClaim côté weekly-digest. L'unique (user_id, send_date) empêche de
-// toute façon un doublon si le lieu a déjà été notifié la veille.
+// toute façon un doublon le même jour — mais PAS d'un jour sur l'autre, d'où
+// le dédoublonnage explicite ci-dessous (`DEDUPE_DAYS`).
 const LOOKBACK_HOURS = 48
+// Fenêtre de relecture des envois passés. Le chevauchement à corriger ne dure
+// que 24 h ; on remonte une semaine pour rester juste si le lookback était
+// élargi un jour, et parce que ré-annoncer un lieu vieux de quelques jours
+// n'a de toute façon aucun intérêt pour le parent.
+const DEDUPE_DAYS = 7
 
 interface ProfileRow {
   id: string
@@ -120,23 +127,48 @@ async function runAlert() {
     return
   }
 
+  // (c) Ce que ces parents ont déjà reçu ces derniers jours : sans ça, le
+  // chevauchement entre le lookback (48 h) et le cron (24 h) renvoie le même
+  // lieu deux jours de suite. Cf. `_shared/digest/dedupe.ts`.
+  const dedupeSince = todayISODate(new Date(now.getTime() - DEDUPE_DAYS * 24 * 60 * 60 * 1000))
+  const { data: previousSends, error: previousError } = await supabase
+    .from('location_alert_sends')
+    .select('user_id, location_ids')
+    .in('user_id', candidates.map((p) => p.id))
+    .gte('send_date', dedupeSince)
+    .returns<PreviousSendRow[]>()
+
+  if (previousError) {
+    // On préfère ne rien envoyer plutôt que risquer le doublon qu'on vient de
+    // corriger : le lookback de 48 h rattrapera ce run au prochain passage.
+    console.error('new-location-alert: envois précédents illisibles, run annulé', previousError)
+    return
+  }
+  const notifiedByUser = notifiedIdsByUser(previousSends ?? [])
+
   let sentCount = 0
   let skippedCount = 0
+  let alreadyNotifiedCount = 0
   let failedCount = 0
 
   for (const profile of candidates) {
     const children = childrenByUser.get(profile.id)!
     const ages = children.map((c) => ageInMonths(c.birth_month, c.birth_year, now))
 
-    const matched = locations.filter((loc) => {
+    const relevant = locations.filter((loc) => {
       const ageOk = ages.some((age) => ageMatches(age, loc.age_min_months, loc.age_max_months))
       if (!ageOk) return false
       const distance = haversineKm(profile.zone_lat!, profile.zone_lng!, loc.lat, loc.lng)
       return distance <= (profile.zone_radius_km ?? 12)
     })
+    const matched = withoutAlreadyNotified(relevant, notifiedByUser.get(profile.id))
 
     if (matched.length === 0) {
-      skippedCount++
+      // Deux silences bien distincts, à ne pas confondre en lisant les logs :
+      // rien qui corresponde à l'âge et à la zone, ou tout ce qui correspond a
+      // déjà été annoncé les jours précédents.
+      if (relevant.length > 0) alreadyNotifiedCount++
+      else skippedCount++
       continue
     }
 
@@ -218,7 +250,14 @@ async function runAlert() {
     }
   }
 
-  console.log('new-location-alert terminé', { sendDate, candidats: candidates.length, sentCount, skippedCount, failedCount })
+  console.log('new-location-alert terminé', {
+    sendDate,
+    candidats: candidates.length,
+    sentCount,
+    skippedCount,
+    alreadyNotifiedCount,
+    failedCount,
+  })
 }
 
 // EdgeRuntime est fourni par le runtime Supabase — ce shim déclare juste sa forme.
