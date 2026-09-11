@@ -32,7 +32,7 @@ interface NewLocationAlertProps {
 /** Même règle que weekly-digest.tsx (D8) : prénoms connus sinon repli générique. */
 function greetingNames(names: string[] = []): string {
   const known = names.filter((n) => n && n.trim().length > 0)
-  if (known.length === 0) return 'vos enfants'
+  if (known.length === 0) return 'tes enfants'
   if (known.length === 1) return known[0]
   return `${known.slice(0, -1).join(', ')} et ${known[known.length - 1]}`
 }
@@ -49,7 +49,7 @@ const NewLocationAlertEmail = ({ childrenNames = [], items = [], landingUrl = ''
           rel="stylesheet"
         />
       </Head>
-      <Preview>{`${count} nouveau${count > 1 ? 'x' : ''} lieu${count > 1 ? 'x' : ''} près de chez vous`}</Preview>
+      <Preview>{`${count} nouveau${count > 1 ? 'x' : ''} lieu${count > 1 ? 'x' : ''} près de chez toi`}</Preview>
       <Body style={main}>
         <Container style={card}>
           {/* Header */}
@@ -83,7 +83,7 @@ const NewLocationAlertEmail = ({ childrenNames = [], items = [], landingUrl = ''
             <div style={iconBubble}>
               <span style={{ fontSize: '28px', lineHeight: '64px' }}>📍</span>
             </div>
-            <Text style={headline}>Du nouveau près de chez vous !</Text>
+            <Text style={headline}>Du nouveau près de chez toi !</Text>
             <div style={venueBadge}>
               <span style={venueBadgeText}>
                 {count} lieu{count > 1 ? 'x' : ''} adapté{count > 1 ? 's' : ''} à {names}
@@ -95,7 +95,7 @@ const NewLocationAlertEmail = ({ childrenNames = [], items = [], landingUrl = ''
           <Section style={bodySection}>
             <Text style={paragraph}>
               {count} lieu{count > 1 ? 'x' : ''} adapté{count > 1 ? 's' : ''} à {names} viennent
-              d'être ajoutés dans votre zone.
+              d'être ajoutés dans ta zone.
             </Text>
 
             <div style={listBox}>
@@ -137,7 +137,7 @@ export const template = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- signature imposée par TemplateEntry['subject'] (registry.ts), même patron que weekly-digest.tsx
   subject: (data: Record<string, any>) => {
     const count = (data.items ?? []).length
-    return `${count} nouveau${count > 1 ? 'x' : ''} lieu${count > 1 ? 'x' : ''} près de chez vous 📍`
+    return `${count} nouveau${count > 1 ? 'x' : ''} lieu${count > 1 ? 'x' : ''} près de chez toi 📍`
   },
   displayName: 'Nouveau lieu dans la zone (profil famille)',
   previewData: {

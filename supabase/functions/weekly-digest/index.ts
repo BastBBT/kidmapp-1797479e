@@ -256,6 +256,9 @@ async function runDigest() {
         name: ev.name,
         dateLabel: formatDateLabel(occ),
         address: ev.address,
+        // Lien universel : ouvre l'app si elle est installée, la fiche web
+        // sinon. Même forme que le mail « nouveaux lieux ».
+        url: `https://kidmapp.app/event/${ev.id}`,
       }
     })
 

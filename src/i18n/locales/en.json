@@ -380,6 +380,7 @@
     "title_generic": "Your weekly selection",
     "subtitle_range": "{{start}} to {{end}}",
     "feedback_question": "Did you like this selection?",
+    "feedback_confirm": "Save my feedback",
     "feedback_thanks": "Thanks for your feedback!",
     "feedback_recorded": "Response recorded",
     "unsubscribe_button": "Unsubscribe from the weekly selection",

@@ -377,10 +377,11 @@
   },
   "weekly_digest": {
     "title_named": "La sélection de {{names}}",
-    "title_generic": "Votre sélection de la semaine",
+    "title_generic": "Ta sélection de la semaine",
     "subtitle_range": "Du {{start}} au {{end}}",
-    "feedback_question": "Cette sélection vous a plu ?",
-    "feedback_thanks": "Merci pour votre avis !",
+    "feedback_question": "Cette sélection t'a plu ?",
+    "feedback_confirm": "Enregistrer mon avis",
+    "feedback_thanks": "Merci pour ton avis !",
     "feedback_recorded": "Réponse enregistrée",
     "unsubscribe_button": "Se désabonner de la sélection hebdo",
     "unsubscribe_confirmed": "Désabonné(e) de la sélection hebdo",
@@ -389,8 +390,8 @@
     "not_found_title": "Sélection introuvable"
   },
   "new_location_alert": {
-    "title": "Du nouveau près de chez vous !",
-    "subtitle": "De nouveaux lieux adaptés à vos enfants viennent d'être ajoutés dans votre zone.",
+    "title": "Du nouveau près de chez toi !",
+    "subtitle": "De nouveaux lieux adaptés à tes enfants viennent d'être ajoutés dans ta zone.",
     "unsubscribe_button": "Se désabonner des recommandations",
     "unsubscribe_confirmed": "Désabonné(e) des recommandations",
     "expired_title": "Ce lien a expiré",
