@@ -380,6 +380,7 @@
     "title_generic": "Votre sélection de la semaine",
     "subtitle_range": "Du {{start}} au {{end}}",
     "feedback_question": "Cette sélection vous a plu ?",
+    "feedback_confirm": "Enregistrer mon avis",
     "feedback_thanks": "Merci pour votre avis !",
     "feedback_recorded": "Réponse enregistrée",
     "unsubscribe_button": "Se désabonner de la sélection hebdo",

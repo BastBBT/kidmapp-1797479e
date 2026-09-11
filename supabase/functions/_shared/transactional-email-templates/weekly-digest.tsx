@@ -37,6 +37,16 @@ function greetingNames(names: string[] = []): string {
   return `${known.slice(0, -1).join(', ')} et ${known[known.length - 1]}`
 }
 
+/** Le verdict voyage dans le lien : sans lui, les trois émojis menaient à la
+ * même URL et le parent devait re-choisir sur la page, comme si son clic
+ * n'avait servi à rien. La page pré-sélectionne ce verdict et demande une
+ * confirmation — elle ne l'enregistre jamais à l'ouverture, sinon un
+ * antivirus de messagerie qui précharge le lien voterait à la place du
+ * parent (§7.2 du chantier profil famille). */
+function reactionUrl(landingUrl: string, verdict: 'love' | 'neutral' | 'sad'): string {
+  return `${landingUrl}?r=${verdict}`
+}
+
 const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: WeeklyDigestProps) => {
   const names = greetingNames(childrenNames)
   const count = items.length
@@ -128,9 +138,9 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
             <div style={feedbackBox}>
               <Text style={feedbackQ}>Cette sélection vous a plu ?</Text>
               <Text style={feedbackEmojis}>
-                <Link href={landingUrl} style={emojiLink}>😍</Link>
-                <Link href={landingUrl} style={emojiLink}>😐</Link>
-                <Link href={landingUrl} style={emojiLink}>🙁</Link>
+                <Link href={reactionUrl(landingUrl, 'love')} style={emojiLink}>😍</Link>
+                <Link href={reactionUrl(landingUrl, 'neutral')} style={emojiLink}>😐</Link>
+                <Link href={reactionUrl(landingUrl, 'sad')} style={emojiLink}>🙁</Link>
               </Text>
             </div>
           </Section>

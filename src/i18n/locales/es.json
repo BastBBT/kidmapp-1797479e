@@ -380,6 +380,7 @@
     "title_generic": "Tu selección de la semana",
     "subtitle_range": "Del {{start}} al {{end}}",
     "feedback_question": "¿Te ha gustado esta selección?",
+    "feedback_confirm": "Guardar mi opinión",
     "feedback_thanks": "¡Gracias por tu opinión!",
     "feedback_recorded": "Respuesta registrada",
     "unsubscribe_button": "Darse de baja de la selección semanal",

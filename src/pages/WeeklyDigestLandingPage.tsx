@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useNoIndex } from '@/hooks/useNoIndex';
@@ -26,11 +26,24 @@ type PageState =
   | { status: 'error' }
   | { status: 'ready'; data: ViewResponse };
 
-const REACTIONS: { key: 'love' | 'neutral' | 'sad'; emoji: string }[] = [
+type ReactionKey = 'love' | 'neutral' | 'sad';
+
+const REACTIONS: { key: ReactionKey; emoji: string }[] = [
   { key: 'love', emoji: '😍' },
   { key: 'neutral', emoji: '😐' },
   { key: 'sad', emoji: '🙁' },
 ];
+
+/**
+ * Le verdict cliqué dans le mail arrive en `?r=`. On le pré-sélectionne, on ne
+ * l'enregistre jamais tout seul : un antivirus de messagerie qui précharge le
+ * lien voterait sinon à la place du parent. C'est aussi ce qui protège du tap
+ * accidentel — le serveur refuse d'écraser une réaction déjà posée, donc un
+ * clic direct était définitif.
+ */
+function suggestedReaction(raw: string | null): ReactionKey | null {
+  return REACTIONS.some((r) => r.key === raw) ? (raw as ReactionKey) : null;
+}
 
 function greetingNames(names: string[], t: (key: string, opts?: Record<string, unknown>) => string): string {
   if (names.length === 0) return t('weekly_digest.title_generic');
@@ -48,8 +61,10 @@ function dateRangeParts(sendDateISO: string, locale: string): { start: string; e
 
 const WeeklyDigestLandingPage = () => {
   const { token } = useParams();
+  const [searchParams] = useSearchParams();
   const { t, i18n } = useTranslation();
   const [state, setState] = useState<PageState>({ status: 'loading' });
+  const [selected, setSelected] = useState<ReactionKey | null>(() => suggestedReaction(searchParams.get('r')));
   const [reacting, setReacting] = useState(false);
   const [unsubscribing, setUnsubscribing] = useState(false);
   const [actionError, setActionError] = useState(false);
@@ -73,7 +88,7 @@ const WeeklyDigestLandingPage = () => {
       .catch(() => setState({ status: 'error' }));
   }, [token]);
 
-  const react = async (reaction: 'love' | 'neutral' | 'sad') => {
+  const react = async (reaction: ReactionKey) => {
     if (state.status !== 'ready' || reacting || state.data.reaction) return;
     setReacting(true);
     setActionError(false);
@@ -167,11 +182,24 @@ const WeeklyDigestLandingPage = () => {
             <div style={feedbackQ}>{t('weekly_digest.feedback_question')}</div>
             <div>
               {REACTIONS.map((r) => (
-                <button key={r.key} onClick={() => react(r.key)} disabled={reacting} style={emojiButton}>
+                <button
+                  key={r.key}
+                  onClick={() => setSelected(r.key)}
+                  aria-pressed={selected === r.key}
+                  disabled={reacting}
+                  style={selected === r.key ? emojiButtonSelected : emojiButton}
+                >
                   {r.emoji}
                 </button>
               ))}
             </div>
+            <button
+              onClick={() => selected && react(selected)}
+              disabled={!selected || reacting}
+              style={selected ? confirmButton : confirmButtonDisabled}
+            >
+              {t('weekly_digest.feedback_confirm')}
+            </button>
           </>
         )}
       </div>
@@ -273,11 +301,35 @@ const feedbackQ: React.CSSProperties = {
 const emojiButton: React.CSSProperties = {
   fontSize: 30,
   background: 'none',
-  border: 'none',
+  border: '2px solid transparent',
   cursor: 'pointer',
   margin: '0 8px',
   padding: 8,
   borderRadius: 12,
+};
+// La sélection doit se voir sans dépendre de la seule couleur : cadre + fond.
+const emojiButtonSelected: React.CSSProperties = {
+  ...emojiButton,
+  backgroundColor: 'var(--secondary-light)',
+  border: '2px solid var(--secondary)',
+};
+const confirmButton: React.CSSProperties = {
+  marginTop: 16,
+  fontSize: 14,
+  fontWeight: 600,
+  fontFamily: "'DM Sans', sans-serif",
+  color: '#fff',
+  backgroundColor: 'var(--secondary)',
+  border: 'none',
+  borderRadius: 999,
+  padding: '11px 26px',
+  cursor: 'pointer',
+};
+const confirmButtonDisabled: React.CSSProperties = {
+  ...confirmButton,
+  backgroundColor: 'var(--border)',
+  color: 'var(--text-muted)',
+  cursor: 'default',
 };
 const confirmPill: React.CSSProperties = {
   display: 'inline-flex',
