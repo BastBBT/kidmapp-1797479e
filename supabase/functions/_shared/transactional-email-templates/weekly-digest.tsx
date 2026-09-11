@@ -33,10 +33,11 @@ interface WeeklyDigestProps {
   landingUrl?: string
 }
 
-/** « Léa et Tom », « Léa », ou repli générique si aucun prénom connu (D8). */
+/** « Léa et Tom », « Léa », ou repli générique si aucun prénom connu (D8).
+ * Tutoiement : c'est la voix de l'app partout ailleurs, mail compris. */
 function greetingNames(names: string[] = []): string {
   const known = names.filter((n) => n && n.trim().length > 0)
-  if (known.length === 0) return 'vos enfants'
+  if (known.length === 0) return 'tes enfants'
   if (known.length === 1) return known[0]
   return `${known.slice(0, -1).join(', ')} et ${known[known.length - 1]}`
 }
@@ -109,7 +110,7 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
           <Section style={bodySection}>
             <Text style={paragraph}>
               Voici {count} idée{count > 1 ? 's' : ''} pour {names} cette semaine, près de chez
-              vous.
+              toi.
             </Text>
 
             <div style={listBox}>
@@ -140,7 +141,7 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
             </div>
 
             <div style={feedbackBox}>
-              <Text style={feedbackQ}>Cette sélection vous a plu ?</Text>
+              <Text style={feedbackQ}>Cette sélection t'a plu ?</Text>
               <Text style={feedbackEmojis}>
                 <Link href={reactionUrl(landingUrl, 'love')} style={emojiLink}>😍</Link>
                 <Link href={reactionUrl(landingUrl, 'neutral')} style={emojiLink}>😐</Link>
