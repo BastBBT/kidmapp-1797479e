@@ -40,8 +40,6 @@ export const stepRadius = (step: CoachmarkStep) => {
 
 interface CoachmarkContextValue {
   current: CoachmarkStep | null;
-  /** Change à chaque (dés)enregistrement de cible : sert à relancer la mesure. */
-  registryVersion: number;
   /** Passe à true quand la bulle 3 demande l'ouverture d'une fiche. */
   wantsLocationDetail: boolean;
   register: (step: CoachmarkStep, el: HTMLElement | null) => void;
@@ -62,20 +60,15 @@ export const CoachmarkProvider = ({ children }: { children: ReactNode }) => {
   const awaitingDetail = useRef(false);
   const targets = useRef(new Map<CoachmarkStep, HTMLElement>());
 
-  // Les cibles se ré-enregistrent quand leur écran se re-rend. Sans ce compteur,
-  // la mesure du halo faite au montage se perdait et la bulle disparaissait sans
-  // jamais revenir.
-  const [registryVersion, setRegistryVersion] = useState(0);
-
   const register = useCallback((step: CoachmarkStep, el: HTMLElement | null) => {
-    // On ne notifie que si la cible change vraiment : sinon chaque re-rendu
-    // provoqué par le contexte relançait un enregistrement identique, et la
-    // boucle « Maximum update depth exceeded » démarrait.
+    // Une callback ref est appelée avec `null` pendant la phase de mutation de
+    // React. Déclencher un setState ici peut relancer le détachement des refs et
+    // créer une boucle synchrone. La Map est volontairement mise à jour sans
+    // provoquer de rendu ; les cibles existent avant le démarrage de leur étape.
     const previous = targets.current.get(step) ?? null;
     if (previous === el) return;
     if (el) targets.current.set(step, el);
     else targets.current.delete(step);
-    setRegistryVersion((v) => v + 1);
   }, []);
 
   const targetOf = useCallback(
@@ -145,7 +138,6 @@ export const CoachmarkProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(
     () => ({
       current,
-      registryVersion,
       wantsLocationDetail,
       register,
       targetOf,
@@ -158,7 +150,6 @@ export const CoachmarkProvider = ({ children }: { children: ReactNode }) => {
     }),
     [
       current,
-      registryVersion,
       wantsLocationDetail,
       register,
       targetOf,
