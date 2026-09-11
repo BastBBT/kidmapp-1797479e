@@ -68,6 +68,11 @@ export const CoachmarkProvider = ({ children }: { children: ReactNode }) => {
   const [registryVersion, setRegistryVersion] = useState(0);
 
   const register = useCallback((step: CoachmarkStep, el: HTMLElement | null) => {
+    // On ne notifie que si la cible change vraiment : sinon chaque re-rendu
+    // provoqué par le contexte relançait un enregistrement identique, et la
+    // boucle « Maximum update depth exceeded » démarrait.
+    const previous = targets.current.get(step) ?? null;
+    if (previous === el) return;
     if (el) targets.current.set(step, el);
     else targets.current.delete(step);
     setRegistryVersion((v) => v + 1);
