@@ -2608,6 +2608,11 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
 
   const { data: proposals = [] } = useQuery({
     queryKey: ['proposals'],
+    // Un admin approuve une proposition sur la base de son statut affiché : un cache
+    // resté "pending" pendant que le staleTime global (5 min, cf. App.tsx) masque
+    // qu'un autre admin l'a déjà traitée ferait dupliquer le lieu à l'approbation.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data } = await supabase.from('location_proposals' as any).select('*').order('created_at', { ascending: false }).limit(2000);
       return (data ?? []) as any[];
@@ -3327,6 +3332,10 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
 
   const { data: events = [] } = useQuery({
     queryKey: ['admin-events'],
+    // Même raison que la query 'proposals' : le statut affiché conditionne le bouton
+    // "Approuver", un cache obsolète ferait retraiter un événement déjà validé.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data } = await supabase.from('events' as any).select('*').order('created_at', { ascending: false }).limit(2000);
       return (data ?? []) as any[];

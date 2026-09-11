@@ -336,8 +336,8 @@ const LocationPage = () => {
               borderLeft: '3px solid var(--accent)',
             }}>
               <div style={{
-                fontFamily: 'Caveat', fontStyle: 'italic',
-                fontSize: '16px', color: 'var(--text)',
+                fontFamily: 'Caveat',
+                fontSize: '19px', fontWeight: 500, color: 'var(--text)',
                 lineHeight: 1.5,
               }}>
                 "{(location as any).note}"

@@ -51,6 +51,10 @@ export const useContributions = (enabled = true) => {
   return useQuery({
     queryKey: ['contributions'],
     enabled,
+    // Admin-only : le statut affiché conditionne les boutons valider/rejeter, un cache
+    // resté "pending" ferait retraiter une contribution déjà approuvée par un autre admin.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('contributions')
