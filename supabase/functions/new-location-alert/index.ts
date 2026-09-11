@@ -17,11 +17,11 @@ const TOKEN_TTL_DAYS = 30
 // toute façon un doublon le même jour — mais PAS d'un jour sur l'autre, d'où
 // le dédoublonnage explicite ci-dessous (`DEDUPE_DAYS`).
 const LOOKBACK_HOURS = 48
-// Fenêtre de relecture des envois passés. Le chevauchement à corriger ne dure
-// que 24 h ; on remonte une semaine pour rester juste si le lookback était
-// élargi un jour, et parce que ré-annoncer un lieu vieux de quelques jours
-// n'a de toute façon aucun intérêt pour le parent.
-const DEDUPE_DAYS = 7
+// Fenêtre de relecture des envois passés : juste assez pour couvrir tout le
+// lookback, plus un jour de marge. Dérivée plutôt que posée en dur — elle
+// suivra si le lookback change, sans repasser derrière. Inutile de remonter
+// plus loin : un lieu n'est de toute façon plus éligible passé le lookback.
+const DEDUPE_DAYS = Math.ceil(LOOKBACK_HOURS / 24) + 1
 
 interface ProfileRow {
   id: string
@@ -141,7 +141,17 @@ async function runAlert() {
   if (previousError) {
     // On préfère ne rien envoyer plutôt que risquer le doublon qu'on vient de
     // corriger : le lookback de 48 h rattrapera ce run au prochain passage.
+    // Mais la fonction répond `{ok:true}` avant de travailler (waitUntil), donc
+    // pg_cron ne verra jamais cet échec : si on se contentait d'un log, un
+    // incident durable rendrait l'alerte muette sans que personne le voie.
     console.error('new-location-alert: envois précédents illisibles, run annulé', previousError)
+    const { error: logError } = await supabase.from('email_send_log').insert({
+      template_name: 'new-location-alert',
+      recipient_email: '',
+      status: 'failed',
+      error_message: `relecture des envois précédents impossible: ${previousError.message}`.slice(0, 1000),
+    })
+    if (logError) console.error('email_send_log insert failed (run annulé)', logError)
     return
   }
   const notifiedByUser = notifiedIdsByUser(previousSends ?? [])
@@ -149,6 +159,7 @@ async function runAlert() {
   let sentCount = 0
   let skippedCount = 0
   let alreadyNotifiedCount = 0
+  let alreadySentTodayCount = 0
   let failedCount = 0
 
   for (const profile of candidates) {
@@ -180,13 +191,21 @@ async function runAlert() {
     // (user_id, send_date) — même patron que digest_sends. Si des lieux
     // supplémentaires sont publiés le même jour après un premier run, ils
     // rejoindront l'envoi du lendemain plutôt qu'un second mail le jour même.
+    //
+    // La réservation part avec `location_ids` VIDE, rempli seulement une fois
+    // l'envoi passé (plus bas). Depuis que le dédoublonnage lit cette colonne,
+    // y écrire avant l'envoi ferait croire au run du lendemain que le parent a
+    // vu des lieux qu'il n'a jamais reçus — worker interrompu entre les deux,
+    // ou `releaseClaim` qui échoue. Le doublon corrigé par cette fonction
+    // réparait ce cas tout seul le lendemain ; sans cette précaution, il
+    // deviendrait une perte définitive et silencieuse.
     const { data: claimed, error: claimError } = await supabase
       .from('location_alert_sends')
       .upsert(
         {
           user_id: profile.id,
           send_date: sendDate,
-          location_ids: matched.map((l) => l.id),
+          location_ids: [],
           token,
           token_expires_at: tokenExpiresAt.toISOString(),
         },
@@ -200,7 +219,9 @@ async function runAlert() {
       continue
     }
     if (!claimed || claimed.length === 0) {
-      // Déjà traité aujourd'hui (course perdue ou re-run du cron).
+      // Déjà traité aujourd'hui (course perdue ou re-run du cron). Compté, pour
+      // que la somme des compteurs du log de fin retombe sur `candidats`.
+      alreadySentTodayCount++
       continue
     }
 
@@ -228,6 +249,18 @@ async function runAlert() {
         templateData: { childrenNames, items, landingUrl },
         idempotencyKey,
       })
+      // Le chemin d'envoi est allé au bout (mail parti, ou destinataire mis en
+      // suppression définitive par le fournisseur) : ces lieux ne doivent plus
+      // repartir demain. C'est aussi ce qui alimente la page d'atterrissage.
+      const { error: idsError } = await supabase
+        .from('location_alert_sends')
+        .update({ location_ids: matched.map((l) => l.id) })
+        .eq('id', claimed[0].id)
+      if (idsError) {
+        // Pire cas : le parent reverra ces lieux demain — le défaut d'origine,
+        // borné à un jour, jamais une perte.
+        console.error('new-location-alert: lieux envoyés non enregistrés', profile.id, idsError)
+      }
       const { error: logError } = await supabase.from('email_send_log').insert({
         template_name: 'new-location-alert',
         recipient_email: email,
@@ -256,6 +289,7 @@ async function runAlert() {
     sentCount,
     skippedCount,
     alreadyNotifiedCount,
+    alreadySentTodayCount,
     failedCount,
   })
 }
