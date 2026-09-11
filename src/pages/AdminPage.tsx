@@ -184,6 +184,49 @@ function DateRangeFilter({ value, onChange }: { value: DateRange | undefined; on
   );
 }
 
+type ReviewStatus = 'all' | 'pending' | 'validated' | 'rejected';
+
+function reviewStatusOf(rawStatus: string): ReviewStatus {
+  if (rawStatus === 'approved' || rawStatus === 'validated') return 'validated';
+  if (rawStatus === 'rejected') return 'rejected';
+  return 'pending';
+}
+
+function ReviewStatusFilter({ value, onChange, counts }: {
+  value: ReviewStatus;
+  onChange: (v: ReviewStatus) => void;
+  counts: Record<ReviewStatus, number>;
+}) {
+  const options: { key: ReviewStatus; label: string }[] = [
+    { key: 'all', label: 'Toutes' },
+    { key: 'pending', label: 'En attente' },
+    { key: 'validated', label: 'Validées' },
+    { key: 'rejected', label: 'Rejetées' },
+  ];
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      {options.map((o) => {
+        const active = value === o.key;
+        return (
+          <button
+            key={o.key}
+            onClick={() => onChange(o.key)}
+            style={{
+              padding: '5px 12px', borderRadius: 100, fontSize: 12, fontWeight: 600,
+              border: active ? '1.5px solid var(--secondary)' : '1.5px solid var(--border)',
+              background: active ? 'var(--secondary)' : 'transparent',
+              color: active ? 'white' : 'var(--text-muted)',
+              fontFamily: 'DM Sans', cursor: 'pointer',
+            }}
+          >
+            {o.label} ({counts[o.key]})
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 const AdminPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -196,6 +239,7 @@ const AdminPage = () => {
   const [groupFilter, setGroupFilter] = useState<'all' | 'places' | 'activities'>('all');
   const [searchContributions, setSearchContributions] = useState('');
   const [contributionsDateRange, setContributionsDateRange] = useState<DateRange | undefined>(undefined);
+  const [contributionsStatusFilter, setContributionsStatusFilter] = useState<ReviewStatus>('all');
 
   useEffect(() => {
     // Wait until auth AND profile are resolved before deciding admin status
@@ -1185,6 +1229,16 @@ const AdminPage = () => {
               placeholder="Rechercher par nom de lieu…"
             />
             <DateRangeFilter value={contributionsDateRange} onChange={setContributionsDateRange} />
+            <ReviewStatusFilter
+              value={contributionsStatusFilter}
+              onChange={setContributionsStatusFilter}
+              counts={{
+                all: contributions.length,
+                pending: contributions.filter((c: any) => reviewStatusOf(c.status) === 'pending').length,
+                validated: contributions.filter((c: any) => reviewStatusOf(c.status) === 'validated').length,
+                rejected: contributions.filter((c: any) => reviewStatusOf(c.status) === 'rejected').length,
+              }}
+            />
             {contributions.length === 0 && (
               <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
                 Aucune contribution
@@ -1193,7 +1247,11 @@ const AdminPage = () => {
             {(() => {
               const filteredContribs = contributions.filter((contrib: any) => {
                 const loc = locations.find((l) => l.id === contrib.location_id);
-                return matchSearch(searchContributions, loc?.name) && isDateInRange(contrib.created_at, contributionsDateRange);
+                return (
+                  matchSearch(searchContributions, loc?.name) &&
+                  isDateInRange(contrib.created_at, contributionsDateRange) &&
+                  (contributionsStatusFilter === 'all' || reviewStatusOf(contrib.status) === contributionsStatusFilter)
+                );
               });
               return (
                 <>
@@ -2672,6 +2730,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   const [searchProposals, setSearchProposals] = useState('');
   const [groupFilter, setGroupFilter] = useState<'all' | 'places' | 'activities'>('all');
   const [proposalsDateRange, setProposalsDateRange] = useState<DateRange | undefined>(undefined);
+  const [proposalsStatusFilter, setProposalsStatusFilter] = useState<ReviewStatus>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<any>(null);
   const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
@@ -3001,6 +3060,16 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         placeholder="Rechercher par nom, adresse ou site web…"
       />
       <DateRangeFilter value={proposalsDateRange} onChange={setProposalsDateRange} />
+      <ReviewStatusFilter
+        value={proposalsStatusFilter}
+        onChange={setProposalsStatusFilter}
+        counts={{
+          all: proposals.length,
+          pending: proposals.filter((p: any) => reviewStatusOf(p.status) === 'pending').length,
+          validated: proposals.filter((p: any) => reviewStatusOf(p.status) === 'validated').length,
+          rejected: proposals.filter((p: any) => reviewStatusOf(p.status) === 'rejected').length,
+        }}
+      />
       {(() => {
         const groupCounts = {
           all: proposals.length,
@@ -3049,7 +3118,8 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
           )
           .filter((p: any) =>
             matchSearch(searchProposals, p.name, p.address, p.website) &&
-            isDateInRange(p.created_at, proposalsDateRange)
+            isDateInRange(p.created_at, proposalsDateRange) &&
+            (proposalsStatusFilter === 'all' || reviewStatusOf(p.status) === proposalsStatusFilter)
           );
         return (
           <>
