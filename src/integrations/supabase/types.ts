@@ -931,6 +931,7 @@ export type Database = {
           digest_push_enabled: boolean
           full_name: string | null
           id: string
+          locale: string
           onboarding_completed_at: string | null
           onboarding_outcome: string | null
           onboarding_step_max: number | null
@@ -954,6 +955,7 @@ export type Database = {
           digest_push_enabled?: boolean
           full_name?: string | null
           id: string
+          locale?: string
           onboarding_completed_at?: string | null
           onboarding_outcome?: string | null
           onboarding_step_max?: number | null
@@ -977,6 +979,7 @@ export type Database = {
           digest_push_enabled?: boolean
           full_name?: string | null
           id?: string
+          locale?: string
           onboarding_completed_at?: string | null
           onboarding_outcome?: string | null
           onboarding_step_max?: number | null
