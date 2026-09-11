@@ -1234,9 +1234,9 @@ const AdminPage = () => {
               onChange={setContributionsStatusFilter}
               counts={{
                 all: contributions.length,
-                pending: contributions.filter((c: any) => reviewStatusOf(c.status) === 'pending').length,
-                validated: contributions.filter((c: any) => reviewStatusOf(c.status) === 'validated').length,
-                rejected: contributions.filter((c: any) => reviewStatusOf(c.status) === 'rejected').length,
+                pending: contributions.filter((c) => reviewStatusOf(c.status) === 'pending').length,
+                validated: contributions.filter((c) => reviewStatusOf(c.status) === 'validated').length,
+                rejected: contributions.filter((c) => reviewStatusOf(c.status) === 'rejected').length,
               }}
             />
             {contributions.length === 0 && (
@@ -3065,9 +3065,9 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         onChange={setProposalsStatusFilter}
         counts={{
           all: proposals.length,
-          pending: proposals.filter((p: any) => reviewStatusOf(p.status) === 'pending').length,
-          validated: proposals.filter((p: any) => reviewStatusOf(p.status) === 'validated').length,
-          rejected: proposals.filter((p: any) => reviewStatusOf(p.status) === 'rejected').length,
+          pending: proposals.filter((p) => reviewStatusOf(p.status) === 'pending').length,
+          validated: proposals.filter((p) => reviewStatusOf(p.status) === 'validated').length,
+          rejected: proposals.filter((p) => reviewStatusOf(p.status) === 'rejected').length,
         }}
       />
       {(() => {
