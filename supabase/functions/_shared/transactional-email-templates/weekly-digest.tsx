@@ -21,6 +21,10 @@ interface DigestItem {
   name: string
   dateLabel: string
   address: string | null
+  /** Fiche de la sortie — `kidmapp.app/event/<id>`, ouverte par l'app iOS si
+   * elle est installée (lien universel). Le mail lieux liait déjà ses items ;
+   * le programme de la semaine, lui, ne s'ouvrait nulle part. */
+  url: string
 }
 
 interface WeeklyDigestProps {
@@ -110,7 +114,7 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
 
             <div style={listBox}>
               {items.map((item, idx) => (
-                <Section key={idx} style={idx === 0 ? itemFirst : itemRow}>
+                <Link key={idx} href={item.url} style={idx === 0 ? itemFirst : itemRow}>
                   <table role="presentation" cellPadding={0} cellSpacing={0} style={{ width: '100%' }}>
                     <tbody>
                       <tr>
@@ -125,7 +129,7 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
                       </tr>
                     </tbody>
                   </table>
-                </Section>
+                </Link>
               ))}
             </div>
 
@@ -172,9 +176,9 @@ export const template = {
   previewData: {
     childrenNames: ['Léa', 'Tom'],
     items: [
-      { emoji: '🎨', name: 'Atelier des Petits Curieux', dateLabel: 'Mer 9 sept · Centre Ville · 2h', address: null },
-      { emoji: '🎭', name: 'Kamishibaï en plein air', dateLabel: 'Sam 12 sept · 16h', address: 'Jardin des Plantes' },
-      { emoji: '🧺', name: 'Marché des créateurs', dateLabel: 'Dim 13 sept · 10h', address: 'Bellevue' },
+      { emoji: '🎨', name: 'Atelier des Petits Curieux', dateLabel: 'Mer 9 sept · Centre Ville · 2h', address: null, url: 'https://kidmapp.app/event/apercu' },
+      { emoji: '🎭', name: 'Kamishibaï en plein air', dateLabel: 'Sam 12 sept · 16h', address: 'Jardin des Plantes', url: 'https://kidmapp.app/event/apercu' },
+      { emoji: '🧺', name: 'Marché des créateurs', dateLabel: 'Dim 13 sept · 10h', address: 'Bellevue', url: 'https://kidmapp.app/event/apercu' },
     ],
     landingUrl: 'https://kidmapp.app/semaine/apercu',
   },
@@ -262,11 +266,15 @@ const listBox = {
   margin: '0 0 28px',
 }
 const itemFirst = {
+  display: 'block',
   padding: '14px 0 12px',
+  textDecoration: 'none',
 }
 const itemRow = {
+  display: 'block',
   padding: '12px 0',
   borderTop: '1px solid #E7E3DC',
+  textDecoration: 'none',
 }
 const itemEmojiCell = {
   width: '44px',

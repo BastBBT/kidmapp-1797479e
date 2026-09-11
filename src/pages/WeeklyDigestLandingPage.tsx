@@ -10,6 +10,7 @@ interface DigestItem {
   name: string;
   dateLabel: string;
   address: string | null;
+  url: string;
 }
 
 interface ViewResponse {
@@ -156,7 +157,9 @@ const WeeklyDigestLandingPage = () => {
 
       <div style={{ marginTop: 24 }}>
         {data.items.map((item, idx) => (
-          <div key={idx} style={card}>
+          // Même patron que la page « nouveaux lieux » : la carte entière ouvre
+          // la fiche de la sortie, et l'app la récupère si elle est installée.
+          <a key={idx} href={item.url} style={card}>
             <div style={cardEmoji}>{item.emoji}</div>
             <div>
               <div style={cardTitle}>{item.name}</div>
@@ -165,7 +168,7 @@ const WeeklyDigestLandingPage = () => {
                 {item.address ? ` · ${item.address}` : ''}
               </div>
             </div>
-          </div>
+          </a>
         ))}
       </div>
 
@@ -269,6 +272,7 @@ const card: React.CSSProperties = {
   marginBottom: 10,
   textAlign: 'left',
   boxShadow: 'var(--shadow)',
+  textDecoration: 'none',
 };
 const cardEmoji: React.CSSProperties = {
   width: 48,

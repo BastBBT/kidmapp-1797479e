@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
 
   if (action === 'view' || !action) {
     const occurrenceIds = send.occurrence_ids ?? []
-    let items: { emoji: string; name: string; dateLabel: string; address: string | null }[] = []
+    let items: { emoji: string; name: string; dateLabel: string; address: string | null; url: string }[] = []
 
     if (occurrenceIds.length > 0) {
       const { data: occurrences } = await supabase
@@ -108,6 +108,7 @@ Deno.serve(async (req) => {
             name: ev.name,
             dateLabel: formatDateLabel(o.date_start, o.time),
             address: ev.address,
+            url: `https://kidmapp.app/event/${ev.id}`,
           }
         })
     }
