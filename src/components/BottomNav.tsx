@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useProposalModal } from '@/hooks/useProposalModal';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { useCoachmarkTarget } from '@/hooks/useCoachmarks';
 
 const tabs = [
   {
@@ -58,6 +59,8 @@ const BottomNav = () => {
   const location = useLocation();
   const { t } = useTranslation();
   const { favoriteIds } = useFavorites();
+  const sortiesTargetRef = useCoachmarkTarget('sorties');
+  const proposeTargetRef = useCoachmarkTarget('propose');
   const { open: openProposal } = useProposalModal();
   const { requireAuth } = useRequireAuth();
 
@@ -119,10 +122,13 @@ const BottomNav = () => {
       }}
     >
       {renderTab(exploreTab)}
-      {renderTab(sortiesTab)}
+      <div ref={sortiesTargetRef} style={{ display: 'flex' }}>
+        {renderTab(sortiesTab)}
+      </div>
 
       {/* Bouton Proposer — action, pas une route */}
       <button
+        ref={proposeTargetRef}
         onClick={handleProposeClick}
         className="relative flex flex-col items-center gap-1 px-3 py-1 transition-transform active:scale-95"
         aria-label={t('nav.propose_aria')}

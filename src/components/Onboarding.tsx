@@ -1,27 +1,33 @@
-import { useState, useRef, TouchEvent } from 'react';
+import { useEffect, useState, useRef, TouchEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import { recordSlidesOutcome, recordStep } from '@/lib/onboardingTracker';
 
 interface OnboardingProps {
   onFinish: (mode: 'signup' | 'login' | 'browse') => void;
 }
 
 
+// Trois promesses, dans l'ordre du parcours d'usage : on vient pour les lieux
+// (slide 1), on revient pour les sorties datées (slide 2), on ouvre un compte
+// pour garder ses bons plans et nourrir la carte (slide 3).
 const SLIDES = [
   {
     bg: 'linear-gradient(160deg, #FAF0EC 0%, #F0C4B4 60%, #E8A088 100%)',
-    title: 'Les meilleures adresses kid-friendly de Nantes',
-    subtitle: '100+ lieux testés et approuvés par des parents nantais',
+    titleKey: 'onboarding.slide1_title',
+    subtitleKey: 'onboarding.slide1_subtitle',
     illustration: 'map',
   },
   {
     bg: 'linear-gradient(160deg, #F0F7F4 0%, #C4E0D4 60%, #88C4A8 100%)',
-    title: 'Filtré par catégorie, explore sur la carte',
-    subtitle: 'Restos, parcs, cafés avec coin jeux, spectacles… tout est là',
-    illustration: 'cards',
+    titleKey: 'onboarding.slide2_title',
+    subtitleKey: 'onboarding.slide2_subtitle',
+    illustration: 'sorties',
   },
   {
     bg: 'linear-gradient(160deg, #F5F0FA 0%, #D4C0E8 60%, #A888C4 100%)',
-    title: 'Sauvegarde tes lieux préférés',
-    subtitle: 'Retrouve tous tes bons plans en un clic, à tout moment',
+    titleKey: 'onboarding.slide3_title',
+    subtitleKey: 'onboarding.slide3_subtitle',
     illustration: 'favorites',
   },
 ];
@@ -50,87 +56,261 @@ const MapIllustration = () => (
   </svg>
 );
 
-const CardsIllustration = () => (
-  <div style={{ position: 'relative', width: 260, height: 180 }}>
-    {[
-      { top: 0, left: 0, rotate: -4, emoji: '🍕', name: 'Pizza Bella', cat: 'Restaurant', color: '#D95F3B' },
-      { top: 50, left: 40, rotate: 2, emoji: '🌳', name: 'Parc Procé', cat: 'Parc', color: '#5A9A56' },
-      { top: 100, left: 20, rotate: -2, emoji: '☕', name: 'Café Lily', cat: 'Café', color: '#3B7D6E' },
-    ].map((c, i) => (
+/**
+ * Reprend la grammaire visuelle de l'onglet Sorties : sélecteur de semaine, puis
+ * des cartes d'événement à liseré de catégorie, avec leur date et leur horaire.
+ * C'est la date qui porte la promesse — sans elle, ce ne serait qu'une liste.
+ */
+const SortiesIllustration = () => {
+  const { t } = useTranslation();
+  const events = [
+    {
+      emoji: '🎨',
+      cat: t('category_event.Atelier'),
+      accent: '#7F5BB5',
+      name: t('onboarding.event_atelier'),
+      date: t('onboarding.event_atelier_date'),
+      extra: null as string | null,
+      fav: false,
+    },
+    {
+      emoji: '🎭',
+      cat: t('category_event.Spectacle'),
+      accent: '#EF9F27',
+      name: t('onboarding.event_spectacle'),
+      date: t('onboarding.event_spectacle_date'),
+      extra: t('onboarding.extra_dates'),
+      fav: true,
+    },
+  ];
+
+  const pill = (label: string, active: boolean) => (
+    <div
+      style={{
+        padding: '6px 13px',
+        borderRadius: 100,
+        background: active ? '#3B7D6E' : '#fff',
+        border: active ? 'none' : '1px solid #E7E3DC',
+        color: active ? '#fff' : 'rgba(28,25,23,0.6)',
+        fontFamily: 'DM Sans',
+        fontSize: 10,
+        fontWeight: 600,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </div>
+  );
+
+  return (
+    <div
+      style={{
+        width: 272,
+        background: '#fff',
+        borderRadius: 18,
+        padding: 14,
+        boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+      }}
+    >
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        {pill(t('onboarding.this_week'), true)}
+        {pill(t('onboarding.next_week'), false)}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+        {events.map((ev, i) => (
+          <div
+            key={i}
+            style={{
+              borderRadius: 12,
+              overflow: 'hidden',
+              background: '#fff',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
+            }}
+          >
+            <div style={{ height: 5, background: ev.accent }} />
+            <div style={{ padding: '9px 11px 10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: 100,
+                    background: `${ev.accent}1F`,
+                    color: ev.accent,
+                    fontFamily: 'DM Sans',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.03em',
+                  }}
+                >
+                  {ev.emoji} {ev.cat}
+                </div>
+                <div style={{ flex: 1 }} />
+                {ev.extra && (
+                  <div
+                    style={{
+                      padding: '3px 7px',
+                      borderRadius: 100,
+                      background: '#FAF9F6',
+                      border: '1px solid #E7E3DC',
+                      fontFamily: 'DM Sans',
+                      fontSize: 9,
+                      fontWeight: 600,
+                      color: 'rgba(28,25,23,0.6)',
+                    }}
+                  >
+                    {ev.extra}
+                  </div>
+                )}
+                <div style={{ color: ev.fav ? '#D95F3B' : '#E7E3DC', fontSize: 13 }}>♥</div>
+              </div>
+              <div
+                style={{
+                  marginTop: 5,
+                  fontFamily: 'Fraunces',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  color: '#1C1917',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {ev.name}
+              </div>
+              <div
+                style={{
+                  marginTop: 3,
+                  fontFamily: 'DM Sans',
+                  fontSize: 10,
+                  color: 'rgba(28,25,23,0.6)',
+                }}
+              >
+                {ev.date}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Les favoris (ce qu'on garde) et le bouton « Proposer » (ce qu'on donne) dans la
+ * même image : ce sont les deux raisons concrètes d'ouvrir un compte.
+ */
+const FavoritesIllustration = () => {
+  const { t } = useTranslation();
+  // Noms propres : jamais traduits.
+  const rows = [
+    { emoji: '🍕', name: 'La Cantine du Voyage', sub: t('onboarding.fav_resto'), bg: '#FAF0EC' },
+    { emoji: '🎠', name: 'Parc des Oblates', sub: t('onboarding.fav_nature'), bg: '#EDF5E9' },
+    { emoji: '☕', name: 'Café Mama', sub: t('onboarding.fav_cafe'), bg: '#EBF4F2' },
+  ];
+
+  return (
+    <div style={{ position: 'relative', width: 252 }}>
       <div
-        key={i}
+        style={{
+          background: '#fff',
+          borderRadius: 16,
+          padding: 14,
+          boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+        }}
+      >
+        <div
+          style={{
+            fontFamily: 'Fraunces',
+            fontSize: 14,
+            fontWeight: 500,
+            color: '#D95F3B',
+            marginBottom: 10,
+          }}
+        >
+          {t('onboarding.fav_header')}
+        </div>
+        {rows.map((c, i) => (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '8px 0',
+              borderTop: i === 0 ? 'none' : '1px solid #F0EBE3',
+            }}
+          >
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 10,
+                background: c.bg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 17,
+                flexShrink: 0,
+              }}
+            >
+              {c.emoji}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, color: '#1C1917' }}>
+                {c.name}
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(28,25,23,0.6)' }}>
+                {c.sub}
+              </div>
+            </div>
+            <div style={{ color: '#D95F3B', fontSize: 14 }}>♥</div>
+          </div>
+        ))}
+      </div>
+      <div
         style={{
           position: 'absolute',
-          top: c.top,
-          left: c.left,
-          width: 200,
-          background: '#fff',
-          borderRadius: 14,
-          padding: '10px 12px',
+          right: -10,
+          bottom: -16,
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-          transform: `rotate(${c.rotate}deg)`,
+          gap: 6,
+          padding: '11px 16px',
+          borderRadius: 100,
+          background: '#D95F3B',
+          color: '#fff',
+          fontFamily: 'DM Sans',
+          fontSize: 14,
+          fontWeight: 600,
+          boxShadow: '0 6px 18px rgba(217,95,59,0.38)',
         }}
       >
-        <div style={{ fontSize: 24 }}>{c.emoji}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: 'Fraunces', fontSize: 14, fontWeight: 500, color: '#1C1917' }}>{c.name}</div>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: c.color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{c.cat}</div>
-        </div>
+        <span style={{ fontSize: 17, lineHeight: 1 }}>+</span>
+        <span>{t('onboarding.propose')}</span>
       </div>
-    ))}
-  </div>
-);
-
-const FavoritesIllustration = () => (
-  <div
-    style={{
-      width: 240,
-      background: '#fff',
-      borderRadius: 16,
-      padding: 14,
-      boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
-    }}
-  >
-    <div style={{ fontFamily: 'Fraunces', fontSize: 14, fontWeight: 500, color: '#1C1917', marginBottom: 10 }}>
-      ❤️ Mes favoris (3)
     </div>
-    {[
-      { emoji: '🍕', name: 'Pizza Bella', cat: 'Restaurant', color: '#D95F3B' },
-      { emoji: '🌳', name: 'Parc Procé', cat: 'Parc', color: '#5A9A56' },
-      { emoji: '🎨', name: 'Atelier Kids', cat: 'Activité', color: '#C49A35' },
-    ].map((c, i) => (
-      <div
-        key={i}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: '8px 0',
-          borderTop: i === 0 ? 'none' : '1px solid #F0EBE3',
-        }}
-      >
-        <div style={{ fontSize: 18 }}>{c.emoji}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, color: '#1C1917' }}>{c.name}</div>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 9, color: c.color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{c.cat}</div>
-        </div>
-        <div style={{ color: '#D95F3B', fontSize: 14 }}>♥</div>
-      </div>
-    ))}
-  </div>
-);
+  );
+};
 
 const Onboarding = ({ onFinish }: OnboardingProps) => {
+  const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
+
+  // Le swipe compte autant que le bouton « Suivant » : sans ça, quelqu'un qui
+  // fait défiler à la main serait enregistré comme resté au slide 1.
+  useEffect(() => {
+    recordStep(index + 1);
+  }, [index]);
 
   const finish = (mode: 'signup' | 'login' | 'browse') => {
     try {
       localStorage.setItem('kidmapp_hasSeenOnboarding', '1');
-    } catch {}
+    } catch {
+      // Navigation privée : on continue, l'accueil se rejouera au prochain passage.
+    }
+    recordSlidesOutcome(mode === 'browse' ? 'skipped' : 'completed');
     onFinish(mode);
   };
 
@@ -189,7 +369,7 @@ const Onboarding = ({ onFinish }: OnboardingProps) => {
             zIndex: 2,
           }}
         >
-          Passer
+          {t('onboarding.skip')}
         </button>
       )}
 
@@ -215,7 +395,7 @@ const Onboarding = ({ onFinish }: OnboardingProps) => {
         }}
       >
         {slide.illustration === 'map' && <MapIllustration />}
-        {slide.illustration === 'cards' && <CardsIllustration />}
+        {slide.illustration === 'sorties' && <SortiesIllustration />}
         {slide.illustration === 'favorites' && <FavoritesIllustration />}
       </div>
 
@@ -238,7 +418,7 @@ const Onboarding = ({ onFinish }: OnboardingProps) => {
             letterSpacing: '-0.02em',
           }}
         >
-          {slide.title}
+          {t(slide.titleKey)}
         </h1>
         <p
           style={{
@@ -250,7 +430,7 @@ const Onboarding = ({ onFinish }: OnboardingProps) => {
             lineHeight: 1.5,
           }}
         >
-          {slide.subtitle}
+          {t(slide.subtitleKey)}
         </p>
 
         {/* Dots */}
@@ -286,7 +466,7 @@ const Onboarding = ({ onFinish }: OnboardingProps) => {
               boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
             }}
           >
-            Suivant →
+            {t('onboarding.next')}
           </button>
         ) : (
           <>
@@ -306,7 +486,7 @@ const Onboarding = ({ onFinish }: OnboardingProps) => {
                 boxShadow: '0 10px 28px rgba(217,95,59,0.35)',
               }}
             >
-              Créer mon compte 🎉
+                {t('onboarding.signup')}
             </button>
             <button
               onClick={() => finish('login')}
@@ -325,7 +505,7 @@ const Onboarding = ({ onFinish }: OnboardingProps) => {
                 textUnderlineOffset: 4,
               }}
             >
-              Déjà un compte ? Se connecter
+              {t('onboarding.login')}
             </button>
             <button
               onClick={() => finish('browse')}
@@ -342,7 +522,7 @@ const Onboarding = ({ onFinish }: OnboardingProps) => {
                 cursor: 'pointer',
               }}
             >
-              Découvrir sans compte
+              {t('onboarding.browse')}
             </button>
 
           </>

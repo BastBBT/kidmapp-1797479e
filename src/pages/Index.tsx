@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CategoryGroup, LocationCategory, groupOf, isActivity } from '@/types/location';
 import MapView from '@/components/MapView';
 import LocationCard from '@/components/LocationCard';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
+import { useCoachmarks } from '@/hooks/useCoachmarks';
 import MealFilter from '@/components/MealFilter';
 import AgeFilter from '@/components/AgeFilter';
 import ActivityFilter from '@/components/ActivityFilter';
@@ -77,6 +78,9 @@ const Index = () => {
 
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>(initialCategory);
   const [selectedGroup, setSelectedGroup] = useState<CategoryGroup>(initialGroup);
+  const navigate = useNavigate();
+  const { wantsLocationDetail, locationDetailRequestHandled, locationDetailUnavailable } =
+    useCoachmarks();
   const [selectedMeal, setSelectedMeal] = useState<string | null>(initialMeal);
   const [selectedAge, setSelectedAge] = useState<AgeBucket>(initialAge);
   const [selectedWeather, setSelectedWeather] = useState<string | null>(null);
@@ -256,6 +260,27 @@ const Index = () => {
   }, [
     locations, allLocations, isSearching, searchTerm, selectedCategory, selectedGroup,
     locationIdsForMeal, selectedAge, selectedWeather, selectedDuration, sortMode,
+  ]);
+
+  // La bulle 3 se termine par « Voir une fiche → » : c'est ici qu'on désigne
+  // laquelle. Sans lieu chargé (liste vide, chargement raté), on arrête la visite
+  // plutôt que de la laisser en suspens.
+  useEffect(() => {
+    if (!wantsLocationDetail) return;
+    locationDetailRequestHandled();
+    const first = displayedLocations[0] ?? allLocations[0];
+    if (!first) {
+      locationDetailUnavailable();
+      return;
+    }
+    navigate(`/location/${first.id}`);
+  }, [
+    wantsLocationDetail,
+    locationDetailRequestHandled,
+    locationDetailUnavailable,
+    displayedLocations,
+    allLocations,
+    navigate,
   ]);
 
   // Compteurs accordés au groupe actif — et neutres pendant une recherche, dont les

@@ -396,5 +396,52 @@
     "expired_title": "Este enlace ha caducado",
     "expired_message": "Estas alertas solo se conservan 30 días. Abre la app para ver las novedades del momento.",
     "not_found_title": "Alerta no encontrada"
+  },
+  "onboarding": {
+    "slide1_title": "Las mejores direcciones kid-friendly de Nantes",
+    "slide1_subtitle": "Restaurantes, cafés, parques, museos, talleres: más de 200 lugares y actividades para las familias de Nantes",
+    "slide2_title": "¿Y este fin de semana, qué hacemos?",
+    "slide2_subtitle": "Talleres, espectáculos, festivales: la agenda de los planes para peques, semana tras semana",
+    "slide3_title": "Guarda tus descubrimientos, añade los tuyos",
+    "slide3_subtitle": "Tus favoritos te acompañan a todas partes, y tus lugares completan el mapa de todos",
+    "next": "Siguiente →",
+    "skip": "Omitir",
+    "signup": "Crear mi cuenta 🎉",
+    "login": "¿Ya tienes cuenta? Inicia sesión",
+    "browse": "Explorar sin cuenta",
+    "fav_header": "❤️ Mis favoritos (3)",
+    "fav_resto": "Restaurante · Quartier de la Création",
+    "fav_nature": "Naturaleza · Chantenay",
+    "fav_cafe": "Café · Centro",
+    "this_week": "Esta semana",
+    "next_week": "La próxima semana",
+    "event_atelier": "Taller de cerámica en familia",
+    "event_atelier_date": "sáb. · 10:30",
+    "event_spectacle": "Los Barquitos de Papel",
+    "event_spectacle_date": "dom. · 16:00",
+    "extra_dates": "+2 fechas",
+    "propose": "Proponer"
+  },
+  "coachmark": {
+    "skip": "Omitir",
+    "next": "Siguiente",
+    "see_listing": "Ver una ficha →",
+    "lets_go": "¡Vamos!",
+    "categories": {
+      "title": "Dos formas de buscar",
+      "body": "«Lugares» para sitios donde instalarse: restaurantes, cafés, parques. «Actividades» para lo que vais a hacer: naturaleza, deporte, cultura. Las categorías afinan justo al lado."
+    },
+    "sorties": {
+      "title": "Los planes de esta semana",
+      "body": "La pestaña Planes es la agenda con fechas: talleres, espectáculos, festivales, semana tras semana. Ahí está el movimiento: vuelve a menudo."
+    },
+    "propose": {
+      "title": "¿Tienes un buen plan?",
+      "body": "Añádelo en unos segundos: un lugar, una actividad o un plan. Este mapa lo llenan las familias de Nantes."
+    },
+    "contribute": {
+      "title": "Confirma lo que hay en el sitio",
+      "body": "Trona, cambiador, zona de juegos: dos toques y la información sigue siendo fiable para las familias que vengan después."
+    }
   }
 }

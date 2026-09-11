@@ -396,5 +396,52 @@
     "expired_title": "Ce lien a expiré",
     "expired_message": "Ces alertes ne sont conservées que 30 jours. Ouvre l'app pour voir les nouveautés du moment.",
     "not_found_title": "Alerte introuvable"
+  },
+  "onboarding": {
+    "slide1_title": "Les meilleures adresses kid-friendly de Nantes",
+    "slide1_subtitle": "Restos, cafés, parcs, musées, ateliers : plus de 200 lieux et activités pour les parents nantais",
+    "slide2_title": "Et ce week-end, on fait quoi ?",
+    "slide2_subtitle": "Ateliers, spectacles, festivals : l'agenda des sorties kids, semaine après semaine",
+    "slide3_title": "Garde tes bons plans, ajoute les tiens",
+    "slide3_subtitle": "Tes favoris te suivent partout, et tes adresses viennent compléter la carte de tous",
+    "next": "Suivant →",
+    "skip": "Passer",
+    "signup": "Créer mon compte 🎉",
+    "login": "Déjà un compte ? Se connecter",
+    "browse": "Découvrir sans compte",
+    "fav_header": "❤️ Mes favoris (3)",
+    "fav_resto": "Resto · Quartier Création",
+    "fav_nature": "Nature · Chantenay",
+    "fav_cafe": "Café · Centre-ville",
+    "this_week": "Cette semaine",
+    "next_week": "Semaine prochaine",
+    "event_atelier": "Atelier poterie en famille",
+    "event_atelier_date": "sam. · 10h30",
+    "event_spectacle": "Les Petits Bateaux de papier",
+    "event_spectacle_date": "dim. · 16h00",
+    "extra_dates": "+2 dates",
+    "propose": "Proposer"
+  },
+  "coachmark": {
+    "skip": "Passer",
+    "next": "Suivant",
+    "see_listing": "Voir une fiche →",
+    "lets_go": "C'est parti !",
+    "categories": {
+      "title": "Deux façons de chercher",
+      "body": "« Lieux » pour les adresses où s'installer — restos, cafés, parcs. « Activités » pour ce que tu vas faire — nature, sport, culture. Les catégories affinent juste à côté."
+    },
+    "sorties": {
+      "title": "Ce qu'il y a à faire cette semaine",
+      "body": "L'onglet Sorties, c'est l'agenda daté : ateliers, spectacles, festivals, semaine après semaine. C'est là que ça bouge — reviens-y souvent."
+    },
+    "propose": {
+      "title": "Un bon plan à toi ?",
+      "body": "Ajoute-le en quelques secondes : un lieu, une activité ou une sortie. Cette carte, ce sont les parents nantais qui la remplissent."
+    },
+    "contribute": {
+      "title": "Confirme ce qu'il y a sur place",
+      "body": "Chaise haute, table à langer, coin jeux : deux clics et l'info reste juste pour les parents d'après."
+    }
   }
 }

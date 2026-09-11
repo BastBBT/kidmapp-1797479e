@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import CategoryFilter from '@/components/CategoryFilter';
 import AgeFilter from '@/components/AgeFilter';
+import { useCoachmarkTarget } from '@/hooks/useCoachmarks';
 import { CategoryGroup, LocationCategory } from '@/types/location';
 import { AgeBucket } from '@/lib/ageFilter';
 
@@ -20,6 +21,7 @@ interface HeaderProps {
 }
 
 const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, selectedGroup, onGroupChange, selectedAge, onAgeChange }: HeaderProps) => {
+  const categoriesTargetRef = useCoachmarkTarget('categories');
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAdmin, signOut } = useAuth();
@@ -95,7 +97,7 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
 
         {/* Row 3 — Category filter */}
         {selectedCategory !== undefined && onCategoryChange && selectedGroup && onGroupChange && (
-          <div className="pb-2">
+          <div className="pb-2" ref={categoriesTargetRef}>
             <CategoryFilter
               selected={selectedCategory}
               onChange={onCategoryChange}
