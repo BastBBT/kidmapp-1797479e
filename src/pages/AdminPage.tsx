@@ -23,6 +23,11 @@ import { BOT_SOURCING_EMAIL } from '@/lib/adminBot';
 import { ageToMonths, ageRangeError, contributionAgeToMonths, formatAgeRange, monthsPairToDraft, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
 import { useLinkClicksStats, type LinkClickStatRow } from '@/hooks/useLinkClicksStats';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import type { DateRange } from 'react-day-picker';
+import { format, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events' | 'outbound';
@@ -117,6 +122,68 @@ function SearchBar({ value, onChange, placeholder }: { value: string; onChange: 
   );
 }
 
+function isDateInRange(dateStr: string | null | undefined, range: DateRange | undefined): boolean {
+  if (!range?.from) return true;
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const from = startOfDay(range.from);
+  const to = endOfDay(range.to ?? range.from);
+  return isWithinInterval(d, { start: from, end: to });
+}
+
+function DateRangeFilter({ value, onChange }: { value: DateRange | undefined; onChange: (range: DateRange | undefined) => void }) {
+  const label = value?.from
+    ? value.to && value.to.getTime() !== value.from.getTime()
+      ? `${format(value.from, 'd MMM', { locale: fr })} – ${format(value.to, 'd MMM', { locale: fr })}`
+      : format(value.from, 'd MMM yyyy', { locale: fr })
+    : 'Toutes les dates';
+
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '5px 12px', borderRadius: 100, fontSize: 12, fontWeight: 600,
+              border: value?.from ? '1.5px solid var(--secondary)' : '1.5px solid var(--border)',
+              background: value?.from ? 'var(--secondary)' : 'transparent',
+              color: value?.from ? 'white' : 'var(--text-muted)',
+              fontFamily: 'DM Sans', cursor: 'pointer',
+            }}
+          >
+            📅 {label}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <div style={{ display: 'flex', gap: 4, padding: '8px 8px 0', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => onChange({ from: startOfDay(subDays(new Date(), 6)), to: endOfDay(new Date()) })}
+              style={{ padding: '4px 10px', borderRadius: 100, fontSize: 12, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', fontFamily: 'DM Sans' }}
+            >
+              7 derniers jours
+            </button>
+            <button
+              onClick={() => onChange(undefined)}
+              style={{ padding: '4px 10px', borderRadius: 100, fontSize: 12, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', fontFamily: 'DM Sans' }}
+            >
+              Réinitialiser
+            </button>
+          </div>
+          <Calendar
+            mode="range"
+            defaultMonth={value?.from}
+            selected={value}
+            onSelect={onChange}
+            numberOfMonths={2}
+            locale={fr}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 const AdminPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -128,6 +195,7 @@ const AdminPage = () => {
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'name'>('recent');
   const [groupFilter, setGroupFilter] = useState<'all' | 'places' | 'activities'>('all');
   const [searchContributions, setSearchContributions] = useState('');
+  const [contributionsDateRange, setContributionsDateRange] = useState<DateRange | undefined>(undefined);
 
   useEffect(() => {
     // Wait until auth AND profile are resolved before deciding admin status
@@ -1116,6 +1184,7 @@ const AdminPage = () => {
               onChange={setSearchContributions}
               placeholder="Rechercher par nom de lieu…"
             />
+            <DateRangeFilter value={contributionsDateRange} onChange={setContributionsDateRange} />
             {contributions.length === 0 && (
               <p className="text-center py-8" style={{ color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>
                 Aucune contribution
@@ -1124,7 +1193,7 @@ const AdminPage = () => {
             {(() => {
               const filteredContribs = contributions.filter((contrib: any) => {
                 const loc = locations.find((l) => l.id === contrib.location_id);
-                return matchSearch(searchContributions, loc?.name);
+                return matchSearch(searchContributions, loc?.name) && isDateInRange(contrib.created_at, contributionsDateRange);
               });
               return (
                 <>
@@ -2602,6 +2671,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   const [proposalManualLng, setProposalManualLng] = useState('-1.5536');
   const [searchProposals, setSearchProposals] = useState('');
   const [groupFilter, setGroupFilter] = useState<'all' | 'places' | 'activities'>('all');
+  const [proposalsDateRange, setProposalsDateRange] = useState<DateRange | undefined>(undefined);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<any>(null);
   const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
@@ -2930,6 +3000,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         onChange={setSearchProposals}
         placeholder="Rechercher par nom, adresse ou site web…"
       />
+      <DateRangeFilter value={proposalsDateRange} onChange={setProposalsDateRange} />
       {(() => {
         const groupCounts = {
           all: proposals.length,
@@ -2977,7 +3048,8 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
             (PLACE_CATEGORIES as readonly string[]).includes(p.category)
           )
           .filter((p: any) =>
-            matchSearch(searchProposals, p.name, p.address, p.website)
+            matchSearch(searchProposals, p.name, p.address, p.website) &&
+            isDateInRange(p.created_at, proposalsDateRange)
           );
         return (
           <>
