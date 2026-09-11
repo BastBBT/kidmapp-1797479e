@@ -13,6 +13,7 @@ import { DURATIONS, WEATHERS, EFFORTS, PRICES } from '@/lib/activity';
 import { isActivity } from '@/types/location';
 import { ageToMonths, ageRangeError, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
+import { compressImage } from '@/lib/compressImage';
 
 const PLACE_CATEGORY_OPTIONS: { id: string; label: string }[] = [
   { id: 'restaurant', label: 'Restaurant' },
@@ -167,11 +168,11 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
     try {
       let photoUrl: string | null = null;
       if (photoFile) {
-        const fileExt = photoFile.name.split('.').pop();
-        const fileName = `proposals/${user.id}/${crypto.randomUUID()}.${fileExt}`;
+        const fileName = `proposals/${user.id}/${crypto.randomUUID()}.jpg`;
+        const compressed = await compressImage(photoFile);
         const { error: uploadError } = await supabase.storage
           .from('location-photos')
-          .upload(fileName, photoFile);
+          .upload(fileName, compressed, { contentType: 'image/jpeg' });
         if (uploadError) {
           toast({ title: 'Erreur upload photo', description: 'Réessaie ou continue sans photo.', variant: 'destructive' });
           setSubmitting(false);

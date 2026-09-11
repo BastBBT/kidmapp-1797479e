@@ -28,6 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import type { DateRange } from 'react-day-picker';
 import { format, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { sanitizePhotoUrls } from '@/lib/sanitizePhotoUrls';
 
 
 type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events' | 'outbound';
@@ -577,14 +578,17 @@ const AdminPage = () => {
       }
       // Photos proposées par un contributeur : fusionnées dans locations.photos existant
       // (pas de nouvelle colonne — même tableau déjà géré par l'admin dans la galerie).
-      if (Array.isArray(parsedContent?.photo_urls) && parsedContent.photo_urls.length > 0) {
+      // `photo_urls` est revalidé ici (voir sanitizePhotoUrls) : le contenu vient d'un JSON
+      // libre que la RLS ne contraint pas, cette colonne étant publique côté fiche lieu.
+      const validatedPhotoUrls = sanitizePhotoUrls(parsedContent?.photo_urls);
+      if (validatedPhotoUrls.length > 0) {
         const { data: locRow } = await supabase
           .from('locations')
           .select('photos')
           .eq('id', contrib.location_id)
           .maybeSingle();
         const existingPhotos: string[] = locRow?.photos ?? [];
-        updateData.photos = Array.from(new Set([...existingPhotos, ...parsedContent.photo_urls]));
+        updateData.photos = Array.from(new Set([...existingPhotos, ...validatedPhotoUrls]));
       }
       if (Object.keys(updateData).length > 0) {
         await supabase.from('locations').update(updateData).eq('id', contrib.location_id);
@@ -1298,9 +1302,9 @@ const AdminPage = () => {
                         if (parsed?.activity && typeof parsed.activity === 'object') {
                           activityInfo = parsed.activity;
                         }
-                        if (Array.isArray(parsed?.photo_urls)) {
-                          photoUrls = parsed.photo_urls;
-                        }
+                        // Revalidé avant tout rendu <img> : `content` est un JSON libre,
+                        // une URL externe arbitraire ne doit jamais être chargée ici.
+                        photoUrls = sanitizePhotoUrls(parsed?.photo_urls);
                       } catch { /* ignore */ }
                     }
                     // Infos activité confirmées par le parent : ce sont elles qui seront

@@ -89,7 +89,12 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
       setEffort(null);
       setPrice(null);
       setAge(null);
-      setPhotos([]);
+      // Révoque les previews d'un envoi précédent (elles ne meurent pas seules :
+      // `removePhoto` ne couvre que le retrait manuel d'une photo par l'utilisateur).
+      setPhotos((prev) => {
+        prev.forEach((p) => URL.revokeObjectURL(p.preview));
+        return [];
+      });
       // Pre-fill with current location values
       setEquipment({
         high_chair: location?.high_chair ?? null,
