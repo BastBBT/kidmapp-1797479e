@@ -583,7 +583,7 @@ const AdminPage = () => {
           .select('photos')
           .eq('id', contrib.location_id)
           .maybeSingle();
-        const existingPhotos: string[] = (locRow as any)?.photos ?? [];
+        const existingPhotos: string[] = locRow?.photos ?? [];
         updateData.photos = Array.from(new Set([...existingPhotos, ...parsedContent.photo_urls]));
       }
       if (Object.keys(updateData).length > 0) {
