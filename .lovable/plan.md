@@ -39,3 +39,8 @@ END $$;
 | `locale` | text | NOT NULL | `'fr'` | `CHECK (locale IN ('fr','en','es'))` |
 
 Aucun impact sur le code web/iOS existant (colonne optionnelle côté lecture, défaut `'fr'` pour les lignes déjà présentes via le backfill automatique du DEFAULT).
+
+## Points de vigilance
+
+- **Versioning de la migration** : l'outil de migration écrit le fichier dans `supabase/migrations/` — l'historique du repo reflètera bien le schéma appliqué (contrairement au cas `location_alert_sends` du 8 septembre où la base avait évolué sans migration versionnée).
+- **`NOT NULL DEFAULT 'fr'`** ne distingue pas « jamais renseigné » de « a choisi le français ». Sans importance pour les emails (une langue est toujours nécessaire, repli = français). Si un choix explicite devient utile un jour, il faudra une colonne séparée (ex. `locale_explicit boolean`) car l'information n'existera pas rétrospectivement.
