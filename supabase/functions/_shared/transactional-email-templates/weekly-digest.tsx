@@ -21,6 +21,10 @@ interface DigestItem {
   name: string
   dateLabel: string
   address: string | null
+  /** Fiche de la sortie — `kidmapp.app/event/<id>`, ouverte par l'app iOS si
+   * elle est installée (lien universel). Le mail lieux liait déjà ses items ;
+   * le programme de la semaine, lui, ne s'ouvrait nulle part. */
+  url: string
 }
 
 interface WeeklyDigestProps {
@@ -29,12 +33,23 @@ interface WeeklyDigestProps {
   landingUrl?: string
 }
 
-/** « Léa et Tom », « Léa », ou repli générique si aucun prénom connu (D8). */
+/** « Léa et Tom », « Léa », ou repli générique si aucun prénom connu (D8).
+ * Tutoiement : c'est la voix de l'app partout ailleurs, mail compris. */
 function greetingNames(names: string[] = []): string {
   const known = names.filter((n) => n && n.trim().length > 0)
-  if (known.length === 0) return 'vos enfants'
+  if (known.length === 0) return 'tes enfants'
   if (known.length === 1) return known[0]
   return `${known.slice(0, -1).join(', ')} et ${known[known.length - 1]}`
+}
+
+/** Le verdict voyage dans le lien : sans lui, les trois émojis menaient à la
+ * même URL et le parent devait re-choisir sur la page, comme si son clic
+ * n'avait servi à rien. La page pré-sélectionne ce verdict et demande une
+ * confirmation — elle ne l'enregistre jamais à l'ouverture, sinon un
+ * antivirus de messagerie qui précharge le lien voterait à la place du
+ * parent (§7.2 du chantier profil famille). */
+function reactionUrl(landingUrl: string, verdict: 'love' | 'neutral' | 'sad'): string {
+  return `${landingUrl}?r=${verdict}`
 }
 
 const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: WeeklyDigestProps) => {
@@ -95,7 +110,7 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
           <Section style={bodySection}>
             <Text style={paragraph}>
               Voici {count} idée{count > 1 ? 's' : ''} pour {names} cette semaine, près de chez
-              vous.
+              toi.
             </Text>
 
             <div style={listBox}>
@@ -104,13 +119,15 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
                   <table role="presentation" cellPadding={0} cellSpacing={0} style={{ width: '100%' }}>
                     <tbody>
                       <tr>
-                        <td style={itemEmojiCell}>{item.emoji}</td>
+                        <td style={itemEmojiCell}>
+                          <Link href={item.url} style={cellLink}>{item.emoji}</Link>
+                        </td>
                         <td>
-                          <Text style={itemTitle}>{item.name}</Text>
-                          <Text style={itemMeta}>
+                          <Link href={item.url} style={itemTitleLink}>{item.name}</Link>
+                          <Link href={item.url} style={itemMetaLink}>
                             {item.dateLabel}
                             {item.address ? ` · ${item.address}` : ''}
-                          </Text>
+                          </Link>
                         </td>
                       </tr>
                     </tbody>
@@ -126,11 +143,11 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
             </div>
 
             <div style={feedbackBox}>
-              <Text style={feedbackQ}>Cette sélection vous a plu ?</Text>
+              <Text style={feedbackQ}>Cette sélection t'a plu ?</Text>
               <Text style={feedbackEmojis}>
-                <Link href={landingUrl} style={emojiLink}>😍</Link>
-                <Link href={landingUrl} style={emojiLink}>😐</Link>
-                <Link href={landingUrl} style={emojiLink}>🙁</Link>
+                <Link href={reactionUrl(landingUrl, 'love')} style={emojiLink}>😍</Link>
+                <Link href={reactionUrl(landingUrl, 'neutral')} style={emojiLink}>😐</Link>
+                <Link href={reactionUrl(landingUrl, 'sad')} style={emojiLink}>🙁</Link>
               </Text>
             </div>
           </Section>
@@ -162,9 +179,9 @@ export const template = {
   previewData: {
     childrenNames: ['Léa', 'Tom'],
     items: [
-      { emoji: '🎨', name: 'Atelier des Petits Curieux', dateLabel: 'Mer 9 sept · Centre Ville · 2h', address: null },
-      { emoji: '🎭', name: 'Kamishibaï en plein air', dateLabel: 'Sam 12 sept · 16h', address: 'Jardin des Plantes' },
-      { emoji: '🧺', name: 'Marché des créateurs', dateLabel: 'Dim 13 sept · 10h', address: 'Bellevue' },
+      { emoji: '🎨', name: 'Atelier des Petits Curieux', dateLabel: 'Mer 9 sept · Centre Ville · 2h', address: null, url: 'https://kidmapp.app/event/apercu' },
+      { emoji: '🎭', name: 'Kamishibaï en plein air', dateLabel: 'Sam 12 sept · 16h', address: 'Jardin des Plantes', url: 'https://kidmapp.app/event/apercu' },
+      { emoji: '🧺', name: 'Marché des créateurs', dateLabel: 'Dim 13 sept · 10h', address: 'Bellevue', url: 'https://kidmapp.app/event/apercu' },
     ],
     landingUrl: 'https://kidmapp.app/semaine/apercu',
   },
@@ -258,6 +275,32 @@ const itemRow = {
   padding: '12px 0',
   borderTop: '1px solid #E7E3DC',
 }
+// Un <a> qui enveloppe une <table> n'est pas cliquable de façon fiable dans
+// Outlook desktop (moteur de rendu Word) : le lien de ligne y disparaît. Le
+// patron sûr est un <a> DANS chaque cellule, chacun en display:block pour
+// couvrir toute la cellule — la ligne entière reste cliquable partout ailleurs
+// sans dépendre du bloc.
+const cellLink = {
+  display: 'block',
+  textDecoration: 'none',
+  color: 'inherit',
+}
+const itemTitleLink = {
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontWeight: 600,
+  fontSize: '14px',
+  color: '#1C1917',
+  textDecoration: 'none',
+  display: 'block',
+  margin: '0 0 2px',
+}
+const itemMetaLink = {
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontSize: '12px',
+  color: '#78716C',
+  textDecoration: 'none',
+  display: 'block',
+}
 const itemEmojiCell = {
   width: '44px',
   height: '44px',
@@ -267,19 +310,6 @@ const itemEmojiCell = {
   verticalAlign: 'middle' as const,
   fontSize: '20px',
   paddingRight: '12px',
-}
-const itemTitle = {
-  fontFamily: "'DM Sans', system-ui, sans-serif",
-  fontWeight: 600,
-  fontSize: '14px',
-  color: '#1C1917',
-  margin: '0 0 2px',
-}
-const itemMeta = {
-  fontFamily: "'DM Sans', system-ui, sans-serif",
-  fontSize: '12px',
-  color: '#78716C',
-  margin: '0',
 }
 const ctaButton = {
   display: 'inline-block',

@@ -380,6 +380,7 @@
     "title_generic": "Tu selección de la semana",
     "subtitle_range": "Del {{start}} al {{end}}",
     "feedback_question": "¿Te ha gustado esta selección?",
+    "feedback_confirm": "Guardar mi opinión",
     "feedback_thanks": "¡Gracias por tu opinión!",
     "feedback_recorded": "Respuesta registrada",
     "unsubscribe_button": "Darse de baja de la selección semanal",
@@ -391,6 +392,7 @@
   "new_location_alert": {
     "title": "¡Novedades cerca de ti!",
     "subtitle": "Se han añadido nuevos lugares adaptados a tus hijos en tu zona.",
+    "empty": "Estos lugares ya no están disponibles. Abre la app para ver las novedades del momento.",
     "unsubscribe_button": "Darse de baja de las recomendaciones",
     "unsubscribe_confirmed": "Baja confirmada de las recomendaciones",
     "expired_title": "Este enlace ha caducado",

@@ -97,6 +97,11 @@ const NewLocationAlertLandingPage = () => {
       <p style={sub}>{t('new_location_alert.subtitle')}</p>
 
       <div style={{ marginTop: 24 }}>
+        {/* La liste peut être vide : un lieu dépublié depuis l'envoi disparaît
+            d'ici, et l'enregistrement des lieux annoncés peut avoir échoué
+            après le départ du mail. Sans ce message, le parent arrivait sur une
+            page à l'air cassé — un titre, une phrase, et rien en dessous. */}
+        {data.items.length === 0 ? <p style={sub}>{t('new_location_alert.empty')}</p> : null}
         {data.items.map((item, idx) => (
           <a key={idx} href={item.url} style={card}>
             <div style={cardEmoji}>{item.emoji}</div>
