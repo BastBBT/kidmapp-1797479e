@@ -145,10 +145,13 @@ async function runAlert() {
     // pg_cron ne verra jamais cet échec : si on se contentait d'un log, un
     // incident durable rendrait l'alerte muette sans que personne le voie.
     console.error('new-location-alert: envois précédents illisibles, run annulé', previousError)
+    // Statut distinct de `failed` (réservé aux échecs par destinataire, plus
+    // bas) : sans ça, un `count(*) … where status = 'failed'` ne distingue plus
+    // « le run entier a été abandonné » de « un parent n'a pas été servi ».
     const { error: logError } = await supabase.from('email_send_log').insert({
       template_name: 'new-location-alert',
       recipient_email: '',
-      status: 'failed',
+      status: 'run_aborted',
       error_message: `relecture des envois précédents impossible: ${previousError.message}`.slice(0, 1000),
     })
     if (logError) console.error('email_send_log insert failed (run annulé)', logError)
