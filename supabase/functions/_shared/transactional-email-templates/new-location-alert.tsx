@@ -100,19 +100,21 @@ const NewLocationAlertEmail = ({ childrenNames = [], items = [], landingUrl = ''
 
             <div style={listBox}>
               {items.map((item, idx) => (
-                <Link key={idx} href={item.url} style={idx === 0 ? itemFirst : itemRow}>
+                <Section key={idx} style={idx === 0 ? itemFirst : itemRow}>
                   <table role="presentation" cellPadding={0} cellSpacing={0} style={{ width: '100%' }}>
                     <tbody>
                       <tr>
-                        <td style={itemEmojiCell}>{item.emoji}</td>
+                        <td style={itemEmojiCell}>
+                          <Link href={item.url} style={cellLink}>{item.emoji}</Link>
+                        </td>
                         <td>
-                          <Text style={itemTitle}>{item.name}</Text>
-                          {item.address ? <Text style={itemMeta}>{item.address}</Text> : null}
+                          <Link href={item.url} style={itemTitleLink}>{item.name}</Link>
+                          {item.address ? <Link href={item.url} style={itemMetaLink}>{item.address}</Link> : null}
                         </td>
                       </tr>
                     </tbody>
                   </table>
-                </Link>
+                </Section>
               ))}
             </div>
           </Section>
@@ -231,15 +233,37 @@ const listBox = {
   borderTop: '1px solid #E7E3DC',
 }
 const itemFirst = {
-  display: 'block',
   padding: '14px 0 12px',
-  textDecoration: 'none',
 }
 const itemRow = {
-  display: 'block',
   padding: '12px 0',
   borderTop: '1px solid #E7E3DC',
+}
+// Un <a> qui enveloppe une <table> n'est pas cliquable de façon fiable dans
+// Outlook desktop (moteur de rendu Word) : le lien de ligne y disparaît. Le
+// patron sûr est un <a> DANS chaque cellule, chacun en display:block pour
+// couvrir toute la cellule — la ligne entière reste cliquable partout ailleurs
+// sans dépendre du bloc.
+const cellLink = {
+  display: 'block',
   textDecoration: 'none',
+  color: 'inherit',
+}
+const itemTitleLink = {
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontWeight: 600,
+  fontSize: '14px',
+  color: '#1C1917',
+  textDecoration: 'none',
+  display: 'block',
+  margin: '0 0 2px',
+}
+const itemMetaLink = {
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontSize: '12px',
+  color: '#78716C',
+  textDecoration: 'none',
+  display: 'block',
 }
 const itemEmojiCell = {
   width: '44px',
@@ -250,19 +274,6 @@ const itemEmojiCell = {
   verticalAlign: 'middle' as const,
   fontSize: '20px',
   paddingRight: '12px',
-}
-const itemTitle = {
-  fontFamily: "'DM Sans', system-ui, sans-serif",
-  fontWeight: 600,
-  fontSize: '14px',
-  color: '#1C1917',
-  margin: '0 0 2px',
-}
-const itemMeta = {
-  fontFamily: "'DM Sans', system-ui, sans-serif",
-  fontSize: '12px',
-  color: '#78716C',
-  margin: '0',
 }
 const footerCell = {
   padding: '20px 40px 28px',

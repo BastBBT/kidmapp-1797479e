@@ -392,6 +392,7 @@
   "new_location_alert": {
     "title": "Du nouveau près de chez toi !",
     "subtitle": "De nouveaux lieux adaptés à tes enfants viennent d'être ajoutés dans ta zone.",
+    "empty": "Ces lieux ne sont plus disponibles. Ouvre l'app pour voir les nouveautés du moment.",
     "unsubscribe_button": "Se désabonner des recommandations",
     "unsubscribe_confirmed": "Désabonné(e) des recommandations",
     "expired_title": "Ce lien a expiré",

@@ -392,6 +392,7 @@
   "new_location_alert": {
     "title": "New nearby, just for you!",
     "subtitle": "New places suited to your kids were just added in your area.",
+    "empty": "These places are no longer available. Open the app to see what's new right now.",
     "unsubscribe_button": "Unsubscribe from recommendations",
     "unsubscribe_confirmed": "Unsubscribed from recommendations",
     "expired_title": "This link has expired",

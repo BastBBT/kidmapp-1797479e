@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useNoIndex } from '@/hooks/useNoIndex';
 import { localeOf } from '@/lib/formatDate';
+import { REACTIONS, suggestedReaction, type ReactionKey } from '@/lib/digestReaction';
 
 interface DigestItem {
   emoji: string;
@@ -27,24 +28,6 @@ type PageState =
   | { status: 'error' }
   | { status: 'ready'; data: ViewResponse };
 
-type ReactionKey = 'love' | 'neutral' | 'sad';
-
-const REACTIONS: { key: ReactionKey; emoji: string }[] = [
-  { key: 'love', emoji: '😍' },
-  { key: 'neutral', emoji: '😐' },
-  { key: 'sad', emoji: '🙁' },
-];
-
-/**
- * Le verdict cliqué dans le mail arrive en `?r=`. On le pré-sélectionne, on ne
- * l'enregistre jamais tout seul : un antivirus de messagerie qui précharge le
- * lien voterait sinon à la place du parent. C'est aussi ce qui protège du tap
- * accidentel — le serveur refuse d'écraser une réaction déjà posée, donc un
- * clic direct était définitif.
- */
-function suggestedReaction(raw: string | null): ReactionKey | null {
-  return REACTIONS.some((r) => r.key === raw) ? (raw as ReactionKey) : null;
-}
 
 function greetingNames(names: string[], t: (key: string, opts?: Record<string, unknown>) => string): string {
   if (names.length === 0) return t('weekly_digest.title_generic');
@@ -156,20 +139,37 @@ const WeeklyDigestLandingPage = () => {
       <p style={sub}>{t('weekly_digest.subtitle_range', dateRangeParts(data.sendDate, i18n.language))}</p>
 
       <div style={{ marginTop: 24 }}>
-        {data.items.map((item, idx) => (
-          // Même patron que la page « nouveaux lieux » : la carte entière ouvre
-          // la fiche de la sortie, et l'app la récupère si elle est installée.
-          <a key={idx} href={item.url} style={card}>
-            <div style={cardEmoji}>{item.emoji}</div>
-            <div>
-              <div style={cardTitle}>{item.name}</div>
-              <div style={cardMeta}>
-                {item.dateLabel}
-                {item.address ? ` · ${item.address}` : ''}
+        {data.items.map((item, idx) => {
+          const contenu = (
+            <>
+              <div style={cardEmoji}>{item.emoji}</div>
+              <div>
+                <div style={cardTitle}>{item.name}</div>
+                <div style={cardMeta}>
+                  {item.dateLabel}
+                  {item.address ? ` · ${item.address}` : ''}
+                </div>
               </div>
+            </>
+          );
+          // Même patron que la page « nouveaux lieux » : la carte entière ouvre
+          // la fiche de la sortie. Contrairement au lien du mail, celui-ci
+          // n'ouvre PAS l'app : iOS ne déclenche pas de lien universel quand la
+          // navigation part déjà de kidmapp.app, on reste dans le navigateur.
+          //
+          // `url` peut manquer si le front est déployé avant la fonction qui le
+          // fournit : mieux vaut une carte franchement inerte qu'un lien qui ne
+          // mène nulle part sans le dire.
+          return item.url ? (
+            <a key={idx} href={item.url} style={card}>
+              {contenu}
+            </a>
+          ) : (
+            <div key={idx} style={card}>
+              {contenu}
             </div>
-          </a>
-        ))}
+          );
+        })}
       </div>
 
       <div style={feedbackBox}>
