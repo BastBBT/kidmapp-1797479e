@@ -148,19 +148,22 @@ const CoachmarkStarter = ({ onboardingVisible }: { onboardingVisible: boolean })
   const { user, isLoading } = useAuth();
   const location = useLocation();
 
-  // Un lien /semaine/<token> ou /nouveaux-lieux/<token> arrive depuis un email :
-  // recouvrir la sélection qu'on vient consulter serait hostile. Même exclusion
-  // que pour l'accueil.
-  const isDigestLanding =
-    location.pathname.startsWith('/semaine/') || location.pathname.startsWith('/nouveaux-lieux/');
+  // La visite guidée ne vit que sur Explorer : ses trois premières cibles sont
+  // dans l'en-tête et la barre du bas de cet écran, et la dernière étape passe
+  // par l'ouverture d'une fiche pilotée depuis Explorer. Ailleurs (fiche lieu
+  // ouverte depuis un lien, onglet Sorties, page compte, e-mails…), la bulle
+  // n'aurait rien à désigner et la visite resterait bloquée.
+  const isExplore = location.pathname === '/';
 
   useEffect(() => {
-    if (onboardingVisible || isDigestLanding) return;
+    // On attend aussi la résolution de la session : tant qu'elle charge, on ne
+    // sait pas encore si l'accueil plein écran va s'afficher par-dessus.
+    if (isLoading || onboardingVisible || !isExplore) return;
     // Un temps de latence pour que la mise en page se stabilise : un halo mesuré
     // trop tôt vise à côté.
     const id = window.setTimeout(start, 800);
     return () => window.clearTimeout(id);
-  }, [onboardingVisible, isDigestLanding, start]);
+  }, [isLoading, onboardingVisible, isExplore, start]);
 
   useEffect(() => {
     if (isLoading || !user) return;
