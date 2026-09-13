@@ -18,7 +18,14 @@ const selectStyle: React.CSSProperties = {
 };
 
 /** Section "Ma zone" de Mon compte — repliable, résumé visible même fermée. */
-const ZoneSection = () => {
+interface ZoneSectionProps {
+  /** Contrôlé par Mon compte pour que la bannière de relance puisse déplier
+   *  cette section. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+const ZoneSection = ({ open, onOpenChange }: ZoneSectionProps) => {
   const { t } = useTranslation();
   const { communes, quartiers, secteurs, zones } = useZoneReference();
   const { settings, updateZone, isSavingZone } = useProfileSettings();
@@ -59,6 +66,8 @@ const ZoneSection = () => {
     <div style={{ padding: '20px 16px 0' }}>
       <DisclosureSection
         title={t('account.zone_title')}
+        open={open}
+        onOpenChange={onOpenChange}
         summary={settings?.zoneDistrict ?? settings?.zoneCity ?? t('account.zone_unset')}
       >
         <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.5 }}>

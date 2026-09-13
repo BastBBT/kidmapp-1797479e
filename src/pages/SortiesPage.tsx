@@ -51,7 +51,13 @@ const SortiesPage = () => {
     if (age === 'all') window.localStorage.removeItem(AGE_BAND_KEY);
     else window.localStorage.setItem(AGE_BAND_KEY, age);
   };
-  const { children: kids, selection: childSelection, setSelection: setChildSelection, resolvedBuckets } = useChildren();
+  const { children: kids, selection: childSelection, setSelection: setChildSelection, resolvedBuckets, requestHookIfNeeded } = useChildren();
+  // Cf. Explorer : le hook de capture (écran 2) se déclenche au premier usage
+  // d'une vraie tranche, sans enfant enregistré, sans bloquer le filtre.
+  const handleAgeChange = (age: AgeBucket) => {
+    setSelectedAge(age);
+    if (age !== 'all') requestHookIfNeeded();
+  };
   // Dès qu'au moins un enfant est enregistré, la barre générique cède la
   // place à la sélection enfant (union de tranches) ; sans enfant, repli sur
   // la tranche unique choisie via la barre générique.
@@ -209,7 +215,7 @@ const SortiesPage = () => {
     <div className="min-h-screen pb-24" style={{ background: 'var(--bg)' }}>
       <Header
         selectedAge={selectedAge}
-        onAgeChange={setSelectedAge}
+        onAgeChange={handleAgeChange}
         ageRowOverride={
           kids.length > 0 ? (
             <ChildrenPillBar children={kids} selection={childSelection} onChange={setChildSelection} />

@@ -130,15 +130,15 @@ export const ChildrenProvider = ({ children: appChildren }: { children: ReactNod
   const [wantsHookSheet, setWantsHookSheet] = useState(false);
   const requestHookIfNeeded = useCallback(() => {
     if (kids.length > 0) return;
-    if (isHookSnoozed()) return;
+    if (isHookSnoozed(user?.id)) return;
     setWantsHookSheet(true);
-  }, [kids.length]);
+  }, [kids.length, user?.id]);
   // Toute fermeture sans passer par "Enregistrer mes enfants" (bouton "Plus
   // tard" ou fermeture de la sheet) relance le snooze de 30 jours.
   const closeHookSheet = useCallback((viaRegister: boolean) => {
     setWantsHookSheet(false);
-    if (!viaRegister) persistSnoozeHook();
-  }, []);
+    if (!viaRegister) persistSnoozeHook(user?.id);
+  }, [user?.id]);
 
   const [wantsCaptureFlow, setWantsCaptureFlow] = useState(false);
   const openCaptureFlow = useCallback(() => setWantsCaptureFlow(true), []);

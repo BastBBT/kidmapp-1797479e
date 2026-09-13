@@ -42,6 +42,11 @@ export const saveSelectedFilter = (selection: ChildFilterSelection) => {
 
 // --- Snooze du hook enfants (30 jours) — clé DISTINCTE du snooze de la
 // bannière de relance : les deux gouvernent des surfaces différentes. ---
+//
+// Les deux clés sont scopées par compte : sur un navigateur partagé (tablette
+// familiale), un « Plus tard » du compte A ne doit pas faire taire la relance
+// du compte B pendant 30 jours. `anon` couvre le hook vu déconnecté, seule
+// surface des deux qui s'affiche sans compte.
 
 const isSnoozed = (key: string): boolean => {
   const raw = safeGet(key);
@@ -54,11 +59,17 @@ const snooze = (key: string, days: number) => {
   safeSet(key, String(Date.now() + days * 24 * 60 * 60 * 1000));
 };
 
-export const isHookSnoozed = (): boolean => isSnoozed(HOOK_SNOOZE_KEY);
-export const snoozeHook = (days = 30): void => snooze(HOOK_SNOOZE_KEY, days);
+const scopedKey = (base: string, userId: string | null | undefined) => `${base}.${userId ?? 'anon'}`;
 
-export const isRelanceSnoozed = (): boolean => isSnoozed(RELANCE_SNOOZE_KEY);
-export const snoozeRelance = (days = 30): void => snooze(RELANCE_SNOOZE_KEY, days);
+export const isHookSnoozed = (userId: string | null | undefined): boolean =>
+  isSnoozed(scopedKey(HOOK_SNOOZE_KEY, userId));
+export const snoozeHook = (userId: string | null | undefined, days = 30): void =>
+  snooze(scopedKey(HOOK_SNOOZE_KEY, userId), days);
+
+export const isRelanceSnoozed = (userId: string | null | undefined): boolean =>
+  isSnoozed(scopedKey(RELANCE_SNOOZE_KEY, userId));
+export const snoozeRelance = (userId: string | null | undefined, days = 30): void =>
+  snooze(scopedKey(RELANCE_SNOOZE_KEY, userId), days);
 
 // --- Dernière tranche connue par enfant, pour détecter un franchissement ---
 

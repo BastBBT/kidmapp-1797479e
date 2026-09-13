@@ -5,16 +5,26 @@ interface DisclosureSectionProps {
   title: string;
   summary: string;
   children: ReactNode;
+  /** Mode contrôlé : passer les deux pour qu'un tiers (la bannière de relance)
+   *  puisse déplier la section. Omettre les deux garde l'état local. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /** Section repliable réutilisée par "Ma zone" et "Ma sélection hebdo" : résumé
  *  toujours visible, contenu affiché uniquement une fois dépliée. */
-const DisclosureSection = ({ title, summary, children: content }: DisclosureSectionProps) => {
-  const [open, setOpen] = useState(false);
+const DisclosureSection = ({ title, summary, children: content, open: controlledOpen, onOpenChange }: DisclosureSectionProps) => {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined && onOpenChange !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (isControlled) onOpenChange(next);
+    else setUncontrolledOpen(next);
+  };
   return (
     <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(!open)}
         style={{
           width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           padding: 14, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',

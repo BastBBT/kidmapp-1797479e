@@ -18,6 +18,8 @@ import { AgeBucket, ChildAgeBucket, matchesAgeBuckets, ageAdequacyScoreForBucket
 import { matchesWeather, matchesDuration } from '@/lib/activity';
 import { useChildren } from '@/hooks/useChildren';
 import ChildrenPillBar from '@/components/ChildrenPillBar';
+import AgeBandCelebrationCard from '@/components/AgeBandCelebrationCard';
+import { useProfileSettings } from '@/hooks/useProfileSettings';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -85,7 +87,25 @@ const Index = () => {
     useCoachmarks();
   const [selectedMeal, setSelectedMeal] = useState<string | null>(initialMeal);
   const [selectedAge, setSelectedAge] = useState<AgeBucket>(initialAge);
-  const { children: kids, selection: childSelection, setSelection: setChildSelection, resolvedBuckets } = useChildren();
+  const {
+    children: kids, selection: childSelection, setSelection: setChildSelection,
+    resolvedBuckets, requestHookIfNeeded, ageBandCrossing, acknowledgeAgeBandCrossing,
+  } = useChildren();
+  const { settings: profileSettings } = useProfileSettings();
+  // D7 : dès qu'un canal digest est actif, la célébration partira par ce
+  // canal (Lot 3) — la carte in-app n'est que le repli du canal « aucun ».
+  // Attendre que les réglages soient chargés évite de l'afficher une fraction
+  // de seconde à un parent qui a justement choisi un canal.
+  const showAgeBandCelebration =
+    ageBandCrossing !== null && profileSettings !== null &&
+    !profileSettings.digestEmailEnabled && !profileSettings.digestPushEnabled;
+  // Choisir une vraie tranche alors qu'aucun enfant n'est enregistré, c'est le
+  // moment où la proposition d'en enregistrer a du sens (écran 2). Le filtre
+  // s'applique immédiatement : la feuille ne conditionne rien.
+  const handleAgeChange = useCallback((age: AgeBucket) => {
+    setSelectedAge(age);
+    if (age !== 'all') requestHookIfNeeded();
+  }, [requestHookIfNeeded]);
   // Dès qu'au moins un enfant est enregistré, la barre générique 0-2/3-5/6+
   // cède la place à la sélection enfant (union de tranches) ; sans enfant,
   // repli sur la tranche unique choisie via la barre générique.
@@ -317,7 +337,7 @@ const Index = () => {
         selectedGroup={selectedGroup}
         onGroupChange={setSelectedGroup}
         selectedAge={selectedAge}
-        onAgeChange={setSelectedAge}
+        onAgeChange={handleAgeChange}
         ageRowOverride={
           kids.length > 0 ? (
             <ChildrenPillBar children={kids} selection={childSelection} onChange={setChildSelection} />
@@ -359,6 +379,19 @@ const Index = () => {
         category={selectedCategory}
         onClear={() => setSelectedCategory('all')}
       />
+
+      {showAgeBandCelebration && ageBandCrossing && (
+        <div style={{ padding: '12px 16px 0' }}>
+          <AgeBandCelebrationCard
+            crossing={ageBandCrossing}
+            onSeeMore={() => {
+              setChildSelection({ kind: 'child', id: ageBandCrossing.child.id });
+              acknowledgeAgeBandCrossing();
+            }}
+            onDismiss={acknowledgeAgeBandCrossing}
+          />
+        </div>
+      )}
 
 
 
@@ -543,7 +576,7 @@ const Index = () => {
                 {kids.length > 0 ? (
                   <ChildrenPillBar children={kids} selection={childSelection} onChange={setChildSelection} />
                 ) : (
-                  <AgeFilter selected={selectedAge} onChange={setSelectedAge} />
+                  <AgeFilter selected={selectedAge} onChange={handleAgeChange} />
                 )}
               </div>
               <div

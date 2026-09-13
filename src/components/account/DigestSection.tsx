@@ -20,7 +20,14 @@ const labelStyle: React.CSSProperties = {
 };
 
 /** Section "Ma sélection hebdo" de Mon compte — repliable, résumé visible même fermée. */
-const DigestSection = () => {
+interface DigestSectionProps {
+  /** Contrôlé par Mon compte pour que la bannière de relance puisse déplier
+   *  cette section. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+const DigestSection = ({ open, onOpenChange }: DigestSectionProps) => {
   const { t } = useTranslation();
   const { settings, updateDigest, isSavingDigest } = useProfileSettings();
 
@@ -41,6 +48,8 @@ const DigestSection = () => {
     <div style={{ padding: '20px 16px 0' }}>
       <DisclosureSection
         title={t('account.digest_title')}
+        open={open}
+        onOpenChange={onOpenChange}
         summary={settings?.digestEmailEnabled ? t('account.digest_summary_email') : t('account.digest_summary_none')}
       >
         <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.5 }}>
