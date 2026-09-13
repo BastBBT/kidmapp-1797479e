@@ -8,6 +8,8 @@ import { ChildAgeBucket, getPriorityEquipForBuckets } from '@/lib/ageFilter';
 import { translateToken } from '@/i18n/tokenMaps';
 import { FavoriteCountBadge, shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
+import FeedbackIconsRow from '@/components/FeedbackIconsRow';
+import { useRecommendationFeedback } from '@/hooks/useRecommendationFeedback';
 
 interface LocationCardProps {
   location: Location;
@@ -73,6 +75,7 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBuckets = EMPTY_BU
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { isFavorite } = useFavorites();
+  const feedback = useRecommendationFeedback();
   const gradient = categoryGradients[location.category] || categoryGradients.public;
   const isMealCategory = location.category === 'restaurant' || location.category === 'cafe';
   const activity = isActivity(location.category);
@@ -187,6 +190,16 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBuckets = EMPTY_BU
               {sortedEquip.map((k) => <EquipIcon key={k} equipKey={k} highlight={priority.has(k)} />)}
             </div>
           )
+        )}
+        {/* En bas de carte : les deux coins hauts de l'image sont déjà pris
+            (badge « Coup de ♥ » à gauche, compteur de favoris à droite). */}
+        {feedback.enabled && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, marginBottom: -4 }}>
+            <FeedbackIconsRow
+              verdict={feedback.locationVerdict(location.id)}
+              onTap={(verdict) => feedback.toggleLocation(location.id, verdict)}
+            />
+          </div>
         )}
       </div>
     </motion.div>
