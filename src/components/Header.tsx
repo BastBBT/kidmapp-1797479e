@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { LogOut, Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -18,9 +19,12 @@ interface HeaderProps {
   onGroupChange?: (g: CategoryGroup) => void;
   selectedAge?: AgeBucket;
   onAgeChange?: (b: AgeBucket) => void;
+  /** Remplace la barre de tranche générique par `ChildrenPillBar` dès qu'au
+   *  moins un enfant est enregistré — passé par la page, pas décidé ici. */
+  ageRowOverride?: ReactNode;
 }
 
-const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, selectedGroup, onGroupChange, selectedAge, onAgeChange }: HeaderProps) => {
+const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, selectedGroup, onGroupChange, selectedAge, onAgeChange, ageRowOverride }: HeaderProps) => {
   const categoriesTargetRef = useCoachmarkTarget('categories');
   const navigate = useNavigate();
   const location = useLocation();
@@ -107,11 +111,15 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
           </div>
         )}
 
-        {/* Row 4 — Age filter (persistent) */}
-        {selectedAge !== undefined && onAgeChange && (
-          <div className="pb-2">
-            <AgeFilter selected={selectedAge} onChange={onAgeChange} />
-          </div>
+        {/* Row 4 — Age filter (persistent), ou barre d'enfants si le compte en a */}
+        {ageRowOverride ? (
+          <div className="pb-2">{ageRowOverride}</div>
+        ) : (
+          selectedAge !== undefined && onAgeChange && (
+            <div className="pb-2">
+              <AgeFilter selected={selectedAge} onChange={onAgeChange} />
+            </div>
+          )
         )}
       </div>
 
