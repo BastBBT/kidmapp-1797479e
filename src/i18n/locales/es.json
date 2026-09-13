@@ -302,7 +302,26 @@
     "status_rejected_event": "✗ Rechazado",
     "logout_cta": "Cerrar sesión",
     "instagram_cta": "Síguenos en Instagram",
-    "copyright": "© {{year}} Kidmapp"
+    "copyright": "© {{year}} Kidmapp",
+    "family_title": "Mi familia",
+    "family_empty_hint": "Registra la edad de tus hijos para un filtro automático y salidas a medida.",
+    "zone_title": "Mi zona",
+    "zone_unset": "Sin especificar",
+    "zone_context": "Sirve para sugerirte lugares y salidas cerca de ti. Sin geolocalización: declaras una zona y no cambia.",
+    "zone_commune_label": "Municipio",
+    "zone_choose": "Elegir ▾",
+    "zone_sector_group": "— o una zona más amplia —",
+    "zone_district_label": "Barrio",
+    "zone_district_none": "Ninguno",
+    "zone_radius_label": "Radio",
+    "zone_saving": "Guardando…",
+    "digest_title": "Mi selección semanal",
+    "digest_context": "Una selección de salidas una vez por semana, el día que elijas, y una alerta en cuanto abra cerca un nuevo lugar adaptado a tus hijos. Ambos canales envían el mismo contenido: marca lo que prefieras.",
+    "digest_email_label": "Por email",
+    "digest_push_label": "Por notificación (próximamente)",
+    "digest_day_label": "Día",
+    "digest_summary_email": "Por email",
+    "digest_summary_none": "Ninguna"
   },
   "auth": {
     "reset_title": "Restablecer contraseña",
@@ -350,7 +369,7 @@
     "danger_desc": "Eliminar tu cuenta es definitivo y borra todos tus datos.",
     "cta": "Eliminar mi cuenta",
     "confirm_title": "¿Eliminar tu cuenta?",
-    "confirm_desc": "Esta acción es irreversible. Todos tus datos (favoritos, contribuciones, propuestas) se borrarán definitivamente.",
+    "confirm_desc": "Esta acción es irreversible. Todos tus datos (favoritos, contribuciones, propuestas, hijos registrados) se borrarán definitivamente.",
     "reason_label": "¿Por qué te vas? (opcional)",
     "reason_placeholder": "Tu opinión nos ayuda a mejorar Kidmapp",
     "confirm_yes": "Sí, eliminar",
@@ -445,5 +464,34 @@
       "title": "Confirma lo que hay en el sitio",
       "body": "Trona, cambiador, zona de juegos: dos toques y la información sigue siendo fiable para las familias que vengan después."
     }
+  },
+  "children": {
+    "unnamed": "Mi hijo/a",
+    "pill_all_ages": "Todas las edades",
+    "pill_both": "Ambos",
+    "pill_all_mine": "Todos mis hijos",
+    "add_child": "Añadir un hijo/a",
+    "form_title_add": "¿Quién explora contigo?",
+    "form_title_edit": "Modificar",
+    "field_first_name": "Nombre (opcional)",
+    "field_birth": "Mes y año de nacimiento",
+    "delete_cta": "Eliminar a este hijo/a",
+    "delete_confirm_cta": "Confirmar la eliminación",
+    "delete_confirm_message": "Su perfil y sus preferencias se eliminarán definitivamente.",
+    "age_months": "{{count}} meses",
+    "age_years": "{{count}} años",
+    "capture_title": "¿Quién explora contigo?",
+    "capture_subtitle": "El nombre es opcional.",
+    "capture_later": "Más tarde",
+    "capture_done": "Listo"
+  },
+  "weekday": {
+    "mon": "L",
+    "tue": "M",
+    "wed": "M",
+    "thu": "J",
+    "fri": "V",
+    "sat": "S",
+    "sun": "D"
   }
 }

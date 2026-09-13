@@ -302,7 +302,26 @@
     "status_rejected_event": "✗ Rejected",
     "logout_cta": "Sign out",
     "instagram_cta": "Follow us on Instagram",
-    "copyright": "© {{year}} Kidmapp"
+    "copyright": "© {{year}} Kidmapp",
+    "family_title": "My family",
+    "family_empty_hint": "Add your children's ages for an automatic filter and tailor-made outings.",
+    "zone_title": "My area",
+    "zone_unset": "Not set",
+    "zone_context": "Used to suggest places and outings near you. No geolocation: you set an area, it stays fixed.",
+    "zone_commune_label": "Town",
+    "zone_choose": "Choose ▾",
+    "zone_sector_group": "— or a wider area —",
+    "zone_district_label": "District",
+    "zone_district_none": "None",
+    "zone_radius_label": "Radius",
+    "zone_saving": "Saving…",
+    "digest_title": "My weekly picks",
+    "digest_context": "A weekly pick of outings, on the day you choose, plus an alert whenever a new place suited to your kids opens nearby. Both channels send the same content — check whatever suits you.",
+    "digest_email_label": "By email",
+    "digest_push_label": "By notification (coming soon)",
+    "digest_day_label": "Day",
+    "digest_summary_email": "By email",
+    "digest_summary_none": "None"
   },
   "auth": {
     "reset_title": "Reset your password",
@@ -350,7 +369,7 @@
     "danger_desc": "Deleting your account is permanent and erases all your data.",
     "cta": "Delete my account",
     "confirm_title": "Delete your account?",
-    "confirm_desc": "This action can't be undone. All your data (favorites, contributions, submissions) will be permanently erased.",
+    "confirm_desc": "This action can't be undone. All your data (favorites, contributions, submissions, registered children) will be permanently erased.",
     "reason_label": "Why are you leaving? (optional)",
     "reason_placeholder": "Your feedback helps us improve Kidmapp",
     "confirm_yes": "Yes, delete",
@@ -445,5 +464,34 @@
       "title": "Confirm what's there",
       "body": "High chair, changing table, play area: two taps and the information stays right for the parents who come next."
     }
+  },
+  "children": {
+    "unnamed": "My child",
+    "pill_all_ages": "All ages",
+    "pill_both": "Both children",
+    "pill_all_mine": "All my children",
+    "add_child": "Add a child",
+    "form_title_add": "Who's exploring with you?",
+    "form_title_edit": "Edit",
+    "field_first_name": "First name (optional)",
+    "field_birth": "Birth month and year",
+    "delete_cta": "Delete this child",
+    "delete_confirm_cta": "Confirm deletion",
+    "delete_confirm_message": "Their profile and preferences will be permanently deleted.",
+    "age_months": "{{count}} months",
+    "age_years": "{{count}} years",
+    "capture_title": "Who's exploring with you?",
+    "capture_subtitle": "First name is optional.",
+    "capture_later": "Later",
+    "capture_done": "Done"
+  },
+  "weekday": {
+    "mon": "M",
+    "tue": "T",
+    "wed": "W",
+    "thu": "T",
+    "fri": "F",
+    "sat": "S",
+    "sun": "S"
   }
 }
