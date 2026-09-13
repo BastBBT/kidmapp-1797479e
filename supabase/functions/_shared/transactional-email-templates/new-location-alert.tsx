@@ -233,10 +233,10 @@ const listBox = {
   borderTop: '1px solid #E7E3DC',
 }
 const itemFirst = {
-  padding: '14px 0 12px',
+  padding: '14px 8px 12px',
 }
 const itemRow = {
-  padding: '12px 0',
+  padding: '12px 8px',
   borderTop: '1px solid #E7E3DC',
 }
 // Un <a> qui enveloppe une <table> n'est pas cliquable de façon fiable dans
