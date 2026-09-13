@@ -34,6 +34,7 @@ import { CoachmarkProvider, useCoachmarks } from "./hooks/useCoachmarks";
 import { flush as flushOnboardingStats } from "./lib/onboardingTracker";
 import { ChildrenProvider } from "./hooks/useChildren";
 import ChildrenCaptureFlow from "./components/ChildrenCaptureFlow";
+import ChildrenCaptureHookSheet from "./components/ChildrenCaptureHookSheet";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -222,6 +223,7 @@ const AppContent = () => {
       <CoachmarkStarter onboardingVisible={onboardingVisible} />
       <Coachmarks />
       <AcquisitionOverlay />
+      <ChildrenCaptureHookSheet />
       <ChildrenCaptureFlow />
       <ProposalTypeChooser />
       <ProposeLocationModal open={locationModalOpen} onClose={closeProposal} initialCategory={initialCategory} mode={proposalMode === 'activity' ? 'activity' : 'location'} />

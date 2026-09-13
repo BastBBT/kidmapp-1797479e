@@ -9,6 +9,16 @@ export const AGE_BUCKETS: { id: AgeBucket; label: string }[] = [
   { id: '6+', label: '6+ ans' },
 ];
 
+// Clés i18n des libellés de tranche, partagées par la barre de filtre et la
+// carte de célébration de franchissement — une seule source pour éviter que
+// les deux surfaces nomment la même tranche différemment.
+export const AGE_LABEL_KEY: Record<AgeBucket, string> = {
+  all: 'filters.age.all',
+  '0-2': 'filters.age.0_2',
+  '3-5': 'filters.age.3_5',
+  '6+': 'filters.age.6_plus',
+};
+
 // En mois (age_min_months / age_max_months), comme AgeBand côté iOS/Android.
 export const AGE_RANGES: Record<Exclude<AgeBucket, 'all'>, { min: number; max: number }> = {
   '0-2': { min: 0, max: 24 },
