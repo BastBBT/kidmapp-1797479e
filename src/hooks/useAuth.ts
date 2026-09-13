@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, useCallback, useRef, createContext, useContext, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import i18n from '@/i18n';
 import React from 'react';
 
 // Capté SYNCHRONIQUEMENT à l'import, avant que le detectSessionInUrl async
@@ -152,6 +153,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshProfile = async () => {
     if (user?.id) await fetchProfile(user.id);
   };
+
+  // Écrit la langue de l'app sur profiles.locale — lue plus tard par les
+  // fonctions d'envoi (weekly-digest, new-location-alert) pour écrire aux
+  // parents dans leur langue plutôt qu'en français fixe. Abonnement à
+  // l'événement i18next (pas juste `i18n.language` en dépendance d'effet, qui
+  // ne retriggerait pas cet effet-ci puisque ce composant ne s'abonne pas via
+  // `useTranslation()`). `load: 'languageOnly'` dans la config i18n garantit
+  // déjà un code à 2 lettres (pas de `en-US`).
+  const lastSyncedLocale = useRef<string | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    const sync = (lng: string) => {
+      const locale = lng.split('-')[0];
+      if (!['fr', 'en', 'es'].includes(locale)) return;
+      if (lastSyncedLocale.current === locale) return;
+      lastSyncedLocale.current = locale;
+      supabase.from('profiles').update({ locale }).eq('id', user.id).then(({ error }) => {
+        if (error) console.error('Sync locale failed:', error);
+      });
+    };
+    sync(i18n.language);
+    i18n.on('languageChanged', sync);
+    return () => {
+      i18n.off('languageChanged', sync);
+    };
+  }, [user]);
 
   const value: AuthContextValue = {
     user,
