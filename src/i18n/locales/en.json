@@ -321,7 +321,13 @@
     "digest_push_label": "By notification (coming soon)",
     "digest_day_label": "Day",
     "digest_summary_email": "By email",
-    "digest_summary_none": "None"
+    "digest_summary_none": "None",
+    "relance_zone_title": "Set your area",
+    "relance_zone_desc": "For suggestions closer to home, in your neighbourhood or your town.",
+    "relance_zone_cta": "Set my area",
+    "relance_channel_title": "Choose how to get your weekly picks",
+    "relance_channel_desc": "A selection of outings, plus an alert for every new place that suits you, as soon as you pick a channel to receive them.",
+    "relance_channel_cta": "Choose my channel"
   },
   "auth": {
     "reset_title": "Reset your password",
@@ -483,7 +489,14 @@
     "capture_title": "Who's exploring with you?",
     "capture_subtitle": "First name is optional.",
     "capture_later": "Later",
-    "capture_done": "Done"
+    "capture_done": "Done",
+    "hook_title": "Want us to remember this filter?",
+    "hook_subtitle": "Tell us your children's ages once.",
+    "hook_register": "Save my children",
+    "hook_auth_message": "Sign in to save your children and keep this filter 🧡",
+    "celebration_title": "{{name}} has grown up!",
+    "celebration_body": "New age group: {{band}}. New places and outings to match are waiting for you.",
+    "celebration_cta": "See what's new for {{band}}"
   },
   "weekday": {
     "mon": "M",
@@ -493,5 +506,10 @@
     "fri": "F",
     "sat": "S",
     "sun": "S"
+  },
+  "feedback": {
+    "up": "Mark as a good fit",
+    "down": "Mark as not for us",
+    "error": "Couldn't save your feedback."
   }
 }

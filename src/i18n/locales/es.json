@@ -321,7 +321,13 @@
     "digest_push_label": "Por notificación (próximamente)",
     "digest_day_label": "Día",
     "digest_summary_email": "Por email",
-    "digest_summary_none": "Ninguna"
+    "digest_summary_none": "Ninguna",
+    "relance_zone_title": "Indica tu zona",
+    "relance_zone_desc": "Para sugerencias más cerca de casa, en tu barrio o tu municipio.",
+    "relance_zone_cta": "Indicar mi zona",
+    "relance_channel_title": "Elige cómo recibir tu selección semanal",
+    "relance_channel_desc": "Una selección de salidas, y un aviso con cada nuevo lugar que te encaje, en cuanto elijas un canal para recibirlos.",
+    "relance_channel_cta": "Elegir mi canal"
   },
   "auth": {
     "reset_title": "Restablecer contraseña",
@@ -483,7 +489,14 @@
     "capture_title": "¿Quién explora contigo?",
     "capture_subtitle": "El nombre es opcional.",
     "capture_later": "Más tarde",
-    "capture_done": "Listo"
+    "capture_done": "Listo",
+    "hook_title": "¿Guardamos este filtro para ti?",
+    "hook_subtitle": "Dinos la edad de tus hijos una sola vez.",
+    "hook_register": "Guardar mis hijos",
+    "hook_auth_message": "Inicia sesión para guardar a tus hijos y mantener este filtro 🧡",
+    "celebration_title": "¡{{name}} ha crecido!",
+    "celebration_body": "Nueva franja de edad: {{band}}. Te esperan nuevas actividades y salidas adaptadas.",
+    "celebration_cta": "Ver las novedades {{band}}"
   },
   "weekday": {
     "mon": "L",
@@ -493,5 +506,10 @@
     "fri": "V",
     "sat": "S",
     "sun": "D"
+  },
+  "feedback": {
+    "up": "Marcar como adecuado",
+    "down": "Marcar como no es para nosotros",
+    "error": "No se ha podido guardar tu opinión."
   }
 }
