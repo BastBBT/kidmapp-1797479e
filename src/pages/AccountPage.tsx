@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
-import { ReactNode, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -9,59 +8,12 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import DeleteAccountSection from '@/components/DeleteAccountSection';
 import LevelCard from '@/components/LevelCard';
-import ChildFormSheet from '@/components/ChildFormSheet';
+import FamilySection from '@/components/account/FamilySection';
+import ZoneSection from '@/components/account/ZoneSection';
+import DigestSection from '@/components/account/DigestSection';
 import { EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
 import { translateToken } from '@/i18n/tokenMaps';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
-import { useChildren } from '@/hooks/useChildren';
-import { useZoneReference } from '@/hooks/useZoneReference';
-import { useProfileSettings } from '@/hooks/useProfileSettings';
-import { Child, ageInMonths, childDisplayLabel } from '@/lib/children';
-import { radiusForZoneChange, zoneMenuLabel } from '@/lib/zones';
-
-const RADIUS_OPTIONS = [5, 10, 15, 20, 30, 50];
-// L→D à l'affichage ; la valeur stockée reste la convention Postgres
-// EXTRACT(DOW) : 0 = dimanche … 6 = samedi.
-const WEEKDAYS: { label: string; dow: number }[] = [
-  { label: 'weekday.mon', dow: 1 },
-  { label: 'weekday.tue', dow: 2 },
-  { label: 'weekday.wed', dow: 3 },
-  { label: 'weekday.thu', dow: 4 },
-  { label: 'weekday.fri', dow: 5 },
-  { label: 'weekday.sat', dow: 6 },
-  { label: 'weekday.sun', dow: 0 },
-];
-
-const formatChildAge = (months: number, t: (key: string, opts?: Record<string, unknown>) => string): string => {
-  if (months < 24) return t('children.age_months', { count: months });
-  return t('children.age_years', { count: Math.round(months / 12) });
-};
-
-const DisclosureSection = ({ title, summary, children: content }: { title: string; summary: string; children: ReactNode }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: 14, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
-        }}
-      >
-        <div>
-          <div style={{ fontFamily: 'Fraunces', fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>{title}</div>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{summary}</div>
-        </div>
-        <ChevronDown
-          size={18}
-          style={{ color: 'var(--text-muted)', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}
-        />
-      </button>
-      {open && <div style={{ padding: '0 14px 16px' }}>{content}</div>}
-    </div>
-  );
-};
-
 
 const CategoryThumb = ({ category }: { category?: string | null }) => {
   const src = category ? CATEGORY_ICONS[category] : undefined;
@@ -203,11 +155,6 @@ const AccountPage = () => {
   const { t, i18n } = useTranslation();
   const { user, profile, signOut, refreshProfile } = useAuth();
   const { favoriteIds } = useFavorites();
-  const { children: kids } = useChildren();
-  const { communes, quartiers, secteurs, zones } = useZoneReference();
-  const { settings, updateZone, updateDigest, isSavingZone, isSavingDigest } = useProfileSettings();
-  // undefined = formulaire fermé, null = création, Child = édition
-  const [editingChild, setEditingChild] = useState<Child | null | undefined>(undefined);
   const [nameDraft, setNameDraft] = useState('');
   const [savingName, setSavingName] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
@@ -235,51 +182,6 @@ const AccountPage = () => {
       console.error('Update name failed:', e);
     } finally {
       setSavingName(false);
-    }
-  };
-
-  // Changement de zone (commune/secteur OU quartier) : recalcule le rayon
-  // via `radiusForZoneChange` (secteur -> min 30km) et résout le point via la
-  // ligne dont le label == quartier si présent, sinon la commune — jamais au
-  // changement de rayon seul, qui n'appelle que `updateZone` directement.
-  const handleZoneChange = async (nextCity: string, nextDistrict: string | null) => {
-    const effectiveLabel = nextDistrict ?? nextCity;
-    const point = zones.find((z) => z.label === effectiveLabel);
-    if (!point) return;
-    const currentRadius = settings?.zoneRadiusKm ?? 12;
-    const radiusKm = radiusForZoneChange(zones, effectiveLabel, currentRadius);
-    try {
-      await updateZone({ city: nextCity, district: nextDistrict, lat: point.lat, lng: point.lng, radiusKm });
-    } catch (e) {
-      console.error('update zone failed', e);
-    }
-  };
-
-  const handleRadiusChange = async (radiusKm: number) => {
-    if (!settings?.zoneCity) return;
-    try {
-      await updateZone({
-        city: settings.zoneCity,
-        district: settings.zoneDistrict,
-        lat: settings.zoneLat ?? 0,
-        lng: settings.zoneLng ?? 0,
-        radiusKm,
-      });
-    } catch (e) {
-      console.error('update radius failed', e);
-    }
-  };
-
-  const handleDigestChange = async (patch: Partial<{ emailEnabled: boolean; day: number }>) => {
-    if (!settings) return;
-    try {
-      await updateDigest({
-        emailEnabled: patch.emailEnabled ?? settings.digestEmailEnabled,
-        pushEnabled: settings.digestPushEnabled,
-        day: patch.day ?? settings.digestDay,
-      });
-    } catch (e) {
-      console.error('update digest failed', e);
     }
   };
 
@@ -435,193 +337,9 @@ const AccountPage = () => {
         </div>
       </div>
 
-      {/* Ma famille */}
-      <div style={{ padding: '20px 16px 0' }}>
-        <div style={{ fontFamily: 'Fraunces', fontSize: '18px', fontWeight: 500, letterSpacing: '-0.02em', marginBottom: '12px' }}>
-          {t('account.family_title')}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {kids.map((child) => (
-            <button
-              key={child.id}
-              onClick={() => setEditingChild(child)}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                padding: '12px 14px', borderRadius: 'var(--radius-sm)',
-                border: '1.5px solid var(--border)', background: 'var(--surface)',
-                boxShadow: 'var(--shadow)', cursor: 'pointer', textAlign: 'left',
-              }}
-            >
-              <div style={{
-                width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                background: 'var(--primary-light)', color: 'var(--primary)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'Fraunces', fontSize: 15, fontWeight: 600,
-              }}>
-                {childDisplayLabel(child, t('children.unnamed')).charAt(0).toUpperCase()}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-                  {childDisplayLabel(child, t('children.unnamed'))}
-                </div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)' }}>
-                  {formatChildAge(ageInMonths(child), t)}
-                </div>
-              </div>
-              <ChevronRight size={18} color="var(--text-muted)" />
-            </button>
-          ))}
-          <button
-            onClick={() => setEditingChild(null)}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              padding: 14, borderRadius: 'var(--radius-sm)',
-              border: '1.5px dashed var(--border)', background: 'transparent',
-              color: 'var(--primary)', fontFamily: 'DM Sans', fontSize: 14, fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            <Plus size={16} />
-            {t('children.add_child')}
-          </button>
-        </div>
-        {kids.length === 0 && (
-          <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-            {t('account.family_empty_hint')}
-          </div>
-        )}
-      </div>
-      {editingChild !== undefined && <ChildFormSheet child={editingChild} onClose={() => setEditingChild(undefined)} />}
-
-      {/* Ma zone */}
-      <div style={{ padding: '20px 16px 0' }}>
-        <DisclosureSection
-          title={t('account.zone_title')}
-          summary={settings?.zoneDistrict ?? settings?.zoneCity ?? t('account.zone_unset')}
-        >
-          <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.5 }}>
-            {t('account.zone_context')}
-          </p>
-
-          <label style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-            {t('account.zone_commune_label')}
-          </label>
-          <select
-            value={settings?.zoneCity ?? ''}
-            onChange={(e) => handleZoneChange(e.target.value, null)}
-            disabled={!settings}
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text)', marginBottom: 14 }}
-          >
-            {!settings?.zoneCity && <option value="">{t('account.zone_choose')}</option>}
-            {communes.map((z) => (
-              <option key={z.label} value={z.label}>{z.label}</option>
-            ))}
-            {secteurs.length > 0 && (
-              <optgroup label={t('account.zone_sector_group')}>
-                {secteurs.map((z) => (
-                  <option key={z.label} value={z.label}>{zoneMenuLabel(z)}</option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-
-          {settings?.zoneCity === 'Nantes' && quartiers.length > 0 && (
-            <>
-              <label style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-                {t('account.zone_district_label')}
-              </label>
-              <select
-                value={settings?.zoneDistrict ?? ''}
-                onChange={(e) => handleZoneChange(settings!.zoneCity!, e.target.value || null)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text)', marginBottom: 14 }}
-              >
-                <option value="">{t('account.zone_district_none')}</option>
-                {quartiers.map((z) => (
-                  <option key={z.label} value={z.label}>{z.label}</option>
-                ))}
-              </select>
-            </>
-          )}
-
-          <label style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-            {t('account.zone_radius_label')}
-          </label>
-          <select
-            value={settings?.zoneRadiusKm ?? 12}
-            onChange={(e) => handleRadiusChange(Number(e.target.value))}
-            disabled={!settings?.zoneCity}
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text)' }}
-          >
-            {(RADIUS_OPTIONS.includes(settings?.zoneRadiusKm ?? 12)
-              ? RADIUS_OPTIONS
-              : [...RADIUS_OPTIONS, settings?.zoneRadiusKm ?? 12].sort((a, b) => a - b)
-            ).map((km) => (
-              <option key={km} value={km}>{km} km</option>
-            ))}
-          </select>
-          {isSavingZone && (
-            <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-              {t('account.zone_saving')}
-            </div>
-          )}
-        </DisclosureSection>
-      </div>
-
-      {/* Ma sélection hebdo */}
-      <div style={{ padding: '20px 16px 0' }}>
-        <DisclosureSection
-          title={t('account.digest_title')}
-          summary={settings?.digestEmailEnabled ? t('account.digest_summary_email') : t('account.digest_summary_none')}
-        >
-          <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.5 }}>
-            {t('account.digest_context')}
-          </p>
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={settings?.digestEmailEnabled ?? false}
-              onChange={(e) => handleDigestChange({ emailEnabled: e.target.checked })}
-              disabled={!settings}
-            />
-            <span style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text)' }}>{t('account.digest_email_label')}</span>
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, opacity: 0.6 }}>
-            <input type="checkbox" checked={false} disabled />
-            <span style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text)' }}>{t('account.digest_push_label')}</span>
-          </label>
-
-          <label style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-            {t('account.digest_day_label')}
-          </label>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {WEEKDAYS.map((wd) => {
-              const active = settings?.digestDay === wd.dow;
-              return (
-                <button
-                  key={wd.dow}
-                  onClick={() => handleDigestChange({ day: wd.dow })}
-                  disabled={!settings}
-                  style={{
-                    flex: 1, padding: '8px 0', borderRadius: 10,
-                    border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
-                    background: active ? 'var(--primary-light)' : 'var(--surface)',
-                    color: active ? 'var(--primary)' : 'var(--text-muted)',
-                    fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                  }}
-                >
-                  {t(wd.label)}
-                </button>
-              );
-            })}
-          </div>
-          {isSavingDigest && (
-            <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-              {t('account.zone_saving')}
-            </div>
-          )}
-        </DisclosureSection>
-      </div>
+      <FamilySection />
+      <ZoneSection />
+      <DigestSection />
 
       {/* Contributions */}
       <div style={{ padding: '20px 16px 0' }}>
