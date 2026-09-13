@@ -5,6 +5,9 @@ import type { FeedbackVerdict } from '@/hooks/useRecommendationFeedback';
 interface Props {
   verdict: FeedbackVerdict | undefined;
   onTap: (verdict: FeedbackVerdict) => void;
+  /** Verrouille les deux boutons le temps d'un enregistrement : deux taps
+   *  concurrents sur la même cible y créeraient deux lignes. */
+  isSaving?: boolean;
 }
 
 /**
@@ -12,7 +15,7 @@ interface Props {
  * la carte grille des lieux (2 colonnes) n'a pas la place du texte de la
  * maquette d'origine — l'intitulé vit dans l'`aria-label`.
  */
-const FeedbackIconsRow = ({ verdict, onTap }: Props) => {
+const FeedbackIconsRow = ({ verdict, onTap, isSaving = false }: Props) => {
   const { t } = useTranslation();
 
   const button = (target: FeedbackVerdict, Icon: typeof ThumbsUp, activeColor: string, label: string) => {
@@ -28,9 +31,11 @@ const FeedbackIconsRow = ({ verdict, onTap }: Props) => {
         }}
         aria-label={label}
         aria-pressed={isActive}
+        disabled={isSaving}
         style={{
+          opacity: isSaving ? 0.5 : 1,
           width: 26, height: 26, padding: 0, borderRadius: '50%',
-          border: 'none', background: 'transparent', cursor: 'pointer',
+          border: 'none', background: 'transparent', cursor: isSaving ? 'default' : 'pointer',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           color: isActive ? activeColor : 'var(--text-muted)',
         }}

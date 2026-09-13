@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
@@ -82,15 +83,43 @@ export function useRecommendationFeedback() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
     // Un avis qu'on croit enregistré alors qu'il ne l'est pas est pire qu'une
     // erreur visible : le `GRANT DELETE` de cette table a déjà manqué une
-    // fois, l'échec ne doit jamais être avalé silencieusement.
-    onError: () => toast({ title: t('feedback.error'), variant: 'destructive' }),
+    // fois, l'échec ne doit jamais être avalé silencieusement. On resynchronise
+    // AUSSI sur échec : le `delete` peut avoir réussi avant que l'`insert`
+    // n'échoue, auquel cas le cache montrerait encore l'ancien verdict — et le
+    // parent qui retape ce même pouce tomberait sur la branche « même verdict »
+    // qui n'écrit rien, croyant son avis conservé alors qu'il n'existe plus.
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast({ title: t('feedback.error'), variant: 'destructive' });
+    },
   });
+
+  /**
+   * Verrou synchrone : deux taps rapprochés liraient tous deux le même verdict
+   * courant (périmé) et écriraient chacun leur ligne, la table n'ayant aucun
+   * index unique pour l'en empêcher — vérifié en base, trois taps donnaient
+   * trois lignes. Un `disabled` piloté par `isPending` ne suffit pas : il
+   * n'existe qu'au re-render suivant, donc après une rafale émise dans le même
+   * tick (double-tap tactile, touch + click). Le `disabled` reste, mais comme
+   * signal visuel.
+   */
+  const inFlight = useRef(false);
+  const runToggle = (args: { locationId?: string; eventId?: string; verdict: FeedbackVerdict }) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    toggleMutation.mutate(args, {
+      onSettled: () => {
+        inFlight.current = false;
+      },
+    });
+  };
 
   return {
     enabled,
+    isSaving: toggleMutation.isPending,
     locationVerdict: (id: string): FeedbackVerdict | undefined => data.locations[id],
     eventVerdict: (id: string): FeedbackVerdict | undefined => data.events[id],
-    toggleLocation: (locationId: string, verdict: FeedbackVerdict) => toggleMutation.mutate({ locationId, verdict }),
-    toggleEvent: (eventId: string, verdict: FeedbackVerdict) => toggleMutation.mutate({ eventId, verdict }),
+    toggleLocation: (locationId: string, verdict: FeedbackVerdict) => runToggle({ locationId, verdict }),
+    toggleEvent: (eventId: string, verdict: FeedbackVerdict) => runToggle({ eventId, verdict }),
   };
 }

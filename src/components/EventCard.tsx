@@ -183,6 +183,7 @@ const EventCard = ({ event, showPast = false, occurrence, occurrenceCount = 1 }:
         {feedback.enabled && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, marginBottom: -4 }}>
             <FeedbackIconsRow
+              isSaving={feedback.isSaving}
               verdict={feedback.eventVerdict(event.id)}
               onTap={(verdict) => feedback.toggleEvent(event.id, verdict)}
             />

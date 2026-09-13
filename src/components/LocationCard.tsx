@@ -196,6 +196,7 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBuckets = EMPTY_BU
         {feedback.enabled && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, marginBottom: -4 }}>
             <FeedbackIconsRow
+              isSaving={feedback.isSaving}
               verdict={feedback.locationVerdict(location.id)}
               onTap={(verdict) => feedback.toggleLocation(location.id, verdict)}
             />

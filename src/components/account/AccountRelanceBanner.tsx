@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/hooks/useAuth';
 import { useProfileSettings } from '@/hooks/useProfileSettings';
 import { isRelanceSnoozed, snoozeRelance } from '@/lib/childrenStorage';
 import { pendingRelanceKind } from '@/lib/relance';
@@ -20,6 +21,7 @@ interface Props {
  */
 const AccountRelanceBanner = ({ onOpenZone, onOpenDigest }: Props) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { settings } = useProfileSettings();
   const [dismissedThisSession, setDismissedThisSession] = useState(false);
 
@@ -31,7 +33,7 @@ const AccountRelanceBanner = ({ onOpenZone, onOpenDigest }: Props) => {
           zoneCity: settings.zoneCity,
           digestEmailEnabled: settings.digestEmailEnabled,
           digestPushEnabled: settings.digestPushEnabled,
-          snoozed: isRelanceSnoozed(),
+          snoozed: isRelanceSnoozed(user?.id),
         });
 
   if (!kind) return null;
@@ -62,7 +64,7 @@ const AccountRelanceBanner = ({ onOpenZone, onOpenDigest }: Props) => {
             </button>
             <button
               onClick={() => {
-                snoozeRelance();
+                snoozeRelance(user?.id);
                 setDismissedThisSession(true);
               }}
               style={{
