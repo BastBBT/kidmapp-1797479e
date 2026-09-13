@@ -162,8 +162,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // `useTranslation()`). `load: 'languageOnly'` dans la config i18n garantit
   // déjà un code à 2 lettres (pas de `en-US`).
   const lastSyncedLocale = useRef<string | null>(null);
+  const lastSyncedUserId = useRef<string | null>(null);
   useEffect(() => {
     if (!user) return;
+    // Un changement de compte (pas seulement une déconnexion) doit repartir
+    // d'une ardoise vierge : sans ce reset, se reconnecter avec un autre
+    // compte dans la même langue navigateur sautait la synchro (le ref
+    // gardait la valeur du compte précédent) et laissait `locale` au défaut
+    // 'fr' du nouveau compte.
+    if (lastSyncedUserId.current !== user.id) {
+      lastSyncedLocale.current = null;
+      lastSyncedUserId.current = user.id;
+    }
     const sync = (lng: string) => {
       const locale = lng.split('-')[0];
       if (!['fr', 'en', 'es'].includes(locale)) return;
