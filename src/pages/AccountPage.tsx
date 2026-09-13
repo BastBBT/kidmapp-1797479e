@@ -11,6 +11,7 @@ import LevelCard from '@/components/LevelCard';
 import FamilySection from '@/components/account/FamilySection';
 import ZoneSection from '@/components/account/ZoneSection';
 import DigestSection from '@/components/account/DigestSection';
+import AccountRelanceBanner from '@/components/account/AccountRelanceBanner';
 import { EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
 import { translateToken } from '@/i18n/tokenMaps';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
@@ -158,6 +159,9 @@ const AccountPage = () => {
   const [nameDraft, setNameDraft] = useState('');
   const [savingName, setSavingName] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
+  // Dépliage remonté ici : la bannière de relance doit pouvoir ouvrir la
+  // section qu'elle désigne. Une seule section ouverte à la fois.
+  const [expandedSection, setExpandedSection] = useState<'zone' | 'digest' | null>(null);
 
   useEffect(() => {
     setNameDraft(profile?.full_name ?? '');
@@ -338,8 +342,18 @@ const AccountPage = () => {
       </div>
 
       <FamilySection />
-      <ZoneSection />
-      <DigestSection />
+      <AccountRelanceBanner
+        onOpenZone={() => setExpandedSection('zone')}
+        onOpenDigest={() => setExpandedSection('digest')}
+      />
+      <ZoneSection
+        open={expandedSection === 'zone'}
+        onOpenChange={(open) => setExpandedSection(open ? 'zone' : null)}
+      />
+      <DigestSection
+        open={expandedSection === 'digest'}
+        onOpenChange={(open) => setExpandedSection(open ? 'digest' : null)}
+      />
 
       {/* Contributions */}
       <div style={{ padding: '20px 16px 0' }}>
