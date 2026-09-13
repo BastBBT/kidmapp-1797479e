@@ -8,10 +8,12 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import DeleteAccountSection from '@/components/DeleteAccountSection';
 import LevelCard from '@/components/LevelCard';
+import FamilySection from '@/components/account/FamilySection';
+import ZoneSection from '@/components/account/ZoneSection';
+import DigestSection from '@/components/account/DigestSection';
 import { EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
 import { translateToken } from '@/i18n/tokenMaps';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
-
 
 const CategoryThumb = ({ category }: { category?: string | null }) => {
   const src = category ? CATEGORY_ICONS[category] : undefined;
@@ -183,7 +185,6 @@ const AccountPage = () => {
     }
   };
 
-
   const { data: myContributions = [] } = useQuery({
     queryKey: ['my-contributions', user?.id],
     enabled: !!user,
@@ -335,6 +336,10 @@ const AccountPage = () => {
           </div>
         </div>
       </div>
+
+      <FamilySection />
+      <ZoneSection />
+      <DigestSection />
 
       {/* Contributions */}
       <div style={{ padding: '20px 16px 0' }}>

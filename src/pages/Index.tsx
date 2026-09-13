@@ -14,8 +14,10 @@ import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
-import { AgeBucket, matchesAgeBucket, ageAdequacyScore } from '@/lib/ageFilter';
+import { AgeBucket, ChildAgeBucket, matchesAgeBuckets, ageAdequacyScoreForBuckets } from '@/lib/ageFilter';
 import { matchesWeather, matchesDuration } from '@/lib/activity';
+import { useChildren } from '@/hooks/useChildren';
+import ChildrenPillBar from '@/components/ChildrenPillBar';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -83,6 +85,14 @@ const Index = () => {
     useCoachmarks();
   const [selectedMeal, setSelectedMeal] = useState<string | null>(initialMeal);
   const [selectedAge, setSelectedAge] = useState<AgeBucket>(initialAge);
+  const { children: kids, selection: childSelection, setSelection: setChildSelection, resolvedBuckets } = useChildren();
+  // Dès qu'au moins un enfant est enregistré, la barre générique 0-2/3-5/6+
+  // cède la place à la sélection enfant (union de tranches) ; sans enfant,
+  // repli sur la tranche unique choisie via la barre générique.
+  const effectiveAgeBuckets = useMemo<Set<ChildAgeBucket>>(() => {
+    if (kids.length > 0) return resolvedBuckets;
+    return selectedAge === 'all' ? new Set() : new Set([selectedAge as ChildAgeBucket]);
+  }, [kids.length, resolvedBuckets, selectedAge]);
   const [selectedWeather, setSelectedWeather] = useState<string | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('default');
@@ -223,7 +233,7 @@ const Index = () => {
           selectedCategory !== 'all' ||
           isActivity(loc.category) === (selectedGroup === 'activities');
         const matchMeal = !locationIdsForMeal || locationIdsForMeal.has(loc.id);
-        const matchAge = matchesAgeBucket(loc as any, selectedAge);
+        const matchAge = matchesAgeBuckets(loc as any, effectiveAgeBuckets);
         const isActivityLoc = isActivity(loc.category);
         const matchWeather = !isActivityLoc || matchesWeather((loc as any).weather, selectedWeather);
         const matchDuration = !isActivityLoc || matchesDuration((loc as any).duration, selectedDuration);
@@ -251,15 +261,15 @@ const Index = () => {
     }
 
     return scoped.sort((a, b) => {
-      if (selectedAge !== 'all') {
-        const diff = ageAdequacyScore(b as any, selectedAge) - ageAdequacyScore(a as any, selectedAge);
+      if (effectiveAgeBuckets.size > 0) {
+        const diff = ageAdequacyScoreForBuckets(b as any, effectiveAgeBuckets) - ageAdequacyScoreForBuckets(a as any, effectiveAgeBuckets);
         if (diff !== 0) return diff;
       }
       return byName(a, b);
     });
   }, [
     locations, allLocations, isSearching, searchTerm, selectedCategory, selectedGroup,
-    locationIdsForMeal, selectedAge, selectedWeather, selectedDuration, sortMode,
+    locationIdsForMeal, effectiveAgeBuckets, selectedWeather, selectedDuration, sortMode,
   ]);
 
   // La bulle 3 se termine par « Voir une fiche → » : c'est ici qu'on désigne
@@ -308,6 +318,11 @@ const Index = () => {
         onGroupChange={setSelectedGroup}
         selectedAge={selectedAge}
         onAgeChange={setSelectedAge}
+        ageRowOverride={
+          kids.length > 0 ? (
+            <ChildrenPillBar children={kids} selection={childSelection} onChange={setChildSelection} />
+          ) : undefined
+        }
       />
 
       {/* Meal type filter (2nd row) — only for restaurant / cafe */}
@@ -458,7 +473,7 @@ const Index = () => {
       }}>
         {displayedLocations.map((loc, i) => {
           const mealIds = mealsByLocation.get(loc.id) ?? [];
-          return <LocationCard key={loc.id} location={loc} index={i} mealIds={mealIds} ageBucket={selectedAge} />;
+          return <LocationCard key={loc.id} location={loc} index={i} mealIds={mealIds} ageBuckets={effectiveAgeBuckets} />;
         })}
       </div>
 
@@ -525,7 +540,11 @@ const Index = () => {
                 onGroupChange={setSelectedGroup}
               />
               <div style={{ marginTop: 6 }}>
-                <AgeFilter selected={selectedAge} onChange={setSelectedAge} />
+                {kids.length > 0 ? (
+                  <ChildrenPillBar children={kids} selection={childSelection} onChange={setChildSelection} />
+                ) : (
+                  <AgeFilter selected={selectedAge} onChange={setSelectedAge} />
+                )}
               </div>
               <div
                 style={{

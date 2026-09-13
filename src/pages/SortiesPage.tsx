@@ -16,7 +16,9 @@ import {
   type Week,
 } from '@/lib/weekend';
 import { useEvents, useEventOccurrences } from '@/hooks/useEvents';
-import { AgeBucket, matchesAgeBucket } from '@/lib/ageFilter';
+import { AgeBucket, ChildAgeBucket, matchesAgeBuckets } from '@/lib/ageFilter';
+import { useChildren } from '@/hooks/useChildren';
+import ChildrenPillBar from '@/components/ChildrenPillBar';
 import { formatMonthShort, localeOf } from '@/lib/formatDate';
 import EventsCalendar from '@/components/EventsCalendar';
 import {
@@ -49,6 +51,14 @@ const SortiesPage = () => {
     if (age === 'all') window.localStorage.removeItem(AGE_BAND_KEY);
     else window.localStorage.setItem(AGE_BAND_KEY, age);
   };
+  const { children: kids, selection: childSelection, setSelection: setChildSelection, resolvedBuckets } = useChildren();
+  // Dès qu'au moins un enfant est enregistré, la barre générique cède la
+  // place à la sélection enfant (union de tranches) ; sans enfant, repli sur
+  // la tranche unique choisie via la barre générique.
+  const effectiveAgeBuckets = useMemo<Set<ChildAgeBucket>>(() => {
+    if (kids.length > 0) return resolvedBuckets;
+    return selectedAge === 'all' ? new Set() : new Set([selectedAge as ChildAgeBucket]);
+  }, [kids.length, resolvedBuckets, selectedAge]);
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
   const [showFinished, setShowFinished] = useState(false);
   const { data: events = [], isLoading } = useEvents();
@@ -64,9 +74,9 @@ const SortiesPage = () => {
   const filteredSlots = useMemo(
     () =>
       allSlots
-        .filter(({ event }) => matchesAgeBucket(event, selectedAge))
+        .filter(({ event }) => matchesAgeBuckets(event, effectiveAgeBuckets))
         .filter(({ event }) => selectedCategory === 'all' || event.category === selectedCategory),
-    [allSlots, selectedAge, selectedCategory],
+    [allSlots, effectiveAgeBuckets, selectedCategory],
   );
 
   // Mode d'affichage retenu d'une session à l'autre. La liste reste le défaut :
@@ -108,7 +118,7 @@ const SortiesPage = () => {
 
   useEffect(() => {
     setSelectedKey(defaultKey);
-  }, [selectedAge, selectedCategory, defaultKey]);
+  }, [effectiveAgeBuckets, selectedCategory, defaultKey]);
 
   const selectedWeek = weeks.find((w) => w.key === selectedKey) ?? weeks[0];
   const today = todayISO();
@@ -149,7 +159,7 @@ const SortiesPage = () => {
   // ne doivent pas se superposer.
   const displayedEvents = useMemo(() => distinctEvents(displayedSlots), [displayedSlots]);
 
-  const hasActiveFilter = selectedAge !== 'all' || selectedCategory !== 'all';
+  const hasActiveFilter = effectiveAgeBuckets.size > 0 || selectedCategory !== 'all';
 
   // ---- Mode calendrier ----
   // Le calendrier raisonne sur tous les créneaux filtrés, pas sur une seule
@@ -164,7 +174,7 @@ const SortiesPage = () => {
   }, [calendarDefaultDay, dayTouched]);
   useEffect(() => {
     setDayTouched(false);
-  }, [selectedAge, selectedCategory]);
+  }, [effectiveAgeBuckets, selectedCategory]);
 
   const daySlots = useMemo(() => shortSlotsOn(byDay, selectedDay), [byDay, selectedDay]);
   const dayLongEvents = useMemo(
@@ -200,6 +210,11 @@ const SortiesPage = () => {
       <Header
         selectedAge={selectedAge}
         onAgeChange={setSelectedAge}
+        ageRowOverride={
+          kids.length > 0 ? (
+            <ChildrenPillBar children={kids} selection={childSelection} onChange={setChildSelection} />
+          ) : undefined
+        }
       />
 
       <div style={{ padding: '8px 16px 4px' }}>

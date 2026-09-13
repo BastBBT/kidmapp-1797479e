@@ -32,6 +32,8 @@ import { ProposalModalProvider, useProposalModal } from "./hooks/useProposalModa
 import { usePageviewTracker } from "./hooks/usePageviewTracker";
 import { CoachmarkProvider, useCoachmarks } from "./hooks/useCoachmarks";
 import { flush as flushOnboardingStats } from "./lib/onboardingTracker";
+import { ChildrenProvider } from "./hooks/useChildren";
+import ChildrenCaptureFlow from "./components/ChildrenCaptureFlow";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -220,6 +222,7 @@ const AppContent = () => {
       <CoachmarkStarter onboardingVisible={onboardingVisible} />
       <Coachmarks />
       <AcquisitionOverlay />
+      <ChildrenCaptureFlow />
       <ProposalTypeChooser />
       <ProposeLocationModal open={locationModalOpen} onClose={closeProposal} initialCategory={initialCategory} mode={proposalMode === 'activity' ? 'activity' : 'location'} />
       <ProposeEventModal />
@@ -237,7 +240,9 @@ const App = () => (
           <ProposalModalProvider>
             <RequireAuthProvider>
               <CoachmarkProvider>
-                <AppContent />
+                <ChildrenProvider>
+                  <AppContent />
+                </ChildrenProvider>
               </CoachmarkProvider>
             </RequireAuthProvider>
           </ProposalModalProvider>

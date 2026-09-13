@@ -302,7 +302,26 @@
     "status_rejected_event": "✗ Refusé",
     "logout_cta": "Se déconnecter",
     "instagram_cta": "Suivez-nous sur Instagram",
-    "copyright": "© {{year}} Kidmapp"
+    "copyright": "© {{year}} Kidmapp",
+    "family_title": "Ma famille",
+    "family_empty_hint": "Enregistre l'âge de tes enfants pour un filtre automatique et des sorties sur mesure.",
+    "zone_title": "Ma zone",
+    "zone_unset": "Non renseignée",
+    "zone_context": "Sert à te proposer des lieux et des sorties proches de chez toi. Aucune géolocalisation : tu déclares un secteur, il ne bouge pas.",
+    "zone_commune_label": "Commune",
+    "zone_choose": "Choisir ▾",
+    "zone_sector_group": "— ou un secteur plus large —",
+    "zone_district_label": "Quartier",
+    "zone_district_none": "Aucun",
+    "zone_radius_label": "Rayon",
+    "zone_saving": "Enregistrement…",
+    "digest_title": "Ma sélection hebdo",
+    "digest_context": "Une sélection de sorties une fois par semaine, le jour de ton choix, et une alerte dès qu'un nouveau lieu adapté à tes enfants ouvre près de chez toi. Les deux canaux envoient le même contenu — coche ce qui t'arrange.",
+    "digest_email_label": "Par email",
+    "digest_push_label": "Par notification (bientôt)",
+    "digest_day_label": "Jour",
+    "digest_summary_email": "Par email",
+    "digest_summary_none": "Aucune"
   },
   "auth": {
     "reset_title": "Réinitialiser le mot de passe",
@@ -350,7 +369,7 @@
     "danger_desc": "La suppression de ton compte est définitive et efface toutes tes données.",
     "cta": "Supprimer mon compte",
     "confirm_title": "Supprimer ton compte ?",
-    "confirm_desc": "Cette action est irréversible. Toutes tes données (favoris, contributions, propositions) seront définitivement effacées.",
+    "confirm_desc": "Cette action est irréversible. Toutes tes données (favoris, contributions, propositions, enfants enregistrés) seront définitivement effacées.",
     "reason_label": "Pourquoi pars-tu ? (optionnel)",
     "reason_placeholder": "Ton retour nous aide à améliorer Kidmapp",
     "confirm_yes": "Oui, supprimer",
@@ -445,5 +464,34 @@
       "title": "Confirme ce qu'il y a sur place",
       "body": "Chaise haute, table à langer, coin jeux : deux clics et l'info reste juste pour les parents d'après."
     }
+  },
+  "children": {
+    "unnamed": "Mon enfant",
+    "pill_all_ages": "Tous les âges",
+    "pill_both": "Les deux",
+    "pill_all_mine": "Tous mes enfants",
+    "add_child": "Ajouter un enfant",
+    "form_title_add": "Qui explore avec toi ?",
+    "form_title_edit": "Modifier",
+    "field_first_name": "Prénom (optionnel)",
+    "field_birth": "Mois et année de naissance",
+    "delete_cta": "Supprimer cet enfant",
+    "delete_confirm_cta": "Confirmer la suppression",
+    "delete_confirm_message": "Son profil et ses préférences seront définitivement supprimés.",
+    "age_months": "{{count}} mois",
+    "age_years": "{{count}} ans",
+    "capture_title": "Qui explore avec toi ?",
+    "capture_subtitle": "Le prénom est optionnel.",
+    "capture_later": "Plus tard",
+    "capture_done": "C'est fait"
+  },
+  "weekday": {
+    "mon": "L",
+    "tue": "M",
+    "wed": "M",
+    "thu": "J",
+    "fri": "V",
+    "sat": "S",
+    "sun": "D"
   }
 }

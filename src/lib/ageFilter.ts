@@ -58,6 +58,50 @@ export const ageAdequacyScore = (loc: AgedLoc, bucket: AgeBucket): number => {
 export const getPriorityEquip = (bucket: AgeBucket): EquipKey[] =>
   bucket === 'all' ? [] : PRIORITY_EQUIP[bucket];
 
+export type ChildAgeBucket = Exclude<AgeBucket, 'all'>;
+
+/**
+ * Dérive la tranche d'âge d'un enfant à partir de son âge réel en mois.
+ * Catégorise un âge exact (≠ le chevauchement d'une plage conseillée fait
+ * par `matchesAgeBucket`), dérivée des mêmes bornes `AGE_RANGES` pour ne
+ * jamais diverger de la logique de filtrage — jamais de seuil en dur.
+ * Miroir de `ChildrenViewModel.ageBand` (iOS) / `AgeBand.fromMonths` (Android).
+ */
+export const bucketForChildMonths = (months: number): ChildAgeBucket => {
+  if (months < AGE_RANGES['0-2'].max) return '0-2'; // < 24
+  if (months <= AGE_RANGES['3-5'].max) return '3-5'; // 24..60
+  return '6+';
+};
+
+/** Union (jamais intersection) : un objet matche dès qu'il convient à au
+ *  moins une des tranches actives d'une fratrie. Ensemble vide = pas de filtre. */
+export const matchesAgeBuckets = (loc: AgedLoc, buckets: Set<ChildAgeBucket>): boolean => {
+  if (buckets.size === 0) return true;
+  for (const b of buckets) {
+    if (matchesAgeBucket(loc, b)) return true;
+  }
+  return false;
+};
+
+/** Meilleur score parmi les tranches actives (max, pas somme). */
+export const ageAdequacyScoreForBuckets = (loc: AgedLoc, buckets: Set<ChildAgeBucket>): number => {
+  let best = 0;
+  for (const b of buckets) {
+    const score = ageAdequacyScore(loc, b);
+    if (score > best) best = score;
+  }
+  return best;
+};
+
+/** Union des équipements prioritaires de toutes les tranches actives. */
+export const getPriorityEquipForBuckets = (buckets: Set<ChildAgeBucket>): EquipKey[] => {
+  const set = new Set<EquipKey>();
+  for (const b of buckets) {
+    for (const k of PRIORITY_EQUIP[b]) set.add(k);
+  }
+  return [...set];
+};
+
 export type AgeVerdict = 'perfect' | 'good' | 'poor';
 
 export const ageVerdict = (
