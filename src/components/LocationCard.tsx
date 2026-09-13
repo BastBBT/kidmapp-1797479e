@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useFavorites } from '@/hooks/useFavorites';
 import { MEAL_ICONS, EQUIP_ICONS, EQUIP_SHORT_LABELS, EquipKey, CATEGORY_ICONS } from '@/assets/icons';
-import { AgeBucket, getPriorityEquip } from '@/lib/ageFilter';
+import { ChildAgeBucket, getPriorityEquipForBuckets } from '@/lib/ageFilter';
 import { translateToken } from '@/i18n/tokenMaps';
 import { FavoriteCountBadge, shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
@@ -14,8 +14,11 @@ interface LocationCardProps {
   index?: number;
   mealEmojis?: string[]; // legacy, kept for compatibility
   mealIds?: string[];
-  ageBucket?: AgeBucket;
+  /** Tranches actives (union — pas intersection — d'une fratrie), vide = pas de filtre. */
+  ageBuckets?: Set<ChildAgeBucket>;
 }
+
+const EMPTY_BUCKETS: Set<ChildAgeBucket> = new Set();
 
 const categoryGradients: Record<string, string> = {
   restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
@@ -66,7 +69,7 @@ const MealBubble = ({ mealId }: { mealId: string }) => {
   );
 };
 
-const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: LocationCardProps) => {
+const LocationCard = ({ location, index = 0, mealIds = [], ageBuckets = EMPTY_BUCKETS }: LocationCardProps) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { isFavorite } = useFavorites();
@@ -84,7 +87,7 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBucket = 'all' }: 
     if ((location as any).kids_menu) activeEquip.push('kids_menu');
   }
 
-  const priority = new Set(getPriorityEquip(ageBucket));
+  const priority = new Set(getPriorityEquipForBuckets(ageBuckets));
   const sortedEquip = [...activeEquip].sort((a, b) => {
     const pa = priority.has(a) ? 0 : 1;
     const pb = priority.has(b) ? 0 : 1;
