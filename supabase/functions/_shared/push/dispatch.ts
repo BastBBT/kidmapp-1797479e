@@ -17,7 +17,7 @@ import { parseServiceAccount, sendPush, type ServiceAccount, type PushMessage } 
 // dans les edge functions — on garde le type large pour éviter les conflits
 // de résolution d'overload entre ReturnType<typeof createClient> et
 // l'instance réelle retournée par createClient(url, key).
-type SupabaseClientType = ReturnType<typeof createClient<string, any>>
+type SupabaseClientType = ReturnType<typeof createClient>
 
 export interface DeviceRow {
   user_id: string
