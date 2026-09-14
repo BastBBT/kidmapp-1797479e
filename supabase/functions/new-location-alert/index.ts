@@ -68,12 +68,16 @@ async function runAlert() {
   const sendDate = todayISODate(now)
   const since = new Date(now.getTime() - LOOKBACK_HOURS * 60 * 60 * 1000).toISOString()
 
-  // (a) Lieux nouvellement publiés dans la fenêtre de lookback.
+  // (a) Lieux nouvellement publiés dans la fenêtre de lookback. Trié du plus
+  // récent au plus ancien : sans `order`, Postgres ne garantit aucun ordre, et
+  // le push (qui ne route que vers `matched[0]`, cf. plus bas) ouvrirait sinon
+  // une fiche arbitraire plutôt que le lieu le plus récent.
   const { data: locations, error: locationsError } = await supabase
     .from('locations')
     .select('id, name, category, address, lat, lng, age_min_months, age_max_months, status, published_at')
     .eq('status', 'published')
     .gte('published_at', since)
+    .order('published_at', { ascending: false })
     .returns<LocationRow[]>()
 
   if (locationsError) {
