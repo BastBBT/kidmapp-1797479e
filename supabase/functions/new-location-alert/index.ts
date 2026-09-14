@@ -4,13 +4,10 @@ import { haversineKm } from '../_shared/digest/haversine.ts'
 import { ageInMonths, ageMatches } from '../_shared/digest/matching.ts'
 import { locationCategoryEmoji } from '../_shared/digest/locationStyle.ts'
 import { notifiedIdsByUser, withoutAlreadyNotified, type PreviousSendRow } from '../_shared/digest/dedupe.ts'
-import { parseServiceAccount, sendPush, type ServiceAccount } from '../_shared/push/fcm.ts'
+import { loadServiceAccount, loadDevicesByUser, sendToUserDevices, type DeviceRow } from '../_shared/push/dispatch.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-// Absent = push désactivé pour ce run (le mail continue de partir normalement) —
-// jamais une raison de faire échouer toute l'alerte.
-const FIREBASE_SERVICE_ACCOUNT_JSON = Deno.env.get('FIREBASE_SERVICE_ACCOUNT_JSON')
 const LANDING_BASE_URL = 'https://kidmapp.app/nouveaux-lieux'
 // Même durée que le digest sorties (D9 du chantier profil famille) — le
 // jeton reste valable le temps que le parent ouvre son mail en retard.
@@ -34,11 +31,6 @@ interface ProfileRow {
   zone_radius_km: number | null
   digest_email_enabled: boolean
   digest_push_enabled: boolean
-}
-
-interface DeviceRow {
-  user_id: string
-  fcm_token: string
 }
 
 interface ChildRow {
@@ -172,33 +164,11 @@ async function runAlert() {
 
   // (d) Tokens push des candidats concernés — une seule requête batchée,
   // jamais une lecture par utilisateur dans la boucle plus bas.
-  let serviceAccount: ServiceAccount | null = null
-  if (FIREBASE_SERVICE_ACCOUNT_JSON) {
-    try {
-      serviceAccount = parseServiceAccount(FIREBASE_SERVICE_ACCOUNT_JSON)
-    } catch (e) {
-      console.error('new-location-alert: FIREBASE_SERVICE_ACCOUNT_JSON invalide, push désactivé pour ce run', e)
-    }
-  }
-
+  let serviceAccount = loadServiceAccount()
   const pushCandidateIds = candidates.filter((p) => p.digest_push_enabled).map((p) => p.id)
-  const devicesByUser = new Map<string, DeviceRow[]>()
-  if (serviceAccount && pushCandidateIds.length > 0) {
-    const { data: deviceRows, error: devicesError } = await supabase
-      .from('user_devices')
-      .select('user_id, fcm_token')
-      .in('user_id', pushCandidateIds)
-      .returns<DeviceRow[]>()
-    if (devicesError) {
-      console.error('new-location-alert: user_devices fetch failed', devicesError)
-    } else {
-      for (const d of deviceRows ?? []) {
-        const list = devicesByUser.get(d.user_id) ?? []
-        list.push(d)
-        devicesByUser.set(d.user_id, list)
-      }
-    }
-  }
+  const devicesByUser = serviceAccount
+    ? await loadDevicesByUser(supabase, pushCandidateIds, 'new-location-alert')
+    : new Map<string, DeviceRow[]>()
 
   let sentCount = 0
   let skippedCount = 0
@@ -321,52 +291,24 @@ async function runAlert() {
       }
     }
 
-    // `sendPush` ne lève jamais (cf. fcm.ts), mais ce bloc reste dans son
-    // propre try/catch par prudence : une exception ici ne doit JAMAIS faire
-    // sauter le reste de la boucle des candidats ni la mise à jour de
-    // `location_ids` plus bas — la push est un bonus, jamais le chemin
-    // critique de l'email.
     if (profile.digest_push_enabled && serviceAccount) {
-      try {
-        const devices = devicesByUser.get(profile.id) ?? []
-        const pushBody =
-          items.length === 1
-            ? `${items[0].name} vient d'ouvrir près de chez toi.`
-            : `${items.length} nouveaux lieux près de chez toi.`
-        for (const device of devices) {
-          const result = await sendPush(serviceAccount, {
-            token: device.fcm_token,
-            title: 'Nouveau lieu près de chez toi',
-            body: pushBody,
-            data: { url: landingUrl },
-          })
-          if (result.ok) {
-            pushSentCount++
-            anySucceeded = true
-          } else {
-            pushFailedCount++
-            if (result.tokenInvalid) {
-              const { error: deleteError } = await supabase
-                .from('user_devices')
-                .delete()
-                .eq('user_id', profile.id)
-                .eq('fcm_token', device.fcm_token)
-              if (deleteError) console.error('new-location-alert: nettoyage token invalide échoué', deleteError)
-            } else if (result.authFailed) {
-              // Clé révoquée/mal configurée : inutile de retenter la même
-              // erreur pour chaque destinataire restant du run.
-              console.error('new-location-alert: authentification FCM en échec, push désactivée pour le reste du run', result.error)
-              serviceAccount = null
-              break
-            } else {
-              console.error('new-location-alert: envoi push échoué', profile.id, result.error)
-            }
-          }
-        }
-      } catch (pushError) {
-        console.error('new-location-alert: envoi push a levé une exception inattendue', profile.id, pushError)
-        pushFailedCount++
-      }
+      const devices = devicesByUser.get(profile.id) ?? []
+      const pushBody =
+        items.length === 1
+          ? `${items[0].name} vient d'ouvrir près de chez toi.`
+          : `${items.length} nouveaux lieux près de chez toi.`
+      const result = await sendToUserDevices(
+        supabase,
+        serviceAccount,
+        profile.id,
+        devices,
+        { title: 'Nouveau lieu près de chez toi', body: pushBody, data: { url: landingUrl } },
+        'new-location-alert',
+      )
+      pushSentCount += result.sent
+      pushFailedCount += result.failed
+      if (result.sent > 0) anySucceeded = true
+      if (result.authFailed) serviceAccount = null
     }
 
     if (anySucceeded) {
