@@ -10,19 +10,31 @@
 
 -- 1. recommendation_feedback : DELETE manquant
 --
--- La migration de création (20260902193703) n'a accordé que SELECT et INSERT, sans
--- policy DELETE. Or les trois clients retogglent un avis par delete-puis-insert (jamais
--- d'upsert : la table n'a aucun index unique sur la cible). Sans ces deux lignes, le
--- premier tap sur un pouce échoue en 42501 et le feedback par item ne marche pas du tout.
--- Le patron est celui déjà en place sur `favorites` / `event_favorites`.
+-- La migration de création (20260902193703) n'a accordé que SELECT et INSERT, et n'a
+-- défini aucune policy DELETE. Or les trois clients retogglent un avis par
+-- delete-puis-insert (jamais d'upsert : la table n'a aucun index unique sur la cible).
 --
--- Pas d'UPDATE : aucun client n'en fait.
+-- Des deux lignes ci-dessous, c'est la **policy** qui est le verrou effectif : RLS refuse
+-- par défaut, donc sans elle aucun DELETE ne touche jamais la moindre ligne et le feedback
+-- par item ne marche pas. Le GRANT, lui, est explicite plutôt que strictement nécessaire
+-- sur la base actuelle (les default privileges Supabase du schéma `public` couvrent déjà
+-- le privilège de table) — mais il l'est sur une base reconstruite qui ne les aurait pas.
+-- Patron repris tel quel de `event_favorites`.
+--
+-- Pas d'UPDATE : aucun des trois clients n'en fait.
 
 GRANT DELETE ON public.recommendation_feedback TO authenticated;
 
-DROP POLICY IF EXISTS "recommendation_feedback_delete_own" ON public.recommendation_feedback;
-CREATE POLICY "recommendation_feedback_delete_own" ON public.recommendation_feedback
-  FOR DELETE TO authenticated USING (auth.uid() = user_id);
+-- Créée sans `DROP POLICY` préalable : un DROP retirerait une protection RLS le temps de
+-- la recréation, et c'est précisément ce que la garde sécurité du dépôt refuse — à raison.
+-- Le bloc ci-dessous est idempotent sans jamais rien retirer.
+DO $$
+BEGIN
+  CREATE POLICY "recommendation_feedback_delete_own" ON public.recommendation_feedback
+    FOR DELETE TO authenticated USING (auth.uid() = user_id);
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 -- 2. zones_reference : les 6 secteurs
 --
