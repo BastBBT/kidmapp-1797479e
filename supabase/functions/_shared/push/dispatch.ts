@@ -13,7 +13,11 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { parseServiceAccount, sendPush, type ServiceAccount, type PushMessage } from './fcm.ts'
 
-type SupabaseClientType = ReturnType<typeof createClient>
+// Le client est intentionnellement non-typé (pas de générique Database)
+// dans les edge functions — on garde le type large pour éviter les conflits
+// de résolution d'overload entre ReturnType<typeof createClient> et
+// l'instance réelle retournée par createClient(url, key).
+type SupabaseClientType = ReturnType<typeof createClient<string, any>>
 
 export interface DeviceRow {
   user_id: string
