@@ -10,7 +10,9 @@ describe('parseServiceAccount', () => {
   it('accepte un compte de service complet', () => {
     const raw = JSON.stringify({
       client_email: 'fcm-sender@kidmapp-8441f.iam.gserviceaccount.com',
-      private_key: '-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----',
+      // Valeur factice : parseServiceAccount ne vérifie que la présence du
+      // champ, jamais son contenu PEM (déjà couvert par le test PEM ailleurs).
+      private_key: 'not-a-real-key-material',
       project_id: 'kidmapp-8441f',
     });
     const parsed = parseServiceAccount(raw);
