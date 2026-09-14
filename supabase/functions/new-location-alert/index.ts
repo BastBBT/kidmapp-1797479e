@@ -68,12 +68,16 @@ async function runAlert() {
   const sendDate = todayISODate(now)
   const since = new Date(now.getTime() - LOOKBACK_HOURS * 60 * 60 * 1000).toISOString()
 
-  // (a) Lieux nouvellement publiés dans la fenêtre de lookback.
+  // (a) Lieux nouvellement publiés dans la fenêtre de lookback. Trié du plus
+  // récent au plus ancien : sans `order`, Postgres ne garantit aucun ordre, et
+  // le push (qui ne route que vers `matched[0]`, cf. plus bas) ouvrirait sinon
+  // une fiche arbitraire plutôt que le lieu le plus récent.
   const { data: locations, error: locationsError } = await supabase
     .from('locations')
     .select('id, name, category, address, lat, lng, age_min_months, age_max_months, status, published_at')
     .eq('status', 'published')
     .gte('published_at', since)
+    .order('published_at', { ascending: false })
     .returns<LocationRow[]>()
 
   if (locationsError) {
@@ -302,7 +306,16 @@ async function runAlert() {
         serviceAccount,
         profile.id,
         devices,
-        { title: 'Nouveau lieu près de chez toi', body: pushBody, data: { url: landingUrl } },
+        // `location_id` route le tap côté app directement sur la fiche lieu
+        // (deep link `/location/<uuid>` déjà géré côté iOS/Android). On ne
+        // garde que `matched[0]` : le lookback de 48h rend un envoi à plusieurs
+        // lieux rare, et il n'y a pas de liste dédiée aux nouveautés dans l'app
+        // — contrairement à l'email, qui les liste tous via `landingUrl`.
+        {
+          title: 'Nouveau lieu près de chez toi',
+          body: pushBody,
+          data: { type: 'new_location_alert', location_id: matched[0].id },
+        },
         'new-location-alert',
       )
       pushSentCount += result.sent

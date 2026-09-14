@@ -314,7 +314,10 @@ async function runDigest() {
         serviceAccount,
         profile.id,
         devices,
-        { title: 'Ta sélection de la semaine 👀', body: pushBody, data: { url: landingUrl } },
+        // `type` route le tap côté app (iOS/Android) vers l'onglet Sorties,
+        // déjà filtré par défaut sur la semaine en cours + l'enfant sélectionné
+        // — pas de landing page dédiée dans l'app, contrairement à l'email.
+        { title: 'Ta sélection de la semaine 👀', body: pushBody, data: { type: 'weekly_digest' } },
         'weekly-digest',
       )
       pushSentCount += result.sent
