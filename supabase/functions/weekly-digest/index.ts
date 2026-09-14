@@ -50,7 +50,7 @@ interface EventRow {
 
 /** Libère une réservation `digest_sends` après un échec d'envoi — sans ça, la
  * contrainte unique (user_id, send_date) empêcherait tout retry le même jour. */
-async function releaseClaim(supabase: ReturnType<typeof createClient>, id: string): Promise<void> {
+async function releaseClaim(supabase: any, id: string): Promise<void> {
   const { error } = await supabase.from('digest_sends').delete().eq('id', id)
   if (error) console.error('weekly-digest: releaseClaim failed', id, error)
 }

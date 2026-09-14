@@ -53,7 +53,7 @@ interface LocationRow {
   published_at: string | null
 }
 
-async function releaseClaim(supabase: ReturnType<typeof createClient>, id: string): Promise<void> {
+async function releaseClaim(supabase: any, id: string): Promise<void> {
   const { error } = await supabase.from('location_alert_sends').delete().eq('id', id)
   if (error) console.error('new-location-alert: releaseClaim failed', id, error)
 }
