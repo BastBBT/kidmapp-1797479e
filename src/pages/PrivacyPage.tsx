@@ -81,6 +81,29 @@ const CONTENT: Record<Lang, {
         text: 'Vous pouvez supprimer votre compte vous-même, depuis « Mon compte », sur les trois applications. Vos données personnelles sont alors effacées : profil, enfants, zone, favoris, avis, réglages d’envoi. Deux choses subsistent volontairement : vos contributions déjà publiées et les photos qui les accompagnent, qui restent en ligne mais ne sont plus rattachées à vous ni à votre prénom ; et une trace de la suppression elle-même, contenant votre adresse email, conservée 12 mois puis anonymisée, pour pouvoir répondre à une réclamation. Pour toute question, écrivez-nous à :',
         email: true,
       },
+      {
+        title: 'Responsable du traitement',
+        text: 'Kidmapp est responsable du traitement de vos données. Vous pouvez nous contacter à :',
+        email: true,
+      },
+      {
+        title: 'Base légale des traitements',
+        list: [
+          'Compte, contributions, favoris, zone déclarée : exécution du contrat qui vous lie à Kidmapp (vous fournir le service que vous avez demandé)',
+          'Données de vos enfants (mois et année de naissance, prénom) : consentement du titulaire de l’autorité parentale, donné en les renseignant — retirable à tout moment en supprimant l’enfant',
+          'Sélection hebdomadaire par email et alertes nouveaux lieux : consentement, recueilli par la case à cocher dans « Mon compte », retirable à tout moment',
+          'Mesure du trafic apporté aux lieux et événements référencés (clics sortants, pages consultées) : intérêt légitime de Kidmapp à évaluer et améliorer le service rendu aux établissements',
+        ],
+      },
+      {
+        title: 'Vos droits',
+        text: 'Conformément au Règlement général sur la protection des données (RGPD), vous disposez d’un droit d’accès, de rectification, d’effacement, de limitation, d’opposition et de portabilité sur vos données. La plupart s’exercent directement dans l’application, depuis « Mon compte » (modification, suppression). Pour toute autre demande, écrivez-nous à :',
+        email: true,
+      },
+      {
+        title: 'Réclamation',
+        text: 'Si vous estimez que vos droits ne sont pas respectés, vous pouvez introduire une réclamation auprès de la Commission nationale de l’informatique et des libertés (CNIL), l’autorité française de protection des données : www.cnil.fr.',
+      },
       { title: 'Contact', email: true },
     ],
     authoritative: 'En cas de divergence entre les versions, la version française fait foi.',
@@ -134,6 +157,29 @@ const CONTENT: Record<Lang, {
         text: 'You can delete your account yourself, from “My account”, on all three apps. Your personal data is then erased: profile, children, area, favorites, feedback, email settings. Two things deliberately remain: contributions you have already published and their photos, which stay online but are no longer tied to you or to your first name; and a record of the deletion itself, containing your email address, kept for 12 months and then anonymised, so we can answer a complaint. For any question, write to us at:',
         email: true,
       },
+      {
+        title: 'Data controller',
+        text: 'Kidmapp is the data controller for your data. You can contact us at:',
+        email: true,
+      },
+      {
+        title: 'Legal basis for processing',
+        list: [
+          'Account, contributions, favorites, declared area: performance of the contract between you and Kidmapp (providing the service you asked for)',
+          'Your children’s data (month and year of birth, first name): consent of the holder of parental authority, given when you enter it — withdrawable at any time by deleting the child',
+          'Weekly picks email and new-places alerts: consent, collected via the checkbox in “My account”, withdrawable at any time',
+          'Measuring the traffic we bring to the places and events we list (outbound clicks, pages viewed): Kidmapp’s legitimate interest in assessing and improving the service we provide to listed venues',
+        ],
+      },
+      {
+        title: 'Your rights',
+        text: 'Under the General Data Protection Regulation (GDPR), you have the right to access, rectify, erase, restrict, object to, and port your data. Most of these can be exercised directly in the app, from “My account” (edit, delete). For any other request, write to us at:',
+        email: true,
+      },
+      {
+        title: 'Complaints',
+        text: 'If you believe your rights are not being respected, you can lodge a complaint with the CNIL (Commission nationale de l’informatique et des libertés), the French data protection authority: www.cnil.fr.',
+      },
       { title: 'Contact', email: true },
     ],
     authoritative: 'In case of any discrepancy between versions, the French version prevails.',
@@ -186,6 +232,29 @@ const CONTENT: Record<Lang, {
         title: 'Eliminación de la cuenta',
         text: 'Puedes eliminar tu cuenta tú mismo, desde «Mi cuenta», en las tres aplicaciones. Tus datos personales se borran entonces: perfil, hijos, zona, favoritos, valoraciones, ajustes de envío. Dos cosas permanecen de forma deliberada: las contribuciones que ya hayas publicado y sus fotos, que siguen en línea pero dejan de estar vinculadas a ti ni a tu nombre; y un registro de la propia eliminación, con tu dirección de correo, conservado 12 meses y después anonimizado, para poder responder a una reclamación. Para cualquier duda, escríbenos a:',
         email: true,
+      },
+      {
+        title: 'Responsable del tratamiento',
+        text: 'Kidmapp es responsable del tratamiento de tus datos. Puedes contactarnos en:',
+        email: true,
+      },
+      {
+        title: 'Base legal de los tratamientos',
+        list: [
+          'Cuenta, contribuciones, favoritos, zona declarada: ejecución del contrato que te vincula con Kidmapp (prestarte el servicio que has solicitado)',
+          'Datos de tus hijos (mes y año de nacimiento, nombre): consentimiento del titular de la patria potestad, otorgado al indicarlos — retirable en cualquier momento eliminando al hijo',
+          'Selección semanal por correo y alertas de nuevos lugares: consentimiento, recogido mediante la casilla en «Mi cuenta», retirable en cualquier momento',
+          'Medición del tráfico que aportamos a los lugares y eventos incluidos (clics salientes, páginas consultadas): interés legítimo de Kidmapp en evaluar y mejorar el servicio prestado a los establecimientos',
+        ],
+      },
+      {
+        title: 'Tus derechos',
+        text: 'De conformidad con el Reglamento General de Protección de Datos (RGPD), dispones de un derecho de acceso, rectificación, supresión, limitación, oposición y portabilidad sobre tus datos. La mayoría se ejercen directamente en la aplicación, desde «Mi cuenta» (modificar, eliminar). Para cualquier otra solicitud, escríbenos a:',
+        email: true,
+      },
+      {
+        title: 'Reclamaciones',
+        text: 'Si consideras que no se respetan tus derechos, puedes presentar una reclamación ante la CNIL (Commission nationale de l’informatique et des libertés), la autoridad francesa de protección de datos: www.cnil.fr.',
       },
       { title: 'Contacto', email: true },
     ],
