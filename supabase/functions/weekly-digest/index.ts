@@ -3,6 +3,7 @@ import { sendTemplateEmail } from '../_shared/transactional-email-templates/send
 import { haversineKm } from '../_shared/digest/haversine.ts'
 import { ageInMonths, ageMatches } from '../_shared/digest/matching.ts'
 import { eventCategoryEmoji } from '../_shared/digest/eventStyle.ts'
+import { loadServiceAccount, loadDevicesByUser, sendToUserDevices, type DeviceRow } from '../_shared/push/dispatch.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -16,6 +17,8 @@ interface ProfileRow {
   zone_lat: number | null
   zone_lng: number | null
   zone_radius_km: number | null
+  digest_email_enabled: boolean
+  digest_push_enabled: boolean
 }
 
 interface ChildRow {
@@ -75,11 +78,13 @@ async function runDigest() {
   const sendDate = todayISODate(now)
   const windowEnd = addDaysISO(now, 7)
 
-  // (a) Candidats du jour : canal email actif, jour d'envoi = aujourd'hui, zone renseignée.
+  // (a) Candidats du jour : au moins un canal actif (email ou push — cases
+  // indépendantes, cf. AccountView/profile_sections), jour d'envoi =
+  // aujourd'hui, zone renseignée.
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, zone_lat, zone_lng, zone_radius_km')
-    .eq('digest_email_enabled', true)
+    .select('id, zone_lat, zone_lng, zone_radius_km, digest_email_enabled, digest_push_enabled')
+    .or('digest_email_enabled.eq.true,digest_push_enabled.eq.true')
     .eq('digest_day', dow)
     .not('zone_lat', 'is', null)
     .not('zone_lng', 'is', null)
@@ -172,9 +177,19 @@ async function runDigest() {
     return
   }
 
+  // (c) Tokens push des candidats concernés — une seule requête batchée,
+  // jamais une lecture par utilisateur dans la boucle plus bas.
+  let serviceAccount = loadServiceAccount()
+  const pushCandidateIds = candidates.filter((p) => p.digest_push_enabled).map((p) => p.id)
+  const devicesByUser = serviceAccount
+    ? await loadDevicesByUser(supabase, pushCandidateIds, 'weekly-digest')
+    : new Map<string, DeviceRow[]>()
+
   let sentCount = 0
   let skippedCount = 0
   let failedCount = 0
+  let pushSentCount = 0
+  let pushFailedCount = 0
 
   for (const profile of candidates) {
     const children = childrenByUser.get(profile.id)!
@@ -234,19 +249,6 @@ async function runDigest() {
       continue
     }
 
-    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id)
-    const email = userData?.user?.email
-    if (userError || !email) {
-      console.error('weekly-digest: email introuvable', profile.id, userError)
-      // Sans ce retrait, l'échec consommerait définitivement le créneau du
-      // jour pour ce profil (contrainte unique user_id/send_date) : un
-      // re-run du cron le même jour ne retenterait jamais, jusqu'au prochain
-      // digest_day dans une semaine.
-      await releaseClaim(supabase, claimed[0].id)
-      failedCount++
-      continue
-    }
-
     const childrenNames = children.map((c) => c.first_name).filter((n): n is string => !!n && n.trim().length > 0)
     const landingUrl = `${LANDING_BASE_URL}/${token}`
     const items = matched.map((occ) => {
@@ -262,35 +264,83 @@ async function runDigest() {
       }
     })
 
-    const idempotencyKey = `weekly-digest-${sendDate}-${profile.id}`
-    try {
-      const result = await sendTemplateEmail('weekly-digest', email, {
-        templateData: { childrenNames, items, landingUrl },
-        idempotencyKey,
-      })
-      const { error: logError } = await supabase.from('email_send_log').insert({
-        template_name: 'weekly-digest',
-        recipient_email: email,
-        status: result.sent ? 'sent' : 'suppressed',
-      })
-      if (logError) console.error('email_send_log insert failed', logError)
-      sentCount++
-    } catch (sendError) {
-      const message = sendError instanceof Error ? sendError.message : String(sendError)
-      console.error('weekly-digest send error', profile.id, message)
-      const { error: logError } = await supabase.from('email_send_log').insert({
-        template_name: 'weekly-digest',
-        recipient_email: email,
-        status: 'failed',
-        error_message: message.slice(0, 1000),
-      })
-      if (logError) console.error('email_send_log insert failed', logError)
+    // Les deux canaux sont indépendants (cases à cocher séparées) : un profil
+    // peut n'avoir que l'un des deux actif. La réservation du jour n'est
+    // libérée que si NI l'un NI l'autre n'est parti — un seul canal réussi
+    // suffit à considérer le parent servi aujourd'hui.
+    let anySucceeded = false
+
+    if (profile.digest_email_enabled) {
+      const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id)
+      const email = userData?.user?.email
+      if (userError || !email) {
+        console.error('weekly-digest: email introuvable', profile.id, userError)
+        failedCount++
+      } else {
+        const idempotencyKey = `weekly-digest-${sendDate}-${profile.id}`
+        try {
+          const result = await sendTemplateEmail('weekly-digest', email, {
+            templateData: { childrenNames, items, landingUrl },
+            idempotencyKey,
+          })
+          const { error: logError } = await supabase.from('email_send_log').insert({
+            template_name: 'weekly-digest',
+            recipient_email: email,
+            status: result.sent ? 'sent' : 'suppressed',
+          })
+          if (logError) console.error('email_send_log insert failed', logError)
+          sentCount++
+          anySucceeded = true
+        } catch (sendError) {
+          const message = sendError instanceof Error ? sendError.message : String(sendError)
+          console.error('weekly-digest send error', profile.id, message)
+          const { error: logError } = await supabase.from('email_send_log').insert({
+            template_name: 'weekly-digest',
+            recipient_email: email,
+            status: 'failed',
+            error_message: message.slice(0, 1000),
+          })
+          if (logError) console.error('email_send_log insert failed', logError)
+          failedCount++
+        }
+      }
+    }
+
+    if (profile.digest_push_enabled && serviceAccount) {
+      const devices = devicesByUser.get(profile.id) ?? []
+      const pushBody = `${items.length} sortie${items.length > 1 ? 's' : ''} pour ta famille cette semaine.`
+      const result = await sendToUserDevices(
+        supabase,
+        serviceAccount,
+        profile.id,
+        devices,
+        { title: 'Ta sélection de la semaine 👀', body: pushBody, data: { url: landingUrl } },
+        'weekly-digest',
+      )
+      pushSentCount += result.sent
+      pushFailedCount += result.failed
+      if (result.sent > 0) anySucceeded = true
+      if (result.authFailed) serviceAccount = null
+    }
+
+    if (!anySucceeded) {
+      // Sans ce retrait, un run qui n'a servi le parent sur aucun canal
+      // consommerait quand même le créneau du jour (contrainte unique
+      // user_id/send_date) : un re-run le même jour ne retenterait jamais,
+      // jusqu'au prochain digest_day dans une semaine.
       await releaseClaim(supabase, claimed[0].id)
-      failedCount++
     }
   }
 
-  console.log('weekly-digest terminé', { sendDate, candidats: candidates.length, sentCount, skippedCount, failedCount })
+  console.log('weekly-digest terminé', {
+    sendDate,
+    candidats: candidates.length,
+    sentCount,
+    skippedCount,
+    failedCount,
+    pushSentCount,
+    pushFailedCount,
+  })
 }
 
 // EdgeRuntime est fourni par le runtime Supabase — ce shim déclare juste sa forme.
