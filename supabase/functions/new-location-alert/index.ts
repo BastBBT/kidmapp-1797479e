@@ -297,10 +297,13 @@ async function runAlert() {
 
     if (profile.digest_push_enabled && serviceAccount) {
       const devices = devicesByUser.get(profile.id) ?? []
+      // "vient d'ouvrir" impliquait à tort une ouverture commerciale — le lieu
+      // est parfois établi de longue date, seulement récemment ajouté à
+      // Kidmapp. Même formulation que l'email ("viennent d'être ajoutés").
       const pushBody =
         items.length === 1
-          ? `${items[0].name} vient d'ouvrir près de chez toi.`
-          : `${items.length} nouveaux lieux près de chez toi.`
+          ? `${items[0].name} vient d'être ajouté près de chez toi.`
+          : `${items.length} nouveaux lieux viennent d'être ajoutés près de chez toi.`
       const result = await sendToUserDevices(
         supabase,
         serviceAccount,
