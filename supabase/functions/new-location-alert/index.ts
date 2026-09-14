@@ -302,7 +302,16 @@ async function runAlert() {
         serviceAccount,
         profile.id,
         devices,
-        { title: 'Nouveau lieu près de chez toi', body: pushBody, data: { url: landingUrl } },
+        // `location_id` route le tap côté app directement sur la fiche lieu
+        // (deep link `/location/<uuid>` déjà géré côté iOS/Android). On ne
+        // garde que `matched[0]` : le lookback de 48h rend un envoi à plusieurs
+        // lieux rare, et il n'y a pas de liste dédiée aux nouveautés dans l'app
+        // — contrairement à l'email, qui les liste tous via `landingUrl`.
+        {
+          title: 'Nouveau lieu près de chez toi',
+          body: pushBody,
+          data: { type: 'new_location_alert', location_id: matched[0].id },
+        },
         'new-location-alert',
       )
       pushSentCount += result.sent
