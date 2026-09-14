@@ -10,10 +10,13 @@
  * `Deno.env` — pas prévu pour être testé tel quel depuis vitest (patron déjà
  * suivi par `weekly-digest/index.ts` lui-même, qui n'est pas testé non plus).
  */
-import { createClient } from 'npm:@supabase/supabase-js@2'
 import { parseServiceAccount, sendPush, type ServiceAccount, type PushMessage } from './fcm.ts'
 
-type SupabaseClientType = ReturnType<typeof createClient>
+// Le client Supabase est intentionnellement non-typé (pas de générique
+// Database) dans les edge functions. ReturnType<typeof createClient> résout
+// des génériques différents selon l'overload, ce qui provoque des conflits
+// de type avec l'instance réelle — on garde le type large.
+type SupabaseClientType = any
 
 export interface DeviceRow {
   user_id: string
