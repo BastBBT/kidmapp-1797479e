@@ -65,7 +65,7 @@ const CONTENT: Record<Lang, {
       },
       {
         title: 'Partage des données',
-        text: 'Aucune donnée n’est vendue ni partagée avec des tiers à des fins publicitaires, et l’application ne contient aucun traceur publicitaire. Le stockage est assuré par Supabase (hébergement dans l’Union européenne). Les emails que nous vous envoyons — confirmation d’inscription, réinitialisation de mot de passe, et sélection hebdomadaire si vous l’avez activée — partent via le service d’envoi intégré à notre hébergeur applicatif, Lovable. Le site public charge par ailleurs ses polices de caractères chez Google Fonts et ses fonds de carte chez CARTO, qui reçoivent à cette occasion votre adresse IP.',
+        text: 'Aucune donnée n’est vendue ni partagée avec des tiers à des fins publicitaires, et l’application ne contient aucun traceur publicitaire. Le stockage est assuré par Supabase (hébergement dans l’Union européenne). Les emails que nous vous envoyons — confirmation d’inscription, réinitialisation de mot de passe, et sélection hebdomadaire si vous l’avez activée — partent via le service d’envoi intégré à notre hébergeur applicatif, Lovable. Si vous activez les notifications, un identifiant technique de votre appareil (pas votre identité) est transmis à Firebase Cloud Messaging (Google), qui achemine la notification jusqu’à votre téléphone — son contenu ne comporte jamais le prénom ni l’âge d’un enfant. Le site public charge par ailleurs ses polices de caractères chez Google Fonts et ses fonds de carte chez CARTO, qui reçoivent à cette occasion votre adresse IP.',
       },
       {
         title: 'Durées de conservation',
@@ -141,7 +141,7 @@ const CONTENT: Record<Lang, {
       },
       {
         title: 'Data sharing',
-        text: 'No data is sold or shared with third parties for advertising purposes, and the app contains no advertising trackers. Storage is provided by Supabase (hosted in the European Union). The emails we send you — sign-up confirmation, password reset, and the weekly picks if you turned them on — go out through the email service built into our application host, Lovable. The public website also loads its fonts from Google Fonts and its map tiles from CARTO, which receive your IP address in the process.',
+        text: 'No data is sold or shared with third parties for advertising purposes, and the app contains no advertising trackers. Storage is provided by Supabase (hosted in the European Union). The emails we send you — sign-up confirmation, password reset, and the weekly picks if you turned them on — go out through the email service built into our application host, Lovable. If you turn on push notifications, a technical identifier for your device (not your identity) is sent to Firebase Cloud Messaging (Google), which delivers the notification to your phone — its content never includes a child’s first name or age. The public website also loads its fonts from Google Fonts and its map tiles from CARTO, which receive your IP address in the process.',
       },
       {
         title: 'How long we keep your data',
@@ -217,7 +217,7 @@ const CONTENT: Record<Lang, {
       },
       {
         title: 'Compartir los datos',
-        text: 'No se vende ni se comparte ningún dato con terceros con fines publicitarios, y la aplicación no contiene ningún rastreador publicitario. El almacenamiento corre a cargo de Supabase (alojamiento en la Unión Europea). Los correos que te enviamos — confirmación de registro, restablecimiento de contraseña y selección semanal si la has activado — salen a través del servicio de envío integrado en nuestro proveedor de alojamiento, Lovable. Además, el sitio público carga sus tipografías desde Google Fonts y sus mapas desde CARTO, que reciben así tu dirección IP.',
+        text: 'No se vende ni se comparte ningún dato con terceros con fines publicitarios, y la aplicación no contiene ningún rastreador publicitario. El almacenamiento corre a cargo de Supabase (alojamiento en la Unión Europea). Los correos que te enviamos — confirmación de registro, restablecimiento de contraseña y selección semanal si la has activado — salen a través del servicio de envío integrado en nuestro proveedor de alojamiento, Lovable. Si activas las notificaciones push, se envía un identificador técnico de tu dispositivo (no tu identidad) a Firebase Cloud Messaging (Google), que entrega la notificación a tu teléfono — su contenido nunca incluye el nombre ni la edad de un hijo. Además, el sitio público carga sus tipografías desde Google Fonts y sus mapas desde CARTO, que reciben así tu dirección IP.',
       },
       {
         title: 'Plazos de conservación',

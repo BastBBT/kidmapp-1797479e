@@ -134,9 +134,16 @@ export interface PushMessage {
 
 export type PushSendResult =
   | { ok: true }
-  | { ok: false; tokenInvalid: boolean; error: string }
+  | { ok: false; tokenInvalid: boolean; authFailed: boolean; error: string }
 
 /**
+ * Ne lève jamais : une clé mal collée, révoquée, ou un simple incident réseau
+ * ne doivent jamais faire tomber l'appelant (le digest email ne doit rien à
+ * la disponibilité de Google). Toute exception interne est ramenée à un
+ * `PushSendResult` — `authFailed` signale à l'appelant qu'il peut couper la
+ * push pour le reste du run plutôt que de retenter la même erreur pour
+ * chaque destinataire suivant.
+ *
  * Un message = un appel : l'API HTTP v1 de FCM n'a pas d'envoi multicast
  * natif (contrairement à l'ancienne API legacy, décommissionnée). Le volume
  * de Kidmapp (quelques dizaines d'abonnés au canal push) ne justifie pas de
@@ -146,26 +153,48 @@ export async function sendPush(
   serviceAccount: ServiceAccount,
   message: PushMessage,
 ): Promise<PushSendResult> {
-  const accessToken = await fetchAccessToken(serviceAccount)
-  const response = await fetch(
-    `https://fcm.googleapis.com/v1/projects/${serviceAccount.project_id}/messages:send`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: {
-          token: message.token,
-          notification: { title: message.title, body: message.body },
-          data: message.data,
+  let accessToken: string
+  try {
+    accessToken = await fetchAccessToken(serviceAccount)
+  } catch (e) {
+    const error = e instanceof Error ? e.message : String(e)
+    return { ok: false, tokenInvalid: false, authFailed: true, error: error.slice(0, 500) }
+  }
+
+  let response: Response
+  try {
+    response = await fetch(
+      `https://fcm.googleapis.com/v1/projects/${serviceAccount.project_id}/messages:send`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
         },
-      }),
-    },
-  )
+        body: JSON.stringify({
+          message: {
+            token: message.token,
+            notification: { title: message.title, body: message.body },
+            data: message.data,
+          },
+        }),
+      },
+    )
+  } catch (e) {
+    const error = e instanceof Error ? e.message : String(e)
+    return { ok: false, tokenInvalid: false, authFailed: false, error: `réseau: ${error}`.slice(0, 500) }
+  }
+
   if (response.ok) return { ok: true }
 
   const text = await response.text()
-  return { ok: false, tokenInvalid: isUnregisteredError(text), error: text.slice(0, 500) }
+  if (response.status === 401 || response.status === 403) {
+    // Le token en cache peut être révoqué côté Google avant sa propre
+    // expiration annoncée (rotation de clé de compte de service) — sans ce
+    // reset, tous les envois suivants échoueraient en silence jusqu'à
+    // l'expiration naturelle du cache (jusqu'à ~1h).
+    cached = null
+    return { ok: false, tokenInvalid: false, authFailed: true, error: text.slice(0, 500) }
+  }
+  return { ok: false, tokenInvalid: isUnregisteredError(text), authFailed: false, error: text.slice(0, 500) }
 }

@@ -321,35 +321,51 @@ async function runAlert() {
       }
     }
 
+    // `sendPush` ne lève jamais (cf. fcm.ts), mais ce bloc reste dans son
+    // propre try/catch par prudence : une exception ici ne doit JAMAIS faire
+    // sauter le reste de la boucle des candidats ni la mise à jour de
+    // `location_ids` plus bas — la push est un bonus, jamais le chemin
+    // critique de l'email.
     if (profile.digest_push_enabled && serviceAccount) {
-      const devices = devicesByUser.get(profile.id) ?? []
-      const pushBody =
-        items.length === 1
-          ? `${items[0].name} vient d'ouvrir près de chez toi.`
-          : `${items.length} nouveaux lieux près de chez toi.`
-      for (const device of devices) {
-        const result = await sendPush(serviceAccount, {
-          token: device.fcm_token,
-          title: 'Nouveau lieu près de chez toi',
-          body: pushBody,
-          data: { url: landingUrl },
-        })
-        if (result.ok) {
-          pushSentCount++
-          anySucceeded = true
-        } else {
-          pushFailedCount++
-          if (result.tokenInvalid) {
-            const { error: deleteError } = await supabase
-              .from('user_devices')
-              .delete()
-              .eq('user_id', profile.id)
-              .eq('fcm_token', device.fcm_token)
-            if (deleteError) console.error('new-location-alert: nettoyage token invalide échoué', deleteError)
+      try {
+        const devices = devicesByUser.get(profile.id) ?? []
+        const pushBody =
+          items.length === 1
+            ? `${items[0].name} vient d'ouvrir près de chez toi.`
+            : `${items.length} nouveaux lieux près de chez toi.`
+        for (const device of devices) {
+          const result = await sendPush(serviceAccount, {
+            token: device.fcm_token,
+            title: 'Nouveau lieu près de chez toi',
+            body: pushBody,
+            data: { url: landingUrl },
+          })
+          if (result.ok) {
+            pushSentCount++
+            anySucceeded = true
           } else {
-            console.error('new-location-alert: envoi push échoué', profile.id, result.error)
+            pushFailedCount++
+            if (result.tokenInvalid) {
+              const { error: deleteError } = await supabase
+                .from('user_devices')
+                .delete()
+                .eq('user_id', profile.id)
+                .eq('fcm_token', device.fcm_token)
+              if (deleteError) console.error('new-location-alert: nettoyage token invalide échoué', deleteError)
+            } else if (result.authFailed) {
+              // Clé révoquée/mal configurée : inutile de retenter la même
+              // erreur pour chaque destinataire restant du run.
+              console.error('new-location-alert: authentification FCM en échec, push désactivée pour le reste du run', result.error)
+              serviceAccount = null
+              break
+            } else {
+              console.error('new-location-alert: envoi push échoué', profile.id, result.error)
+            }
           }
         }
+      } catch (pushError) {
+        console.error('new-location-alert: envoi push a levé une exception inattendue', profile.id, pushError)
+        pushFailedCount++
       }
     }
 
