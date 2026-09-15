@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "bastienboubat.kidmapp_flutter",
+      "sha256_cert_fingerprints": [
+        "02:72:9D:72:FE:4C:4C:B1:48:7F:A5:D1:CD:48:CD:57:30:05:DF:93:89:F1:EC:2E:29:3A:C0:0D:30:54:71:B5",
+        "69:B2:E2:D4:59:34:35:0C:70:58:BE:D3:41:90:D7:72:C2:A3:69:4E:76:0F:C4:0B:96:66:4E:2C:68:0B:4F:A1"
+      ]
+    }
+  }
+]

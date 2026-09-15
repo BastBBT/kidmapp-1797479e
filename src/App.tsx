@@ -177,14 +177,14 @@ const CoachmarkStarter = ({ onboardingVisible }: { onboardingVisible: boolean })
   return null;
 };
 
-const PROPOSE_PARAM = 'propose';
-
 /**
  * Ouvre la modale « Proposer » depuis un lien externe (bouton d'email :
- * `/?propose=location` ou `/?propose=event`). Le flow de contribution n'a
- * jamais eu de route dédiée — juste un state en mémoire déclenché depuis
- * BottomNav — donc c'est le seul point d'entrée possible pour un lien qui
- * arrive de l'extérieur de l'app.
+ * `/propose?type=location` ou `/propose?type=event`). Le flow de
+ * contribution n'a jamais eu de route dédiée — juste un state en mémoire
+ * déclenché depuis BottomNav — donc c'est le seul point d'entrée possible
+ * pour un lien qui arrive de l'extérieur de l'app. Chemin dédié (plutôt
+ * qu'un paramètre sur `/`) pour matcher le composant AASA / App Links
+ * iOS/Android sans intercepter tous les liens vers la racine du site.
  */
 const ProposeDeepLinkHandler = () => {
   const location = useLocation();
@@ -195,15 +195,14 @@ const ProposeDeepLinkHandler = () => {
   const handledRef = useRef(false);
 
   useEffect(() => {
-    if (handledRef.current || location.pathname !== '/') return;
+    if (handledRef.current || location.pathname !== '/propose') return;
     const params = new URLSearchParams(location.search);
-    const raw = params.get(PROPOSE_PARAM);
+    const raw = params.get('type');
     const mode: ProposalMode | null = raw === 'event' ? 'event' : raw === 'location' ? 'location' : null;
-    if (!mode) return;
 
     handledRef.current = true;
-    params.delete(PROPOSE_PARAM);
-    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+    navigate('/', { replace: true });
+    if (!mode) return;
     requireAuth(() => open(mode), {
       message: t(mode === 'event' ? 'nav.propose_event_auth_prompt' : 'nav.propose_auth_prompt'),
     });
@@ -225,6 +224,10 @@ const AppContent = () => {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />
+        {/* Lien d'entrée externe (email, universal link) — géré par ProposeDeepLinkHandler,
+            qui redirige vers `/` une fois la modale ouverte. Route dédiée pour éviter un
+            flash sur NotFound le temps que l'effet de redirection se déclenche. */}
+        <Route path="/propose" element={<Index />} />
         <Route path="/location/:id" element={<LocationPage />} />
         <Route path="/sorties" element={<SortiesPage />} />
         <Route path="/event/:id" element={<EventPage />} />

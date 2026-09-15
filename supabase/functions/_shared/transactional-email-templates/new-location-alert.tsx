@@ -121,7 +121,7 @@ const NewLocationAlertEmail = ({ childrenNames = [], items = [], landingUrl = ''
             <div style={proposeBox}>
               <Text style={proposeQ}>Tu connais un lieu qui n'est pas encore sur Kidmapp ?</Text>
               <div style={{ textAlign: 'center' }}>
-                <Link href={`${SITE_URL}/?propose=location`} style={proposeButton}>
+                <Link href={`${SITE_URL}/propose?type=location`} style={proposeButton}>
                   Proposer un lieu
                 </Link>
               </div>

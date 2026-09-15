@@ -154,7 +154,7 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
             <div style={proposeBox}>
               <Text style={proposeQ}>Et si tu proposais ton événement ?</Text>
               <div style={{ textAlign: 'center' }}>
-                <Link href={`${SITE_URL}/?propose=event`} style={proposeButton}>
+                <Link href={`${SITE_URL}/propose?type=event`} style={proposeButton}>
                   Proposer un événement
                 </Link>
               </div>
