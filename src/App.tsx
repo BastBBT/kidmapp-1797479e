@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
 import LocationPage from "./pages/LocationPage";
 import AdminPage from "./pages/AdminPage";
@@ -28,7 +29,7 @@ import ProposeEventModal from "./components/ProposeEventModal";
 import ProposalTypeChooser from "./components/ProposalTypeChooser";
 import { useAuth, AuthProvider } from "./hooks/useAuth";
 import { RequireAuthProvider, useRequireAuth } from "./hooks/useRequireAuth";
-import { ProposalModalProvider, useProposalModal } from "./hooks/useProposalModal";
+import { ProposalModalProvider, useProposalModal, ProposalMode } from "./hooks/useProposalModal";
 import { usePageviewTracker } from "./hooks/usePageviewTracker";
 import { CoachmarkProvider, useCoachmarks } from "./hooks/useCoachmarks";
 import { flush as flushOnboardingStats } from "./lib/onboardingTracker";
@@ -176,6 +177,40 @@ const CoachmarkStarter = ({ onboardingVisible }: { onboardingVisible: boolean })
   return null;
 };
 
+/**
+ * Ouvre la modale « Proposer » depuis un lien externe (bouton d'email :
+ * `/propose?type=location` ou `/propose?type=event`). Le flow de
+ * contribution n'a jamais eu de route dédiée — juste un state en mémoire
+ * déclenché depuis BottomNav — donc c'est le seul point d'entrée possible
+ * pour un lien qui arrive de l'extérieur de l'app. Chemin dédié (plutôt
+ * qu'un paramètre sur `/`) pour matcher le composant AASA / App Links
+ * iOS/Android sans intercepter tous les liens vers la racine du site.
+ */
+const ProposeDeepLinkHandler = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { open } = useProposalModal();
+  const { requireAuth } = useRequireAuth();
+  const { t } = useTranslation();
+  const handledRef = useRef(false);
+
+  useEffect(() => {
+    if (handledRef.current || location.pathname !== '/propose') return;
+    const params = new URLSearchParams(location.search);
+    const raw = params.get('type');
+    const mode: ProposalMode | null = raw === 'event' ? 'event' : raw === 'location' ? 'location' : null;
+
+    handledRef.current = true;
+    navigate('/', { replace: true });
+    if (!mode) return;
+    requireAuth(() => open(mode), {
+      message: t(mode === 'event' ? 'nav.propose_event_auth_prompt' : 'nav.propose_auth_prompt'),
+    });
+  }, [location, navigate, open, requireAuth, t]);
+
+  return null;
+};
+
 const AppContent = () => {
   usePageviewTracker();
   const { isOpen: isProposalOpen, mode: proposalMode, close: closeProposal } = useProposalModal();
@@ -189,6 +224,10 @@ const AppContent = () => {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />
+        {/* Lien d'entrée externe (email, universal link) — géré par ProposeDeepLinkHandler,
+            qui redirige vers `/` une fois la modale ouverte. Route dédiée pour éviter un
+            flash sur NotFound le temps que l'effet de redirection se déclenche. */}
+        <Route path="/propose" element={<Index />} />
         <Route path="/location/:id" element={<LocationPage />} />
         <Route path="/sorties" element={<SortiesPage />} />
         <Route path="/event/:id" element={<EventPage />} />
@@ -219,6 +258,7 @@ const AppContent = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <BottomNav />
+      <ProposeDeepLinkHandler />
       <OnboardingOverlay onVisibilityChange={setOnboardingVisible} />
       <CoachmarkStarter onboardingVisible={onboardingVisible} />
       <Coachmarks />

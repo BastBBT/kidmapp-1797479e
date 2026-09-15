@@ -117,6 +117,15 @@ const NewLocationAlertEmail = ({ childrenNames = [], items = [], landingUrl = ''
                 </Section>
               ))}
             </div>
+
+            <div style={proposeBox}>
+              <Text style={proposeQ}>Tu connais un lieu qui n'est pas encore sur Kidmapp ?</Text>
+              <div style={{ textAlign: 'center' }}>
+                <Link href={`${SITE_URL}/propose?type=location`} style={proposeButton}>
+                  Proposer un lieu
+                </Link>
+              </div>
+            </div>
           </Section>
 
           {/* Footer */}
@@ -274,6 +283,31 @@ const itemEmojiCell = {
   verticalAlign: 'middle' as const,
   fontSize: '20px',
   paddingRight: '12px',
+}
+const proposeBox = {
+  textAlign: 'center' as const,
+  background: '#FAF9F6',
+  borderRadius: '12px',
+  padding: '20px 18px',
+  marginTop: '28px',
+}
+const proposeQ = {
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontSize: '13px',
+  color: '#1C1917',
+  margin: '0 0 14px',
+}
+const proposeButton = {
+  display: 'inline-block',
+  background: '#3B7D6E',
+  color: '#ffffff',
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontWeight: 600,
+  fontSize: '14px',
+  textDecoration: 'none',
+  padding: '12px 28px',
+  borderRadius: '100px',
+  letterSpacing: '0.01em',
 }
 const footerCell = {
   padding: '20px 40px 28px',

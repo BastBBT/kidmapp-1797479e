@@ -5,7 +5,8 @@
         "appIDs": ["RQL2Q4N9B5.bastienboubat.Kidmapp"],
         "components": [
           { "/": "/location/*" },
-          { "/": "/event/*" }
+          { "/": "/event/*" },
+          { "/": "/propose" }
         ]
       }
     ]
