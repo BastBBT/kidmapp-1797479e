@@ -33,7 +33,8 @@
     "account": "ACCOUNT",
     "propose": "SUBMIT",
     "propose_aria": "Submit",
-    "propose_auth_prompt": "Sign in to suggest a new place to the community ✦"
+    "propose_auth_prompt": "Sign in to suggest a new place to the community ✦",
+    "propose_event_auth_prompt": "Sign in to suggest an event to the community ✦"
   },
   "contribution": {
     "families_say": "What families are saying",

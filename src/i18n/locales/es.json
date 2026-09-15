@@ -33,7 +33,8 @@
     "account": "CUENTA",
     "propose": "PROPONER",
     "propose_aria": "Proponer",
-    "propose_auth_prompt": "Inicia sesión para proponer un nuevo lugar a la comunidad ✦"
+    "propose_auth_prompt": "Inicia sesión para proponer un nuevo lugar a la comunidad ✦",
+    "propose_event_auth_prompt": "Inicia sesión para proponer un evento a la comunidad ✦"
   },
   "contribution": {
     "families_say": "Lo que dicen las familias",

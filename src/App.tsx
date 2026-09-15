@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
 import LocationPage from "./pages/LocationPage";
 import AdminPage from "./pages/AdminPage";
@@ -28,7 +29,7 @@ import ProposeEventModal from "./components/ProposeEventModal";
 import ProposalTypeChooser from "./components/ProposalTypeChooser";
 import { useAuth, AuthProvider } from "./hooks/useAuth";
 import { RequireAuthProvider, useRequireAuth } from "./hooks/useRequireAuth";
-import { ProposalModalProvider, useProposalModal } from "./hooks/useProposalModal";
+import { ProposalModalProvider, useProposalModal, ProposalMode } from "./hooks/useProposalModal";
 import { usePageviewTracker } from "./hooks/usePageviewTracker";
 import { CoachmarkProvider, useCoachmarks } from "./hooks/useCoachmarks";
 import { flush as flushOnboardingStats } from "./lib/onboardingTracker";
@@ -176,6 +177,41 @@ const CoachmarkStarter = ({ onboardingVisible }: { onboardingVisible: boolean })
   return null;
 };
 
+const PROPOSE_PARAM = 'propose';
+
+/**
+ * Ouvre la modale « Proposer » depuis un lien externe (bouton d'email :
+ * `/?propose=location` ou `/?propose=event`). Le flow de contribution n'a
+ * jamais eu de route dédiée — juste un state en mémoire déclenché depuis
+ * BottomNav — donc c'est le seul point d'entrée possible pour un lien qui
+ * arrive de l'extérieur de l'app.
+ */
+const ProposeDeepLinkHandler = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { open } = useProposalModal();
+  const { requireAuth } = useRequireAuth();
+  const { t } = useTranslation();
+  const handledRef = useRef(false);
+
+  useEffect(() => {
+    if (handledRef.current || location.pathname !== '/') return;
+    const params = new URLSearchParams(location.search);
+    const raw = params.get(PROPOSE_PARAM);
+    const mode: ProposalMode | null = raw === 'event' ? 'event' : raw === 'location' ? 'location' : null;
+    if (!mode) return;
+
+    handledRef.current = true;
+    params.delete(PROPOSE_PARAM);
+    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+    requireAuth(() => open(mode), {
+      message: t(mode === 'event' ? 'nav.propose_event_auth_prompt' : 'nav.propose_auth_prompt'),
+    });
+  }, [location, navigate, open, requireAuth, t]);
+
+  return null;
+};
+
 const AppContent = () => {
   usePageviewTracker();
   const { isOpen: isProposalOpen, mode: proposalMode, close: closeProposal } = useProposalModal();
@@ -219,6 +255,7 @@ const AppContent = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <BottomNav />
+      <ProposeDeepLinkHandler />
       <OnboardingOverlay onVisibilityChange={setOnboardingVisible} />
       <CoachmarkStarter onboardingVisible={onboardingVisible} />
       <Coachmarks />

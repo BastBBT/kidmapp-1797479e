@@ -33,7 +33,8 @@
     "account": "COMPTE",
     "propose": "PROPOSER",
     "propose_aria": "Proposer",
-    "propose_auth_prompt": "Connecte-toi pour proposer un nouveau lieu à la communauté ✦"
+    "propose_auth_prompt": "Connecte-toi pour proposer un nouveau lieu à la communauté ✦",
+    "propose_event_auth_prompt": "Connecte-toi pour proposer un événement à la communauté ✦"
   },
   "contribution": {
     "families_say": "Ce que disent les familles",
