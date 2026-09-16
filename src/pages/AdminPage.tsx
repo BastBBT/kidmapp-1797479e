@@ -4765,6 +4765,7 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
     setPhotoFile(null);
     setPhotoPreview(null);
     setShowManualCoords(false);
+    setLinkedCoords(null);
   };
 
   return (
