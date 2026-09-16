@@ -3987,6 +3987,19 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                   </select>
                   <input value={editDraft.address} onChange={(e) => setEditDraft({ ...editDraft, address: e.target.value })}
                     placeholder="Adresse" style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                  <LocationPicker
+                    value={editDraft.location_id || null}
+                    onSelect={(loc) => setEditDraft({
+                      ...editDraft,
+                      location_id: loc.id,
+                      address: loc.address ?? editDraft.address,
+                      lat: loc.lat ?? editDraft.lat,
+                      lng: loc.lng ?? editDraft.lng,
+                    })}
+                    onClear={() => setEditDraft({ ...editDraft, location_id: '' })}
+                  />
+                  <input value={editDraft.recurrence_label ?? ''} onChange={(e) => setEditDraft({ ...editDraft, recurrence_label: e.target.value })}
+                    placeholder="Cadence (optionnel, ~20 caractères)" style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
                   <SlotsEditor slots={editSlots} onUpdate={updateEditSlot} onAdd={addEditSlot} onRemove={removeEditSlot} />
                   <div className="flex gap-2">
                     <input placeholder="Durée" value={editDraft.duration} onChange={(e) => setEditDraft({ ...editDraft, duration: e.target.value })}
