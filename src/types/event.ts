@@ -39,6 +39,20 @@ export interface EventItem {
 }
 
 /**
+ * Rendez-vous récurrent installé dans un lieu : la sortie est rattachée à une
+ * fiche lieu **et** porte une cadence saisie. C'est la seule condition
+ * d'affichage du tampon de cadence et de la section « Ça revient ici
+ * régulièrement » — une sortie ponctuelle ou saisonnière n'a ni l'un ni
+ * l'autre et garde son seul badge « +N dates ».
+ *
+ * Miroir de `Event.recurrenceAtLocation` (iOS) et `Event.isRecurringAtLocation`
+ * (Android) : la règle vit à un seul endroit par plateforme.
+ */
+export const hasRecurrence = (
+  event: Pick<EventItem, 'location_id' | 'recurrence_label'>,
+): boolean => Boolean(event.location_id && event.recurrence_label?.trim());
+
+/**
  * Un créneau d'un event à plusieurs dates (table `event_occurrences`).
  * Un event a toujours au moins un créneau, créé par un trigger Postgres ;
  * `events.date_start/date_end/time` reste synchronisé sur le créneau le plus

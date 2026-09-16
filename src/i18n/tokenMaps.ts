@@ -16,7 +16,8 @@ export function translateToken(
     | 'duration'
     | 'effort'
     | 'meal'
-    | 'equipment',
+    | 'equipment'
+    | 'recurrence',
   token: string | null | undefined,
 ): string {
   if (!token) return '';

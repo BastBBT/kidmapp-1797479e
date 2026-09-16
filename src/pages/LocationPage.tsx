@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowUpFromLine, Heart } from 'lucide-react';
 import { shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
 import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
+import LocationRecurringEvents from '@/components/LocationRecurringEvents';
 import LocationServicesSection from '@/components/LocationServicesSection';
 import ContributeSheet from '@/components/ContributeSheet';
 import { useCoachmarks, useCoachmarkTarget } from '@/hooks/useCoachmarks';
@@ -587,6 +588,11 @@ const LocationPage = () => {
             locationId={location.id}
             category={location.category}
           />
+
+          {/* Ça revient ici régulièrement — collé aux horaires : les deux répondent
+              à « quand ça se passe ici ». Sur iOS/Android cette section précède la
+              communauté, mais l'ordre du web place déjà les avis plus haut. */}
+          <LocationRecurringEvents locationId={location.id} />
 
           {pendingContribution && (
             <div style={{

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { EventItem, EventOccurrence } from '@/types/event';
+import { EventItem, EventOccurrence, hasRecurrence } from '@/types/event';
 import { lastMondayISO, todayISO } from '@/lib/weekend';
 import { eventsWindowFilter } from '@/lib/eventCalendar';
 
@@ -124,6 +124,29 @@ export const useOccurrencesForEvent = (eventId: string) => {
         .order('date_start', { ascending: true });
       if (error) throw error;
       return (data ?? []) as unknown as EventOccurrence[];
+    },
+  });
+};
+
+/**
+ * Sorties qui reviennent dans un lieu donné (LAEP, atelier hebdo). La cadence
+ * saisie est la seconde condition : une sortie rattachée au lieu mais sans
+ * cadence n'est pas un rendez-vous installé, elle n'a rien à faire dans la
+ * section dédiée de la fiche lieu.
+ */
+export const useRecurringEventsAtLocation = (locationId: string) => {
+  return useQuery({
+    queryKey: ['recurring-events', locationId],
+    enabled: !!locationId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('location_id', locationId)
+        .eq('status', 'published')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return ((data ?? []) as unknown as EventItem[]).filter(hasRecurrence);
     },
   });
 };

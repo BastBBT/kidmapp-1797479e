@@ -185,7 +185,8 @@
     "extra_dates_one": "+1 date",
     "extra_dates_other": "+{{count}} dates",
     "dates_available_one": "{{count}} date available",
-    "dates_available_other": "{{count}} dates available"
+    "dates_available_other": "{{count}} dates available",
+    "recurring": "Recurring meet-up: {{cadence}}"
   },
   "location_page": {
     "loading": "Loading…",
@@ -237,7 +238,8 @@
     "reel_play": "Play the reel",
     "reel_open": "Open in Instagram",
     "reel_confirm_title": "Open this reel in Instagram?",
-    "reel_confirm_body": "The video stays hosted on Instagram — Kidmapp only stores the link."
+    "reel_confirm_body": "The video stays hosted on Instagram — Kidmapp only stores the link.",
+    "recurring_events_title": "A regular fixture here"
   },
   "explore": {
     "results_one": "{{count}} result",
@@ -512,5 +514,10 @@
     "up": "Mark as a good fit",
     "down": "Mark as not for us",
     "error": "Couldn't save your feedback."
+  },
+  "recurrence": {
+    "Chaque semaine": "Every week",
+    "Chaque mois": "Every month",
+    "Tous les jours": "Every day"
   }
 }
