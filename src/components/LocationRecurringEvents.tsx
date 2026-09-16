@@ -27,13 +27,13 @@ const COLLAPSED_COUNT = 5;
 const LocationRecurringEvents = ({ locationId }: Props) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { data: events = [] } = useRecurringEventsAtLocation(locationId);
+  const { data: items = [] } = useRecurringEventsAtLocation(locationId);
   const [expanded, setExpanded] = useState(false);
 
-  if (events.length === 0) return null;
+  if (items.length === 0) return null;
 
-  const showToggle = events.length > 10;
-  const visible = showToggle && !expanded ? events.slice(0, COLLAPSED_COUNT) : events;
+  const showToggle = items.length > 10;
+  const visible = showToggle && !expanded ? items.slice(0, COLLAPSED_COUNT) : items;
 
   return (
     <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
@@ -41,7 +41,7 @@ const LocationRecurringEvents = ({ locationId }: Props) => {
         {t('location_page.recurring_events_title')}
       </h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {visible.map((ev) => {
+        {visible.map(({ event: ev, occurrence }) => {
           const color = eventCategoryHex(ev.category);
           const recurring = hasRecurrence(ev);
           return (
@@ -94,10 +94,12 @@ const LocationRecurringEvents = ({ locationId }: Props) => {
                 {recurring ? (
                   <RecurrenceStamp label={ev.recurrence_label ?? ''} category={ev.category} />
                 ) : (
-                  // Pas de cadence connue pour une sortie ponctuelle : on montre sa
-                  // date, sinon la liste ne dit pas quand elle a lieu.
+                  // Pas de cadence connue pour une sortie ponctuelle : on montre la
+                  // date de son prochain créneau (`occurrence`, pas `ev.date_start`
+                  // qui reste figé sur la toute première date passée) — sinon la
+                  // liste ne dit pas quand elle a lieu.
                   <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--text-muted)' }}>
-                    {formatDateShort(ev.date_start)}
+                    {formatDateShort(occurrence?.date_start ?? ev.date_start)}
                   </span>
                 )}
               </span>
@@ -129,7 +131,7 @@ const LocationRecurringEvents = ({ locationId }: Props) => {
         >
           {expanded
             ? t('location_page.collapse')
-            : t('location_page.show_more', { count: events.length - COLLAPSED_COUNT })}
+            : t('location_page.show_more', { count: items.length - COLLAPSED_COUNT })}
           <span aria-hidden="true" style={{ fontSize: 11 }}>{expanded ? '▲' : '▼'}</span>
         </button>
       )}
