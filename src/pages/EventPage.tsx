@@ -375,14 +375,15 @@ const EventPage = () => {
         </div>
       )}
 
-      {/* CTAs */}
+      {/* CTAs — la réservation prime sur le site web quand les deux existent : c'est
+          l'action que les parents cherchent en premier sur une sortie. */}
       <div style={{ padding: '24px 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {event.website && (
+        {event.booking_url && (
           <a
-            href={event.website}
+            href={event.booking_url}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => trackLinkClick({ entityType: 'event', entityId: event.id, url: event.website! })}
+            onClick={() => trackLinkClick({ entityType: 'event', entityId: event.id, url: event.booking_url!, linkType: 'booking' })}
             style={{
               padding: 14,
               borderRadius: 100,
@@ -396,7 +397,40 @@ const EventPage = () => {
               boxShadow: '0 6px 18px rgba(217,95,59,0.28)',
             }}
           >
-            {t('event.more_details')}
+            {t('event.book')}
+          </a>
+        )}
+        {event.website && (
+          <a
+            href={event.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackLinkClick({ entityType: 'event', entityId: event.id, url: event.website!, linkType: 'website' })}
+            style={event.booking_url ? {
+              padding: 10,
+              borderRadius: 100,
+              background: 'transparent',
+              border: '1px solid var(--border)',
+              color: 'hsl(var(--muted-foreground))',
+              fontFamily: 'DM Sans',
+              fontSize: 13,
+              fontWeight: 600,
+              textAlign: 'center',
+              textDecoration: 'none',
+            } : {
+              padding: 14,
+              borderRadius: 100,
+              background: 'var(--primary)',
+              color: '#fff',
+              fontFamily: 'DM Sans',
+              fontSize: 14,
+              fontWeight: 600,
+              textAlign: 'center',
+              textDecoration: 'none',
+              boxShadow: '0 6px 18px rgba(217,95,59,0.28)',
+            }}
+          >
+            {event.booking_url ? t('event.website') : t('event.more_details')}
           </a>
         )}
         {/* `displayIsPast` suit le créneau sélectionné : choisir une date passée

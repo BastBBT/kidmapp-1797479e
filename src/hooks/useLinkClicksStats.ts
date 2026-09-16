@@ -7,10 +7,15 @@ export type LinkClickStatRow = {
   name: string | null;
   category: string | null;
   website: string | null;
+  /** Lien de réservation — toujours `null` pour un lieu, les lieux n'en ont pas. */
+  booking_url: string | null;
+  /** Type de lien cliqué : `'website'` (site classique) ou `'booking'` (réservation). Une
+   * fiche avec des clics des deux types donne deux lignes distinctes, une par type. */
+  link_type: 'website' | 'booking';
   click_count: number;
 };
 
-/** Classement des fiches les plus cliquées vers leur site web (admin only). */
+/** Classement des fiches les plus cliquées vers leur site web ou leur lien de réservation (admin only). */
 export const useLinkClicksStats = (days: number, enabled = true) =>
   useQuery({
     queryKey: ['admin-link-clicks-stats', days],

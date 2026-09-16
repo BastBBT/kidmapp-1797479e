@@ -2302,6 +2302,8 @@ function OutboundTab({ isAdmin }: { isAdmin: boolean }) {
   }, [rows]);
 
   const total = (list: LinkClickStatRow[]) => list.reduce((s, r) => s + r.click_count, 0);
+  const totalByType = (list: LinkClickStatRow[], type: LinkClickStatRow['link_type']) =>
+    list.filter((r) => r.link_type === type).reduce((s, r) => s + r.click_count, 0);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -2330,7 +2332,11 @@ function OutboundTab({ isAdmin }: { isAdmin: boolean }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '20px' }}>
         <StatCard label="Clics lieux" value={total(groups.places)} sub="vers leur site web" />
         <StatCard label="Clics activités" value={total(groups.activities)} sub="vers leur site web" />
-        <StatCard label="Clics événements" value={total(groups.events)} sub="vers leur site web" />
+        <StatCard
+          label="Clics événements"
+          value={total(groups.events)}
+          sub={`dont ${totalByType(groups.events, 'booking')} réservation·s`}
+        />
       </div>
 
       {isLoading && (
@@ -2365,7 +2371,7 @@ function OutboundRanking({ title, rows, kind }: { title: string; rows: LinkClick
         <div className="flex flex-col gap-2">
           {rows.map((r, i) => (
             <div
-              key={`${r.entity_type}-${r.entity_id}`}
+              key={`${r.entity_type}-${r.entity_id}-${r.link_type}`}
               className="flex items-center justify-between"
               style={{ padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--bg)', gap: '10px' }}
             >
@@ -2391,6 +2397,24 @@ function OutboundRanking({ title, rows, kind }: { title: string; rows: LinkClick
                 {r.category && (
                   <span style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)' }}>
                     {categoryLabels[r.category as keyof typeof categoryLabels] ?? r.category}
+                  </span>
+                )}
+                {/* Les lieux n'ont pas de lien de réservation : le badge ne sert qu'aux
+                    événements, où une même fiche peut cumuler les deux types de clic. */}
+                {kind === 'event' && (
+                  <span
+                    style={{
+                      fontFamily: 'DM Sans',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: 100,
+                      flexShrink: 0,
+                      background: r.link_type === 'booking' ? 'var(--primary)' : 'var(--border)',
+                      color: r.link_type === 'booking' ? '#fff' : 'var(--text-muted)',
+                    }}
+                  >
+                    {r.link_type === 'booking' ? 'réservation' : 'site web'}
                   </span>
                 )}
               </div>
@@ -3573,6 +3597,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       weather: ev.weather ?? '',
       price: ev.price ?? '',
       website: ev.website ?? '',
+      booking_url: ev.booking_url ?? '',
       instagram: ev.instagram ?? '',
       photo: ev.photo ?? '',
       note: ev.note ?? '',
@@ -3678,6 +3703,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         weather: editDraft.weather || null,
         price: editDraft.price || null,
         website: editDraft.website || null,
+        booking_url: editDraft.booking_url || null,
         instagram: editDraft.instagram || null,
         // uuid : '' ferait échouer l'update (invalid input syntax for type uuid).
         location_id: editDraft.location_id || null,
@@ -4024,6 +4050,8 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                   </select>
                   <input placeholder="Site web" value={editDraft.website} onChange={(e) => setEditDraft({ ...editDraft, website: e.target.value })}
                     style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                  <input placeholder="Lien de réservation (si différent du site web)" value={editDraft.booking_url} onChange={(e) => setEditDraft({ ...editDraft, booking_url: e.target.value })}
+                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
                   <input placeholder="Instagram" value={editDraft.instagram} onChange={(e) => setEditDraft({ ...editDraft, instagram: e.target.value })}
                     style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
                   <input placeholder="Photo URL" value={editDraft.photo} onChange={(e) => setEditDraft({ ...editDraft, photo: e.target.value })}
@@ -4112,6 +4140,13 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                     onClick={(e) => e.stopPropagation()}
                     style={{ flex: '1 1 30%', textAlign: 'center', textDecoration: 'none', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid #3B7D6E', background: 'transparent', color: '#3B7D6E', cursor: 'pointer' }}>
                     ↗ Voir le lien
+                  </a>
+                )}
+                {ev.booking_url && (
+                  <a href={ev.booking_url} target="_blank" rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ flex: '1 1 30%', textAlign: 'center', textDecoration: 'none', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer' }}>
+                    🎟️ Voir la réservation
                   </a>
                 )}
                 {ev.status === 'pending' && (
