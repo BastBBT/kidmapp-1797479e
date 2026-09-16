@@ -33,7 +33,7 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
   const categoriesTargetRef = useCoachmarkTarget('categories');
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { t } = useTranslation();
 
   const initial = user?.email ? user.email.charAt(0).toUpperCase() : '?';
