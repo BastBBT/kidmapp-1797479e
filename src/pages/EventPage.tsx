@@ -21,6 +21,36 @@ import { CARTO_TILE_URL } from '@/lib/mapTiles';
 import { trackLinkClick } from '@/lib/trackLinkClick';
 import { useLocation as useLocationById } from '@/hooks/useLocations';
 import RecurrenceStamp from '@/components/RecurrenceStamp';
+import type { CSSProperties } from 'react';
+
+// Boutons CTA « Réserver »/« Site web » de la fiche sortie : la primaire sert aux deux quand un
+// seul des deux liens existe (comportement inchangé), la secondaire seulement quand les deux
+// coexistent et que le site web passe en lien discret sous le bouton réservation.
+const eventCtaPrimaryStyle: CSSProperties = {
+  padding: 14,
+  borderRadius: 100,
+  background: 'var(--primary)',
+  color: '#fff',
+  fontFamily: 'DM Sans',
+  fontSize: 14,
+  fontWeight: 600,
+  textAlign: 'center',
+  textDecoration: 'none',
+  boxShadow: '0 6px 18px rgba(217,95,59,0.28)',
+};
+
+const eventCtaSecondaryStyle: CSSProperties = {
+  padding: 10,
+  borderRadius: 100,
+  background: 'transparent',
+  border: '1px solid var(--border)',
+  color: 'hsl(var(--muted-foreground))',
+  fontFamily: 'DM Sans',
+  fontSize: 13,
+  fontWeight: 600,
+  textAlign: 'center',
+  textDecoration: 'none',
+};
 
 const EventPage = () => {
   const { id } = useParams();
@@ -384,18 +414,7 @@ const EventPage = () => {
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackLinkClick({ entityType: 'event', entityId: event.id, url: event.booking_url!, linkType: 'booking' })}
-            style={{
-              padding: 14,
-              borderRadius: 100,
-              background: 'var(--primary)',
-              color: '#fff',
-              fontFamily: 'DM Sans',
-              fontSize: 14,
-              fontWeight: 600,
-              textAlign: 'center',
-              textDecoration: 'none',
-              boxShadow: '0 6px 18px rgba(217,95,59,0.28)',
-            }}
+            style={eventCtaPrimaryStyle}
           >
             {t('event.book')}
           </a>
@@ -406,29 +425,7 @@ const EventPage = () => {
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackLinkClick({ entityType: 'event', entityId: event.id, url: event.website!, linkType: 'website' })}
-            style={event.booking_url ? {
-              padding: 10,
-              borderRadius: 100,
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              color: 'hsl(var(--muted-foreground))',
-              fontFamily: 'DM Sans',
-              fontSize: 13,
-              fontWeight: 600,
-              textAlign: 'center',
-              textDecoration: 'none',
-            } : {
-              padding: 14,
-              borderRadius: 100,
-              background: 'var(--primary)',
-              color: '#fff',
-              fontFamily: 'DM Sans',
-              fontSize: 14,
-              fontWeight: 600,
-              textAlign: 'center',
-              textDecoration: 'none',
-              boxShadow: '0 6px 18px rgba(217,95,59,0.28)',
-            }}
+            style={event.booking_url ? eventCtaSecondaryStyle : eventCtaPrimaryStyle}
           >
             {event.booking_url ? t('event.website') : t('event.more_details')}
           </a>

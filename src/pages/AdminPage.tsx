@@ -4522,6 +4522,7 @@ const emptyEventForm = {
   weather: '',
   price: '',
   website: '',
+  booking_url: '',
   instagram: '',
   note: '',
   status: 'published',
@@ -4774,6 +4775,7 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
       weather: form.weather || null,
       price: form.price || null,
       website: form.website || null,
+      booking_url: form.booking_url || null,
       instagram: form.instagram || null,
       photo: photoUrl,
       note: form.note || null,
@@ -4991,6 +4993,8 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
           </div>
 
           <FormField label="Site web" value={form.website} onChange={(v) => updateForm('website', v)} placeholder="https://..." />
+
+          <FormField label="Lien de réservation (si différent du site web)" value={form.booking_url} onChange={(v) => updateForm('booking_url', v)} placeholder="https://..." />
 
           <div>
             <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
