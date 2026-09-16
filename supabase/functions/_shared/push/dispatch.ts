@@ -58,7 +58,7 @@ export async function loadDevicesByUser(
     console.error(`${logPrefix}: user_devices fetch failed`, error)
     return devicesByUser
   }
-  for (const d of data ?? []) {
+  for (const d of (data as DeviceRow[]) ?? []) {
     const list = devicesByUser.get(d.user_id) ?? []
     list.push(d)
     devicesByUser.set(d.user_id, list)
