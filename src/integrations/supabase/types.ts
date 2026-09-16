@@ -410,6 +410,7 @@ export type Database = {
           age_max_months: number | null
           age_min: number | null
           age_min_months: number | null
+          booking_url: string | null
           category: string
           created_at: string
           date_end: string | null
@@ -442,6 +443,7 @@ export type Database = {
           age_max_months?: number | null
           age_min?: number | null
           age_min_months?: number | null
+          booking_url?: string | null
           category: string
           created_at?: string
           date_end?: string | null
@@ -474,6 +476,7 @@ export type Database = {
           age_max_months?: number | null
           age_min?: number | null
           age_min_months?: number | null
+          booking_url?: string | null
           category?: string
           created_at?: string
           date_end?: string | null
@@ -543,6 +546,7 @@ export type Database = {
           entity_id: string
           entity_type: string
           id: string
+          link_type: string
           platform: string
           url: string | null
           user_id: string | null
@@ -553,6 +557,7 @@ export type Database = {
           entity_id: string
           entity_type: string
           id?: string
+          link_type?: string
           platform: string
           url?: string | null
           user_id?: string | null
@@ -563,6 +568,7 @@ export type Database = {
           entity_id?: string
           entity_type?: string
           id?: string
+          link_type?: string
           platform?: string
           url?: string | null
           user_id?: string | null
@@ -1143,10 +1149,12 @@ export type Database = {
       admin_link_clicks_stats: {
         Args: { p_days?: number }
         Returns: {
+          booking_url: string
           category: string
           click_count: number
           entity_id: string
           entity_type: string
+          link_type: string
           name: string
           website: string
         }[]
