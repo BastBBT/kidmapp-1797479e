@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { EventItem, EventOccurrence, eventCategoryColor, eventCategoryEmoji } from '@/types/event';
+import { EventItem, EventOccurrence, eventCategoryColor, eventCategoryEmoji, hasRecurrence } from '@/types/event';
 import { isPastEvent } from '@/lib/weekend';
 import { useEventFavorites } from '@/hooks/useEventFavorites';
 import { useAuth } from '@/hooks/useAuth';
@@ -108,8 +108,8 @@ const EventCard = ({ event, showPast = false, occurrence, occurrenceCount = 1 }:
           >
             {eventCategoryEmoji(event.category)} {translateToken('category_event', event.category)}
           </span>
-          {event.location_id && event.recurrence_label?.trim() && (
-            <RecurrenceStamp label={event.recurrence_label} category={event.category} />
+          {hasRecurrence(event) && (
+            <RecurrenceStamp label={event.recurrence_label!} category={event.category} />
           )}
           {past && showPast && (
             <span

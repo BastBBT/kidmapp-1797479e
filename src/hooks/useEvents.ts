@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { EventItem, EventOccurrence } from '@/types/event';
+import { EventItem, EventOccurrence, hasRecurrence } from '@/types/event';
 import { lastMondayISO, todayISO } from '@/lib/weekend';
 import { eventsWindowFilter } from '@/lib/eventCalendar';
 
@@ -146,7 +146,7 @@ export const useRecurringEventsAtLocation = (locationId: string) => {
         .eq('status', 'published')
         .order('name', { ascending: true });
       if (error) throw error;
-      return ((data ?? []) as unknown as EventItem[]).filter((e) => e.recurrence_label?.trim());
+      return ((data ?? []) as unknown as EventItem[]).filter(hasRecurrence);
     },
   });
 };

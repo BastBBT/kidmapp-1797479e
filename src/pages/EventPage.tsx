@@ -9,7 +9,7 @@ import 'leaflet/dist/leaflet.css';
 import { useEvent, useOccurrencesForEvent } from '@/hooks/useEvents';
 import { useEventFavorites } from '@/hooks/useEventFavorites';
 import { useAuth } from '@/hooks/useAuth';
-import { eventCategoryColor, eventCategoryEmoji, eventCategoryHex } from '@/types/event';
+import { eventCategoryColor, eventCategoryEmoji, eventCategoryHex, hasRecurrence } from '@/types/event';
 import { downloadIcs } from '@/lib/ics';
 import { isPastEvent } from '@/lib/weekend';
 import EventFeedbackCard from '@/components/EventFeedbackCard';
@@ -35,7 +35,7 @@ const EventPage = () => {
   // Le hook est désactivé tant qu'il n'y a pas d'id, donc rien n'est requêté sur
   // une sortie ordinaire. Le statut est revérifié à l'affichage : le lien ne doit
   // pas survivre à une dépublication du lieu, comme sur iOS et Android.
-  const { data: linkedLocation } = useLocationById(event?.location_id ?? '');
+  const { data: linkedLocation, isLoading: linkedLoading } = useLocationById(event?.location_id ?? '');
   const linkedPublished = linkedLocation?.status === 'published' ? linkedLocation : null;
 
   const selectedOccurrence = useMemo(() => {
@@ -201,9 +201,9 @@ const EventPage = () => {
                   <> → {formatDateLong(displayDateEnd)}</>
                 )}
               </div>
-              {event.location_id && event.recurrence_label?.trim() && (
+              {hasRecurrence(event) && (
                 <div style={{ marginTop: 6 }}>
-                  <RecurrenceStamp label={event.recurrence_label} category={event.category} compact={false} />
+                  <RecurrenceStamp label={event.recurrence_label!} category={event.category} compact={false} />
                 </div>
               )}
               {displayTime && (
@@ -310,7 +310,11 @@ const EventPage = () => {
           <div style={{ fontFamily: 'Fraunces', fontSize: 17, fontWeight: 500, marginBottom: 8 }}>
             {t('event.location')}
           </div>
-          {linkedPublished ? (
+          {/* Rien tant que le lieu lié se charge : afficher l'adresse en texte
+              brut pour la remplacer par le bouton une seconde plus tard faisait
+              sauter le bloc sous les yeux. Une sortie sans lieu rattaché n'attend
+              rien et affiche son adresse immédiatement, comme avant. */}
+          {event.location_id && linkedLoading ? null : linkedPublished ? (
             <button
               type="button"
               onClick={() => navigate(`/location/${linkedPublished.id}`)}
