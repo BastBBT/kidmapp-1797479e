@@ -97,6 +97,7 @@ const ProposeEventModal = () => {
     weather: '',
     price: '',
     website: '',
+    booking_url: '',
     instagram: '',
     note: '',
   });
@@ -107,7 +108,7 @@ const ProposeEventModal = () => {
     setForm({
       name: '', category: 'Spectacle', address: '', date_start: '', date_end: '',
       time: '', age_min: '', age_max: '', age_unit: 'years', duration: '', weather: '',
-      price: '', website: '', instagram: '', note: '',
+      price: '', website: '', booking_url: '', instagram: '', note: '',
     });
     setPhotoFile(null);
     setPhotoPreview(null);
@@ -168,6 +169,7 @@ const ProposeEventModal = () => {
         weather: form.weather || null,
         price: form.price.trim() || null,
         website: form.website.trim() || null,
+        booking_url: form.booking_url.trim() || null,
         instagram: form.instagram.trim() || null,
         note: form.note.trim() || null,
         photo: photoUrl,
@@ -365,6 +367,16 @@ const ProposeEventModal = () => {
                     style={inputStyle}
                     value={form.website}
                     onChange={(e) => update('website', e.target.value)}
+                    placeholder="https://…"
+                  />
+                </div>
+
+                <div>
+                  <Label>Lien de réservation (si différent)</Label>
+                  <input
+                    style={inputStyle}
+                    value={form.booking_url}
+                    onChange={(e) => update('booking_url', e.target.value)}
                     placeholder="https://…"
                   />
                 </div>
