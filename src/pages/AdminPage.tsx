@@ -4472,7 +4472,103 @@ const emptyEventForm = {
   instagram: '',
   note: '',
   status: 'published',
+  location_id: '',
+  recurrence_label: '',
 };
+
+/**
+ * Rattache une sortie à un lieu déjà référencé (LAEP, atelier hebdo…).
+ * Appelle `useAllLocations()` sans condition : l'appel du composant parent est
+ * restreint aux onglets lieux/contributions, la clé react-query étant partagée
+ * cet appel suffit à alimenter la liste depuis les onglets sortie.
+ * Seuls les lieux publiés sont proposés : les apps iOS/Android ne chargent le
+ * lieu lié qu'en `status = 'published'`.
+ */
+function LocationPicker({
+  value,
+  onSelect,
+  onClear,
+}: {
+  value: string | null;
+  onSelect: (loc: { id: string; address: string | null; lat: number | null; lng: number | null }) => void;
+  onClear: () => void;
+}) {
+  const { data: locations = [] } = useAllLocations();
+  const [search, setSearch] = useState('');
+
+  const published = useMemo(
+    () => (locations as any[]).filter((l) => l.status === 'published'),
+    [locations]
+  );
+  const selected = useMemo(
+    () => (value ? published.find((l) => l.id === value) ?? null : null),
+    [published, value]
+  );
+  const results = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return [];
+    return published
+      .filter((l) => `${l.name ?? ''} ${l.city ?? ''}`.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [published, search]);
+
+  return (
+    <div>
+      <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+        Lieu (optionnel)
+      </label>
+      {selected ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', borderRadius: 12, border: '1.5px solid var(--primary)', background: 'var(--primary-light)' }}>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+            📍 {selected.name}{selected.city ? ` · ${selected.city}` : ''}
+          </span>
+          <button
+            type="button"
+            onClick={() => { onClear(); setSearch(''); }}
+            style={{ border: 'none', background: 'transparent', color: 'var(--primary)', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+          >
+            Retirer
+          </button>
+        </div>
+      ) : (
+        <>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher un lieu publié (nom ou ville)…"
+            style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text)', outline: 'none' }}
+          />
+          {results.length > 0 && (
+            <div style={{ marginTop: 6, border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+              {results.map((loc) => (
+                <button
+                  key={loc.id}
+                  type="button"
+                  onClick={() => {
+                    onSelect({ id: loc.id, address: loc.address ?? null, lat: loc.lat ?? null, lng: loc.lng ?? null });
+                    setSearch('');
+                  }}
+                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px', border: 'none', borderBottom: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}
+                >
+                  {loc.name}
+                  <span style={{ color: 'var(--text-muted)' }}>{loc.city ? ` · ${loc.city}` : ''}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {search.trim() && results.length === 0 && (
+            <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
+              Aucun lieu publié ne correspond.
+            </div>
+          )}
+        </>
+      )}
+      <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+        Si un lieu est choisi, son adresse et ses coordonnées sont reprises — pas de géocodage.
+      </div>
+    </div>
+  );
+}
 
 function AddEventTab({ geocodeAddress, queryClient, toast }: {
   geocodeAddress: (address: string) => Promise<{lat: number; lng: number} | null>;
