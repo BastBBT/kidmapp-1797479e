@@ -6,11 +6,13 @@ import MapView from '@/components/MapView';
 import LocationCard from '@/components/LocationCard';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
-import { useCoachmarks } from '@/hooks/useCoachmarks';
+import { useCoachmarks, hasSeenCoachmarks } from '@/hooks/useCoachmarks';
 import MealFilter from '@/components/MealFilter';
 import AgeFilter from '@/components/AgeFilter';
 import ActivityFilter from '@/components/ActivityFilter';
 import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
+import Assistant, { AssistantOutcome } from '@/components/Assistant';
+import { shouldShowAssistant, markAssistantShown } from '@/lib/assistantSchedule';
 
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
@@ -84,7 +86,7 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>(initialCategory);
   const [selectedGroup, setSelectedGroup] = useState<CategoryGroup>(initialGroup);
   const navigate = useNavigate();
-  const { wantsLocationDetail, locationDetailRequestHandled, locationDetailUnavailable } =
+  const { current: coachmarkStep, wantsLocationDetail, locationDetailRequestHandled, locationDetailUnavailable } =
     useCoachmarks();
   const [selectedMeal, setSelectedMeal] = useState<string | null>(initialMeal);
   const [selectedAge, setSelectedAge] = useState<AgeBucket>(initialAge);
@@ -118,6 +120,7 @@ const Index = () => {
   const [selectedDuration, setSelectedDuration] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [assistantOpen, setAssistantOpen] = useState(false);
 
   const [mapExpanded, setMapExpanded] = useState(false);
   const [selectedId, setSelectedId] = useState<string | undefined>();
@@ -127,7 +130,7 @@ const Index = () => {
   // Catalogue complet publié, toujours en cache : sert la recherche, qui doit ignorer
   // les filtres. Même requête que ci-dessus (donc gratuite) quand aucune catégorie
   // précise n'est sélectionnée.
-  const { data: allLocations = [] } = useLocations('all');
+  const { data: allLocations = [], isLoading: allLocationsLoading } = useLocations('all');
   const { data: mealTypes = [] } = useMealTypes();
   const { data: locationMeals = [] } = useAllLocationMeals();
 
@@ -148,6 +151,38 @@ const Index = () => {
       if (selectedDuration !== null) setSelectedDuration(null);
     }
   }, [showActivityFilter, selectedWeather, selectedDuration]);
+
+  // L'assistant s'ouvre au premier passage de la journée, et jamais par-dessus
+  // la visite guidée (ni avant elle : `hasSeenCoachmarks()` ne devient vrai
+  // qu'à sa fin). Un court délai laisse la mise en page se stabiliser — miroir
+  // du piège iOS où un plein écran demandé trop tôt est ignoré sans erreur.
+  useEffect(() => {
+    if (coachmarkStep !== null) return;
+    if (!hasSeenCoachmarks()) return;
+    if (!shouldShowAssistant()) return;
+    const id = window.setTimeout(() => {
+      markAssistantShown();
+      setAssistantOpen(true);
+    }, 300);
+    return () => window.clearTimeout(id);
+  }, [coachmarkStep]);
+
+  // Applique ce que l'assistant rapporte. Rien n'est posé si le parent sort
+  // par la 4e carte — `finish` (Assistant.tsx) n'appelle `onFinish` que si les
+  // trois questions ont été répondues.
+  const handleAssistantOutcome = useCallback((outcome: AssistantOutcome) => {
+    setSelectedGroup(outcome.group);
+    setSelectedCategory(outcome.category ?? 'all');
+    if (outcome.childSelection) {
+      setChildSelection(outcome.childSelection);
+    } else if (outcome.ageBucket) {
+      setSelectedAge(outcome.ageBucket);
+    }
+    setSelectedWeather(outcome.weather);
+    setSelectedDuration(outcome.duration);
+    setSelectedMeal(outcome.mealId);
+    setAssistantOpen(false);
+  }, [setChildSelection]);
 
   // Une catégorie précise appartient à un groupe : le segment suit la sélection.
   // (L'inverse n'est pas vrai — changer de groupe conserve la catégorie active,
@@ -344,6 +379,7 @@ const Index = () => {
             <ChildrenPillBar children={kids} selection={childSelection} onChange={setChildSelection} />
           ) : undefined
         }
+        onOpenAssistant={() => setAssistantOpen(true)}
       />
 
       {/* Meal type filter (2nd row) — only for restaurant / cafe */}
@@ -596,6 +632,15 @@ const Index = () => {
           </div>
         </div>
       )}
+
+      <Assistant
+        open={assistantOpen}
+        catalogCount={allLocationsLoading ? null : allLocations.length}
+        kids={kids}
+        mealTypes={mealTypes}
+        onFinish={handleAssistantOutcome}
+        onSkip={() => setAssistantOpen(false)}
+      />
     </div>
   );
 };
