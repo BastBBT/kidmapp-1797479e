@@ -4812,8 +4812,36 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
             </select>
           </div>
 
+          <LocationPicker
+            value={form.location_id || null}
+            onSelect={(loc) => {
+              setForm((p) => ({ ...p, location_id: loc.id, address: loc.address ?? p.address }));
+              setLinkedCoords({ lat: loc.lat, lng: loc.lng });
+              setShowManualCoords(false);
+            }}
+            onClear={() => {
+              setForm((p) => ({ ...p, location_id: '' }));
+              setLinkedCoords(null);
+            }}
+          />
+
+          <FormField
+            label="Cadence (optionnel)"
+            value={form.recurrence_label}
+            onChange={(v) => updateForm('recurrence_label', v)}
+            placeholder="Ex: Chaque semaine"
+          />
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--text-muted)', marginTop: -8 }}>
+            Reste court, ~20 caractères — le détail des jours et horaires va dans la description.
+          </div>
+
           <div>
             <FormField label="Adresse" value={form.address} onChange={(v) => { updateForm('address', v); setShowManualCoords(false); }} placeholder="Ex: 6 rue Saint-Léonard, 44000 Nantes" />
+            {form.location_id && (
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                Adresse reprise du lieu rattaché.
+              </div>
+            )}
             {showManualCoords && (
               <div style={{ padding: '12px', borderRadius: 'var(--radius-sm)', background: 'var(--accent-light)', border: '1px solid #F2C94C', marginTop: '8px' }}>
                 <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: '#C49A35', marginBottom: '8px' }}>
