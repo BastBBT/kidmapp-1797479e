@@ -3578,6 +3578,8 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       note: ev.note ?? '',
       lat: ev.lat,
       lng: ev.lng,
+      location_id: ev.location_id ?? '',
+      recurrence_label: ev.recurrence_label ?? '',
     });
     setPhotoFile(null);
     setPhotoPreview(null);
