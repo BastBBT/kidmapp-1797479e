@@ -4672,7 +4672,10 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
     setSubmitting(true);
 
     let coords: { lat: number; lng: number } | null = null;
-    if (form.address) {
+    if (form.location_id && linkedCoords?.lat != null && linkedCoords?.lng != null) {
+      // Lieu rattaché : on reprend ses coordonnées, pas de géocodage.
+      coords = { lat: linkedCoords.lat, lng: linkedCoords.lng };
+    } else if (form.address) {
       if (showManualCoords) {
         coords = { lat: parseFloat(manualLat), lng: parseFloat(manualLng) };
       } else {
