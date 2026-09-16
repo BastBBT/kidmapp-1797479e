@@ -20,6 +20,11 @@ export interface EventItem {
   weather: string | null;
   price: string | null;
   website: string | null;
+  /**
+   * Lien vers la billetterie/réservation, distinct de `website` : certaines sorties ont
+   * un site vitrine différent de leur page de réservation (Koalendar, billetterie externe…).
+   */
+  booking_url: string | null;
   instagram: string | null;
   photo: string | null;
   note: string | null;
