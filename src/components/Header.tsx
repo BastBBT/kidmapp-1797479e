@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { LogOut, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,6 +8,7 @@ import AgeFilter from '@/components/AgeFilter';
 import { useCoachmarkTarget } from '@/hooks/useCoachmarks';
 import { CategoryGroup, LocationCategory } from '@/types/location';
 import { AgeBucket } from '@/lib/ageFilter';
+import { MascotteMiniature } from '@/components/Mascotte';
 
 
 interface HeaderProps {
@@ -22,13 +23,17 @@ interface HeaderProps {
   /** Remplace la barre de tranche générique par `ChildrenPillBar` dès qu'au
    *  moins un enfant est enregistré — passé par la page, pas décidé ici. */
   ageRowOverride?: ReactNode;
+  /** Rouvre l'assistant mascotte à la demande — seul moyen de le relancer une
+   *  fois la journée entamée, puisqu'il ne s'ouvre de lui-même qu'une fois
+   *  par jour. Absent = pas d'icône (pages autres qu'Explorer). */
+  onOpenAssistant?: () => void;
 }
 
-const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, selectedGroup, onGroupChange, selectedAge, onAgeChange, ageRowOverride }: HeaderProps) => {
+const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, selectedGroup, onGroupChange, selectedAge, onAgeChange, ageRowOverride, onOpenAssistant }: HeaderProps) => {
   const categoriesTargetRef = useCoachmarkTarget('categories');
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { t } = useTranslation();
 
   const initial = user?.email ? user.email.charAt(0).toUpperCase() : '?';
@@ -61,6 +66,10 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
               </button>
             )}
 
+            {onOpenAssistant && (
+              <MascotteMiniature onClick={onOpenAssistant} ariaLabel={t('assistant.open')} />
+            )}
+
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer"
               style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}
@@ -68,15 +77,6 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
             >
               {initial}
             </div>
-
-            <button
-              onClick={signOut}
-              className="p-2 rounded-full transition-colors hover:opacity-70"
-              style={{ color: 'var(--text-muted)' }}
-              title={t('common.logout')}
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </nav>
         </div>
 
