@@ -4589,6 +4589,8 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
   const [manualLat, setManualLat] = useState('47.2184');
   const [manualLng, setManualLng] = useState('-1.5536');
   const [extracting, setExtracting] = useState(false);
+  // Coordonnées reprises du lieu rattaché : évite un géocodage inutile.
+  const [linkedCoords, setLinkedCoords] = useState<{ lat: number | null; lng: number | null } | null>(null);
 
   const handleImportScreenshot = async (file: File) => {
     if (!ALLOWED_SCREENSHOT_TYPES.includes(file.type)) {
