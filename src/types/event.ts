@@ -32,6 +32,10 @@ export interface EventItem {
    * Postgres : la RLS de `event_favorites` interdit de l'agréger côté client.
    */
   favorites_count: number | null;
+  /** Lieu déjà référencé auquel la sortie est rattachée (LAEP, atelier hebdo). */
+  location_id?: string | null;
+  /** Étiquette d'affichage saisie par l'admin (ex. « Chaque semaine »). */
+  recurrence_label?: string | null;
 }
 
 /**

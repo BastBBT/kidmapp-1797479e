@@ -3578,6 +3578,8 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       note: ev.note ?? '',
       lat: ev.lat,
       lng: ev.lng,
+      location_id: ev.location_id ?? '',
+      recurrence_label: ev.recurrence_label ?? '',
     });
     setPhotoFile(null);
     setPhotoPreview(null);
@@ -3677,6 +3679,9 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         price: editDraft.price || null,
         website: editDraft.website || null,
         instagram: editDraft.instagram || null,
+        // uuid : '' ferait échouer l'update (invalid input syntax for type uuid).
+        location_id: editDraft.location_id || null,
+        recurrence_label: (editDraft.recurrence_label ?? '').trim() || null,
         photo: finalPhotoUrl,
         note: editDraft.note || null,
         lat: finalLat,
@@ -3982,6 +3987,19 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                   </select>
                   <input value={editDraft.address} onChange={(e) => setEditDraft({ ...editDraft, address: e.target.value })}
                     placeholder="Adresse" style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
+                  <LocationPicker
+                    value={editDraft.location_id || null}
+                    onSelect={(loc) => setEditDraft({
+                      ...editDraft,
+                      location_id: loc.id,
+                      address: loc.address ?? editDraft.address,
+                      lat: loc.lat ?? editDraft.lat,
+                      lng: loc.lng ?? editDraft.lng,
+                    })}
+                    onClear={() => setEditDraft({ ...editDraft, location_id: '' })}
+                  />
+                  <input value={editDraft.recurrence_label ?? ''} onChange={(e) => setEditDraft({ ...editDraft, recurrence_label: e.target.value })}
+                    placeholder="Cadence (optionnel, ~20 caractères)" style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
                   <SlotsEditor slots={editSlots} onUpdate={updateEditSlot} onAdd={addEditSlot} onRemove={removeEditSlot} />
                   <div className="flex gap-2">
                     <input placeholder="Durée" value={editDraft.duration} onChange={(e) => setEditDraft({ ...editDraft, duration: e.target.value })}
@@ -4472,7 +4490,103 @@ const emptyEventForm = {
   instagram: '',
   note: '',
   status: 'published',
+  location_id: '',
+  recurrence_label: '',
 };
+
+/**
+ * Rattache une sortie à un lieu déjà référencé (LAEP, atelier hebdo…).
+ * Appelle `useAllLocations()` sans condition : l'appel du composant parent est
+ * restreint aux onglets lieux/contributions, la clé react-query étant partagée
+ * cet appel suffit à alimenter la liste depuis les onglets sortie.
+ * Seuls les lieux publiés sont proposés : les apps iOS/Android ne chargent le
+ * lieu lié qu'en `status = 'published'`.
+ */
+function LocationPicker({
+  value,
+  onSelect,
+  onClear,
+}: {
+  value: string | null;
+  onSelect: (loc: { id: string; address: string | null; lat: number | null; lng: number | null }) => void;
+  onClear: () => void;
+}) {
+  const { data: locations = [] } = useAllLocations();
+  const [search, setSearch] = useState('');
+
+  const published = useMemo(
+    () => (locations as any[]).filter((l) => l.status === 'published'),
+    [locations]
+  );
+  const selected = useMemo(
+    () => (value ? published.find((l) => l.id === value) ?? null : null),
+    [published, value]
+  );
+  const results = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return [];
+    return published
+      .filter((l) => `${l.name ?? ''} ${l.city ?? ''}`.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [published, search]);
+
+  return (
+    <div>
+      <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
+        Lieu (optionnel)
+      </label>
+      {selected ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', borderRadius: 12, border: '1.5px solid var(--primary)', background: 'var(--primary-light)' }}>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+            📍 {selected.name}{selected.city ? ` · ${selected.city}` : ''}
+          </span>
+          <button
+            type="button"
+            onClick={() => { onClear(); setSearch(''); }}
+            style={{ border: 'none', background: 'transparent', color: 'var(--primary)', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+          >
+            Retirer
+          </button>
+        </div>
+      ) : (
+        <>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher un lieu publié (nom ou ville)…"
+            style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text)', outline: 'none' }}
+          />
+          {results.length > 0 && (
+            <div style={{ marginTop: 6, border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+              {results.map((loc) => (
+                <button
+                  key={loc.id}
+                  type="button"
+                  onClick={() => {
+                    onSelect({ id: loc.id, address: loc.address ?? null, lat: loc.lat ?? null, lng: loc.lng ?? null });
+                    setSearch('');
+                  }}
+                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px', border: 'none', borderBottom: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text)', cursor: 'pointer' }}
+                >
+                  {loc.name}
+                  <span style={{ color: 'var(--text-muted)' }}>{loc.city ? ` · ${loc.city}` : ''}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {search.trim() && results.length === 0 && (
+            <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
+              Aucun lieu publié ne correspond.
+            </div>
+          )}
+        </>
+      )}
+      <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+        Si un lieu est choisi, son adresse et ses coordonnées sont reprises — pas de géocodage.
+      </div>
+    </div>
+  );
+}
 
 function AddEventTab({ geocodeAddress, queryClient, toast }: {
   geocodeAddress: (address: string) => Promise<{lat: number; lng: number} | null>;
@@ -4493,6 +4607,8 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
   const [manualLat, setManualLat] = useState('47.2184');
   const [manualLng, setManualLng] = useState('-1.5536');
   const [extracting, setExtracting] = useState(false);
+  // Coordonnées reprises du lieu rattaché : évite un géocodage inutile.
+  const [linkedCoords, setLinkedCoords] = useState<{ lat: number | null; lng: number | null } | null>(null);
 
   const handleImportScreenshot = async (file: File) => {
     if (!ALLOWED_SCREENSHOT_TYPES.includes(file.type)) {
@@ -4574,7 +4690,10 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
     setSubmitting(true);
 
     let coords: { lat: number; lng: number } | null = null;
-    if (form.address) {
+    if (form.location_id && linkedCoords?.lat != null && linkedCoords?.lng != null) {
+      // Lieu rattaché : on reprend ses coordonnées, pas de géocodage.
+      coords = { lat: linkedCoords.lat, lng: linkedCoords.lng };
+    } else if (form.address) {
       if (showManualCoords) {
         coords = { lat: parseFloat(manualLat), lng: parseFloat(manualLng) };
       } else {
@@ -4624,6 +4743,9 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
       photo: photoUrl,
       note: form.note || null,
       status: form.status,
+      // uuid : '' ferait échouer l'insert (invalid input syntax for type uuid).
+      location_id: form.location_id || null,
+      recurrence_label: form.recurrence_label.trim() || null,
     };
 
     const { data: inserted, error } = await supabase.from('events' as any).insert(insertData as any).select('id').single();
@@ -4661,6 +4783,7 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
     setPhotoFile(null);
     setPhotoPreview(null);
     setShowManualCoords(false);
+    setLinkedCoords(null);
   };
 
   return (
@@ -4707,8 +4830,36 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
             </select>
           </div>
 
+          <LocationPicker
+            value={form.location_id || null}
+            onSelect={(loc) => {
+              setForm((p) => ({ ...p, location_id: loc.id, address: loc.address ?? p.address }));
+              setLinkedCoords({ lat: loc.lat, lng: loc.lng });
+              setShowManualCoords(false);
+            }}
+            onClear={() => {
+              setForm((p) => ({ ...p, location_id: '' }));
+              setLinkedCoords(null);
+            }}
+          />
+
+          <FormField
+            label="Cadence (optionnel)"
+            value={form.recurrence_label}
+            onChange={(v) => updateForm('recurrence_label', v)}
+            placeholder="Ex: Chaque semaine"
+          />
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--text-muted)', marginTop: -8 }}>
+            Reste court, ~20 caractères — le détail des jours et horaires va dans la description.
+          </div>
+
           <div>
             <FormField label="Adresse" value={form.address} onChange={(v) => { updateForm('address', v); setShowManualCoords(false); }} placeholder="Ex: 6 rue Saint-Léonard, 44000 Nantes" />
+            {form.location_id && (
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                Adresse reprise du lieu rattaché.
+              </div>
+            )}
             {showManualCoords && (
               <div style={{ padding: '12px', borderRadius: 'var(--radius-sm)', background: 'var(--accent-light)', border: '1px solid #F2C94C', marginTop: '8px' }}>
                 <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: '#C49A35', marginBottom: '8px' }}>

@@ -420,10 +420,12 @@ export type Database = {
           instagram: string | null
           lat: number | null
           lng: number | null
+          location_id: string | null
           name: string
           note: string | null
           photo: string | null
           price: string | null
+          recurrence_label: string | null
           status: string
           time: string | null
           updated_at: string
@@ -450,10 +452,12 @@ export type Database = {
           instagram?: string | null
           lat?: number | null
           lng?: number | null
+          location_id?: string | null
           name: string
           note?: string | null
           photo?: string | null
           price?: string | null
+          recurrence_label?: string | null
           status?: string
           time?: string | null
           updated_at?: string
@@ -480,10 +484,12 @@ export type Database = {
           instagram?: string | null
           lat?: number | null
           lng?: number | null
+          location_id?: string | null
           name?: string
           note?: string | null
           photo?: string | null
           price?: string | null
+          recurrence_label?: string | null
           status?: string
           time?: string | null
           updated_at?: string
@@ -491,7 +497,15 @@ export type Database = {
           weather?: string | null
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       favorites: {
         Row: {
