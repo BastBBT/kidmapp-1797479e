@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EventItem, EventOccurrence, hasRecurrence } from '@/types/event';
-import { lastMondayISO, todayISO } from '@/lib/weekend';
+import { isPastEvent, lastMondayISO, todayISO } from '@/lib/weekend';
 import { eventsWindowFilter } from '@/lib/eventCalendar';
 
 /**
@@ -129,10 +129,12 @@ export const useOccurrencesForEvent = (eventId: string) => {
 };
 
 /**
- * Sorties qui reviennent dans un lieu donné (LAEP, atelier hebdo). La cadence
- * saisie est la seconde condition : une sortie rattachée au lieu mais sans
- * cadence n'est pas un rendez-vous installé, elle n'a rien à faire dans la
- * section dédiée de la fiche lieu.
+ * Sorties liées à un lieu donné, dans cet ordre : les rendez-vous installés
+ * (cadence saisie — LAEP, atelier hebdo) toujours renvoyés même si leur
+ * dernière date connue est passée, puisqu'ils représentent un fonctionnement
+ * permanent ; puis les sorties ponctuelles liées au lieu mais seulement
+ * celles à venir — une sortie ponctuelle passée ne peut plus être « à venir
+ * ici », contrairement à un rendez-vous récurrent.
  */
 export const useRecurringEventsAtLocation = (locationId: string) => {
   return useQuery({
@@ -146,7 +148,12 @@ export const useRecurringEventsAtLocation = (locationId: string) => {
         .eq('status', 'published')
         .order('name', { ascending: true });
       if (error) throw error;
-      return ((data ?? []) as unknown as EventItem[]).filter(hasRecurrence);
+      const all = (data ?? []) as unknown as EventItem[];
+      const recurring = all.filter(hasRecurrence);
+      const upcomingOneOff = all
+        .filter((e) => !hasRecurrence(e) && !isPastEvent(e.date_start, e.date_end))
+        .sort((a, b) => a.date_start.localeCompare(b.date_start));
+      return [...recurring, ...upcomingOneOff];
     },
   });
 };
