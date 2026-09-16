@@ -3677,6 +3677,9 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         price: editDraft.price || null,
         website: editDraft.website || null,
         instagram: editDraft.instagram || null,
+        // uuid : '' ferait échouer l'update (invalid input syntax for type uuid).
+        location_id: editDraft.location_id || null,
+        recurrence_label: (editDraft.recurrence_label ?? '').trim() || null,
         photo: finalPhotoUrl,
         note: editDraft.note || null,
         lat: finalLat,
