@@ -8,6 +8,7 @@ import AgeFilter from '@/components/AgeFilter';
 import { useCoachmarkTarget } from '@/hooks/useCoachmarks';
 import { CategoryGroup, LocationCategory } from '@/types/location';
 import { AgeBucket } from '@/lib/ageFilter';
+import { MascotteMiniature } from '@/components/Mascotte';
 
 
 interface HeaderProps {
@@ -22,9 +23,13 @@ interface HeaderProps {
   /** Remplace la barre de tranche générique par `ChildrenPillBar` dès qu'au
    *  moins un enfant est enregistré — passé par la page, pas décidé ici. */
   ageRowOverride?: ReactNode;
+  /** Rouvre l'assistant mascotte à la demande — seul moyen de le relancer une
+   *  fois la journée entamée, puisqu'il ne s'ouvre de lui-même qu'une fois
+   *  par jour. Absent = pas d'icône (pages autres qu'Explorer). */
+  onOpenAssistant?: () => void;
 }
 
-const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, selectedGroup, onGroupChange, selectedAge, onAgeChange, ageRowOverride }: HeaderProps) => {
+const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, selectedGroup, onGroupChange, selectedAge, onAgeChange, ageRowOverride, onOpenAssistant }: HeaderProps) => {
   const categoriesTargetRef = useCoachmarkTarget('categories');
   const navigate = useNavigate();
   const location = useLocation();
@@ -59,6 +64,10 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
               >
                 Admin
               </button>
+            )}
+
+            {onOpenAssistant && (
+              <MascotteMiniature onClick={onOpenAssistant} ariaLabel={t('assistant.open')} />
             )}
 
             <div
