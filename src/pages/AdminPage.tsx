@@ -4725,6 +4725,9 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
       photo: photoUrl,
       note: form.note || null,
       status: form.status,
+      // uuid : '' ferait échouer l'insert (invalid input syntax for type uuid).
+      location_id: form.location_id || null,
+      recurrence_label: form.recurrence_label.trim() || null,
     };
 
     const { data: inserted, error } = await supabase.from('events' as any).insert(insertData as any).select('id').single();
