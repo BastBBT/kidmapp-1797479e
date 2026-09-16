@@ -51,7 +51,6 @@ export async function loadDevicesByUser(
     .from('user_devices')
     .select('user_id, fcm_token, platform')
     .in('user_id', userIds)
-    .returns<DeviceRow[]>()
 
   if (error) {
     // La push est un bonus par rapport à l'email, jamais le chemin critique :
