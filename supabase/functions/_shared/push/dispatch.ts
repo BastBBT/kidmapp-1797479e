@@ -51,7 +51,6 @@ export async function loadDevicesByUser(
     .from('user_devices')
     .select('user_id, fcm_token, platform')
     .in('user_id', userIds)
-    .returns<DeviceRow[]>()
 
   if (error) {
     // La push est un bonus par rapport à l'email, jamais le chemin critique :
@@ -59,7 +58,7 @@ export async function loadDevicesByUser(
     console.error(`${logPrefix}: user_devices fetch failed`, error)
     return devicesByUser
   }
-  for (const d of data ?? []) {
+  for (const d of (data as DeviceRow[]) ?? []) {
     const list = devicesByUser.get(d.user_id) ?? []
     list.push(d)
     devicesByUser.set(d.user_id, list)

@@ -195,8 +195,8 @@ export const useRecurringEventsAtLocation = (locationId: string) => {
             .sort((a, b) => a.date_start.localeCompare(b.date_start))[0];
           return nextOccurrence ? { event, occurrence: nextOccurrence } : null;
         })
-        .filter((item): item is LocationLinkedEvent => item !== null)
-        .sort((a, b) => a.occurrence!.date_start.localeCompare(b.occurrence!.date_start));
+        .filter((item): item is { event: EventItem; occurrence: EventOccurrence } => item !== null)
+        .sort((a, b) => a.occurrence.date_start.localeCompare(b.occurrence.date_start));
 
       return [...recurring, ...upcomingOneOff];
     },
