@@ -240,7 +240,10 @@
     "reel_open": "Ouvrir dans Instagram",
     "reel_confirm_title": "Ouvrir ce reel dans Instagram ?",
     "reel_confirm_body": "La vidéo reste hébergée sur Instagram — Kidmapp ne stocke que le lien.",
-    "recurring_events_title": "Ça revient ici régulièrement"
+    "recurring_events_title": "Sorties à venir ici",
+    "show_more_one": "Voir plus (1)",
+    "show_more_other": "Voir plus ({{count}})",
+    "collapse": "Réduire"
   },
   "explore": {
     "results_one": "{{count}} résultat",

@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EventItem, EventOccurrence, hasRecurrence } from '@/types/event';
-import { lastMondayISO, todayISO } from '@/lib/weekend';
-import { eventsWindowFilter } from '@/lib/eventCalendar';
+import { isPastEvent, lastMondayISO, todayISO } from '@/lib/weekend';
+import { eventsWindowFilter, occurrencesOf } from '@/lib/eventCalendar';
 
 /**
  * Ids des events ayant au moins un *créneau* dans la fenêtre d'affichage.
@@ -129,16 +129,52 @@ export const useOccurrencesForEvent = (eventId: string) => {
 };
 
 /**
- * Sorties qui reviennent dans un lieu donné (LAEP, atelier hebdo). La cadence
- * saisie est la seconde condition : une sortie rattachée au lieu mais sans
- * cadence n'est pas un rendez-vous installé, elle n'a rien à faire dans la
- * section dédiée de la fiche lieu.
+ * Créneaux des events donnés, groupés par `event_id` — même requête que
+ * `useEventOccurrences`, mais en fonction simple plutôt qu'en hook pour rester
+ * appelable depuis un `queryFn` (la règle des hooks React interdirait
+ * d'appeler un autre hook conditionnellement, une fois les ids connus).
+ */
+const fetchOccurrencesByEventId = async (eventIds: string[]): Promise<Record<string, EventOccurrence[]>> => {
+  if (eventIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from('event_occurrences')
+    .select('*')
+    .in('event_id', eventIds)
+    .order('date_start', { ascending: true });
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as EventOccurrence[];
+  const map: Record<string, EventOccurrence[]> = {};
+  for (const occ of rows) (map[occ.event_id] ??= []).push(occ);
+  return map;
+};
+
+/** Une sortie liée à un lieu, avec le créneau à afficher pour une sortie
+ * ponctuelle (absent pour un rendez-vous récurrent, qui affiche son tampon de
+ * cadence plutôt qu'une date). */
+export interface LocationLinkedEvent {
+  event: EventItem;
+  occurrence?: EventOccurrence;
+}
+
+/**
+ * Sorties liées à un lieu donné, dans cet ordre : les rendez-vous installés
+ * (cadence saisie — LAEP, atelier hebdo) toujours renvoyés même si leur
+ * dernière date connue est passée, puisqu'ils représentent un fonctionnement
+ * permanent ; puis les sorties ponctuelles liées au lieu mais seulement
+ * celles dont une occurrence est encore à venir.
+ *
+ * `events.date_start` ne suffit pas à en juger : un trigger le fige sur la
+ * toute première occurrence à l'insertion et ne le remet jamais à jour une
+ * fois celle-ci passée (même piège documenté dans `EventCard.tsx`) — un
+ * atelier tenu plusieurs fois (ex. « gratuit le 1er dimanche du mois »)
+ * resterait donc marqué passé pour toujours dès sa première séance écoulée.
+ * On regarde `event_occurrences` directement pour choisir la prochaine date.
  */
 export const useRecurringEventsAtLocation = (locationId: string) => {
   return useQuery({
     queryKey: ['recurring-events', locationId],
     enabled: !!locationId,
-    queryFn: async () => {
+    queryFn: async (): Promise<LocationLinkedEvent[]> => {
       const { data, error } = await supabase
         .from('events')
         .select('*')
@@ -146,7 +182,23 @@ export const useRecurringEventsAtLocation = (locationId: string) => {
         .eq('status', 'published')
         .order('name', { ascending: true });
       if (error) throw error;
-      return ((data ?? []) as unknown as EventItem[]).filter(hasRecurrence);
+      const all = (data ?? []) as unknown as EventItem[];
+
+      const recurring: LocationLinkedEvent[] = all.filter(hasRecurrence).map((event) => ({ event }));
+
+      const oneOff = all.filter((e) => !hasRecurrence(e));
+      const occurrencesByEvent = await fetchOccurrencesByEventId(oneOff.map((e) => e.id));
+      const upcomingOneOff = oneOff
+        .map((event) => {
+          const nextOccurrence = occurrencesOf(event, occurrencesByEvent)
+            .filter((occ) => !isPastEvent(occ.date_start, occ.date_end))
+            .sort((a, b) => a.date_start.localeCompare(b.date_start))[0];
+          return nextOccurrence ? { event, occurrence: nextOccurrence } : null;
+        })
+        .filter((item): item is LocationLinkedEvent => item !== null)
+        .sort((a, b) => a.occurrence!.date_start.localeCompare(b.occurrence!.date_start));
+
+      return [...recurring, ...upcomingOneOff];
     },
   });
 };
