@@ -132,6 +132,7 @@
   },
   "meal": {
     "Petit déjeuner": "Desayuno",
+    "Petit déj": "Desayuno",
     "Brunch": "Brunch",
     "Déjeuner": "Almuerzo",
     "Goûter": "Merienda",

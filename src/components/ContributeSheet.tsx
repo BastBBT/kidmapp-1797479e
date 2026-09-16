@@ -469,7 +469,7 @@ const ContributeSheet = ({ locationId, category, open, onClose, onRequireAuth }:
                             )}
                           </div>
                           <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-                            {mt.label}
+                            {translateToken('meal', mt.label)}
                           </div>
                           <div
                             style={{

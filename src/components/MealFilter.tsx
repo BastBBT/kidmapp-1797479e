@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { MealType } from '@/hooks/useMeals';
 import { MEAL_ICONS } from '@/assets/icons';
+import { translateToken } from '@/i18n/tokenMaps';
 
 interface MealFilterProps {
   mealTypes: MealType[];
@@ -45,7 +46,7 @@ const MealFilter = ({ mealTypes, selected, onChange }: MealFilterProps) => {
             ) : (
               <span style={{ fontSize: '15px', lineHeight: 1 }}>{m.emoji}</span>
             )}
-            {m.short_label}
+            {translateToken('meal', m.short_label)}
           </motion.button>
         );
       })}
