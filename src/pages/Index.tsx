@@ -7,13 +7,13 @@ import LocationCard from '@/components/LocationCard';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
 import { useCoachmarks } from '@/hooks/useCoachmarks';
+import { hasSeenCoachmarks } from '@/lib/onboardingTracker';
 import MealFilter from '@/components/MealFilter';
 import AgeFilter from '@/components/AgeFilter';
 import ActivityFilter from '@/components/ActivityFilter';
 import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 import Assistant, { AssistantOutcome } from '@/components/Assistant';
 import { shouldShowAssistant, markAssistantShown } from '@/lib/assistantSchedule';
-import { hasSeenCoachmarks } from '@/lib/onboardingTracker';
 
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
@@ -121,8 +121,6 @@ const Index = () => {
   const [selectedDuration, setSelectedDuration] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const searchTerm = searchQuery.trim().toLowerCase();
-  const isSearching = searchTerm !== '';
   const [assistantOpen, setAssistantOpen] = useState(false);
 
   const [mapExpanded, setMapExpanded] = useState(false);
@@ -137,15 +135,8 @@ const Index = () => {
   const { data: mealTypes = [] } = useMealTypes();
   const { data: locationMeals = [] } = useAllLocationMeals();
 
-  // Une barre s'affiche dès qu'un de ses filtres est actif, pas seulement sur
-  // une catégorie précise (et jamais pendant une recherche, qui les ignore) :
-  // c'est ce qui permet à l'assistant de poser un repas ou une météo sans
-  // pastille de catégorie (« manger dehors » reste sur « Tout » des Lieux), sans
-  // que le filtre posé devienne invisible donc impossible à retirer.
-  const showMealFilter = !isSearching &&
-    (MEAL_CATEGORIES.has(selectedCategory) || (selectedGroup === 'places' && selectedMeal !== null));
-  const showActivityFilter = !isSearching &&
-    (isActivity(selectedCategory) || (selectedGroup === 'activities' && (selectedWeather !== null || selectedDuration !== null)));
+  const showMealFilter = MEAL_CATEGORIES.has(selectedCategory);
+  const showActivityFilter = isActivity(selectedCategory);
 
   // Reset meal filter when switching to a non-meal category
   useEffect(() => {
@@ -183,11 +174,6 @@ const Index = () => {
   const handleAssistantOutcome = useCallback((outcome: AssistantOutcome) => {
     setSelectedGroup(outcome.group);
     setSelectedCategory(outcome.category ?? 'all');
-    // Avec un profil famille, la barre d'enfants est la source de vérité du
-    // filtre d'âge : la piloter elle, sinon la prochaine synchronisation
-    // écraserait la tranche posée ici. Appeler `setSelectedAge` directement
-    // (et non `handleAgeChange`) évite au passage le hook « enregistrez vos
-    // enfants » — enchaîner deux écrans d'affilée n'a pas de sens ici.
     if (outcome.childSelection) {
       setChildSelection(outcome.childSelection);
     } else if (outcome.ageBucket) {
@@ -273,6 +259,9 @@ const Index = () => {
   }, [locationMeals, selectedMeal]);
 
   const activeMeal = mealTypes.find((m) => m.id === selectedMeal) || null;
+
+  const searchTerm = searchQuery.trim().toLowerCase();
+  const isSearching = searchTerm !== '';
 
   const byName = (a: { name: string }, b: { name: string }) =>
     a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' });

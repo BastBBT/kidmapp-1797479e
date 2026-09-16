@@ -13,7 +13,6 @@ import {
   markCoachmarksSeen,
   recordCoachmarksOutcome,
 } from '@/lib/onboardingTracker';
-import { markAssistantShown } from '@/lib/assistantSchedule';
 
 /**
  * Quatre bulles enchaînées, jouées une seule fois, juste après l'accueil : le
@@ -82,11 +81,6 @@ export const CoachmarkProvider = ({ children }: { children: ReactNode }) => {
     setWantsLocationDetail(false);
     markCoachmarksSeen();
     recordCoachmarksOutcome(outcome);
-    // Garantie, pas une redondance : sans elle, l'assistant pourrait s'ouvrir
-    // juste après la dernière bulle si son propre effet de montage tourne
-    // avant que `hasSeenCoachmarks()` ne devienne vrai. Jamais plus d'un écran
-    // d'accueil à la fois — miroir d'iOS et d'Android.
-    markAssistantShown();
     setCurrent(null);
   }, []);
 
