@@ -128,6 +128,29 @@ export const useOccurrencesForEvent = (eventId: string) => {
   });
 };
 
+/**
+ * Sorties qui reviennent dans un lieu donné (LAEP, atelier hebdo). La cadence
+ * saisie est la seconde condition : une sortie rattachée au lieu mais sans
+ * cadence n'est pas un rendez-vous installé, elle n'a rien à faire dans la
+ * section dédiée de la fiche lieu.
+ */
+export const useRecurringEventsAtLocation = (locationId: string) => {
+  return useQuery({
+    queryKey: ['recurring-events', locationId],
+    enabled: !!locationId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('location_id', locationId)
+        .eq('status', 'published')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return ((data ?? []) as unknown as EventItem[]).filter((e) => e.recurrence_label?.trim());
+    },
+  });
+};
+
 export const useMyEvents = (userId?: string) => {
   return useQuery({
     queryKey: ['my-events', userId],

@@ -185,7 +185,8 @@
     "extra_dates_one": "+1 fecha",
     "extra_dates_other": "+{{count}} fechas",
     "dates_available_one": "{{count}} fecha disponible",
-    "dates_available_other": "{{count}} fechas disponibles"
+    "dates_available_other": "{{count}} fechas disponibles",
+    "recurring": "Cita recurrente: {{cadence}}"
   },
   "location_page": {
     "loading": "Cargando…",
@@ -237,7 +238,8 @@
     "reel_play": "Reproducir el reel",
     "reel_open": "Abrir en Instagram",
     "reel_confirm_title": "¿Abrir este reel en Instagram?",
-    "reel_confirm_body": "El vídeo permanece alojado en Instagram: Kidmapp solo guarda el enlace."
+    "reel_confirm_body": "El vídeo permanece alojado en Instagram: Kidmapp solo guarda el enlace.",
+    "recurring_events_title": "Vuelve aquí con regularidad"
   },
   "explore": {
     "results_one": "{{count}} resultado",
@@ -512,5 +514,10 @@
     "up": "Marcar como adecuado",
     "down": "Marcar como no es para nosotros",
     "error": "No se ha podido guardar tu opinión."
+  },
+  "recurrence": {
+    "Chaque semaine": "Cada semana",
+    "Chaque mois": "Cada mes",
+    "Tous les jours": "Todos los días"
   }
 }

@@ -10,6 +10,7 @@ import { Heart } from 'lucide-react';
 import { shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 import FeedbackIconsRow from '@/components/FeedbackIconsRow';
+import RecurrenceStamp from '@/components/RecurrenceStamp';
 import { useRecommendationFeedback } from '@/hooks/useRecommendationFeedback';
 
 interface Props {
@@ -92,7 +93,7 @@ const EventCard = ({ event, showPast = false, occurrence, occurrenceCount = 1 }:
         </div>
       )}
       <div style={{ padding: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
           <span
             style={{
               fontSize: 10,
@@ -107,6 +108,9 @@ const EventCard = ({ event, showPast = false, occurrence, occurrenceCount = 1 }:
           >
             {eventCategoryEmoji(event.category)} {translateToken('category_event', event.category)}
           </span>
+          {event.location_id && event.recurrence_label?.trim() && (
+            <RecurrenceStamp label={event.recurrence_label} category={event.category} />
+          )}
           {past && showPast && (
             <span
               style={{

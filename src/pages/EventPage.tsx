@@ -19,6 +19,8 @@ import { formatDateLong, localeOf } from '@/lib/formatDate';
 import { formatAgeRangeI18n } from '@/lib/ageFormat';
 import { CARTO_TILE_URL } from '@/lib/mapTiles';
 import { trackLinkClick } from '@/lib/trackLinkClick';
+import { useLocation as useLocationById } from '@/hooks/useLocations';
+import RecurrenceStamp from '@/components/RecurrenceStamp';
 
 const EventPage = () => {
   const { id } = useParams();
@@ -29,6 +31,12 @@ const EventPage = () => {
   const { data: occurrences = [] } = useOccurrencesForEvent(id ?? '');
   const { isFavorite, toggleFavorite } = useEventFavorites();
   const [selectedOccurrenceId, setSelectedOccurrenceId] = useState<string | null>(null);
+  // Lieu de l'onglet Explorer où se tient la sortie, quand elle y est rattachée.
+  // Le hook est désactivé tant qu'il n'y a pas d'id, donc rien n'est requêté sur
+  // une sortie ordinaire. Le statut est revérifié à l'affichage : le lien ne doit
+  // pas survivre à une dépublication du lieu, comme sur iOS et Android.
+  const { data: linkedLocation } = useLocationById(event?.location_id ?? '');
+  const linkedPublished = linkedLocation?.status === 'published' ? linkedLocation : null;
 
   const selectedOccurrence = useMemo(() => {
     if (occurrences.length === 0) return null;
@@ -193,6 +201,11 @@ const EventPage = () => {
                   <> → {formatDateLong(displayDateEnd)}</>
                 )}
               </div>
+              {event.location_id && event.recurrence_label?.trim() && (
+                <div style={{ marginTop: 6 }}>
+                  <RecurrenceStamp label={event.recurrence_label} category={event.category} compact={false} />
+                </div>
+              )}
               {displayTime && (
                 <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
                   🕐 {displayTime}
@@ -297,10 +310,43 @@ const EventPage = () => {
           <div style={{ fontFamily: 'Fraunces', fontSize: 17, fontWeight: 500, marginBottom: 8 }}>
             {t('event.location')}
           </div>
-          {event.address && (
-            <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>
-              {event.address}
-            </div>
+          {linkedPublished ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/location/${linkedPublished.id}`)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                width: '100%',
+                textAlign: 'left',
+                marginBottom: 8,
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)',
+                background: 'var(--surface)',
+                cursor: 'pointer',
+                fontFamily: 'DM Sans',
+              }}
+            >
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                  📍 {linkedPublished.name}
+                </span>
+                {(event.address ?? linkedPublished.address) && (
+                  <span style={{ display: 'block', fontSize: 13, color: 'var(--text-muted)' }}>
+                    {event.address ?? linkedPublished.address}
+                  </span>
+                )}
+              </span>
+              <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>›</span>
+            </button>
+          ) : (
+            event.address && (
+              <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>
+                {event.address}
+              </div>
+            )
           )}
           <div style={{ height: 200, borderRadius: 'var(--radius)', overflow: 'hidden', isolation: 'isolate' }}>
             <MapContainer
