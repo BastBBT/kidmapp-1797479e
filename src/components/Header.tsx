@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { LogOut, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
@@ -77,15 +77,6 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
             >
               {initial}
             </div>
-
-            <button
-              onClick={signOut}
-              className="p-2 rounded-full transition-colors hover:opacity-70"
-              style={{ color: 'var(--text-muted)' }}
-              title={t('common.logout')}
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </nav>
         </div>
 
