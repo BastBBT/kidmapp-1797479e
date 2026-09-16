@@ -20,6 +20,7 @@ import { useChildren } from '@/hooks/useChildren';
 import ChildrenPillBar from '@/components/ChildrenPillBar';
 import AgeBandCelebrationCard from '@/components/AgeBandCelebrationCard';
 import { useProfileSettings } from '@/hooks/useProfileSettings';
+import { translateToken } from '@/i18n/tokenMaps';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -403,7 +404,7 @@ const Index = () => {
           {isLoading ? t('common.loading') : foundLabel}
           {activeMeal && (
             <span style={{ marginLeft: 4 }}>
-              · {activeMeal.emoji} {activeMeal.label}
+              · {activeMeal.emoji} {translateToken('meal', activeMeal.label)}
             </span>
           )}
         </p>
