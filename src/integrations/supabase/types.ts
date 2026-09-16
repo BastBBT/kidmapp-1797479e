@@ -937,6 +937,8 @@ export type Database = {
           acquisition_detail: string | null
           acquisition_source: string | null
           acquisition_source_at: string | null
+          assistant_completions_count: number
+          assistant_opens_count: number
           coachmarks_outcome: string | null
           created_at: string
           digest_channel: string
@@ -961,6 +963,8 @@ export type Database = {
           acquisition_detail?: string | null
           acquisition_source?: string | null
           acquisition_source_at?: string | null
+          assistant_completions_count?: number
+          assistant_opens_count?: number
           coachmarks_outcome?: string | null
           created_at?: string
           digest_channel?: string
@@ -985,6 +989,8 @@ export type Database = {
           acquisition_detail?: string | null
           acquisition_source?: string | null
           acquisition_source_at?: string | null
+          assistant_completions_count?: number
+          assistant_opens_count?: number
           coachmarks_outcome?: string | null
           created_at?: string
           digest_channel?: string
@@ -1175,6 +1181,8 @@ export type Database = {
         Args: { record_id: string; record_type: string }
         Returns: undefined
       }
+      record_assistant_completed: { Args: never; Returns: undefined }
+      record_assistant_opened: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
