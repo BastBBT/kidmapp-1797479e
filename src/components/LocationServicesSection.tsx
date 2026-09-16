@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { MEAL_ICONS } from '@/assets/icons';
+import { translateToken } from '@/i18n/tokenMaps';
 
 type MealWithType = LocationMeal & { meal_types: MealType };
 
@@ -80,7 +81,7 @@ const MealRow = ({
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-            {meal.meal_types.label}
+            {translateToken('meal', meal.meal_types.label)}
           </div>
           {isVerified && (
             <span style={{

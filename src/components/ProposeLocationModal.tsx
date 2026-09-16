@@ -8,6 +8,7 @@ import { submitFailureText } from '@/lib/submitFailure';
 import { useAuth } from '@/hooks/useAuth';
 import { useMealTypes } from '@/hooks/useMeals';
 import { MEAL_ICONS, EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
+import { translateToken } from '@/i18n/tokenMaps';
 
 import { DURATIONS, WEATHERS, EFFORTS, PRICES } from '@/lib/activity';
 import { isActivity } from '@/types/location';
@@ -551,7 +552,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-                              {mt.label}
+                              {translateToken('meal', mt.label)}
                             </div>
                             {mt.default_time_start && mt.default_time_end && (
                               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
