@@ -7,13 +7,11 @@ import LocationCard from '@/components/LocationCard';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
 import { useCoachmarks } from '@/hooks/useCoachmarks';
-import { hasSeenCoachmarks } from '@/lib/onboardingTracker';
 import MealFilter from '@/components/MealFilter';
 import AgeFilter from '@/components/AgeFilter';
 import ActivityFilter from '@/components/ActivityFilter';
 import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 import Assistant, { AssistantOutcome } from '@/components/Assistant';
-import { shouldShowAssistant, markAssistantShown } from '@/lib/assistantSchedule';
 
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
