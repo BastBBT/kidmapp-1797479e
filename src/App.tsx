@@ -95,87 +95,13 @@ const AcquisitionOverlay = () => {
   return <AcquisitionModal open={show} onClose={() => setShow(false)} />;
 };
 
-const OnboardingOverlay = ({
-  onVisibilityChange,
-}: {
-  onVisibilityChange: (visible: boolean) => void;
-}) => {
-  const { user, isLoading } = useAuth();
-  const { openAuth } = useRequireAuth();
-  const location = useLocation();
-  const [show, setShow] = useState(false);
-  // Le destinataire type d'un lien /semaine/<token> ou /nouveaux-lieux/<token>
-  // arrive depuis un email, souvent sur un navigateur qui n'a jamais ouvert
-  // kidmapp.app (donc sans le flag localStorage) — sans cette exclusion, le
-  // carrousel plein écran recouvrirait la sélection qu'il vient justement de
-  // venir consulter.
-  const isDigestLanding =
-    location.pathname.startsWith('/semaine/') || location.pathname.startsWith('/nouveaux-lieux/');
-
-  useEffect(() => {
-    if (isLoading || user || isDigestLanding) return;
-    try {
-      if (!localStorage.getItem(ONBOARDING_KEY)) setShow(true);
-    } catch {
-      // ignore
-    }
-  }, [isLoading, user, isDigestLanding]);
-
-  const visible = show && !user && !isDigestLanding;
-  useEffect(() => {
-    onVisibilityChange(visible);
-  }, [visible, onVisibilityChange]);
-
-  if (!visible) return null;
-
-  return (
-    <Onboarding
-      onFinish={(mode) => {
-        setShow(false);
-        if (mode === 'browse') return;
-        openAuth(mode);
-      }}
-    />
-  );
-};
-
 /**
- * Lance la visite guidée dès qu'aucun accueil plein écran ne la recouvre, et
- * pousse les compteurs accumulés avant l'auth à la première session connectée.
- *
- * Les bulles se jouent pour TOUT LE MONDE une fois : un visiteur déjà installé
- * n'a jamais vu l'onglet Sorties présenté ni l'invitation à contribuer, et ça
- * garantit un `coachmarks_outcome` renseigné pour tous les comptes.
+ * L'accueil plein écran (carrousel) et la visite guidée (bulles) ont été
+ * retirés du site web : trop d'étapes avant d'accéder au contenu pour un
+ * visiteur arrivant d'Instagram. Les composants `Onboarding` et `Coachmarks`
+ * restent dans le dépôt, l'équivalent est géré à part dans les apps iOS/Android.
  */
-const CoachmarkStarter = ({ onboardingVisible }: { onboardingVisible: boolean }) => {
-  const { start } = useCoachmarks();
-  const { user, isLoading } = useAuth();
-  const location = useLocation();
 
-  // La visite guidée ne vit que sur Explorer : ses trois premières cibles sont
-  // dans l'en-tête et la barre du bas de cet écran, et la dernière étape passe
-  // par l'ouverture d'une fiche pilotée depuis Explorer. Ailleurs (fiche lieu
-  // ouverte depuis un lien, onglet Sorties, page compte, e-mails…), la bulle
-  // n'aurait rien à désigner et la visite resterait bloquée.
-  const isExplore = location.pathname === '/';
-
-  useEffect(() => {
-    // On attend aussi la résolution de la session : tant qu'elle charge, on ne
-    // sait pas encore si l'accueil plein écran va s'afficher par-dessus.
-    if (isLoading || onboardingVisible || !isExplore) return;
-    // Un temps de latence pour que la mise en page se stabilise : un halo mesuré
-    // trop tôt vise à côté.
-    const id = window.setTimeout(start, 800);
-    return () => window.clearTimeout(id);
-  }, [isLoading, onboardingVisible, isExplore, start]);
-
-  useEffect(() => {
-    if (isLoading || !user) return;
-    void flushOnboardingStats(user.id);
-  }, [isLoading, user]);
-
-  return null;
-};
 
 /**
  * Ouvre la modale « Proposer » depuis un lien externe (bouton d'email :
