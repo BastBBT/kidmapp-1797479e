@@ -160,20 +160,10 @@ const Index = () => {
     }
   }, [showActivityFilter, selectedWeather, selectedDuration]);
 
-  // L'assistant s'ouvre au premier passage de la journée, et jamais par-dessus
-  // la visite guidée (ni avant elle : `hasSeenCoachmarks()` ne devient vrai
-  // qu'à sa fin). Un court délai laisse la mise en page se stabiliser — miroir
-  // du piège iOS où un plein écran demandé trop tôt est ignoré sans erreur.
-  useEffect(() => {
-    if (coachmarkStep !== null) return;
-    if (!hasSeenCoachmarks()) return;
-    if (!shouldShowAssistant()) return;
-    const id = window.setTimeout(() => {
-      markAssistantShown();
-      setAssistantOpen(true);
-    }, 300);
-    return () => window.clearTimeout(id);
-  }, [coachmarkStep]);
+  // L'assistant ne s'ouvre plus automatiquement après l'accueil : trop de
+  // clics avant d'atteindre le contenu. Il reste accessible via le bouton
+  // mascotte de l'en-tête, à la demande du parent.
+  useEffect(() => {}, []);
 
   // Applique ce que l'assistant rapporte. Rien n'est posé si le parent sort
   // par la 4e carte — `finish` (Assistant.tsx) n'appelle `onFinish` que si les
