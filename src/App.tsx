@@ -140,8 +140,6 @@ const ProposeDeepLinkHandler = () => {
 const AppContent = () => {
   usePageviewTracker();
   const { isOpen: isProposalOpen, mode: proposalMode, close: closeProposal } = useProposalModal();
-  // La visite guidée ne démarre pas sous le carrousel d'accueil.
-  const [onboardingVisible, setOnboardingVisible] = useState(false);
   const locationModalOpen = isProposalOpen && (proposalMode === 'location' || proposalMode === 'activity');
   const initialCategory = proposalMode === 'activity' ? 'nature' : 'restaurant';
   return (
