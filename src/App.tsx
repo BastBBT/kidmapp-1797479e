@@ -42,7 +42,7 @@ const queryClient = new QueryClient({
     },
   },
 });
-const ONBOARDING_KEY = 'kidmapp_hasSeenOnboarding';
+
 const ACQUISITION_FLAG = 'hasAnsweredAcquisition';
 
 const AcquisitionOverlay = () => {
