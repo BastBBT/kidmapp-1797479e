@@ -21,8 +21,6 @@ import NotFound from "./pages/NotFound";
 import AuthGate from "./components/AuthGate";
 import IosAppBanner from "./components/IosAppBanner";
 import BottomNav from "./components/BottomNav";
-import Onboarding from "./components/Onboarding";
-import Coachmarks from "./components/Coachmarks";
 import AcquisitionModal from "./components/AcquisitionModal";
 import ProposeLocationModal from "./components/ProposeLocationModal";
 import ProposeEventModal from "./components/ProposeEventModal";
