@@ -7,13 +7,11 @@ import LocationCard from '@/components/LocationCard';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
 import { useCoachmarks } from '@/hooks/useCoachmarks';
-import { hasSeenCoachmarks } from '@/lib/onboardingTracker';
 import MealFilter from '@/components/MealFilter';
 import AgeFilter from '@/components/AgeFilter';
 import ActivityFilter from '@/components/ActivityFilter';
 import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 import Assistant, { AssistantOutcome } from '@/components/Assistant';
-import { shouldShowAssistant, markAssistantShown } from '@/lib/assistantSchedule';
 
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
@@ -160,20 +158,6 @@ const Index = () => {
     }
   }, [showActivityFilter, selectedWeather, selectedDuration]);
 
-  // L'assistant s'ouvre au premier passage de la journée, et jamais par-dessus
-  // la visite guidée (ni avant elle : `hasSeenCoachmarks()` ne devient vrai
-  // qu'à sa fin). Un court délai laisse la mise en page se stabiliser — miroir
-  // du piège iOS où un plein écran demandé trop tôt est ignoré sans erreur.
-  useEffect(() => {
-    if (coachmarkStep !== null) return;
-    if (!hasSeenCoachmarks()) return;
-    if (!shouldShowAssistant()) return;
-    const id = window.setTimeout(() => {
-      markAssistantShown();
-      setAssistantOpen(true);
-    }, 300);
-    return () => window.clearTimeout(id);
-  }, [coachmarkStep]);
 
   // Applique ce que l'assistant rapporte. Rien n'est posé si le parent sort
   // par la 4e carte — `finish` (Assistant.tsx) n'appelle `onFinish` que si les
