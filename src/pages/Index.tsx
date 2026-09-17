@@ -135,8 +135,15 @@ const Index = () => {
   const { data: mealTypes = [] } = useMealTypes();
   const { data: locationMeals = [] } = useAllLocationMeals();
 
-  const showMealFilter = MEAL_CATEGORIES.has(selectedCategory);
-  const showActivityFilter = isActivity(selectedCategory);
+  // Sur « Tout », le groupe actif suffit à savoir quelle barre a du sens : les
+  // Lieux couvrent restaurants et cafés (donc les repas), les Activités la météo
+  // et la durée. Sans ça, l'assistant — qui laisse la catégorie sur « Tout » pour
+  // « Manger dehors » et « Occuper les enfants » — voyait sa 3e réponse effacée
+  // aussitôt par les remises à zéro ci-dessous.
+  const showMealFilter =
+    MEAL_CATEGORIES.has(selectedCategory) || (selectedCategory === 'all' && selectedGroup === 'places');
+  const showActivityFilter =
+    isActivity(selectedCategory) || (selectedCategory === 'all' && selectedGroup === 'activities');
 
   // Reset meal filter when switching to a non-meal category
   useEffect(() => {
