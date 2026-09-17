@@ -160,10 +160,6 @@ const Index = () => {
     }
   }, [showActivityFilter, selectedWeather, selectedDuration]);
 
-  // L'assistant ne s'ouvre plus automatiquement après l'accueil : trop de
-  // clics avant d'atteindre le contenu. Il reste accessible via le bouton
-  // mascotte de l'en-tête, à la demande du parent.
-  useEffect(() => {}, []);
 
   // Applique ce que l'assistant rapporte. Rien n'est posé si le parent sort
   // par la 4e carte — `finish` (Assistant.tsx) n'appelle `onFinish` que si les
