@@ -259,9 +259,10 @@ const AppContent = () => {
       </Routes>
       <BottomNav />
       <ProposeDeepLinkHandler />
-      <OnboardingOverlay onVisibilityChange={setOnboardingVisible} />
-      <CoachmarkStarter onboardingVisible={onboardingVisible} />
-      <Coachmarks />
+      {/* Accueil plein écran et visite guidée retirés du site web (trop d'étapes
+          avant le contenu pour un visiteur venu d'Instagram). Conservés dans le
+          code pour les apps iOS/Android, gérées à part. */}
+
       <AcquisitionOverlay />
       <ChildrenCaptureHookSheet />
       <ChildrenCaptureFlow />
