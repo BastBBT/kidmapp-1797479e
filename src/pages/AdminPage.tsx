@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { categoryLabels, categoryIcons, PLACE_CATEGORIES, ACTIVITY_CATEGORIES, isActivity } from '@/types/location';
+import { CATEGORY_ICONS } from '@/assets/icons';
 import { DURATIONS, WEATHERS, EFFORTS, PRICES } from '@/lib/activity';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
@@ -1024,6 +1025,38 @@ const AdminPage = () => {
                         }}
                       >
                         {o.label} ({groupCounts[o.key]})
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+            {(() => {
+              const cats: string[] = groupFilter === 'activities' ? [...ACTIVITY_CATEGORIES] : [...PLACE_CATEGORIES];
+              const catOptions: { key: string | null; label: string; icon?: string }[] = [
+                { key: null, label: 'Toutes' },
+                ...cats.map((c) => ({ key: c, label: categoryLabels[c as keyof typeof categoryLabels] ?? c, icon: CATEGORY_ICONS[c] })),
+              ];
+              return (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {catOptions.map((o) => {
+                    const active = categoryFilter === o.key;
+                    const count = o.key === null ? byGroup.length : byGroup.filter((l) => l.category === o.key).length;
+                    return (
+                      <button
+                        key={o.key ?? 'all'}
+                        onClick={() => setCategoryFilter(active ? null : o.key)}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          padding: '5px 12px', borderRadius: 100, fontSize: 12, fontWeight: 600,
+                          border: active ? '1.5px solid var(--secondary)' : '1.5px solid var(--border)',
+                          background: active ? 'var(--secondary)' : 'transparent',
+                          color: active ? 'white' : 'var(--text-muted)',
+                          fontFamily: 'DM Sans', cursor: 'pointer',
+                        }}
+                      >
+                        {o.icon && <img src={o.icon} alt="" style={{ width: 13, height: 13, objectFit: 'contain' }} />}
+                        {o.label} ({count})
                       </button>
                     );
                   })}
