@@ -42,7 +42,7 @@ const getMarkerIcon = (category: string, isSelected: boolean) => {
   const size = isSelected ? 48 : 40;
   const iconSize = isSelected ? 26 : 24;
   const assetUrl = CATEGORY_ICONS[category] ?? CATEGORY_ICONS.restaurant;
-  return L.divIcon({
+  const icon = L.divIcon({
     className: '',
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
