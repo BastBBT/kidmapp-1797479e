@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Location } from '@/types/location';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import { EQUIP_ICONS, EquipKey, CATEGORY_ICONS } from '@/assets/icons';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 import { CARTO_TILE_URL, CARTO_ATTRIBUTION } from '@/lib/mapTiles';
@@ -288,4 +288,6 @@ const MapView = ({ locations, selectedId, initialCenter, initialZoom, onViewChan
   );
 };
 
-export default MapView;
+// Mémoïsé : la page Explorer se rend à chaque frappe, filtre ou mise à jour
+// d'URL ; sans ça, la carte et ses 250+ marqueurs étaient reconstruits à chaque fois.
+export default memo(MapView);
