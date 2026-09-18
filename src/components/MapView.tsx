@@ -140,9 +140,12 @@ function ViewChangeReporter({ onViewChange }: { onViewChange?: (center: [number,
 
 function FlyToSelected({ location }: { location?: Location }) {
   const map = useMap();
-  if (location) {
+  // Effet de bord : appelé pendant le rendu, `flyTo` repartait à chaque rendu
+  // du parent et relançait une animation de carte au mauvais moment.
+  useEffect(() => {
+    if (!location) return;
     map.flyTo([location.lat, location.lng], 15, { duration: 0.5 });
-  }
+  }, [map, location?.id, location?.lat, location?.lng]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 
