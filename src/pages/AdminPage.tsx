@@ -1116,6 +1116,7 @@ const AdminPage = () => {
             {(() => {
               const filtered = byGroup
                 .filter((loc) => statusFilter === 'all' || loc.status === statusFilter)
+                .filter((loc) => !categoryFilter || loc.category === categoryFilter)
                 .filter((loc) =>
                   matchSearch(searchLocations, loc.name, loc.address, (loc as any).website)
                 )
