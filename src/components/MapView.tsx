@@ -17,7 +17,14 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
+// Les icônes ne dépendent que de la catégorie et de l'état sélectionné : on les
+// garde en cache plutôt que d'en recréer une par marqueur à chaque rendu.
+const iconCache = new Map<string, L.DivIcon>();
+
 const getMarkerIcon = (category: string, isSelected: boolean) => {
+  const cacheKey = `${category}|${isSelected}`;
+  const cached = iconCache.get(cacheKey);
+  if (cached) return cached;
   const configs: Record<string, { bg: string; border: string; stroke: string }> = {
     restaurant: { bg: '#FAF0EC', border: '#F0C4B4', stroke: '#D95F3B' },
     cafe:       { bg: '#EBF4F2', border: '#C8E0DC', stroke: '#3B7D6E' },
