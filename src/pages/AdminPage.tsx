@@ -238,6 +238,7 @@ const AdminPage = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'unpublished' | 'pending'>('published');
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'name'>('recent');
   const [groupFilter, setGroupFilter] = useState<'all' | 'places' | 'activities'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [searchContributions, setSearchContributions] = useState('');
   const [contributionsDateRange, setContributionsDateRange] = useState<DateRange | undefined>(undefined);
   const [contributionsStatusFilter, setContributionsStatusFilter] = useState<ReviewStatus>('all');
@@ -1013,7 +1014,7 @@ const AdminPage = () => {
                     return (
                       <button
                         key={o.key}
-                        onClick={() => setGroupFilter(o.key)}
+                        onClick={() => { setGroupFilter(o.key); setCategoryFilter(null); }}
                         style={{
                           padding: '5px 12px', borderRadius: 100, fontSize: 12, fontWeight: 600,
                           border: active ? '1.5px solid var(--secondary)' : '1.5px solid var(--border)',
