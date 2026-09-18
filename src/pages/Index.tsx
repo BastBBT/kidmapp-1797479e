@@ -225,10 +225,23 @@ const Index = () => {
     else window.localStorage.setItem(AGE_BAND_KEY, selectedAge);
   }, [selectedAge]);
 
+  // Chaque `moveend`/`zoomend` écrivait l'URL, donc un rendu complet de la page
+  // et de la carte pendant que le doigt bouge : on garde la position tout de
+  // suite en mémoire, et l'URL n'est mise à jour qu'une fois le geste terminé.
+  const urlSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const updateUrlRef = useRef(updateUrl);
+  updateUrlRef.current = updateUrl;
+  useEffect(() => () => {
+    if (urlSyncTimer.current) clearTimeout(urlSyncTimer.current);
+  }, []);
+
   const handleMapViewChange = useCallback((center: [number, number], zoom: number) => {
     mapViewRef.current = { center, zoom };
-    updateUrl({ lat: center[0], lng: center[1], zoom });
-  }, [updateUrl]);
+    if (urlSyncTimer.current) clearTimeout(urlSyncTimer.current);
+    urlSyncTimer.current = setTimeout(() => {
+      updateUrlRef.current({ lat: center[0], lng: center[1], zoom });
+    }, 500);
+  }, []);
 
   // Map: locationId -> meal_type_ids[]
   const mealsByLocation = useMemo(() => {
