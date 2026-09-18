@@ -189,6 +189,75 @@ const MapView = ({ locations, selectedId, initialCenter, initialZoom, onViewChan
   const markers = useMemo(() => locations.map((loc) => {
     const colors = MARKER_COLORS[loc.category] || MARKER_COLORS.restaurant;
     return (
+      <Marker
+        key={loc.id}
+        position={[loc.lat, loc.lng]}
+        icon={getMarkerIcon(loc.category, loc.id === selectedId)}
+        eventHandlers={{
+          click: () => navigate(`/location/${loc.id}`),
+        }}
+      >
+        <Popup>
+          <div style={{
+            fontFamily: "'Nunito', sans-serif",
+            width: '220px',
+            margin: '-12px -20px',
+          }}>
+            {loc.photo && (
+              <img
+                src={supabaseResized(loc.photo, { width: 440, height: 220, quality: 75 })}
+                onError={onResizedImageError(loc.photo)}
+                alt={loc.name}
+                loading="lazy"
+                style={{
+                  width: '100%', height: '110px',
+                  objectFit: 'cover',
+                  borderRadius: '12px 12px 0 0',
+                }}
+              />
+            )}
+            <div style={{ padding: '10px 14px 12px' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                marginBottom: '4px',
+              }}>
+                <span style={{
+                  fontSize: '10px', fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.5px',
+                  color: colors.stroke,
+                }}>
+                  {categoryLabels[loc.category] || loc.category}
+                </span>
+              </div>
+              <div style={{
+                fontSize: '14px', fontWeight: 800,
+                color: 'hsl(20 25% 15%)', lineHeight: 1.3,
+                marginBottom: '2px',
+              }}>
+                {loc.name}
+              </div>
+              {loc.address && (
+                <div style={{
+                  fontSize: '11px', color: 'hsl(20 10% 50%)',
+                  marginBottom: '8px',
+                }}>
+                  {loc.address}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                <CriterionDot active={loc.high_chair} label="Chaise" equipKey="high_chair" />
+                <CriterionDot active={loc.changing_table} label="Change" equipKey="changing_table" />
+                <CriterionDot active={loc.kids_area} label="Jeux" equipKey="kids_area" />
+                <CriterionDot active={(loc as any).kids_menu} label="Menu" equipKey="kids_menu" />
+              </div>
+            </div>
+          </div>
+        </Popup>
+      </Marker>
+    );
+  }), [locations, selectedId, navigate]);
+
+  return (
     <div className="w-full h-full rounded-2xl overflow-hidden" style={{ minHeight: '400px' }}>
       <MapContainer
         center={center}
@@ -212,84 +281,7 @@ const MapView = ({ locations, selectedId, initialCenter, initialZoom, onViewChan
           animate
           animateAddingMarkers
         >
-          {locations.map((loc) => {
-            const markerColors: Record<string, { stroke: string }> = {
-              restaurant: { stroke: '#D95F3B' },
-              cafe: { stroke: '#3B7D6E' },
-              shop: { stroke: '#C49A35' },
-              public: { stroke: '#5A9A56' },
-              coiffeur: { stroke: '#9B59B6' },
-              librairie: { stroke: '#4A55A2' },
-            };
-            const colors = markerColors[loc.category] || markerColors.restaurant;
-            return (
-              <Marker
-                key={loc.id}
-                position={[loc.lat, loc.lng]}
-                icon={getMarkerIcon(loc.category, loc.id === selectedId)}
-                eventHandlers={{
-                  click: () => navigate(`/location/${loc.id}`),
-                }}
-              >
-                <Popup>
-                  <div style={{
-                    fontFamily: "'Nunito', sans-serif",
-                    width: '220px',
-                    margin: '-12px -20px',
-                  }}>
-                    {loc.photo && (
-                      <img
-                        src={supabaseResized(loc.photo, { width: 440, height: 220, quality: 75 })}
-                        onError={onResizedImageError(loc.photo)}
-                        alt={loc.name}
-                        loading="lazy"
-                        style={{
-                          width: '100%', height: '110px',
-                          objectFit: 'cover',
-                          borderRadius: '12px 12px 0 0',
-                        }}
-                      />
-                    )}
-                    <div style={{ padding: '10px 14px 12px' }}>
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: '6px',
-                        marginBottom: '4px',
-                      }}>
-                        <span style={{
-                          fontSize: '10px', fontWeight: 700,
-                          textTransform: 'uppercase', letterSpacing: '0.5px',
-                          color: colors.stroke,
-                        }}>
-                          {categoryLabels[loc.category] || loc.category}
-                        </span>
-                      </div>
-                      <div style={{
-                        fontSize: '14px', fontWeight: 800,
-                        color: 'hsl(20 25% 15%)', lineHeight: 1.3,
-                        marginBottom: '2px',
-                      }}>
-                        {loc.name}
-                      </div>
-                      {loc.address && (
-                        <div style={{
-                          fontSize: '11px', color: 'hsl(20 10% 50%)',
-                          marginBottom: '8px',
-                        }}>
-                          {loc.address}
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                        <CriterionDot active={loc.high_chair} label="Chaise" equipKey="high_chair" />
-                        <CriterionDot active={loc.changing_table} label="Change" equipKey="changing_table" />
-                        <CriterionDot active={loc.kids_area} label="Jeux" equipKey="kids_area" />
-                        <CriterionDot active={(loc as any).kids_menu} label="Menu" equipKey="kids_menu" />
-                      </div>
-                    </div>
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+          {markers}
         </MarkerClusterGroup>
       </MapContainer>
     </div>
