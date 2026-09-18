@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Location } from '@/types/location';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import { EQUIP_ICONS, EquipKey, CATEGORY_ICONS } from '@/assets/icons';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 import { CARTO_TILE_URL, CARTO_ATTRIBUTION } from '@/lib/mapTiles';
@@ -17,7 +17,14 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
+// Les icônes ne dépendent que de la catégorie et de l'état sélectionné : on les
+// garde en cache plutôt que d'en recréer une par marqueur à chaque rendu.
+const iconCache = new Map<string, L.DivIcon>();
+
 const getMarkerIcon = (category: string, isSelected: boolean) => {
+  const cacheKey = `${category}|${isSelected}`;
+  const cached = iconCache.get(cacheKey);
+  if (cached) return cached;
   const configs: Record<string, { bg: string; border: string; stroke: string }> = {
     restaurant: { bg: '#FAF0EC', border: '#F0C4B4', stroke: '#D95F3B' },
     cafe:       { bg: '#EBF4F2', border: '#C8E0DC', stroke: '#3B7D6E' },
@@ -35,7 +42,7 @@ const getMarkerIcon = (category: string, isSelected: boolean) => {
   const size = isSelected ? 48 : 40;
   const iconSize = isSelected ? 26 : 24;
   const assetUrl = CATEGORY_ICONS[category] ?? CATEGORY_ICONS.restaurant;
-  return L.divIcon({
+  const icon = L.divIcon({
     className: '',
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
@@ -53,6 +60,8 @@ const getMarkerIcon = (category: string, isSelected: boolean) => {
       "><img src="${assetUrl}" alt="" style="width:${iconSize}px;height:${iconSize}px;object-fit:contain;" /></div>
     `
   });
+  iconCache.set(cacheKey, icon);
+  return icon;
 };
 
 const createClusterCustomIcon = (cluster: any) => {
@@ -131,9 +140,12 @@ function ViewChangeReporter({ onViewChange }: { onViewChange?: (center: [number,
 
 function FlyToSelected({ location }: { location?: Location }) {
   const map = useMap();
-  if (location) {
+  // Effet de bord : appelé pendant le rendu, `flyTo` repartait à chaque rendu
+  // du parent et relançait une animation de carte au mauvais moment.
+  useEffect(() => {
+    if (!location) return;
     map.flyTo([location.lat, location.lng], 15, { duration: 0.5 });
-  }
+  }, [map, location?.id, location?.lat, location?.lng]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 
@@ -157,11 +169,93 @@ const CriterionDot = ({ active, label, equipKey }: { active: boolean; label: str
   );
 };
 
+const MARKER_COLORS: Record<string, { stroke: string }> = {
+  restaurant: { stroke: '#D95F3B' },
+  cafe: { stroke: '#3B7D6E' },
+  shop: { stroke: '#C49A35' },
+  public: { stroke: '#5A9A56' },
+  coiffeur: { stroke: '#9B59B6' },
+  librairie: { stroke: '#4A55A2' },
+};
+
 const MapView = ({ locations, selectedId, initialCenter, initialZoom, onViewChange }: MapViewProps) => {
   const navigate = useNavigate();
   const selectedLocation = locations.find(l => l.id === selectedId);
   const center = initialCenter ?? NANTES_CENTER;
   const zoom = initialZoom ?? DEFAULT_ZOOM;
+
+  // 250+ marqueurs, chacun avec sa bulle : sans mémoïsation tout l'arbre est
+  // reconstruit à chaque rendu du parent (frappe, filtre, mise à jour d'URL).
+  const markers = useMemo(() => locations.map((loc) => {
+    const colors = MARKER_COLORS[loc.category] || MARKER_COLORS.restaurant;
+    return (
+      <Marker
+        key={loc.id}
+        position={[loc.lat, loc.lng]}
+        icon={getMarkerIcon(loc.category, loc.id === selectedId)}
+        eventHandlers={{
+          click: () => navigate(`/location/${loc.id}`),
+        }}
+      >
+        <Popup>
+          <div style={{
+            fontFamily: "'Nunito', sans-serif",
+            width: '220px',
+            margin: '-12px -20px',
+          }}>
+            {loc.photo && (
+              <img
+                src={supabaseResized(loc.photo, { width: 440, height: 220, quality: 75 })}
+                onError={onResizedImageError(loc.photo)}
+                alt={loc.name}
+                loading="lazy"
+                style={{
+                  width: '100%', height: '110px',
+                  objectFit: 'cover',
+                  borderRadius: '12px 12px 0 0',
+                }}
+              />
+            )}
+            <div style={{ padding: '10px 14px 12px' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                marginBottom: '4px',
+              }}>
+                <span style={{
+                  fontSize: '10px', fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.5px',
+                  color: colors.stroke,
+                }}>
+                  {categoryLabels[loc.category] || loc.category}
+                </span>
+              </div>
+              <div style={{
+                fontSize: '14px', fontWeight: 800,
+                color: 'hsl(20 25% 15%)', lineHeight: 1.3,
+                marginBottom: '2px',
+              }}>
+                {loc.name}
+              </div>
+              {loc.address && (
+                <div style={{
+                  fontSize: '11px', color: 'hsl(20 10% 50%)',
+                  marginBottom: '8px',
+                }}>
+                  {loc.address}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                <CriterionDot active={loc.high_chair} label="Chaise" equipKey="high_chair" />
+                <CriterionDot active={loc.changing_table} label="Change" equipKey="changing_table" />
+                <CriterionDot active={loc.kids_area} label="Jeux" equipKey="kids_area" />
+                <CriterionDot active={(loc as any).kids_menu} label="Menu" equipKey="kids_menu" />
+              </div>
+            </div>
+          </div>
+        </Popup>
+      </Marker>
+    );
+  }), [locations, selectedId, navigate]);
 
   return (
     <div className="w-full h-full rounded-2xl overflow-hidden" style={{ minHeight: '400px' }}>
@@ -187,88 +281,13 @@ const MapView = ({ locations, selectedId, initialCenter, initialZoom, onViewChan
           animate
           animateAddingMarkers
         >
-          {locations.map((loc) => {
-            const markerColors: Record<string, { stroke: string }> = {
-              restaurant: { stroke: '#D95F3B' },
-              cafe: { stroke: '#3B7D6E' },
-              shop: { stroke: '#C49A35' },
-              public: { stroke: '#5A9A56' },
-              coiffeur: { stroke: '#9B59B6' },
-              librairie: { stroke: '#4A55A2' },
-            };
-            const colors = markerColors[loc.category] || markerColors.restaurant;
-            return (
-              <Marker
-                key={loc.id}
-                position={[loc.lat, loc.lng]}
-                icon={getMarkerIcon(loc.category, loc.id === selectedId)}
-                eventHandlers={{
-                  click: () => navigate(`/location/${loc.id}`),
-                }}
-              >
-                <Popup>
-                  <div style={{
-                    fontFamily: "'Nunito', sans-serif",
-                    width: '220px',
-                    margin: '-12px -20px',
-                  }}>
-                    {loc.photo && (
-                      <img
-                        src={supabaseResized(loc.photo, { width: 440, height: 220, quality: 75 })}
-                        onError={onResizedImageError(loc.photo)}
-                        alt={loc.name}
-                        loading="lazy"
-                        style={{
-                          width: '100%', height: '110px',
-                          objectFit: 'cover',
-                          borderRadius: '12px 12px 0 0',
-                        }}
-                      />
-                    )}
-                    <div style={{ padding: '10px 14px 12px' }}>
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: '6px',
-                        marginBottom: '4px',
-                      }}>
-                        <span style={{
-                          fontSize: '10px', fontWeight: 700,
-                          textTransform: 'uppercase', letterSpacing: '0.5px',
-                          color: colors.stroke,
-                        }}>
-                          {categoryLabels[loc.category] || loc.category}
-                        </span>
-                      </div>
-                      <div style={{
-                        fontSize: '14px', fontWeight: 800,
-                        color: 'hsl(20 25% 15%)', lineHeight: 1.3,
-                        marginBottom: '2px',
-                      }}>
-                        {loc.name}
-                      </div>
-                      {loc.address && (
-                        <div style={{
-                          fontSize: '11px', color: 'hsl(20 10% 50%)',
-                          marginBottom: '8px',
-                        }}>
-                          {loc.address}
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                        <CriterionDot active={loc.high_chair} label="Chaise" equipKey="high_chair" />
-                        <CriterionDot active={loc.changing_table} label="Change" equipKey="changing_table" />
-                        <CriterionDot active={loc.kids_area} label="Jeux" equipKey="kids_area" />
-                        <CriterionDot active={(loc as any).kids_menu} label="Menu" equipKey="kids_menu" />
-                      </div>
-                    </div>
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+          {markers}
         </MarkerClusterGroup>
       </MapContainer>
     </div>
   );
 };
 
-export default MapView;
+// Mémoïsé : la page Explorer se rend à chaque frappe, filtre ou mise à jour
+// d'URL ; sans ça, la carte et ses 250+ marqueurs étaient reconstruits à chaque fois.
+export default memo(MapView);

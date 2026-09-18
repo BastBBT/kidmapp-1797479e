@@ -101,7 +101,10 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBuckets = EMPTY_BU
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.3 }}
+      // Délai plafonné : avec 250+ cartes, `index * 0.05` faisait démarrer la
+      // dernière apparition 13 s après l'ouverture, laissant le téléphone animer
+      // en continu et avaler les premiers appuis.
+      transition={{ delay: Math.min(index, 8) * 0.04, duration: 0.3 }}
       className="overflow-hidden cursor-pointer"
       style={{
         borderRadius: 'var(--radius)',
