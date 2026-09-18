@@ -60,6 +60,8 @@ const getMarkerIcon = (category: string, isSelected: boolean) => {
       "><img src="${assetUrl}" alt="" style="width:${iconSize}px;height:${iconSize}px;object-fit:contain;" /></div>
     `
   });
+  iconCache.set(cacheKey, icon);
+  return icon;
 };
 
 const createClusterCustomIcon = (cluster: any) => {
