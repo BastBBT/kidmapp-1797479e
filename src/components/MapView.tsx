@@ -169,13 +169,26 @@ const CriterionDot = ({ active, label, equipKey }: { active: boolean; label: str
   );
 };
 
+const MARKER_COLORS: Record<string, { stroke: string }> = {
+  restaurant: { stroke: '#D95F3B' },
+  cafe: { stroke: '#3B7D6E' },
+  shop: { stroke: '#C49A35' },
+  public: { stroke: '#5A9A56' },
+  coiffeur: { stroke: '#9B59B6' },
+  librairie: { stroke: '#4A55A2' },
+};
+
 const MapView = ({ locations, selectedId, initialCenter, initialZoom, onViewChange }: MapViewProps) => {
   const navigate = useNavigate();
   const selectedLocation = locations.find(l => l.id === selectedId);
   const center = initialCenter ?? NANTES_CENTER;
   const zoom = initialZoom ?? DEFAULT_ZOOM;
 
-  return (
+  // 250+ marqueurs, chacun avec sa bulle : sans mémoïsation tout l'arbre est
+  // reconstruit à chaque rendu du parent (frappe, filtre, mise à jour d'URL).
+  const markers = useMemo(() => locations.map((loc) => {
+    const colors = MARKER_COLORS[loc.category] || MARKER_COLORS.restaurant;
+    return (
     <div className="w-full h-full rounded-2xl overflow-hidden" style={{ minHeight: '400px' }}>
       <MapContainer
         center={center}
