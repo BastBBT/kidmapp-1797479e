@@ -1032,7 +1032,7 @@ const AdminPage = () => {
               );
             })()}
             {(() => {
-              const cats: string[] = groupFilter === 'activities' ? [...ACTIVITY_CATEGORIES] : [...PLACE_CATEGORIES];
+              const cats: string[] = groupFilter === 'activities' ? [...ACTIVITY_CATEGORIES] : groupFilter === 'places' ? [...PLACE_CATEGORIES] : [...PLACE_CATEGORIES, ...ACTIVITY_CATEGORIES];
               const catOptions: { key: string | null; label: string; icon?: string }[] = [
                 { key: null, label: 'Toutes' },
                 ...cats.map((c) => ({ key: c, label: categoryLabels[c as keyof typeof categoryLabels] ?? c, icon: CATEGORY_ICONS[c] })),
