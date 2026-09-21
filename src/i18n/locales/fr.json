@@ -528,6 +528,7 @@
   },
   "assistant": {
     "open": "Ouvrir l'assistant",
+    "coup_de_main": "Un coup de main ?",
     "step_1": "QUESTION 1 SUR 3",
     "step_2": "QUESTION 2 SUR 3",
     "step_3": "QUESTION 3 SUR 3",

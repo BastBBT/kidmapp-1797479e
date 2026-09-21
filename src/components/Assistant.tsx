@@ -96,12 +96,19 @@ const ChoiceCard = ({ emoji, title, subtitle, onClick }: ChoiceCardProps) => (
  * Miroir de `AssistantView` (iOS) / `AssistantScreen` (Android) : mêmes trois
  * questions, mêmes libellés, même arbre de décision.
  */
+// Distance à parcourir vers le bas pour que le relâchement ferme l'écran,
+// plutôt que d'y revenir — assez long pour ne jamais confondre un simple
+// scroll de la liste avec une intention de fermer.
+const DISMISS_DRAG_THRESHOLD = 140;
+
 const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: AssistantProps) => {
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>('need');
   const [need, setNeed] = useState<Need | null>(null);
   const [ageBucket, setAgeBucket] = useState<Exclude<AgeBucket, 'all'> | null>(null);
   const [childSelection, setChildSelection] = useState<ChildFilterSelection | null>(null);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const [dragDownOffset, setDragDownOffset] = useState(0);
 
   useEffect(() => {
     if (!open) return;
@@ -109,10 +116,39 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
     setNeed(null);
     setAgeBucket(null);
     setChildSelection(null);
+    setDragStart(null);
+    setDragDownOffset(0);
     void recordAssistantOpened();
   }, [open]);
 
   if (!open) return null;
+
+  // Sortie au doigt/à la souris, en plus de la 4e carte : l'écran plein cadre
+  // n'a pas de fermeture native (contrairement à une feuille modale). Les
+  // événements pointer bruts ne se disputent pas le scroll natif de la zone
+  // `overflow-y-auto` en dessous — les deux fonctionnent en même temps,
+  // comme le `Listener`/`simultaneousGesture` côté Android et iOS.
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragStart) return;
+    const dy = e.clientY - dragStart.y;
+    const dx = e.clientX - dragStart.x;
+    if (dy <= 0 || dy <= Math.abs(dx)) {
+      if (dragDownOffset !== 0) setDragDownOffset(0);
+      return;
+    }
+    setDragDownOffset(dy);
+  };
+  const handlePointerUp = () => {
+    if (dragDownOffset > DISMISS_DRAG_THRESHOLD) {
+      onSkip();
+    } else if (dragDownOffset !== 0) {
+      setDragDownOffset(0);
+    }
+    setDragStart(null);
+  };
 
   const back = () => {
     if (step === 'context') {
@@ -263,7 +299,19 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col" style={{ zIndex: 950, background: 'var(--bg)' }}>
+    <div
+      className="fixed inset-0 flex flex-col"
+      style={{
+        zIndex: 950,
+        background: 'var(--bg)',
+        transform: dragDownOffset ? `translateY(${dragDownOffset}px)` : undefined,
+        transition: dragDownOffset ? 'none' : 'transform 180ms ease-out',
+      }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+    >
       {/* En-tête : le logo se centre sur toute la largeur, le retour se pose
           par-dessus à gauche — sans largeur forcée le conteneur se réduirait
           au logo, et le retour n'existe qu'à partir de la 2e question. */}

@@ -85,7 +85,7 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>(initialCategory);
   const [selectedGroup, setSelectedGroup] = useState<CategoryGroup>(initialGroup);
   const navigate = useNavigate();
-  const { current: coachmarkStep, wantsLocationDetail, locationDetailRequestHandled, locationDetailUnavailable } =
+  const { wantsLocationDetail, locationDetailRequestHandled, locationDetailUnavailable } =
     useCoachmarks();
   const [selectedMeal, setSelectedMeal] = useState<string | null>(initialMeal);
   const [selectedAge, setSelectedAge] = useState<AgeBucket>(initialAge);
@@ -158,6 +158,12 @@ const Index = () => {
     }
   }, [showActivityFilter, selectedWeather, selectedDuration]);
 
+
+  // Pas d'ouverture automatique sur le web, contrairement à iOS/Android : la
+  // visite guidée (coachmarks) a déjà été retirée du web pour ne pas freiner
+  // l'adoption d'un visiteur qui arrive depuis Instagram (cf. commentaire
+  // dans `App.tsx`), et un popup qui se pousse tout seul irait à l'encontre
+  // du même principe. L'assistant reste accessible via la bulle du header.
 
   // Applique ce que l'assistant rapporte. Rien n'est posé si le parent sort
   // par la 4e carte — `finish` (Assistant.tsx) n'appelle `onFinish` que si les

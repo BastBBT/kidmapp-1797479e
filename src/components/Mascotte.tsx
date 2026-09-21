@@ -107,22 +107,18 @@ export const MascotteMedallion = ({ width = 152, height = 120, loops = 2, ariaLa
 
 interface MascotteMiniatureProps {
   size?: number;
-  onClick: () => void;
-  ariaLabel: string;
 }
 
 /**
- * Miniature ronde dans la barre du haut d'Explorer : seul moyen de rappeler
- * l'assistant une fois la journée entamée, puisqu'il ne s'ouvre de lui-même
- * qu'une fois par jour. Miroir de `MascotteMiniature` (iOS et Android).
+ * Miniature ronde purement visuelle — le point d'entrée principal du header
+ * une fois que le popup ne se pousse plus qu'une fois par semaine (le
+ * vendredi), donc affichée à côté d'un texte plutôt que seule. C'est
+ * l'appelant qui porte le bouton et l'accessibilité (cf. `Header.tsx`),
+ * comme sur iOS et Android où `MascotteMiniature` n'est pas non plus un
+ * bouton — le `Button`/`InkWell` qui l'entoure vient du site d'appel.
  */
-export const MascotteMiniature = ({ size = 32, onClick, ariaLabel }: MascotteMiniatureProps) => (
-  <button
-    type="button"
-    onClick={onClick}
-    aria-label={ariaLabel}
-    title={ariaLabel}
-    className="transition-opacity hover:opacity-80"
+export const MascotteMiniature = ({ size = 32 }: MascotteMiniatureProps) => (
+  <div
     style={{
       width: size,
       height: size,
@@ -130,11 +126,9 @@ export const MascotteMiniature = ({ size = 32, onClick, ariaLabel }: MascotteMin
       overflow: 'hidden',
       background: MASCOTTE_BACKGROUND,
       border: '1px solid var(--border)',
-      padding: 0,
-      cursor: 'pointer',
       flexShrink: 0,
     }}
   >
     <img src={mascotteFace} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-  </button>
+  </div>
 );
