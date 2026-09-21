@@ -13,7 +13,6 @@ import ActivityFilter from '@/components/ActivityFilter';
 import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 import Assistant, { AssistantOutcome } from '@/components/Assistant';
 import { shouldShowAssistant, markAssistantShown } from '@/lib/assistantSchedule';
-import { hasSeenCoachmarks } from '@/lib/onboardingTracker';
 
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
@@ -87,7 +86,7 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>(initialCategory);
   const [selectedGroup, setSelectedGroup] = useState<CategoryGroup>(initialGroup);
   const navigate = useNavigate();
-  const { current: coachmarkStep, wantsLocationDetail, locationDetailRequestHandled, locationDetailUnavailable } =
+  const { wantsLocationDetail, locationDetailRequestHandled, locationDetailUnavailable } =
     useCoachmarks();
   const [selectedMeal, setSelectedMeal] = useState<string | null>(initialMeal);
   const [selectedAge, setSelectedAge] = useState<AgeBucket>(initialAge);
@@ -162,14 +161,15 @@ const Index = () => {
 
 
   // Ouverture automatique de l'assistant, au premier passage — miroir d'iOS/
-  // Android : cadence hebdomadaire (`AssistantSchedule`), et seulement une
-  // fois la visite guidée terminée, pour ne jamais recouvrir un coachmark.
+  // Android : cadence hebdomadaire (`AssistantSchedule`). Sur iOS/Android le
+  // déclenchement attend en plus la fin de la visite guidée, pour ne jamais
+  // la recouvrir — mais la visite guidée (coachmarks) a été retirée du web
+  // (cf. commentaire dans `App.tsx`), donc rien à attendre ici : seule la
+  // cadence hebdomadaire gate l'ouverture.
   useEffect(() => {
-    if (!hasSeenCoachmarks() || coachmarkStep !== null) return;
     if (!shouldShowAssistant()) return;
     markAssistantShown();
     setAssistantOpen(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- ne doit tourner qu'une fois, au montage (premier passage sur Explorer) ; re-déclencher sur chaque changement de coachmarkStep rouvrirait l'assistant en boucle
   }, []);
 
   // Applique ce que l'assistant rapporte. Rien n'est posé si le parent sort
