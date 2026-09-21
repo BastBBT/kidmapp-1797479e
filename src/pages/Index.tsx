@@ -12,6 +12,8 @@ import AgeFilter from '@/components/AgeFilter';
 import ActivityFilter from '@/components/ActivityFilter';
 import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 import Assistant, { AssistantOutcome } from '@/components/Assistant';
+import { shouldShowAssistant, markAssistantShown } from '@/lib/assistantSchedule';
+import { hasSeenCoachmarks } from '@/lib/onboardingTracker';
 
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
@@ -158,6 +160,17 @@ const Index = () => {
     }
   }, [showActivityFilter, selectedWeather, selectedDuration]);
 
+
+  // Ouverture automatique de l'assistant, au premier passage — miroir d'iOS/
+  // Android : cadence hebdomadaire (`AssistantSchedule`), et seulement une
+  // fois la visite guidée terminée, pour ne jamais recouvrir un coachmark.
+  useEffect(() => {
+    if (!hasSeenCoachmarks() || coachmarkStep !== null) return;
+    if (!shouldShowAssistant()) return;
+    markAssistantShown();
+    setAssistantOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Applique ce que l'assistant rapporte. Rien n'est posé si le parent sort
   // par la 4e carte — `finish` (Assistant.tsx) n'appelle `onFinish` que si les

@@ -33,10 +33,8 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
   const categoriesTargetRef = useCoachmarkTarget('categories');
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const { t } = useTranslation();
-
-  const initial = user?.email ? user.email.charAt(0).toUpperCase() : '?';
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b" style={{ borderColor: 'var(--border)' }}>
@@ -66,17 +64,22 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
               </button>
             )}
 
+            {/* Uniquement la bulle de l'assistant et son texte : l'avatar
+                (lettre du compte) faisait doublon avec l'onglet compte de la
+                barre du bas et encombrait le coin sans raison d'y être. */}
             {onOpenAssistant && (
-              <MascotteMiniature onClick={onOpenAssistant} ariaLabel={t('assistant.open')} />
+              <button
+                type="button"
+                onClick={onOpenAssistant}
+                className="flex items-center gap-1.5 cursor-pointer"
+                aria-label={t('assistant.open')}
+              >
+                <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  {t('assistant.coup_de_main')}
+                </span>
+                <MascotteMiniature />
+              </button>
             )}
-
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer"
-              style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}
-              title={user?.email ?? ''}
-            >
-              {initial}
-            </div>
           </nav>
         </div>
 
