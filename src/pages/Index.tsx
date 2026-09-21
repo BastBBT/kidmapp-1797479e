@@ -12,7 +12,6 @@ import AgeFilter from '@/components/AgeFilter';
 import ActivityFilter from '@/components/ActivityFilter';
 import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 import Assistant, { AssistantOutcome } from '@/components/Assistant';
-import { shouldShowAssistant, markAssistantShown } from '@/lib/assistantSchedule';
 
 import { useLocations } from '@/hooks/useLocations';
 import { useMealTypes, useAllLocationMeals } from '@/hooks/useMeals';
@@ -160,17 +159,11 @@ const Index = () => {
   }, [showActivityFilter, selectedWeather, selectedDuration]);
 
 
-  // Ouverture automatique de l'assistant, au premier passage — miroir d'iOS/
-  // Android : cadence hebdomadaire (`AssistantSchedule`). Sur iOS/Android le
-  // déclenchement attend en plus la fin de la visite guidée, pour ne jamais
-  // la recouvrir — mais la visite guidée (coachmarks) a été retirée du web
-  // (cf. commentaire dans `App.tsx`), donc rien à attendre ici : seule la
-  // cadence hebdomadaire gate l'ouverture.
-  useEffect(() => {
-    if (!shouldShowAssistant()) return;
-    markAssistantShown();
-    setAssistantOpen(true);
-  }, []);
+  // Pas d'ouverture automatique sur le web, contrairement à iOS/Android : la
+  // visite guidée (coachmarks) a déjà été retirée du web pour ne pas freiner
+  // l'adoption d'un visiteur qui arrive depuis Instagram (cf. commentaire
+  // dans `App.tsx`), et un popup qui se pousse tout seul irait à l'encontre
+  // du même principe. L'assistant reste accessible via la bulle du header.
 
   // Applique ce que l'assistant rapporte. Rien n'est posé si le parent sort
   // par la 4e carte — `finish` (Assistant.tsx) n'appelle `onFinish` que si les
