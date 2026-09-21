@@ -169,7 +169,7 @@ const Index = () => {
     if (!shouldShowAssistant()) return;
     markAssistantShown();
     setAssistantOpen(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ne doit tourner qu'une fois, au montage (premier passage sur Explorer) ; re-déclencher sur chaque changement de coachmarkStep rouvrirait l'assistant en boucle
   }, []);
 
   // Applique ce que l'assistant rapporte. Rien n'est posé si le parent sort
