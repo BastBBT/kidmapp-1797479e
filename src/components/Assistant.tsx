@@ -324,7 +324,7 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
     >
       {/* En-tête : le logo se centre sur toute la largeur, le retour se pose
           par-dessus à gauche — sans largeur forcée le conteneur se réduirait
@@ -362,7 +362,7 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8, paddingBottom: 14 }}>
           <MascotteMedallion ariaLabel={t('assistant.mascotte_alt')} />
         </div>
