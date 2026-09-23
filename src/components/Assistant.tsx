@@ -134,6 +134,13 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
   };
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!dragStart) return;
+    // La liste défile nativement : le glisser-fermer ne doit s'activer que
+    // quand elle est déjà en haut (scrollTop === 0), sinon un simple scroll
+    // vers le bas ferait glisser tout l'écran.
+    if ((scrollRef.current?.scrollTop ?? 0) > 0) {
+      if (dragDownOffset !== 0) setDragDownOffset(0);
+      return;
+    }
     const dy = e.clientY - dragStart.y;
     const dx = e.clientX - dragStart.x;
     if (dy <= 0 || dy <= Math.abs(dx)) {
@@ -148,6 +155,12 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
     } else if (dragDownOffset !== 0) {
       setDragDownOffset(0);
     }
+    setDragStart(null);
+  };
+  // Un pointercancel signifie que le navigateur a repris le geste (scroll
+  // natif) : on réinitialise sans jamais fermer l'assistant.
+  const handlePointerCancel = () => {
+    if (dragDownOffset !== 0) setDragDownOffset(0);
     setDragStart(null);
   };
 
