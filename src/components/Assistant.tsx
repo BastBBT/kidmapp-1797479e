@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react';
 import { CategoryGroup, LocationCategory } from '@/types/location';
@@ -109,6 +109,7 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
   const [childSelection, setChildSelection] = useState<ChildFilterSelection | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [dragDownOffset, setDragDownOffset] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
