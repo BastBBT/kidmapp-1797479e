@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react';
 import { CategoryGroup, LocationCategory } from '@/types/location';
@@ -109,6 +109,7 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
   const [childSelection, setChildSelection] = useState<ChildFilterSelection | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [dragDownOffset, setDragDownOffset] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -133,6 +134,13 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
   };
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!dragStart) return;
+    // La liste défile nativement : le glisser-fermer ne doit s'activer que
+    // quand elle est déjà en haut (scrollTop === 0), sinon un simple scroll
+    // vers le bas ferait glisser tout l'écran.
+    if ((scrollRef.current?.scrollTop ?? 0) > 0) {
+      if (dragDownOffset !== 0) setDragDownOffset(0);
+      return;
+    }
     const dy = e.clientY - dragStart.y;
     const dx = e.clientX - dragStart.x;
     if (dy <= 0 || dy <= Math.abs(dx)) {
@@ -147,6 +155,12 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
     } else if (dragDownOffset !== 0) {
       setDragDownOffset(0);
     }
+    setDragStart(null);
+  };
+  // Un pointercancel signifie que le navigateur a repris le geste (scroll
+  // natif) : on réinitialise sans jamais fermer l'assistant.
+  const handlePointerCancel = () => {
+    if (dragDownOffset !== 0) setDragDownOffset(0);
     setDragStart(null);
   };
 
@@ -310,7 +324,7 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
     >
       {/* En-tête : le logo se centre sur toute la largeur, le retour se pose
           par-dessus à gauche — sans largeur forcée le conteneur se réduirait
@@ -348,7 +362,7 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8, paddingBottom: 14 }}>
           <MascotteMedallion ariaLabel={t('assistant.mascotte_alt')} />
         </div>
