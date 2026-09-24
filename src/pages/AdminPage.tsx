@@ -31,10 +31,11 @@ import { format, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fn
 import { fr } from 'date-fns/locale';
 import { sanitizePhotoUrls } from '@/lib/sanitizePhotoUrls';
 import { AudienceTab } from '@/components/admin/AudienceTab';
+import { EngagementTab } from '@/components/admin/EngagementTab';
 import { PLATFORMS, type AudienceStats } from '@/components/admin/audiencePlatforms';
 
 
-type AdminTab = 'dashboard' | 'audience' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events' | 'outbound';
+type AdminTab = 'dashboard' | 'audience' | 'engagement' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events' | 'outbound';
 
 type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; confirmed_count: number }>;
 
@@ -49,6 +50,7 @@ const buildEmptyMealsState = (mealTypes: MealType[]): MealsState => {
 const tabs: { key: AdminTab; label: string }[] = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'audience', label: 'Audience' },
+  { key: 'engagement', label: 'Engagement' },
   { key: 'outbound', label: 'Trafic sortant' },
   { key: 'locations', label: 'Lieux & activités' },
   { key: 'contributions', label: 'Contributions' },
@@ -911,6 +913,12 @@ const AdminPage = () => {
               </div>
               <span style={{ fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, color: 'var(--primary)', whiteSpace: 'nowrap' }}>Voir l'onglet Audience →</span>
             </button>
+          </motion.div>
+        )}
+
+        {activeTab === 'engagement' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <EngagementTab isAdmin={isAdmin} />
           </motion.div>
         )}
 
