@@ -1,7 +1,19 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { PLATFORMS, type AudienceStats, type Platform } from './audiencePlatforms';
 
-type Metric = 'sessions' | 'uniques';
+type Metric = 'pageViews' | 'sessions' | 'uniques';
+
+const METRIC_LABELS: Record<Metric, string> = {
+  pageViews: 'Pages vues (web)',
+  sessions: 'Sessions',
+  uniques: 'Visiteurs uniques',
+};
+
+/** Les pages vues ne se comparent pas d'une plateforme à l'autre (une ligne par
+ *  page sur le web, une par session dans les apps) : ce mode n'affiche que le web,
+ *  mais garde tout l'historique d'avant le suivi par plateforme. */
+const platformsFor = (metric: Metric) =>
+  metric === 'pageViews' ? PLATFORMS.filter((p) => p.key === 'web') : PLATFORMS;
 
 const card: React.CSSProperties = {
   background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)',
@@ -39,14 +51,14 @@ export function AudienceTab({
   const [metric, setMetric] = useState<Metric>('sessions');
 
   const totals = useMemo(() => {
-    const byPlatform = PLATFORMS.map((p) => ({ ...p, value: stats.byPlatform30d[p.key]?.[metric] ?? 0 }));
+    const byPlatform = platformsFor(metric).map((p) => ({ ...p, value: stats.byPlatform30d[p.key]?.[metric] ?? 0 }));
     const sum = byPlatform.reduce((acc, p) => acc + p.value, 0);
     return { byPlatform, sum };
   }, [stats.byPlatform30d, metric]);
 
   const days = useMemo(() => {
     const rows = last7Days().map((day) => {
-      const values = PLATFORMS.map((p) => stats.daily7dByPlatform[day]?.[p.key]?.[metric] ?? 0);
+      const values = platformsFor(metric).map((p) => stats.daily7dByPlatform[day]?.[p.key]?.[metric] ?? 0);
       return { day, values, total: values.reduce((a, b) => a + b, 0) };
     });
     const max = Math.max(...rows.map((r) => r.total), 1);
@@ -56,7 +68,8 @@ export function AudienceTab({
   const since = stats.splitTrackingSince
     ? new Date(stats.splitTrackingSince).toLocaleDateString('fr-FR')
     : null;
-  const metricLabel = metric === 'sessions' ? 'Sessions' : 'Visiteurs uniques';
+  const metricLabel = METRIC_LABELS[metric];
+  const shown = platformsFor(metric);
 
   return (
     <div>
@@ -66,20 +79,24 @@ export function AudienceTab({
       </div>
 
       <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', marginBottom: '12px' }}>
-        ⓘ {since
-          ? `Répartition par plateforme mesurée depuis le ${since}.`
-          : 'Répartition par plateforme : aucune donnée encore.'}{' '}
-        Les versions des apps antérieures au suivi ne remontent rien.
+        ⓘ {metric === 'pageViews'
+          ? 'Compteur historique du site web, comparable aux mois précédents. Les apps ne sont pas comptées en pages vues.'
+          : <>
+              {since
+                ? `Sessions et visiteurs uniques mesurés depuis le ${since} : les 30 jours se remplissent progressivement.`
+                : 'Sessions et visiteurs uniques : aucune donnée encore.'}{' '}
+              Les versions des apps antérieures au suivi ne remontent rien.
+            </>}
       </div>
 
       <div style={{ ...card, marginBottom: '12px' }}>
-        <div style={cardTitle}>Répartition par plateforme</div>
+        <div style={cardTitle}>{metric === 'pageViews' ? 'Pages vues du site web' : 'Répartition par plateforme'}</div>
         <div style={{ display: 'flex', height: '20px', borderRadius: '6px', overflow: 'hidden', background: 'var(--bg)', marginBottom: '12px' }}>
           {totals.sum > 0 && totals.byPlatform.map((p) => (
             <div key={p.key} style={{ width: `${(p.value / totals.sum) * 100}%`, background: p.color, transition: 'width 0.3s ease' }} title={`${p.label} : ${fmt(p.value)}`} />
           ))}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${shown.length}, minmax(0, 1fr))`, gap: '8px' }}>
           {totals.byPlatform.map((p) => (
             <div key={p.key}>
               <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
@@ -94,7 +111,7 @@ export function AudienceTab({
           ))}
         </div>
         <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
-          Total : {fmt(totals.sum)} {metric === 'sessions' ? 'sessions' : 'appareils distincts'}
+          Total : {fmt(totals.sum)} {metric === 'pageViews' ? 'pages vues' : metric === 'sessions' ? 'sessions' : 'appareils distincts'}
         </div>
       </div>
 
@@ -105,7 +122,7 @@ export function AudienceTab({
             <div key={r.day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
               <span style={{ fontFamily: 'DM Sans', fontSize: '11px', fontWeight: 600, color: 'var(--text)' }}>{r.total}</span>
               <div
-                title={PLATFORMS.map((p, i) => `${p.label} ${r.values[i]}`).join(' · ')}
+                title={shown.map((p, i) => `${p.label} ${r.values[i]}`).join(' · ')}
                 style={{
                   width: '100%',
                   height: `${Math.max((r.total / days.max) * 72, 4)}px`,
@@ -115,7 +132,7 @@ export function AudienceTab({
                   transition: 'height 0.3s ease',
                 }}
               >
-                {PLATFORMS.map((p, i) => (
+                {shown.map((p, i) => (
                   <div key={p.key} style={{ flex: r.values[i], background: p.color }} />
                 ))}
               </div>
@@ -147,12 +164,9 @@ export function AudienceTab({
 }
 
 function MetricToggle({ value, onChange }: { value: Metric; onChange: (m: Metric) => void }) {
-  const options: { key: Metric; label: string }[] = [
-    { key: 'sessions', label: 'Sessions' },
-    { key: 'uniques', label: 'Visiteurs uniques' },
-  ];
+  const options = (['pageViews', 'sessions', 'uniques'] as const).map((key) => ({ key, label: METRIC_LABELS[key] }));
   return (
-    <div style={{ display: 'flex', gap: 6 }}>
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
       {options.map((o) => {
         const active = value === o.key;
         return (
