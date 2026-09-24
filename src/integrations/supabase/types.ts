@@ -889,24 +889,36 @@ export type Database = {
       }
       page_views: {
         Row: {
+          app_version: string | null
           created_at: string
+          device_id: string | null
           id: string
           path: string
+          platform: string
           referrer: string | null
+          session_id: string | null
           user_id: string | null
         }
         Insert: {
+          app_version?: string | null
           created_at?: string
+          device_id?: string | null
           id?: string
           path: string
+          platform?: string
           referrer?: string | null
+          session_id?: string | null
           user_id?: string | null
         }
         Update: {
+          app_version?: string | null
           created_at?: string
+          device_id?: string | null
           id?: string
           path?: string
+          platform?: string
           referrer?: string | null
+          session_id?: string | null
           user_id?: string | null
         }
         Relationships: []
