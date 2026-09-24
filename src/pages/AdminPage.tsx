@@ -292,10 +292,8 @@ const AdminPage = () => {
       if (audienceRes.error) console.error('[admin-stats] audience rpc error', audienceRes.error);
 
       const audience = (audienceRes.data ?? {}) as {
-        totalVisits30d?: number;
         uniqueLoggedVisitors30d?: number;
         recurringVisitors30d?: number;
-        daily7d?: Record<string, { visits: number; uniques: number }>;
         totalRegistered?: number;
         activePct30d?: number;
         splitTrackingSince?: string | null;
@@ -329,10 +327,8 @@ const AdminPage = () => {
         pendingEvents: d.pendingEvents ?? 0,
         pendingEventsBotCount: d.pendingEventsBotCount ?? 0,
         pendingEventsList: d.pendingEventsList ?? [],
-        activeUsers30d: d.newUsers30d ?? 0,
+        newUsers30d: d.newUsers30d ?? 0,
         contributionsDaily7d: d.contributionsDaily7d ?? {},
-        daily7d: audience.daily7d ?? {},
-        totalVisits30d: audience.totalVisits30d ?? 0,
         uniqueLoggedVisitors30d: audience.uniqueLoggedVisitors30d ?? 0,
         recurringVisitors30d: audience.recurringVisitors30d ?? 0,
         acquisitionDistribution: d.acquisitionDistribution ?? {},
@@ -926,7 +922,7 @@ const AdminPage = () => {
         {activeTab === 'audience' && stats && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <AudienceTab
-              stats={{ ...stats, newUsers30d: stats.activeUsers30d }}
+              stats={stats}
               acquisition={
             <>
             {/* Acquisition sources */}

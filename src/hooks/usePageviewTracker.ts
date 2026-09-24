@@ -49,7 +49,7 @@ const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
  * (navigation privée stricte, stockage bloqué) : la visite est alors comptée
  * sans être dédupliquée.
  */
-function getDeviceId(): string | null {
+export function getDeviceId(): string | null {
   try {
     const existing = localStorage.getItem(DEVICE_ID_KEY);
     if (existing) return existing;
@@ -66,11 +66,21 @@ function getDeviceId(): string | null {
  * les apps iOS/Android, pour que les « sessions » se comparent d'une plateforme
  * à l'autre. Partagée entre onglets (localStorage), comme une visite.
  */
-function getSessionId(): string | null {
+/** Valeur illisible = pas de session : on en ouvre une neuve qui l'écrase, au lieu de
+ *  laisser le `JSON.parse` échouer à chaque page et renvoyer `null` pour toujours. */
+function readSession(raw: string | null): { id?: string; lastSeen?: number } | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as { id?: string; lastSeen?: number };
+  } catch {
+    return null;
+  }
+}
+
+export function getSessionId(): string | null {
   try {
     const now = Date.now();
-    const raw = localStorage.getItem(SESSION_KEY);
-    const current = raw ? (JSON.parse(raw) as { id?: string; lastSeen?: number }) : null;
+    const current = readSession(localStorage.getItem(SESSION_KEY));
     const id =
       current?.id && typeof current.lastSeen === 'number' && now - current.lastSeen < SESSION_TIMEOUT_MS
         ? current.id
