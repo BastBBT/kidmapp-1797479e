@@ -1158,6 +1158,7 @@ export type Database = {
     Functions: {
       admin_audience_stats: { Args: never; Returns: Json }
       admin_dashboard_stats: { Args: never; Returns: Json }
+      admin_engagement_stats: { Args: never; Returns: Json }
       admin_link_clicks_stats: {
         Args: { p_days?: number }
         Returns: {
