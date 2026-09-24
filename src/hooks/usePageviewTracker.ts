@@ -37,10 +37,56 @@ function sanitizeReferrer(referrer: string | null): string | null {
   }
 }
 
+const DEVICE_ID_KEY = 'kidmapp.audience.deviceId';
+const SESSION_KEY = 'kidmapp.audience.session';
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+
+/**
+ * Identifiant anonyme de mesure d'audience, tiré au hasard et gardé dans le
+ * navigateur (déclaré dans la politique de confidentialité, section « Mesure
+ * d'audience »). Sert à compter les visiteurs uniques, non connectés compris,
+ * dans l'onglet Audience de l'admin. `null` si le stockage est indisponible
+ * (navigation privée stricte, stockage bloqué) : la visite est alors comptée
+ * sans être dédupliquée.
+ */
+function getDeviceId(): string | null {
+  try {
+    const existing = localStorage.getItem(DEVICE_ID_KEY);
+    if (existing) return existing;
+    const fresh = crypto.randomUUID();
+    localStorage.setItem(DEVICE_ID_KEY, fresh);
+    return fresh;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Session = suite de pages vues sans trou de plus de 30 min — même règle que
+ * les apps iOS/Android, pour que les « sessions » se comparent d'une plateforme
+ * à l'autre. Partagée entre onglets (localStorage), comme une visite.
+ */
+function getSessionId(): string | null {
+  try {
+    const now = Date.now();
+    const raw = localStorage.getItem(SESSION_KEY);
+    const current = raw ? (JSON.parse(raw) as { id?: string; lastSeen?: number }) : null;
+    const id =
+      current?.id && typeof current.lastSeen === 'number' && now - current.lastSeen < SESSION_TIMEOUT_MS
+        ? current.id
+        : crypto.randomUUID();
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ id, lastSeen: now }));
+    return id;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Logs one row in page_views per route change.
- * - Anonymous visitors: user_id = null (raw hit count, no dedup, no cookie).
+ * - Anonymous visitors: user_id = null (no cookie; deduplicated by device_id).
  * - Authenticated visitors: user_id is filled.
+ * - Every row carries platform = 'web', an anonymous device_id and a session_id.
  * Fire-and-forget; never blocks UI.
  */
 export function usePageviewTracker() {
@@ -64,6 +110,9 @@ export function usePageviewTracker() {
         path,
         referrer,
         user_id: user?.id ?? null,
+        platform: 'web',
+        device_id: getDeviceId(),
+        session_id: getSessionId(),
       })
       .then(({ error }) => {
         if (error) console.debug('[pageview] insert failed', error.message);

@@ -45,7 +45,7 @@ const CONTENT: Record<Lang, {
           'La zone que vous déclarez (commune, quartier, rayon) — l’application ne vous géolocalise jamais',
           'Vos préférences : favoris, avis « pour nous » / « pas pour nous », réglages et réactions à la sélection hebdomadaire, langue',
           'Contenu généré (contributions, propositions de lieux et d’événements, photos, commentaires après une sortie)',
-          'Usage de l’application : pages consultées et provenance, clics sur les liens vers les sites des lieux et événements, progression dans la prise en main',
+          'Usage de l’application : pages consultées et provenance, clics sur les liens vers les sites des lieux et événements, progression dans la prise en main, type de support (site, iPhone, Android) et version de l’application, identifiant anonyme de mesure d’audience',
           'Réponse à la question « comment avez-vous connu Kidmapp ? », si vous y répondez',
           'Points et récompenses liés à vos contributions',
           'Journal des emails qui vous sont envoyés (destinataire, succès ou échec de remise)',
@@ -66,6 +66,10 @@ const CONTENT: Record<Lang, {
       {
         title: 'Partage des données',
         text: 'Aucune donnée n’est vendue ni partagée avec des tiers à des fins publicitaires, et l’application ne contient aucun traceur publicitaire. Le stockage est assuré par Supabase (hébergement dans l’Union européenne). Les emails que nous vous envoyons — confirmation d’inscription, réinitialisation de mot de passe, et sélection hebdomadaire si vous l’avez activée — partent via le service d’envoi intégré à notre hébergeur applicatif, Lovable. Si vous activez les notifications, un identifiant technique de votre appareil (pas votre identité) est transmis à Firebase Cloud Messaging (Google), qui achemine la notification jusqu’à votre téléphone — son contenu ne comporte jamais le prénom ni l’âge d’un enfant. Le site public charge par ailleurs ses polices de caractères chez Google Fonts et ses fonds de carte chez CARTO, qui reçoivent à cette occasion votre adresse IP.',
+      },
+      {
+        title: 'Mesure d’audience',
+        text: 'Pour compter nos visiteurs sans cookie publicitaire, le site enregistre dans votre navigateur (stockage local) un identifiant tiré au hasard, et l’application en génère un à son installation. Il ne contient aucune information sur vous et sert uniquement à produire nos propres statistiques de fréquentation : nombre de visites et de visiteurs, répartition entre le site, iPhone et Android, versions de l’application utilisées. Il n’est jamais partagé, ni recoupé avec d’autres sites ou applications. Si vous êtes connecté, ces statistiques sont rattachées à votre compte, comme les pages consultées. Elles sont supprimées au bout de 12 mois. Vous pouvez effacer l’identifiant à tout moment en supprimant les données du site dans votre navigateur, ou en désinstallant l’application.',
       },
       {
         title: 'Durées de conservation',
@@ -92,7 +96,7 @@ const CONTENT: Record<Lang, {
           'Compte, contributions, favoris, zone déclarée : exécution du contrat qui vous lie à Kidmapp (vous fournir le service que vous avez demandé)',
           'Données de vos enfants (mois et année de naissance, prénom) : consentement du titulaire de l’autorité parentale, donné en les renseignant — retirable à tout moment en supprimant l’enfant',
           'Sélection hebdomadaire par email et alertes nouveaux lieux : consentement, recueilli par la case à cocher dans « Mon compte », retirable à tout moment',
-          'Mesure du trafic apporté aux lieux et événements référencés (clics sortants, pages consultées) : intérêt légitime de Kidmapp à évaluer et améliorer le service rendu aux établissements',
+          'Mesure du trafic apporté aux lieux et événements référencés (clics sortants, pages consultées) et mesure de fréquentation du service (visites, répartition entre le site et les applications) : intérêt légitime de Kidmapp à évaluer et améliorer le service rendu aux établissements',
         ],
       },
       {
@@ -121,7 +125,7 @@ const CONTENT: Record<Lang, {
           'The area you declare (town, neighbourhood, radius) — the app never asks for your position',
           'Your preferences: favorites, “a good fit” / “not for us” feedback, weekly picks settings and reactions, language',
           'User-generated content (contributions, suggested places and events, photos, post-outing comments)',
-          'App usage: pages viewed and where you came from, clicks on links to the websites of places and events, how far you got in the guided tour',
+          'App usage: pages viewed and where you came from, clicks on links to the websites of places and events, how far you got in the guided tour, the kind of device (website, iPhone, Android) and app version, an anonymous audience-measurement identifier',
           'Your answer to “how did you hear about Kidmapp?”, if you answer it',
           'Points and rewards tied to your contributions',
           'A log of the emails we send you (recipient, whether delivery succeeded)',
@@ -142,6 +146,10 @@ const CONTENT: Record<Lang, {
       {
         title: 'Data sharing',
         text: 'No data is sold or shared with third parties for advertising purposes, and the app contains no advertising trackers. Storage is provided by Supabase (hosted in the European Union). The emails we send you — sign-up confirmation, password reset, and the weekly picks if you turned them on — go out through the email service built into our application host, Lovable. If you turn on push notifications, a technical identifier for your device (not your identity) is sent to Firebase Cloud Messaging (Google), which delivers the notification to your phone — its content never includes a child’s first name or age. The public website also loads its fonts from Google Fonts and its map tiles from CARTO, which receive your IP address in the process.',
+      },
+      {
+        title: 'Audience measurement',
+        text: 'To count our visitors without any advertising cookie, the website stores a randomly generated identifier in your browser (local storage), and the app creates one when it is installed. It contains no information about you and is used only to produce our own usage statistics: number of visits and visitors, split between the website, iPhone and Android, and which app versions are in use. It is never shared, nor matched with other websites or apps. If you are signed in, these statistics are linked to your account, like the pages you view. They are deleted after 12 months. You can erase the identifier at any time by clearing the site data in your browser, or by uninstalling the app.',
       },
       {
         title: 'How long we keep your data',
@@ -168,7 +176,7 @@ const CONTENT: Record<Lang, {
           'Account, contributions, favorites, declared area: performance of the contract between you and Kidmapp (providing the service you asked for)',
           'Your children’s data (month and year of birth, first name): consent of the holder of parental authority, given when you enter it — withdrawable at any time by deleting the child',
           'Weekly picks email and new-places alerts: consent, collected via the checkbox in “My account”, withdrawable at any time',
-          'Measuring the traffic we bring to the places and events we list (outbound clicks, pages viewed): Kidmapp’s legitimate interest in assessing and improving the service we provide to listed venues',
+          'Measuring the traffic we bring to the places and events we list (outbound clicks, pages viewed) and measuring how the service is used (visits, split between the website and the apps): Kidmapp’s legitimate interest in assessing and improving the service we provide to listed venues',
         ],
       },
       {
@@ -197,7 +205,7 @@ const CONTENT: Record<Lang, {
           'La zona que declaras (municipio, barrio, radio) — la aplicación nunca te geolocaliza',
           'Tus preferencias: favoritos, valoraciones «nos encaja» / «no es para nosotros», ajustes y reacciones a la selección semanal, idioma',
           'Contenido generado (contribuciones, propuestas de lugares y eventos, fotos, comentarios después de una salida)',
-          'Uso de la aplicación: páginas consultadas y procedencia, clics en los enlaces a los sitios de lugares y eventos, avance en la visita guiada',
+          'Uso de la aplicación: páginas consultadas y procedencia, clics en los enlaces a los sitios de lugares y eventos, avance en la visita guiada, tipo de soporte (web, iPhone, Android) y versión de la aplicación, identificador anónimo de medición de audiencia',
           'Tu respuesta a «¿cómo conociste Kidmapp?», si la respondes',
           'Puntos y recompensas vinculados a tus contribuciones',
           'Registro de los correos que te enviamos (destinatario, éxito o fallo del envío)',
@@ -218,6 +226,10 @@ const CONTENT: Record<Lang, {
       {
         title: 'Compartir los datos',
         text: 'No se vende ni se comparte ningún dato con terceros con fines publicitarios, y la aplicación no contiene ningún rastreador publicitario. El almacenamiento corre a cargo de Supabase (alojamiento en la Unión Europea). Los correos que te enviamos — confirmación de registro, restablecimiento de contraseña y selección semanal si la has activado — salen a través del servicio de envío integrado en nuestro proveedor de alojamiento, Lovable. Si activas las notificaciones push, se envía un identificador técnico de tu dispositivo (no tu identidad) a Firebase Cloud Messaging (Google), que entrega la notificación a tu teléfono — su contenido nunca incluye el nombre ni la edad de un hijo. Además, el sitio público carga sus tipografías desde Google Fonts y sus mapas desde CARTO, que reciben así tu dirección IP.',
+      },
+      {
+        title: 'Medición de audiencia',
+        text: 'Para contar a nuestros visitantes sin ninguna cookie publicitaria, la web guarda en tu navegador (almacenamiento local) un identificador generado al azar, y la aplicación crea uno al instalarse. No contiene ninguna información sobre ti y solo sirve para elaborar nuestras propias estadísticas de uso: número de visitas y de visitantes, reparto entre la web, iPhone y Android, y versiones de la aplicación en uso. Nunca se comparte ni se cruza con otros sitios o aplicaciones. Si has iniciado sesión, estas estadísticas quedan vinculadas a tu cuenta, igual que las páginas consultadas. Se eliminan a los 12 meses. Puedes borrar el identificador en cualquier momento eliminando los datos del sitio en tu navegador o desinstalando la aplicación.',
       },
       {
         title: 'Plazos de conservación',
@@ -244,7 +256,7 @@ const CONTENT: Record<Lang, {
           'Cuenta, contribuciones, favoritos, zona declarada: ejecución del contrato que te vincula con Kidmapp (prestarte el servicio que has solicitado)',
           'Datos de tus hijos (mes y año de nacimiento, nombre): consentimiento del titular de la patria potestad, otorgado al indicarlos — retirable en cualquier momento eliminando al hijo',
           'Selección semanal por correo y alertas de nuevos lugares: consentimiento, recogido mediante la casilla en «Mi cuenta», retirable en cualquier momento',
-          'Medición del tráfico que aportamos a los lugares y eventos incluidos (clics salientes, páginas consultadas): interés legítimo de Kidmapp en evaluar y mejorar el servicio prestado a los establecimientos',
+          'Medición del tráfico que aportamos a los lugares y eventos incluidos (clics salientes, páginas consultadas) y medición de la frecuentación del servicio (visitas, reparto entre la web y las aplicaciones): interés legítimo de Kidmapp en evaluar y mejorar el servicio prestado a los establecimientos',
         ],
       },
       {
