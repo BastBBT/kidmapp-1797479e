@@ -9,6 +9,8 @@ type TemplateSends = {
   skippedNoMatch: number;
   pushSent: number;
   pushFailed: number;
+  /** Run entier annulé (`new-location-alert` seulement aujourd'hui). */
+  runAborted?: number;
 };
 
 /** Forme renvoyée par la RPC `admin_engagement_stats` (supabase/migrations/20260924210800). */
@@ -151,6 +153,7 @@ export function EngagementTab({ isAdmin }: { isAdmin: boolean }) {
           <KV k="Emails envoyés" v={fmt(alerts.emailSent)} first />
           <KV k="Notifications envoyées" v={fmt(alerts.pushSent)} />
           <KV k="Échecs · supprimés" v={`${fmt(alerts.emailFailed + alerts.pushFailed)} · ${fmt(alerts.emailSuppressed)}`} />
+          <KV k="Runs avortés" v={fmt(alerts.runAborted ?? 0)} warn={(alerts.runAborted ?? 0) > 0} />
           <KV k="Visites de /nouveaux-lieux" v={fmt(data.landingVisits30d.nouveauxLieux)} />
           <KV k="Désabonnements" v={fmt(data.alertUnsubscribes30d)} />
         </div>
@@ -211,11 +214,11 @@ function Funnel({ label, value, total, faded = false, color = 'var(--primary)', 
   );
 }
 
-function KV({ k, v, first = false }: { k: string; v: string; first?: boolean }) {
+function KV({ k, v, first = false, warn = false }: { k: string; v: string; first?: boolean; warn?: boolean }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '6px 0', borderTop: first ? 'none' : '1px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px', color: 'var(--text)' }}>
       <span>{k}</span>
-      <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{v}</span>
+      <span style={{ fontWeight: 600, whiteSpace: 'nowrap', color: warn ? 'var(--primary)' : undefined }}>{v}</span>
     </div>
   );
 }
