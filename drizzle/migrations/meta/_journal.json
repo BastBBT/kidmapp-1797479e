@@ -8,6 +8,13 @@
       "when": 1790281818677,
       "tag": "0000_page_views_platform_tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790283330387,
+      "tag": "0001_audience_stats_pageviews_per_platform",
+      "breakpoints": true
     }
   ]
 }
