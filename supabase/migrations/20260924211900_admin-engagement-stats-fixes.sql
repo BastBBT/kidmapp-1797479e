@@ -66,12 +66,15 @@ BEGIN
       AND NOT (
         CASE
           WHEN (l.metadata->>'channel') IS NOT DISTINCT FROM 'push' THEN
-            (l.metadata->>'user_id') IS NOT NULL
-            AND (l.metadata->>'user_id') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-            AND (l.metadata->>'user_id')::uuid = ANY(v_excluded)
+            CASE
+              WHEN (l.metadata->>'user_id') IS NOT NULL
+               AND (l.metadata->>'user_id') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+              THEN COALESCE((l.metadata->>'user_id')::uuid = ANY(v_excluded), false)
+              ELSE false
+            END
           ELSE
             COALESCE(btrim(l.recipient_email), '') <> ''
-            AND lower(l.recipient_email) = ANY(v_excluded_emails)
+            AND COALESCE(lower(l.recipient_email) = ANY(v_excluded_emails), false)
         END
       )
   ),
