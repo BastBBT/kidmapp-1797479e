@@ -30,9 +30,11 @@ import type { DateRange } from 'react-day-picker';
 import { format, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { sanitizePhotoUrls } from '@/lib/sanitizePhotoUrls';
+import { AudienceTab } from '@/components/admin/AudienceTab';
+import { PLATFORMS, type AudienceStats } from '@/components/admin/audiencePlatforms';
 
 
-type AdminTab = 'dashboard' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events' | 'outbound';
+type AdminTab = 'dashboard' | 'audience' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events' | 'outbound';
 
 type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; confirmed_count: number }>;
 
@@ -46,6 +48,7 @@ const buildEmptyMealsState = (mealTypes: MealType[]): MealsState => {
 
 const tabs: { key: AdminTab; label: string }[] = [
   { key: 'dashboard', label: 'Dashboard' },
+  { key: 'audience', label: 'Audience' },
   { key: 'locations', label: 'Lieux & activités' },
   { key: 'contributions', label: 'Contributions' },
   { key: 'proposals', label: 'Propositions' },
@@ -293,6 +296,10 @@ const AdminPage = () => {
         daily7d?: Record<string, { visits: number; uniques: number }>;
         totalRegistered?: number;
         activePct30d?: number;
+        splitTrackingSince?: string | null;
+        byPlatform30d?: AudienceStats['byPlatform30d'];
+        daily7dByPlatform?: AudienceStats['daily7dByPlatform'];
+        appVersions30d?: AudienceStats['appVersions30d'];
       };
       const d = (statsRes.data ?? {}) as {
         totalLocations?: number;
@@ -330,6 +337,10 @@ const AdminPage = () => {
         acquisitionTotal: d.acquisitionTotal ?? 0,
         totalRegistered: audience.totalRegistered ?? 0,
         activePct30d: audience.activePct30d ?? 0,
+        splitTrackingSince: audience.splitTrackingSince ?? null,
+        byPlatform30d: audience.byPlatform30d ?? EMPTY_BY_PLATFORM,
+        daily7dByPlatform: audience.daily7dByPlatform ?? {},
+        appVersions30d: audience.appVersions30d ?? [],
       };
     },
   });
@@ -346,28 +357,6 @@ const AdminPage = () => {
     const max = Math.max(...counts.map((c) => c.count), 1);
     return { counts, max };
   }, [stats?.contributionsDaily7d]);
-
-  const visitsChartData = useMemo(() => {
-    const days = getLast7Days();
-    const counts = days.map((day) => ({
-      day,
-      count: stats?.daily7d?.[day]?.visits ?? 0,
-      label: getDayLabel(day),
-    }));
-    const max = Math.max(...counts.map((c) => c.count), 1);
-    return { counts, max };
-  }, [stats?.daily7d]);
-
-  const uniqueVisitorsChartData = useMemo(() => {
-    const days = getLast7Days();
-    const counts = days.map((day) => ({
-      day,
-      count: stats?.daily7d?.[day]?.uniques ?? 0,
-      label: getDayLabel(day),
-    }));
-    const max = Math.max(...counts.map((c) => c.count), 1);
-    return { counts, max };
-  }, [stats?.daily7d]);
 
 
   // Add location form
@@ -817,16 +806,18 @@ const AdminPage = () => {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-32">
-        {/* Dashboard */}
+        {/* Dashboard : ce qui attend une action, puis l'état du contenu. Le trafic
+            vit dans l'onglet Audience. */}
         {activeTab === 'dashboard' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 500 }}>
+              À traiter ✦
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-              <StatCard label="Lieux publiés" value={stats?.publishedLocations ?? 0} sub={`/ ${stats?.totalLocations ?? 0} total`} />
-              <StatCard label="Lieux internes à valider" value={stats?.pendingLocations ?? 0} sub="status pending" />
-              <StatCard label="Propositions en attente" value={stats?.pendingProposals ?? 0} sub="ajouts utilisateurs" />
-              <StatCard label="Contributions" value={stats?.pendingContributions ?? 0} sub="en attente" />
-              <StatCard label="Événements à valider" value={stats?.pendingEvents ?? 0} sub="propositions" />
-              <StatCard label="Nouveaux inscrits 30j" value={stats?.activeUsers30d ?? 0} sub="comptes créés" />
+              <StatCard label="Événements à valider" value={stats?.pendingEvents ?? 0} sub={(stats?.pendingEventsBotCount ?? 0) > 0 ? `+ ${stats?.pendingEventsBotCount} du bot` : 'propositions'} muted={!(stats?.pendingEvents || stats?.pendingEventsBotCount)} />
+              <StatCard label="Propositions en attente" value={stats?.pendingProposals ?? 0} sub="ajouts utilisateurs" muted={!stats?.pendingProposals} />
+              <StatCard label="Contributions" value={stats?.pendingContributions ?? 0} sub="en attente" muted={!stats?.pendingContributions} />
+              <StatCard label="Lieux internes à valider" value={stats?.pendingLocations ?? 0} sub="status pending" muted={!stats?.pendingLocations} />
             </div>
 
             {(stats?.pendingEvents ?? 0) > 0 && (
@@ -857,76 +848,12 @@ const AdminPage = () => {
               </div>
             )}
 
-            {(stats?.pendingEventsBotCount ?? 0) > 0 && (
-              <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px', padding: '0 4px' }}>
-                + {stats?.pendingEventsBotCount} événement(s) du bot en attente de validation
-              </div>
-            )}
-
-
             <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 500 }}>
-              Audience — 30 derniers jours ✦
+              Contenu & communauté ✦
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-              <StatCard label="Visites" value={stats?.totalVisits30d ?? 0} sub="hits bruts" />
-              <StatCard label="Visiteurs connectés" value={stats?.uniqueLoggedVisitors30d ?? 0} sub="uniques (auth)" />
-              <StatCard label="Récurrents" value={stats?.recurringVisitors30d ?? 0} sub="≥ 2 jours" />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', marginBottom: '12px' }}>
+              <StatCard label="Lieux publiés" value={stats?.publishedLocations ?? 0} sub={`/ ${stats?.totalLocations ?? 0} total`} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
-              <StatCard label="Inscrits" value={stats?.totalRegistered ?? 0} sub="hors admins" />
-              <StatCard label="Actifs 30j" value={`${stats?.activePct30d ?? 0}%`} sub="des inscrits" />
-            </div>
-
-            {/* Visits chart */}
-            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)', marginBottom: '12px' }}>
-              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '12px' }}>
-                Visites — 7 derniers jours
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '96px' }}>
-                {visitsChartData.counts.map((d, i) => (
-                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ fontFamily: 'DM Sans', fontSize: '11px', fontWeight: 600, color: 'var(--text)' }}>{d.count}</span>
-                    <div
-                      style={{
-                        width: '100%',
-                        height: `${Math.max((d.count / visitsChartData.max) * 60, 4)}px`,
-                        background: 'var(--accent)',
-                        borderRadius: '4px 4px 0 0',
-                        transition: 'height 0.3s ease',
-                      }}
-                      title={`${d.count} visite${d.count > 1 ? 's' : ''}`}
-                    />
-                    <span style={{ fontFamily: 'DM Sans', fontSize: '10px', color: 'var(--text-muted)' }}>{d.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Unique visitors chart */}
-            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)', marginBottom: '12px' }}>
-              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '12px' }}>
-                Visiteurs uniques (connectés) — 7 derniers jours
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '96px' }}>
-                {uniqueVisitorsChartData.counts.map((d, i) => (
-                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ fontFamily: 'DM Sans', fontSize: '11px', fontWeight: 600, color: 'var(--text)' }}>{d.count}</span>
-                    <div
-                      style={{
-                        width: '100%',
-                        height: `${Math.max((d.count / uniqueVisitorsChartData.max) * 60, 4)}px`,
-                        background: 'var(--primary)',
-                        borderRadius: '4px 4px 0 0',
-                        transition: 'height 0.3s ease',
-                      }}
-                      title={`${d.count} visiteur${d.count > 1 ? 's' : ''} unique${d.count > 1 ? 's' : ''}`}
-                    />
-                    <span style={{ fontFamily: 'DM Sans', fontSize: '10px', color: 'var(--text-muted)' }}>{d.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
 
             {/* Mini chart */}
             <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)' }}>
@@ -953,14 +880,6 @@ const AdminPage = () => {
               </div>
             </div>
 
-            {/* Acquisition sources */}
-            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)', marginBottom: '12px' }}>
-              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '12px' }}>
-                D'où nous connaissent-ils ? — {stats?.acquisitionTotal ?? 0} réponses
-              </div>
-              <AcquisitionChart distribution={stats?.acquisitionDistribution ?? {}} total={stats?.acquisitionTotal ?? 0} />
-            </div>
-
             {/* Top contributeurs */}
             <div style={{ fontFamily: 'Caveat', fontSize: '15px', color: 'var(--text-muted)', marginTop: '24px', marginBottom: '8px', fontWeight: 500 }}>
               Top contributeurs (hors admin) ✦
@@ -979,6 +898,39 @@ const AdminPage = () => {
                 approvedLabel="validées"
               />
             </div>
+
+            <button
+              onClick={() => setActiveTab('audience')}
+              style={{ width: '100%', marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', textAlign: 'left', background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '14px 16px', boxShadow: 'var(--shadow)', border: 'none', cursor: 'pointer' }}
+            >
+              <div>
+                <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500 }}>Audience 30 j</div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: '13px', color: 'var(--text)' }}>
+                  <AudienceTeaser byPlatform={stats?.byPlatform30d} />
+                </div>
+              </div>
+              <span style={{ fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, color: 'var(--primary)', whiteSpace: 'nowrap' }}>Voir l'onglet Audience →</span>
+            </button>
+          </motion.div>
+        )}
+
+        {/* Audience */}
+        {activeTab === 'audience' && stats && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <AudienceTab
+              stats={{ ...stats, newUsers30d: stats.activeUsers30d }}
+              acquisition={
+            <>
+            {/* Acquisition sources */}
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)', marginBottom: '12px' }}>
+              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '12px' }}>
+                D'où nous connaissent-ils ? — {stats?.acquisitionTotal ?? 0} réponses
+              </div>
+              <AcquisitionChart distribution={stats?.acquisitionDistribution ?? {}} total={stats?.acquisitionTotal ?? 0} />
+            </div>
+            </>
+              }
+            />
           </motion.div>
         )}
 
@@ -2464,11 +2416,30 @@ function OutboundRanking({ title, rows, kind }: { title: string; rows: LinkClick
   );
 }
 
-function StatCard({ label, value, sub }: { label: string; value: number | string; sub: string }) {
+const EMPTY_BY_PLATFORM: AudienceStats['byPlatform30d'] = {
+  web: { sessions: 0, uniques: 0, loggedUniques: 0, recurring: 0 },
+  ios: { sessions: 0, uniques: 0, loggedUniques: 0, recurring: 0 },
+  android: { sessions: 0, uniques: 0, loggedUniques: 0, recurring: 0 },
+};
+
+/** Ligne de synthèse du Dashboard : visiteurs uniques 30 j et part de chaque plateforme. */
+function AudienceTeaser({ byPlatform }: { byPlatform?: AudienceStats['byPlatform30d'] }) {
+  const values = PLATFORMS.map((p) => ({ ...p, value: byPlatform?.[p.key]?.uniques ?? 0 }));
+  const total = values.reduce((acc, p) => acc + p.value, 0);
+  if (total === 0) return <>Pas encore de données par plateforme</>;
+  return (
+    <>
+      <b>{total.toLocaleString('fr-FR')}</b> visiteurs uniques ·{' '}
+      {values.map((p) => `${p.emoji} ${Math.round((p.value / total) * 100)} %`).join('  ')}
+    </>
+  );
+}
+
+function StatCard({ label, value, sub, muted = false }: { label: string; value: number | string; sub: string; muted?: boolean }) {
   return (
     <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', padding: '16px', boxShadow: 'var(--shadow)' }}>
       <div style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>{label}</div>
-      <div style={{ fontFamily: 'Fraunces', fontSize: '32px', fontWeight: 500, color: 'var(--primary)', letterSpacing: '-0.02em' }}>{value}</div>
+      <div style={{ fontFamily: 'Fraunces', fontSize: '32px', fontWeight: 500, color: muted ? 'var(--text-muted)' : 'var(--primary)', letterSpacing: '-0.02em' }}>{value}</div>
       <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'DM Sans' }}>{sub}</div>
     </div>
   );
