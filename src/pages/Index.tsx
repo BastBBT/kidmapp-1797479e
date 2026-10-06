@@ -117,6 +117,7 @@ const Index = () => {
   }, [kids.length, resolvedBuckets, selectedAge]);
   const [selectedWeather, setSelectedWeather] = useState<string | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<string | null>(null);
+  const [onlyFree, setOnlyFree] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -155,8 +156,9 @@ const Index = () => {
     if (!showActivityFilter) {
       if (selectedWeather !== null) setSelectedWeather(null);
       if (selectedDuration !== null) setSelectedDuration(null);
+      if (onlyFree) setOnlyFree(false);
     }
-  }, [showActivityFilter, selectedWeather, selectedDuration]);
+  }, [showActivityFilter, selectedWeather, selectedDuration, onlyFree]);
 
 
   // Pas d'ouverture automatique sur le web, contrairement à iOS/Android : la
@@ -304,7 +306,10 @@ const Index = () => {
         const isActivityLoc = isActivity(loc.category);
         const matchWeather = !isActivityLoc || matchesWeather((loc as any).weather, selectedWeather);
         const matchDuration = !isActivityLoc || matchesDuration((loc as any).duration, selectedDuration);
-        return matchCategory && matchGroup && matchMeal && matchAge && matchWeather && matchDuration;
+        // Filtre « Gratuit » strict : seul is_free === true passe (prix inconnu exclu),
+        // contrairement à météo/durée où une donnée absente ne cache jamais l'activité.
+        const matchFree = !isActivityLoc || !onlyFree || loc.is_free === true;
+        return matchCategory && matchGroup && matchMeal && matchAge && matchWeather && matchDuration && matchFree;
       });
 
     // Les filtres ci-dessus réduisent le jeu ; le tri choisi, lui, l'ordonne et
@@ -336,7 +341,7 @@ const Index = () => {
     });
   }, [
     locations, allLocations, isSearching, searchTerm, selectedCategory, selectedGroup,
-    locationIdsForMeal, effectiveAgeBuckets, selectedWeather, selectedDuration, sortMode,
+    locationIdsForMeal, effectiveAgeBuckets, selectedWeather, selectedDuration, onlyFree, sortMode,
   ]);
 
   // La bulle 3 se termine par « Voir une fiche → » : c'est ici qu'on désigne
@@ -410,7 +415,7 @@ const Index = () => {
       <div
         style={{
           overflow: 'hidden',
-          maxHeight: showActivityFilter ? 120 : 0,
+          maxHeight: showActivityFilter ? 170 : 0,
           opacity: showActivityFilter ? 1 : 0,
           transition: 'max-height 200ms ease-in-out, opacity 200ms ease-in-out',
         }}
@@ -420,6 +425,8 @@ const Index = () => {
           duration={selectedDuration}
           onWeatherChange={setSelectedWeather}
           onDurationChange={setSelectedDuration}
+          onlyFree={onlyFree}
+          onFreeChange={setOnlyFree}
         />
       </div>
 

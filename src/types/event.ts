@@ -19,6 +19,8 @@ export interface EventItem {
   duration: string | null;
   weather: string | null;
   price: string | null;
+  /** Gratuit sans condition pour un visiteur ; calculé par la base depuis `price`. null = prix inconnu. */
+  is_free: boolean | null;
   website: string | null;
   /**
    * Lien vers la billetterie/réservation, distinct de `website` : certaines sorties ont
