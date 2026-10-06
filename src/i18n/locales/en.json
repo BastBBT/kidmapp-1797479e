@@ -245,7 +245,20 @@
     "recurring_events_title": "Coming up here",
     "show_more_one": "See more (1)",
     "show_more_other": "See more ({{count}})",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "hours_title": "Opening hours",
+    "hours_open": "Open",
+    "hours_closed": "Closed",
+    "hours_always_open": "Open 24 hours",
+    "hours_until": "until {{time}}",
+    "hours_until_tomorrow": "until {{time}} tomorrow",
+    "hours_until_day": "until {{day}} {{time}}",
+    "hours_opens_today": "opens at {{time}}",
+    "hours_opens_tomorrow": "opens tomorrow at {{time}}",
+    "hours_opens_day": "opens {{day}} at {{time}}",
+    "hours_unknown": "Opening hours not available",
+    "hours_verified": "Checked on {{date}}",
+    "hours_source_google": "Google"
   },
   "explore": {
     "results_one": "{{count}} result",

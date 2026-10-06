@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
 import LocationRecurringEvents from '@/components/LocationRecurringEvents';
 import LocationServicesSection from '@/components/LocationServicesSection';
+import LocationOpeningHours from '@/components/LocationOpeningHours';
 import ContributeSheet from '@/components/ContributeSheet';
 import { useCoachmarks, useCoachmarkTarget } from '@/hooks/useCoachmarks';
 import { motion } from 'framer-motion';
@@ -582,6 +583,13 @@ const LocationPage = () => {
 
           {/* Avis des familles */}
           <LocationContributionsSection locationId={location.id} />
+
+          {/* Horaires d'ouverture (Google Places, rafraîchis chaque mois) */}
+          <LocationOpeningHours
+            openingHours={location.opening_hours}
+            source={location.opening_hours_source}
+            updatedAt={location.opening_hours_updated_at}
+          />
 
           {/* Horaires & services (repas) */}
           <LocationServicesSection

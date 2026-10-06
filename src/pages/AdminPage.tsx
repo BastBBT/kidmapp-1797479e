@@ -12,6 +12,8 @@ import { useNavigate } from 'react-router-dom';
 import { useMealTypes, type MealType } from '@/hooks/useMeals';
 import PhotoUpload from '@/components/admin/PhotoUpload';
 import GalleryUpload from '@/components/admin/GalleryUpload';
+import OpeningHoursAdminEditor from '@/components/admin/OpeningHoursAdminEditor';
+import { draftToHours, initialAdminState, type OpeningHoursAdminState } from '@/lib/openingHoursDraft';
 import { useUserEmails } from '@/hooks/useUserEmails';
 import { useTopContributors } from '@/hooks/useTopContributors';
 import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryHex, eventCategoryEmoji, type EventOccurrence } from '@/types/event';
@@ -382,6 +384,7 @@ const AdminPage = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>(null);
+  const [editHours, setEditHours] = useState<OpeningHoursAdminState | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -1174,6 +1177,7 @@ const AdminPage = () => {
                         effort: (loc as any).effort ?? '',
                         price: (loc as any).price ?? '',
                       });
+                      setEditHours(initialAdminState(loc));
                       setEditOriginalAddress(loc.address ?? '');
                       setEditOriginalLat(loc.lat ?? null);
                       setEditOriginalLng(loc.lng ?? null);
@@ -2021,6 +2025,14 @@ const AdminPage = () => {
                 />
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>{(editForm.note || '').length}/2000</div>
               </div>
+              {editHours && editingId && (
+                <OpeningHoursAdminEditor
+                  locationId={editingId}
+                  state={editHours}
+                  onChange={setEditHours}
+                  onResynced={() => queryClient.invalidateQueries({ queryKey: ['all-locations'] })}
+                />
+              )}
               {isActivity(editForm.category) ? (
                 <div className="flex flex-col gap-3">
                   <PillGroup label="Durée" options={DURATIONS as any} value={editForm.duration ?? ''} onChange={(v) => setEditForm((f: any) => ({ ...f, duration: v }))} />
@@ -2075,6 +2087,32 @@ const AdminPage = () => {
                     return;
                   }
                   // Upload new photo if user selected a file
+                  // Horaires : validés avant tout upload pour ne pas laisser de photos orphelines.
+                  const hoursPatch: Record<string, unknown> = {};
+                  if (editHours) {
+                    const placeId = editHours.googlePlaceId.trim();
+                    if (placeId !== editHours.savedGooglePlaceId) {
+                      hoursPatch.google_place_id = placeId || null;
+                      // Les horaires en base viennent de l'ancien Place ID : on les efface plutôt
+                      // que d'afficher ceux d'un autre lieu jusqu'au prochain sync mensuel.
+                      hoursPatch.opening_hours = null;
+                      hoursPatch.opening_hours_source = null;
+                      hoursPatch.opening_hours_updated_at = null;
+                    }
+                    // Seule une vraie modification des horaires les passe en saisie manuelle :
+                    // enregistrer la fiche pour une autre raison ne doit pas couper le sync Google.
+                    if (editHours.dirty) {
+                      const parsed = draftToHours(editHours.draft);
+                      if ('error' in parsed) {
+                        toast({ title: 'Horaires invalides', description: parsed.error, variant: 'destructive' });
+                        return;
+                      }
+                      hoursPatch.opening_hours = parsed.value;
+                      hoursPatch.opening_hours_source = 'manuel';
+                      hoursPatch.opening_hours_updated_at = new Date().toISOString();
+                    }
+                  }
+
                   let finalPhotoUrl: string | null = editForm.photo || null;
                   if (editPhotoFile) {
                     const ext = editPhotoFile.name.split('.').pop() || 'jpg';
@@ -2197,6 +2235,7 @@ const AdminPage = () => {
                     updatePayload.lat = newLat;
                     updatePayload.lng = newLng;
                   }
+                  Object.assign(updatePayload, hoursPatch);
 
                   const { error } = await supabase
                     .from('locations')

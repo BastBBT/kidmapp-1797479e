@@ -245,7 +245,20 @@
     "recurring_events_title": "Sorties à venir ici",
     "show_more_one": "Voir plus (1)",
     "show_more_other": "Voir plus ({{count}})",
-    "collapse": "Réduire"
+    "collapse": "Réduire",
+    "hours_title": "Horaires",
+    "hours_open": "Ouvert",
+    "hours_closed": "Fermé",
+    "hours_always_open": "24h/24",
+    "hours_until": "jusqu'à {{time}}",
+    "hours_until_tomorrow": "jusqu'à demain {{time}}",
+    "hours_until_day": "jusqu'à {{day}} {{time}}",
+    "hours_opens_today": "ouvre à {{time}}",
+    "hours_opens_tomorrow": "ouvre demain à {{time}}",
+    "hours_opens_day": "ouvre {{day}} à {{time}}",
+    "hours_unknown": "Horaires non communiqués",
+    "hours_verified": "Vérifié le {{date}}",
+    "hours_source_google": "Google"
   },
   "explore": {
     "results_one": "{{count}} résultat",
