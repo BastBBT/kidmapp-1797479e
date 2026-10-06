@@ -71,6 +71,9 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
+// Décode la claim `role` SANS vérifier la signature : c'est la passerelle Supabase qui la
+// vérifie, parce que verify_jwt vaut true (valeur par défaut, la fonction n'est pas listée dans
+// config.toml). Ne jamais passer cette fonction en verify_jwt = false.
 function parseJwtRole(authHeader: string | null): string | null {
   if (!authHeader?.startsWith('Bearer ')) return null
   const parts = authHeader.slice(7).split('.')
@@ -141,12 +144,16 @@ function normalizePeriods(rawPeriods: GooglePeriod[]): Period[] {
 type SyncOutcome =
   | { id: string; name: string; status: 'updated' | 'no_hours' }
   | { id: string; name: string; status: 'error'; error: string }
-  | { id: string; name: string; status: 'skipped_budget' }
+  | { id: string; name: string; status: 'skipped_budget' | 'skipped_manual' }
 
+// `force` : écrase aussi une saisie manuelle (mode single = bouton « Resynchroniser »). Sans lui,
+// la garde est refaite au moment de l'écriture : un admin a pu passer le lieu en 'manuel'
+// pendant que le batch attendait la réponse de Google.
 async function syncOne(
   admin: SupabaseClient,
   loc: LocationRow,
   budget: CallBudget,
+  force: boolean,
 ): Promise<SyncOutcome> {
   const base = { id: loc.id, name: loc.name }
   if (!loc.google_place_id) return { ...base, status: 'error', error: 'no_place_id' }
@@ -178,11 +185,14 @@ async function syncOne(
       update.google_place_id = place.id
     }
 
-    const { error } = await admin.from('locations').update(update).eq('id', loc.id)
+    let query = admin.from('locations').update(update).eq('id', loc.id)
+    if (!force) query = query.or('opening_hours_source.is.null,opening_hours_source.neq.manuel')
+    const { data: written, error } = await query.select('id')
     if (error) {
       console.error('update failed', loc.id, error.message)
       return { ...base, status: 'error', error: 'db_update_failed' }
     }
+    if (!written || written.length === 0) return { ...base, status: 'skipped_manual' }
     return { ...base, status: periods.length > 0 ? 'updated' : 'no_hours' }
   } catch (e) {
     console.error('sync error', loc.id, e)
@@ -198,6 +208,7 @@ function summarize(outcomes: SyncOutcome[]) {
     no_hours: count('no_hours'),
     errors: outcomes.filter((o) => o.status === 'error'),
     skipped_budget: count('skipped_budget'),
+    skipped_manual: count('skipped_manual'),
   }
 }
 
@@ -211,7 +222,7 @@ async function runBatch(admin: SupabaseClient) {
   if (error) throw new Error(`select failed: ${error.message}`)
 
   const budget = new CallBudget(MAX_GOOGLE_CALLS_PER_RUN)
-  const outcomes = await mapPool(data as LocationRow[], CONCURRENCY, (loc) => syncOne(admin, loc, budget))
+  const outcomes = await mapPool(data as LocationRow[], CONCURRENCY, (loc) => syncOne(admin, loc, budget, false))
   const summary = summarize(outcomes)
   console.log('sync-opening-hours batch', JSON.stringify({ ...summary, google_calls: budget.used }))
   return summary
@@ -436,7 +447,7 @@ Deno.serve(async (req) => {
     if (error) throw new Error(`select failed: ${error.message}`)
     if (!loc) return json({ error: 'location_not_found' }, 404)
 
-    const outcome = await syncOne(admin, loc as LocationRow, new CallBudget(1))
+    const outcome = await syncOne(admin, loc as LocationRow, new CallBudget(1), true)
     return json(outcome, outcome.status === 'error' ? 422 : 200)
   } catch (e) {
     console.error('sync-opening-hours error', e)

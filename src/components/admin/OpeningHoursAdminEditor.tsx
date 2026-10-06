@@ -145,6 +145,11 @@ const OpeningHoursAdminEditor = ({ locationId, state, onChange, onResynced }: Pr
             </a>
           )}
         </div>
+        {state.googlePlaceId.trim() !== state.savedGooglePlaceId && !state.dirty && (
+          <div style={{ fontSize: 11, color: '#8B6914', marginTop: 4 }}>
+            Nouveau Place ID : les horaires actuels seront effacés à l'enregistrement. Resynchronise ensuite.
+          </div>
+        )}
       </div>
 
       <button

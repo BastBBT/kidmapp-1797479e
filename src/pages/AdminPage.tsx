@@ -2091,7 +2091,14 @@ const AdminPage = () => {
                   const hoursPatch: Record<string, unknown> = {};
                   if (editHours) {
                     const placeId = editHours.googlePlaceId.trim();
-                    if (placeId !== editHours.savedGooglePlaceId) hoursPatch.google_place_id = placeId || null;
+                    if (placeId !== editHours.savedGooglePlaceId) {
+                      hoursPatch.google_place_id = placeId || null;
+                      // Les horaires en base viennent de l'ancien Place ID : on les efface plutôt
+                      // que d'afficher ceux d'un autre lieu jusqu'au prochain sync mensuel.
+                      hoursPatch.opening_hours = null;
+                      hoursPatch.opening_hours_source = null;
+                      hoursPatch.opening_hours_updated_at = null;
+                    }
                     // Seule une vraie modification des horaires les passe en saisie manuelle :
                     // enregistrer la fiche pour une autre raison ne doit pas couper le sync Google.
                     if (editHours.dirty) {
