@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import WeekendPicker from '@/components/WeekendPicker';
 import EventsMap from '@/components/EventsMap';
 import EventCard from '@/components/EventCard';
+import FreeFilterPill from '@/components/FreeFilterPill';
 import EventCategoryFilter, { orderEventCategories } from '@/components/EventCategoryFilter';
 import {
   buildWeeks,
@@ -66,6 +67,7 @@ const SortiesPage = () => {
     return selectedAge === 'all' ? new Set() : new Set([selectedAge as ChildAgeBucket]);
   }, [kids.length, resolvedBuckets, selectedAge]);
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
+  const [onlyFree, setOnlyFree] = useState(false);
   const [showFinished, setShowFinished] = useState(false);
   const { data: events = [], isLoading } = useEvents();
   // Créneaux des events chargés : le calendrier pose une pastille par créneau
@@ -81,8 +83,10 @@ const SortiesPage = () => {
     () =>
       allSlots
         .filter(({ event }) => matchesAgeBuckets(event, effectiveAgeBuckets))
-        .filter(({ event }) => selectedCategory === 'all' || event.category === selectedCategory),
-    [allSlots, effectiveAgeBuckets, selectedCategory],
+        .filter(({ event }) => selectedCategory === 'all' || event.category === selectedCategory)
+        // « Gratuit » strict : seul is_free === true passe, un prix inconnu est exclu.
+        .filter(({ event }) => !onlyFree || event.is_free === true),
+    [allSlots, effectiveAgeBuckets, selectedCategory, onlyFree],
   );
 
   // Mode d'affichage retenu d'une session à l'autre. La liste reste le défaut :
@@ -124,7 +128,7 @@ const SortiesPage = () => {
 
   useEffect(() => {
     setSelectedKey(defaultKey);
-  }, [effectiveAgeBuckets, selectedCategory, defaultKey]);
+  }, [effectiveAgeBuckets, selectedCategory, onlyFree, defaultKey]);
 
   const selectedWeek = weeks.find((w) => w.key === selectedKey) ?? weeks[0];
   const today = todayISO();
@@ -165,7 +169,7 @@ const SortiesPage = () => {
   // ne doivent pas se superposer.
   const displayedEvents = useMemo(() => distinctEvents(displayedSlots), [displayedSlots]);
 
-  const hasActiveFilter = effectiveAgeBuckets.size > 0 || selectedCategory !== 'all';
+  const hasActiveFilter = effectiveAgeBuckets.size > 0 || selectedCategory !== 'all' || onlyFree;
 
   // ---- Mode calendrier ----
   // Le calendrier raisonne sur tous les créneaux filtrés, pas sur une seule
@@ -180,7 +184,7 @@ const SortiesPage = () => {
   }, [calendarDefaultDay, dayTouched]);
   useEffect(() => {
     setDayTouched(false);
-  }, [effectiveAgeBuckets, selectedCategory]);
+  }, [effectiveAgeBuckets, selectedCategory, onlyFree]);
 
   const daySlots = useMemo(() => shortSlotsOn(byDay, selectedDay), [byDay, selectedDay]);
   const dayLongEvents = useMemo(
@@ -241,6 +245,11 @@ const SortiesPage = () => {
           />
         </div>
       )}
+
+      {/* Bascule « Gratuit » : indépendante du type, elle se cumule avec âge et catégorie. */}
+      <div style={{ padding: '0 16px 8px' }}>
+        <FreeFilterPill active={onlyFree} onToggle={() => setOnlyFree((v) => !v)} />
+      </div>
 
       {/* Liste ↔ Calendrier. La carte reste en mode liste : au format téléphone
           elle ne cohabite pas avec une grille de dates. */}
@@ -425,6 +434,18 @@ const SortiesPage = () => {
                 <div style={{ fontFamily: 'Caveat', fontSize: 17, color: 'var(--text-muted)' }}>
                   {hasActiveFilter ? t('sorties.empty_filtered') : t('sorties.empty')}
                 </div>
+                {onlyFree && (
+                  <button
+                    type="button"
+                    onClick={() => setOnlyFree(false)}
+                    style={{
+                      marginTop: 10, background: 'none', border: 'none', cursor: 'pointer',
+                      fontFamily: 'DM Sans', fontSize: 14, fontWeight: 600, color: 'var(--secondary)',
+                    }}
+                  >
+                    {t('sorties.remove_free_filter')}
+                  </button>
+                )}
               </div>
             ) : (
               displayedSlots.map((slot) => (

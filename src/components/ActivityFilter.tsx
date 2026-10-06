@@ -2,12 +2,15 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { WEATHERS, DURATIONS } from '@/lib/activity';
 import { translateToken } from '@/i18n/tokenMaps';
+import FreeFilterPill from '@/components/FreeFilterPill';
 
 interface ActivityFilterProps {
   weather: string | null;
   duration: string | null;
   onWeatherChange: (v: string | null) => void;
   onDurationChange: (v: string | null) => void;
+  onlyFree: boolean;
+  onFreeChange: (v: boolean) => void;
 }
 
 const WEATHER_ICONS: Record<string, string> = {
@@ -40,10 +43,13 @@ const Pill = ({
   </motion.button>
 );
 
-const ActivityFilter = ({ weather, duration, onWeatherChange, onDurationChange }: ActivityFilterProps) => {
+const ActivityFilter = ({ weather, duration, onWeatherChange, onDurationChange, onlyFree, onFreeChange }: ActivityFilterProps) => {
   const { t } = useTranslation();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 16px 4px' }}>
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }} className="scrollbar-hide">
+        <FreeFilterPill active={onlyFree} onToggle={() => onFreeChange(!onlyFree)} />
+      </div>
       <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }} className="scrollbar-hide">
         <span style={{ fontFamily: 'Caveat', fontSize: 13, color: 'var(--text-muted)', alignSelf: 'center', flexShrink: 0, marginRight: 2 }}>{t('filters.weather_label')}</span>
         {WEATHERS.map((w) => (
