@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
-import { Gift } from 'lucide-react';
+import { Check, Gift } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface FreeFilterPillProps {
   active: boolean;
   onToggle: () => void;
+  /** Version de la ligne du compteur d'Explorer : même gabarit que `OpenNowPill`, neutre au repos. */
+  compact?: boolean;
 }
 
 /**
@@ -12,8 +14,31 @@ interface FreeFilterPillProps {
  * Miroir de `freeChip` / `freePill` côté iOS. Le filtre lui-même est strict :
  * seul `is_free === true` passe, un prix inconnu n'est pas présenté gratuit.
  */
-const FreeFilterPill = ({ active, onToggle }: FreeFilterPillProps) => {
+const FreeFilterPill = ({ active, onToggle, compact = false }: FreeFilterPillProps) => {
   const { t } = useTranslation();
+  if (compact) {
+    return (
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.95 }}
+        onClick={onToggle}
+        aria-pressed={active}
+        className="shrink-0"
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '4px 12px', borderRadius: 100,
+          border: active ? 'none' : '1px solid var(--border)',
+          background: active ? 'var(--secondary)' : 'var(--surface)',
+          color: active ? '#fff' : 'var(--text-muted)',
+          fontFamily: 'DM Sans', fontSize: 13, fontWeight: 500,
+          cursor: 'pointer', whiteSpace: 'nowrap',
+        }}
+      >
+        {active ? <Check size={12} aria-hidden /> : <Gift size={12} aria-hidden />}
+        {t('filters.free')}
+      </motion.button>
+    );
+  }
   return (
     <motion.button
       type="button"

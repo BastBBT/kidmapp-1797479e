@@ -10,6 +10,9 @@ import { useCoachmarks } from '@/hooks/useCoachmarks';
 import MealFilter from '@/components/MealFilter';
 import AgeFilter from '@/components/AgeFilter';
 import ActivityFilter from '@/components/ActivityFilter';
+import FreeFilterPill from '@/components/FreeFilterPill';
+import OpenNowPill from '@/components/OpenNowPill';
+import { matchesOpenNow, parseOpeningHours } from '@/lib/openingHours';
 import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 import Assistant, { AssistantOutcome } from '@/components/Assistant';
 
@@ -118,6 +121,7 @@ const Index = () => {
   const [selectedWeather, setSelectedWeather] = useState<string | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<string | null>(null);
   const [onlyFree, setOnlyFree] = useState(false);
+  const [onlyOpen, setOnlyOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -181,6 +185,8 @@ const Index = () => {
     setSelectedWeather(outcome.weather);
     setSelectedDuration(outcome.duration);
     setSelectedMeal(outcome.mealId);
+    setOnlyOpen(outcome.onlyOpen);
+    setOnlyFree(outcome.onlyFree);
     setAssistantOpen(false);
   }, [setChildSelection]);
 
@@ -293,6 +299,7 @@ const Index = () => {
         .sort(byName);
     }
 
+    const now = new Date();
     const scoped = locations
       .filter((loc) => {
         const matchCategory = selectedCategory === 'all' || loc.category === selectedCategory;
@@ -309,7 +316,8 @@ const Index = () => {
         // Filtre « Gratuit » strict : seul is_free === true passe (prix inconnu exclu),
         // contrairement à météo/durée où une donnée absente ne cache jamais l'activité.
         const matchFree = !isActivityLoc || !onlyFree || loc.is_free === true;
-        return matchCategory && matchGroup && matchMeal && matchAge && matchWeather && matchDuration && matchFree;
+        const matchOpen = matchesOpenNow(loc.opening_hours, onlyOpen, now);
+        return matchCategory && matchGroup && matchMeal && matchAge && matchWeather && matchDuration && matchFree && matchOpen;
       });
 
     // Les filtres ci-dessus réduisent le jeu ; le tri choisi, lui, l'ordonne et
@@ -341,7 +349,7 @@ const Index = () => {
     });
   }, [
     locations, allLocations, isSearching, searchTerm, selectedCategory, selectedGroup,
-    locationIdsForMeal, effectiveAgeBuckets, selectedWeather, selectedDuration, onlyFree, sortMode,
+    locationIdsForMeal, effectiveAgeBuckets, selectedWeather, selectedDuration, onlyFree, onlyOpen, sortMode,
   ]);
 
   // La bulle 3 se termine par « Voir une fiche → » : c'est ici qu'on désigne
@@ -368,6 +376,9 @@ const Index = () => {
   // Compteurs accordés au groupe actif — et neutres pendant une recherche, dont les
   // résultats croisent lieux et activités.
   const count = displayedLocations.length;
+  const unknownHoursCount = onlyOpen
+    ? displayedLocations.filter((loc) => !parseOpeningHours(loc.opening_hours)).length
+    : 0;
   const foundLabel = isSearching
     ? t('explore.results', { count })
     : selectedGroup === 'activities'
@@ -425,8 +436,6 @@ const Index = () => {
           duration={selectedDuration}
           onWeatherChange={setSelectedWeather}
           onDurationChange={setSelectedDuration}
-          onlyFree={onlyFree}
-          onFreeChange={setOnlyFree}
         />
       </div>
 
@@ -462,6 +471,10 @@ const Index = () => {
             </span>
           )}
         </p>
+        {!isSearching && showActivityFilter && (
+          <FreeFilterPill compact active={onlyFree} onToggle={() => setOnlyFree((v) => !v)} />
+        )}
+        {!isSearching && <OpenNowPill active={onlyOpen} onToggle={() => setOnlyOpen((v) => !v)} />}
         {!isSearching && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -488,6 +501,14 @@ const Index = () => {
           </DropdownMenu>
         )}
       </div>
+
+      {/* Un filtre honnête dit ce qu'il ne sait pas : ces lieux ne sont pas confirmés
+          ouverts, juste pas écartés. */}
+      {onlyOpen && !isSearching && unknownHoursCount > 0 && (
+        <p style={{ padding: '0 16px 8px', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)' }}>
+          {t('explore.unknown_hours', { count: unknownHoursCount })}
+        </p>
+      )}
 
       {/* Carte compacte — isolation crée un nouveau contexte d'empilement */}
       <div style={{

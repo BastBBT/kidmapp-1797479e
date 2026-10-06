@@ -114,7 +114,8 @@
       "0_2": "0-2 años",
       "3_5": "3-5 años",
       "6_plus": "6+ años"
-    }
+    },
+    "open": "Abierto"
   },
   "price": {
     "Gratuit": "Gratis",
@@ -278,7 +279,8 @@
     "sort_loved": "Los más queridos",
     "sort_recent": "Los más recientes",
     "loved_by_one": "Le gusta a {{count}} familia",
-    "loved_by_other": "Le gusta a {{count}} familias"
+    "loved_by_other": "Le gusta a {{count}} familias",
+    "unknown_hours": "Incluye {{count}} sin horario indicado, mantenidos por prudencia."
   },
   "saved": {
     "title": "Guardados",
@@ -544,13 +546,13 @@
   "assistant": {
     "open": "Abrir el asistente",
     "coup_de_main": "¿Una mano?",
-    "step_1": "PREGUNTA 1 DE 3",
-    "step_2": "PREGUNTA 2 DE 3",
-    "step_3": "PREGUNTA 3 DE 3",
+    "step_1": "PREGUNTA 1 DE 4",
+    "step_2": "PREGUNTA 2 DE 4",
+    "step_3": "PREGUNTA 3 DE 4",
     "back": "Volver",
     "mascotte_alt": "La mascota de Kidmapp te saluda",
     "question_need": "¿Qué buscamos hoy?",
-    "hint_need": "Tres preguntas y te enseño.",
+    "hint_need": "Cuatro preguntas y te enseño.",
     "question_who": "¿Para quién es?",
     "hint_who": "Solo mostraré lo que les venga bien.",
     "question_meal": "¿Para qué comida?",
@@ -579,6 +581,15 @@
     "no_preference_subtitle": "Enséñamelo todo",
     "escape_title": "Prefiero mirar yo",
     "escape_subtitle_count": "{{count}} lugares y actividades, sin filtros",
-    "escape_subtitle_empty": "Todo el catálogo, sin filtros"
+    "escape_subtitle_empty": "Todo el catálogo, sin filtros",
+    "step_4": "ÚLTIMO DETALLE",
+    "question_extras": "¿Algo más?",
+    "hint_extras": "Opcional, podrás quitarlos después.",
+    "open_now_title": "Abierto ahora",
+    "free_only_title": "Solo gratis",
+    "free_only_subtitle": "Sin entrada de pago",
+    "extras_nothing": "Nada marcado: te lo enseño todo.",
+    "extras_unknown_hours": "Los lugares sin horario indicado siguen visibles, por prudencia.",
+    "see_results": "Ver resultados"
   }
 }
