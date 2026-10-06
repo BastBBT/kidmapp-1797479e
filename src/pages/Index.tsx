@@ -122,6 +122,16 @@ const Index = () => {
   const [selectedDuration, setSelectedDuration] = useState<string | null>(null);
   const [onlyFree, setOnlyFree] = useState(false);
   const [onlyOpen, setOnlyOpen] = useState(false);
+  // Instant de référence du filtre « Ouvert » : relu à chaque bascule puis chaque minute tant
+  // qu'il est actif, sinon un onglet laissé ouvert garderait un verdict périmé (un lieu qui
+  // vient de fermer resterait affiché).
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    if (!onlyOpen) return;
+    setNowTick(Date.now());
+    const id = window.setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, [onlyOpen]);
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -173,7 +183,7 @@ const Index = () => {
 
   // Applique ce que l'assistant rapporte. Rien n'est posé si le parent sort
   // par la 4e carte — `finish` (Assistant.tsx) n'appelle `onFinish` que si les
-  // trois questions ont été répondues.
+  // quatre écrans ont été parcourus (dernier écran : « Voir les résultats »).
   const handleAssistantOutcome = useCallback((outcome: AssistantOutcome) => {
     setSelectedGroup(outcome.group);
     setSelectedCategory(outcome.category ?? 'all');
@@ -299,7 +309,7 @@ const Index = () => {
         .sort(byName);
     }
 
-    const now = new Date();
+    const now = new Date(nowTick);
     const scoped = locations
       .filter((loc) => {
         const matchCategory = selectedCategory === 'all' || loc.category === selectedCategory;
@@ -349,7 +359,7 @@ const Index = () => {
     });
   }, [
     locations, allLocations, isSearching, searchTerm, selectedCategory, selectedGroup,
-    locationIdsForMeal, effectiveAgeBuckets, selectedWeather, selectedDuration, onlyFree, onlyOpen, sortMode,
+    locationIdsForMeal, effectiveAgeBuckets, selectedWeather, selectedDuration, onlyFree, onlyOpen, nowTick, sortMode,
   ]);
 
   // La bulle 3 se termine par « Voir une fiche → » : c'est ici qu'on désigne

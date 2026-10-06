@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
-import { Check, Gift } from 'lucide-react';
+import { Gift } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import CounterRowPill from '@/components/CounterRowPill';
 
 interface FreeFilterPillProps {
   active: boolean;
@@ -18,25 +19,12 @@ const FreeFilterPill = ({ active, onToggle, compact = false }: FreeFilterPillPro
   const { t } = useTranslation();
   if (compact) {
     return (
-      <motion.button
-        type="button"
-        whileTap={{ scale: 0.95 }}
-        onClick={onToggle}
-        aria-pressed={active}
-        className="shrink-0"
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          padding: '4px 12px', borderRadius: 100,
-          border: active ? 'none' : '1px solid var(--border)',
-          background: active ? 'var(--secondary)' : 'var(--surface)',
-          color: active ? '#fff' : 'var(--text-muted)',
-          fontFamily: 'DM Sans', fontSize: 13, fontWeight: 500,
-          cursor: 'pointer', whiteSpace: 'nowrap',
-        }}
-      >
-        {active ? <Check size={12} aria-hidden /> : <Gift size={12} aria-hidden />}
-        {t('filters.free')}
-      </motion.button>
+      <CounterRowPill
+        active={active}
+        onToggle={onToggle}
+        icon={<Gift size={12} aria-hidden />}
+        label={t('filters.free')}
+      />
     );
   }
   return (

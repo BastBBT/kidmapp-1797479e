@@ -1,6 +1,6 @@
-import { motion } from 'framer-motion';
-import { Check, Clock } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import CounterRowPill from '@/components/CounterRowPill';
 
 interface OpenNowPillProps {
   active: boolean;
@@ -15,26 +15,13 @@ interface OpenNowPillProps {
 const OpenNowPill = ({ active, onToggle }: OpenNowPillProps) => {
   const { t } = useTranslation();
   return (
-    <motion.button
-      type="button"
-      whileTap={{ scale: 0.95 }}
-      onClick={onToggle}
-      aria-pressed={active}
-      aria-label={t('assistant.open_now_title')}
-      className="shrink-0"
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 4,
-        padding: '4px 12px', borderRadius: 100,
-        border: active ? 'none' : '1px solid var(--border)',
-        background: active ? 'var(--secondary)' : 'var(--surface)',
-        color: active ? '#fff' : 'var(--text-muted)',
-        fontFamily: 'DM Sans', fontSize: 13, fontWeight: 500,
-        cursor: 'pointer', whiteSpace: 'nowrap',
-      }}
-    >
-      {active ? <Check size={12} aria-hidden /> : <Clock size={12} aria-hidden />}
-      {t('filters.open')}
-    </motion.button>
+    <CounterRowPill
+      active={active}
+      onToggle={onToggle}
+      icon={<Clock size={12} aria-hidden />}
+      label={t('filters.open')}
+      ariaLabel={t('assistant.open_now_title')}
+    />
   );
 };
 
