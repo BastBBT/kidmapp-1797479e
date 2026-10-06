@@ -245,7 +245,20 @@
     "recurring_events_title": "Próximamente aquí",
     "show_more_one": "Ver más (1)",
     "show_more_other": "Ver más ({{count}})",
-    "collapse": "Reducir"
+    "collapse": "Reducir",
+    "hours_title": "Horario",
+    "hours_open": "Abierto",
+    "hours_closed": "Cerrado",
+    "hours_always_open": "Abierto 24 horas",
+    "hours_until": "hasta las {{time}}",
+    "hours_until_tomorrow": "hasta mañana a las {{time}}",
+    "hours_until_day": "hasta el {{day}} a las {{time}}",
+    "hours_opens_today": "abre a las {{time}}",
+    "hours_opens_tomorrow": "abre mañana a las {{time}}",
+    "hours_opens_day": "abre el {{day}} a las {{time}}",
+    "hours_unknown": "Horario no disponible",
+    "hours_verified": "Verificado el {{date}}",
+    "hours_source_google": "Google"
   },
   "explore": {
     "results_one": "{{count}} resultado",
