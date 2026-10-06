@@ -43,6 +43,13 @@
       "when": 1791295588962,
       "tag": "0005_locations_opening_hours",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791300048363,
+      "tag": "0006_add_is_free",
+      "breakpoints": true
     }
   ]
 }
