@@ -1,0 +1,1 @@
+- `is_free` on locations/events is derived from `price` by DB trigger (`price_is_free`); never write it from clients — shipped mobile apps only write `price`.
