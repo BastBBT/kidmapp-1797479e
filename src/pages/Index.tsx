@@ -10,6 +10,7 @@ import { useCoachmarks } from '@/hooks/useCoachmarks';
 import MealFilter from '@/components/MealFilter';
 import AgeFilter from '@/components/AgeFilter';
 import ActivityFilter from '@/components/ActivityFilter';
+import FreeFilterPill from '@/components/FreeFilterPill';
 import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 import Assistant, { AssistantOutcome } from '@/components/Assistant';
 
@@ -143,6 +144,9 @@ const Index = () => {
     MEAL_CATEGORIES.has(selectedCategory) || (selectedCategory === 'all' && selectedGroup === 'places');
   const showActivityFilter =
     isActivity(selectedCategory) || (selectedCategory === 'all' && selectedGroup === 'activities');
+  // La bascule « Gratuit » est un filtre du groupe Activités : elle apparaît dès que le
+  // groupe est choisi, sans attendre un type précis.
+  const showFreeFilter = searchQuery.trim() === '' && selectedGroup === 'activities';
 
   // Reset meal filter when switching to a non-meal category
   useEffect(() => {
@@ -156,9 +160,13 @@ const Index = () => {
     if (!showActivityFilter) {
       if (selectedWeather !== null) setSelectedWeather(null);
       if (selectedDuration !== null) setSelectedDuration(null);
-      if (onlyFree) setOnlyFree(false);
     }
-  }, [showActivityFilter, selectedWeather, selectedDuration, onlyFree]);
+  }, [showActivityFilter, selectedWeather, selectedDuration]);
+
+  // Quitter le groupe Activités (ou lancer une recherche) remet « Gratuit » à zéro.
+  useEffect(() => {
+    if (!showFreeFilter && onlyFree) setOnlyFree(false);
+  }, [showFreeFilter, onlyFree]);
 
 
   // Pas d'ouverture automatique sur le web, contrairement à iOS/Android : la
@@ -308,7 +316,7 @@ const Index = () => {
         const matchDuration = !isActivityLoc || matchesDuration((loc as any).duration, selectedDuration);
         // Filtre « Gratuit » strict : seul is_free === true passe (prix inconnu exclu),
         // contrairement à météo/durée où une donnée absente ne cache jamais l'activité.
-        const matchFree = !isActivityLoc || !onlyFree || loc.is_free === true;
+        const matchFree = !onlyFree || loc.is_free === true;
         return matchCategory && matchGroup && matchMeal && matchAge && matchWeather && matchDuration && matchFree;
       });
 
@@ -415,7 +423,7 @@ const Index = () => {
       <div
         style={{
           overflow: 'hidden',
-          maxHeight: showActivityFilter ? 170 : 0,
+          maxHeight: showActivityFilter ? 120 : 0,
           opacity: showActivityFilter ? 1 : 0,
           transition: 'max-height 200ms ease-in-out, opacity 200ms ease-in-out',
         }}
@@ -425,8 +433,6 @@ const Index = () => {
           duration={selectedDuration}
           onWeatherChange={setSelectedWeather}
           onDurationChange={setSelectedDuration}
-          onlyFree={onlyFree}
-          onFreeChange={setOnlyFree}
         />
       </div>
 
@@ -462,6 +468,9 @@ const Index = () => {
             </span>
           )}
         </p>
+        {showFreeFilter && (
+          <FreeFilterPill active={onlyFree} onToggle={() => setOnlyFree((v) => !v)} />
+        )}
         {!isSearching && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

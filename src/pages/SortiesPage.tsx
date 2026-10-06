@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import WeekendPicker from '@/components/WeekendPicker';
 import EventsMap from '@/components/EventsMap';
 import EventCard from '@/components/EventCard';
+import { CalendarDays, List } from 'lucide-react';
 import FreeFilterPill from '@/components/FreeFilterPill';
 import EventCategoryFilter, { orderEventCategories } from '@/components/EventCategoryFilter';
 import {
@@ -246,31 +247,31 @@ const SortiesPage = () => {
         </div>
       )}
 
-      {/* Bascule « Gratuit » : indépendante du type, elle se cumule avec âge et catégorie. */}
-      <div style={{ padding: '0 16px 8px' }}>
-        <FreeFilterPill active={onlyFree} onToggle={() => setOnlyFree((v) => !v)} />
-      </div>
-
       {/* Liste ↔ Calendrier. La carte reste en mode liste : au format téléphone
           elle ne cohabite pas avec une grille de dates. */}
-      <div style={{ padding: '4px 16px 8px' }}>
+      <div style={{ padding: '4px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        {/* Seul l'onglet actif affiche son libellé : l'autre se réduit à son icône, ce qui
+            libère la place de la bascule « Gratuit » sur la même ligne. */}
         <div
           role="tablist"
           aria-label={t('sorties.view_mode')}
-          style={{ display: 'flex', gap: 2, padding: 3, background: 'var(--border)', borderRadius: 999 }}
+          style={{ display: 'inline-flex', gap: 2, padding: 2, background: 'var(--border)', borderRadius: 999 }}
         >
           {([false, true] as const).map((calendar) => {
             const active = calendarMode === calendar;
+            const ModeIcon = calendar ? CalendarDays : List;
+            const modeLabel = t(calendar ? 'sorties.mode_calendar' : 'sorties.mode_list');
             return (
               <button
                 key={String(calendar)}
                 type="button"
                 role="tab"
                 aria-selected={active}
+                aria-label={modeLabel}
                 onClick={() => switchMode(calendar)}
                 style={{
-                  flex: 1,
-                  padding: '6px 0',
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: active ? '6px 12px' : '6px 10px',
                   borderRadius: 999,
                   border: 'none',
                   cursor: 'pointer',
@@ -282,11 +283,13 @@ const SortiesPage = () => {
                   boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                 }}
               >
-                {t(calendar ? 'sorties.mode_calendar' : 'sorties.mode_list')}
+                <ModeIcon size={14} aria-hidden />
+                {active && modeLabel}
               </button>
             );
           })}
         </div>
+        <FreeFilterPill active={onlyFree} onToggle={() => setOnlyFree((v) => !v)} />
       </div>
 
       {calendarMode ? (
