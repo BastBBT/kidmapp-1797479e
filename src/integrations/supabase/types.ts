@@ -758,6 +758,7 @@ export type Database = {
           duration: string | null
           effort: string | null
           favorites_count: number
+          google_place_id: string | null
           high_chair: boolean
           id: string
           instagram: string | null
@@ -767,6 +768,9 @@ export type Database = {
           lng: number
           name: string
           note: string | null
+          opening_hours: Json | null
+          opening_hours_source: string | null
+          opening_hours_updated_at: string | null
           photo: string | null
           photos: string[] | null
           price: string | null
@@ -791,6 +795,7 @@ export type Database = {
           duration?: string | null
           effort?: string | null
           favorites_count?: number
+          google_place_id?: string | null
           high_chair?: boolean
           id?: string
           instagram?: string | null
@@ -800,6 +805,9 @@ export type Database = {
           lng: number
           name: string
           note?: string | null
+          opening_hours?: Json | null
+          opening_hours_source?: string | null
+          opening_hours_updated_at?: string | null
           photo?: string | null
           photos?: string[] | null
           price?: string | null
@@ -824,6 +832,7 @@ export type Database = {
           duration?: string | null
           effort?: string | null
           favorites_count?: number
+          google_place_id?: string | null
           high_chair?: boolean
           id?: string
           instagram?: string | null
@@ -833,6 +842,9 @@ export type Database = {
           lng?: number
           name?: string
           note?: string | null
+          opening_hours?: Json | null
+          opening_hours_source?: string | null
+          opening_hours_updated_at?: string | null
           photo?: string | null
           photos?: string[] | null
           price?: string | null
