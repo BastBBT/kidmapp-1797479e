@@ -419,6 +419,7 @@ export type Database = {
           favorites_count: number
           id: string
           instagram: string | null
+          is_free: boolean | null
           lat: number | null
           lng: number | null
           location_id: string | null
@@ -452,6 +453,7 @@ export type Database = {
           favorites_count?: number
           id?: string
           instagram?: string | null
+          is_free?: boolean | null
           lat?: number | null
           lng?: number | null
           location_id?: string | null
@@ -485,6 +487,7 @@ export type Database = {
           favorites_count?: number
           id?: string
           instagram?: string | null
+          is_free?: boolean | null
           lat?: number | null
           lng?: number | null
           location_id?: string | null
@@ -762,6 +765,7 @@ export type Database = {
           high_chair: boolean
           id: string
           instagram: string | null
+          is_free: boolean | null
           kids_area: boolean
           kids_menu: boolean
           lat: number
@@ -799,6 +803,7 @@ export type Database = {
           high_chair?: boolean
           id?: string
           instagram?: string | null
+          is_free?: boolean | null
           kids_area?: boolean
           kids_menu?: boolean
           lat: number
@@ -836,6 +841,7 @@ export type Database = {
           high_chair?: boolean
           id?: string
           instagram?: string | null
+          is_free?: boolean | null
           kids_area?: boolean
           kids_menu?: boolean
           lat?: number
@@ -1214,6 +1220,7 @@ export type Database = {
         Args: { record_id: string; record_type: string }
         Returns: undefined
       }
+      price_is_free: { Args: { p: string }; Returns: boolean }
       record_assistant_completed: { Args: never; Returns: undefined }
       record_assistant_opened: { Args: never; Returns: undefined }
     }
