@@ -114,7 +114,8 @@
       "0_2": "0-2 ans",
       "3_5": "3-5 ans",
       "6_plus": "6+ ans"
-    }
+    },
+    "open": "Ouvert"
   },
   "price": {
     "Gratuit": "Gratuit",
@@ -278,7 +279,8 @@
     "sort_loved": "Les plus aimés",
     "sort_recent": "Les plus récents",
     "loved_by_one": "Aimé par {{count}} famille",
-    "loved_by_other": "Aimé par {{count}} familles"
+    "loved_by_other": "Aimé par {{count}} familles",
+    "unknown_hours": "Dont {{count}} sans horaires renseignés."
   },
   "saved": {
     "title": "Sauvegardés",
@@ -544,13 +546,13 @@
   "assistant": {
     "open": "Ouvrir l'assistant",
     "coup_de_main": "Un coup de main ?",
-    "step_1": "QUESTION 1 SUR 3",
-    "step_2": "QUESTION 2 SUR 3",
-    "step_3": "QUESTION 3 SUR 3",
+    "step_1": "QUESTION 1 SUR 4",
+    "step_2": "QUESTION 2 SUR 4",
+    "step_3": "QUESTION 3 SUR 4",
     "back": "Retour",
     "mascotte_alt": "La mascotte Kidmapp vous salue",
     "question_need": "On cherche quoi, aujourd'hui ?",
-    "hint_need": "Trois questions et je vous montre.",
+    "hint_need": "Quatre questions et je vous montre.",
     "question_who": "C'est pour qui ?",
     "hint_who": "Je n'afficherai que ce qui leur va.",
     "question_meal": "C'est pour quel repas ?",
@@ -579,6 +581,15 @@
     "no_preference_subtitle": "Montrez-moi tout",
     "escape_title": "Je regarde par moi-même",
     "escape_subtitle_count": "{{count}} lieux et activités, sans filtre",
-    "escape_subtitle_empty": "Tout le catalogue, sans filtre"
+    "escape_subtitle_empty": "Tout le catalogue, sans filtre",
+    "step_4": "DERNIÈRE PRÉCISION",
+    "question_extras": "Une envie en plus ?",
+    "hint_extras": "Facultatif, vous pourrez les retirer ensuite.",
+    "open_now_title": "Ouvert maintenant",
+    "free_only_title": "Gratuit uniquement",
+    "free_only_subtitle": "Sans entrée payante",
+    "extras_nothing": "Rien de coché : je vous montre tout.",
+    "extras_unknown_hours": "Les lieux sans horaires renseignés restent affichés, par prudence.",
+    "see_results": "Voir les résultats"
   }
 }

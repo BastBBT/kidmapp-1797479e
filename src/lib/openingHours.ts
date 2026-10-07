@@ -119,3 +119,25 @@ export function rangesForDay(hours: OpeningHours, day: number): string[] {
 export function todayInParis(now: Date = new Date()): number {
   return Math.floor(weekMinutesInParis(now) / MINUTES_PER_DAY);
 }
+
+/**
+ * Filtre « Ouvert » d'Explorer : permissif. Un lieu sans horaires reste affiché (une donnée
+ * absente ne cache jamais le lieu, comme météo et durée) ; seul un lieu dont on SAIT qu'il est
+ * fermé à cet instant est écarté.
+ */
+export function matchesOpenNow(rawHours: unknown, onlyOpen: boolean, now: Date = new Date()): boolean {
+  if (!onlyOpen) return true;
+  const hours = parseOpeningHours(rawHours);
+  if (!hours) return true;
+  const status = openStatus(hours, now);
+  return status.kind !== 'closed' && status.kind !== 'closed_indefinitely';
+}
+
+/** « Mercredi 14:20 » — jour et heure de Paris dans la langue `locale`. */
+export function nowLabelInParis(locale: string, now: Date = new Date()): string {
+  const day = new Intl.DateTimeFormat(locale, { timeZone: LOCATION_TIME_ZONE, weekday: 'long' }).format(now);
+  const time = new Intl.DateTimeFormat(locale, {
+    timeZone: LOCATION_TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).format(now);
+  return `${day.charAt(0).toUpperCase()}${day.slice(1)} ${time}`;
+}
