@@ -3,13 +3,11 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useFavorites } from '@/hooks/useFavorites';
-import { MEAL_ICONS, EQUIP_ICONS, EQUIP_SHORT_LABELS, EquipKey, CATEGORY_ICONS } from '@/assets/icons';
+import { EQUIP_ICONS, EQUIP_SHORT_LABELS, EquipKey, CATEGORY_ICONS } from '@/assets/icons';
 import { ChildAgeBucket, getPriorityEquipForBuckets } from '@/lib/ageFilter';
 import { translateToken } from '@/i18n/tokenMaps';
 import { FavoriteCountBadge, shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
-import FeedbackIconsRow from '@/components/FeedbackIconsRow';
-import { useRecommendationFeedback } from '@/hooks/useRecommendationFeedback';
 import FarBadge from '@/components/FarBadge';
 import { useProximityZone } from '@/hooks/useProximityZone';
 import { locationFarInfo } from '@/lib/proximity';
@@ -17,8 +15,6 @@ import { locationFarInfo } from '@/lib/proximity';
 interface LocationCardProps {
   location: Location;
   index?: number;
-  mealEmojis?: string[]; // legacy, kept for compatibility
-  mealIds?: string[];
   /** Tranches actives (union — pas intersection — d'une fratrie), vide = pas de filtre. */
   ageBuckets?: Set<ChildAgeBucket>;
 }
@@ -57,32 +53,13 @@ const EquipIcon = ({ equipKey, highlight = false }: { equipKey: EquipKey; highli
   </span>
 );
 
-const MealBubble = ({ mealId }: { mealId: string }) => {
-  const src = MEAL_ICONS[mealId];
-  if (!src) return null;
-  return (
-    <span
-      style={{
-        width: 21, height: 21, borderRadius: '50%', padding: 4,
-        background: 'rgba(255,255,255,0.9)',
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-      }}
-    >
-      <img src={src} alt="" style={{ width: 13, height: 13, objectFit: 'contain' }} />
-    </span>
-  );
-};
-
-const LocationCard = ({ location, index = 0, mealIds = [], ageBuckets = EMPTY_BUCKETS }: LocationCardProps) => {
+const LocationCard = ({ location, index = 0, ageBuckets = EMPTY_BUCKETS }: LocationCardProps) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { isFavorite } = useFavorites();
-  const feedback = useRecommendationFeedback();
   const zone = useProximityZone();
   const far = locationFarInfo(zone, location);
   const gradient = categoryGradients[location.category] || categoryGradients.public;
-  const isMealCategory = location.category === 'restaurant' || location.category === 'cafe';
   const activity = isActivity(location.category);
   const duration = (location as any).duration as string | null;
   const price = (location as any).price as string | null;
@@ -134,14 +111,7 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBuckets = EMPTY_BU
           </>
         )}
         <div className="absolute inset-x-0 bottom-0 h-12" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.25), transparent)' }} />
-        {isMealCategory && mealIds.length > 0 && (
-          <div className="absolute" style={{ bottom: 6, left: 6, display: 'flex', gap: 3 }}>
-            {mealIds.slice(0, 4).map((id) => (
-              <MealBubble key={id} mealId={id} />
-            ))}
-          </div>
-        )}
-        {/* Hors zone — bas-droite, à l'opposé des bulles repas ; absent pour un lieu proche. */}
+        {/* Hors zone — bas-droite ; absent pour un lieu proche. */}
         {far && <FarBadge info={far} className="absolute" style={{ bottom: 6, right: 6 }} />}
         {isFavorite(location.id) && (
           <span
@@ -200,17 +170,6 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBuckets = EMPTY_BU
               {sortedEquip.map((k) => <EquipIcon key={k} equipKey={k} highlight={priority.has(k)} />)}
             </div>
           )
-        )}
-        {/* En bas de carte : les deux coins hauts de l'image sont déjà pris
-            (badge « Coup de ♥ » à gauche, compteur de favoris à droite). */}
-        {feedback.enabled && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, marginBottom: -4 }}>
-            <FeedbackIconsRow
-              isSaving={feedback.isSaving}
-              verdict={feedback.locationVerdict(location.id)}
-              onTap={(verdict) => feedback.toggleLocation(location.id, verdict)}
-            />
-          </div>
         )}
       </div>
     </motion.div>

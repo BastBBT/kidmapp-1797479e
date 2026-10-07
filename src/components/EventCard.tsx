@@ -9,9 +9,7 @@ import { formatEventDateRange } from '@/lib/formatDate';
 import { Heart } from 'lucide-react';
 import { shouldDisplayFavoriteCount } from '@/components/FavoriteCountBadge';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
-import FeedbackIconsRow from '@/components/FeedbackIconsRow';
 import RecurrenceStamp from '@/components/RecurrenceStamp';
-import { useRecommendationFeedback } from '@/hooks/useRecommendationFeedback';
 import FarBadge from '@/components/FarBadge';
 import { useProximityZone } from '@/hooks/useProximityZone';
 import { eventFarInfo } from '@/lib/proximity';
@@ -34,7 +32,6 @@ const EventCard = ({ event, showPast = false, occurrence, occurrenceCount = 1 }:
   const { t } = useTranslation();
   const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useEventFavorites();
-  const feedback = useRecommendationFeedback();
   const zone = useProximityZone();
   const far = eventFarInfo(zone, event);
   const dateStart = occurrence?.date_start ?? event.date_start;
@@ -52,7 +49,7 @@ const EventCard = ({ event, showPast = false, occurrence, occurrenceCount = 1 }:
 
   return (
     // Racine en div plutôt qu'en <button> : la carte porte déjà un bouton
-    // favori et une ligne de feedback, et un bouton dans un bouton est du HTML
+    // favori, et un bouton dans un bouton est du HTML
     // invalide (a11y et hydratation dégradées).
     <div
       role="button"
@@ -192,15 +189,6 @@ const EventCard = ({ event, showPast = false, occurrence, occurrenceCount = 1 }:
             </span>
           )}
         </div>
-        {feedback.enabled && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, marginBottom: -4 }}>
-            <FeedbackIconsRow
-              isSaving={feedback.isSaving}
-              verdict={feedback.eventVerdict(event.id)}
-              onTap={(verdict) => feedback.toggleEvent(event.id, verdict)}
-            />
-          </div>
-        )}
       </div>
       {user && !(past && showPast) && (
         <button

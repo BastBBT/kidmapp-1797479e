@@ -116,9 +116,11 @@ export type AgeVerdict = 'perfect' | 'good' | 'poor';
 
 export const ageVerdict = (
   loc: AgedLoc,
-  bucket: Exclude<AgeBucket, 'all'>
+  bucket: Exclude<AgeBucket, 'all'>,
+  /** Équipements réellement affichés sur la fiche : un besoin masqué ne compte pas. */
+  shownKeys?: EquipKey[]
 ): { level: AgeVerdict; matched: number; total: number } => {
-  const keys = PRIORITY_EQUIP[bucket];
+  const keys = shownKeys ? PRIORITY_EQUIP[bucket].filter((k) => shownKeys.includes(k)) : PRIORITY_EQUIP[bucket];
   const matched = keys.reduce((acc, k) => acc + (loc[k] ? 1 : 0), 0);
   const total = keys.length;
   const level: AgeVerdict = matched === total ? 'perfect' : matched >= 1 ? 'good' : 'poor';
