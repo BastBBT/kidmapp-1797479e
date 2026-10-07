@@ -114,7 +114,8 @@
       "0_2": "0-2 yrs",
       "3_5": "3-5 yrs",
       "6_plus": "6+ yrs"
-    }
+    },
+    "open": "Open"
   },
   "price": {
     "Gratuit": "Free",
@@ -278,7 +279,8 @@
     "sort_loved": "Most loved",
     "sort_recent": "Most recent",
     "loved_by_one": "Loved by {{count}} family",
-    "loved_by_other": "Loved by {{count}} families"
+    "loved_by_other": "Loved by {{count}} families",
+    "unknown_hours": "Including {{count}} with no opening hours listed."
   },
   "saved": {
     "title": "Saved",
@@ -544,13 +546,13 @@
   "assistant": {
     "open": "Open the assistant",
     "coup_de_main": "Need a hand?",
-    "step_1": "QUESTION 1 OF 3",
-    "step_2": "QUESTION 2 OF 3",
-    "step_3": "QUESTION 3 OF 3",
+    "step_1": "QUESTION 1 OF 4",
+    "step_2": "QUESTION 2 OF 4",
+    "step_3": "QUESTION 3 OF 4",
     "back": "Back",
     "mascotte_alt": "The Kidmapp mascot waves hello",
     "question_need": "What are we looking for today?",
-    "hint_need": "Three questions and I'll show you.",
+    "hint_need": "Four questions and I'll show you.",
     "question_who": "Who is it for?",
     "hint_who": "I'll only show what suits them.",
     "question_meal": "Which meal is it for?",
@@ -579,6 +581,15 @@
     "no_preference_subtitle": "Show me everything",
     "escape_title": "I'll look around myself",
     "escape_subtitle_count": "{{count}} places and activities, no filters",
-    "escape_subtitle_empty": "The whole catalogue, no filters"
+    "escape_subtitle_empty": "The whole catalogue, no filters",
+    "step_4": "LAST DETAIL",
+    "question_extras": "Anything else?",
+    "hint_extras": "Optional, you can remove them afterwards.",
+    "open_now_title": "Open now",
+    "free_only_title": "Free only",
+    "free_only_subtitle": "No admission fee",
+    "extras_nothing": "Nothing ticked: I'll show you everything.",
+    "extras_unknown_hours": "Places with no opening hours listed stay visible, to be safe.",
+    "see_results": "See results"
   }
 }

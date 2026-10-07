@@ -270,7 +270,7 @@ const SortiesPage = () => {
                 aria-label={modeLabel}
                 onClick={() => switchMode(calendar)}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  display: 'inline-flex', alignItems: 'center', gap: 5, minHeight: 32,
                   padding: active ? '6px 12px' : '6px 10px',
                   borderRadius: 999,
                   border: 'none',

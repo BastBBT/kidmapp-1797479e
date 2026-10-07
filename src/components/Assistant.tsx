@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Clock, Gift, Square, SquareCheck } from 'lucide-react';
 import { CategoryGroup, LocationCategory } from '@/types/location';
 import { AGE_LABEL_KEY, AgeBucket, bucketForChildMonths } from '@/lib/ageFilter';
 import { Child, ChildFilterSelection, ageInMonths } from '@/lib/children';
@@ -8,6 +8,7 @@ import { MealType } from '@/hooks/useMeals';
 import { translateToken } from '@/i18n/tokenMaps';
 import { recordAssistantCompleted, recordAssistantOpened } from '@/lib/assistantUsageTracker';
 import { MascotteMedallion } from '@/components/Mascotte';
+import { nowLabelInParis } from '@/lib/openingHours';
 
 /**
  * Ce que l'assistant pose comme filtres quand le parent va au bout des trois
@@ -25,10 +26,15 @@ export interface AssistantOutcome {
   weather: string | null;
   duration: string | null;
   mealId: string | null;
+  /** Précisions facultatives de la dernière question : elles cochent les bascules
+   *  « Ouvert » et « Gratuit » d'Explorer. */
+  onlyOpen: boolean;
+  onlyFree: boolean;
 }
 
 type Need = 'activites' | 'manger' | 'air';
-type Step = 'need' | 'who' | 'context';
+type Step = 'need' | 'who' | 'context' | 'extras';
+type ContextAnswer = Partial<Pick<AssistantOutcome, 'weather' | 'duration' | 'mealId'>>;
 
 const NEEDS: { id: Need; emoji: string; titleKey: string; subtitleKey: string }[] = [
   { id: 'activites', emoji: '🧸', titleKey: 'assistant.need_activities_title', subtitleKey: 'assistant.need_activities_subtitle' },
@@ -87,14 +93,50 @@ const ChoiceCard = ({ emoji, title, subtitle, onClick }: ChoiceCardProps) => (
   </button>
 );
 
+interface ToggleCardProps {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  checked: boolean;
+  onClick: () => void;
+}
+
+/** Case à cocher de l'écran final : facultative, et défaisable ensuite dans Explorer. */
+const ToggleCard = ({ icon, title, subtitle, checked, onClick }: ToggleCardProps) => (
+  <button
+    type="button"
+    role="checkbox"
+    aria-checked={checked}
+    onClick={onClick}
+    className="text-left transition-transform active:scale-[0.99]"
+    style={{
+      display: 'flex', alignItems: 'center', gap: 11, width: '100%',
+      padding: '12px 13px',
+      background: checked ? 'var(--secondary-light)' : 'var(--surface)',
+      border: `${checked ? 1.5 : 1}px solid ${checked ? 'var(--secondary)' : 'var(--border)'}`,
+      borderRadius: 'var(--radius)',
+      cursor: 'pointer',
+    }}
+  >
+    <span style={{ color: checked ? 'var(--secondary)' : 'var(--text-muted)', display: 'flex' }}>
+      {checked ? <SquareCheck size={20} aria-hidden /> : <Square size={20} aria-hidden />}
+    </span>
+    <span style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
+      <span style={{ fontFamily: 'DM Sans', fontSize: 15, fontWeight: 500, color: 'var(--text)' }}>{title}</span>
+      <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)' }}>{subtitle}</span>
+    </span>
+    <span style={{ color: 'var(--text-muted)', display: 'flex' }}>{icon}</span>
+  </button>
+);
+
 /**
- * Assistant d'accueil d'Explorer : guidé sans IA, trois questions maximum, en
+ * Assistant d'accueil d'Explorer : guidé sans IA, quatre écrans maximum, en
  * plein écran, avec une sortie présente à chaque étape (la 4e carte, en
  * pointillé). Ne fait que composer un `AssistantOutcome` — c'est `Index.tsx`
  * qui applique les filtres.
  *
- * Miroir de `AssistantView` (iOS) / `AssistantScreen` (Android) : mêmes trois
- * questions, mêmes libellés, même arbre de décision.
+ * Miroir de `AssistantView` (iOS) / `AssistantScreen` (Android) : mêmes quatre
+ * écrans, mêmes libellés, même arbre de décision.
  */
 // Distance à parcourir vers le bas pour que le relâchement ferme l'écran,
 // plutôt que d'y revenir — assez long pour ne jamais confondre un simple
@@ -102,11 +144,14 @@ const ChoiceCard = ({ emoji, title, subtitle, onClick }: ChoiceCardProps) => (
 const DISMISS_DRAG_THRESHOLD = 140;
 
 const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: AssistantProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [step, setStep] = useState<Step>('need');
   const [need, setNeed] = useState<Need | null>(null);
   const [ageBucket, setAgeBucket] = useState<Exclude<AgeBucket, 'all'> | null>(null);
   const [childSelection, setChildSelection] = useState<ChildFilterSelection | null>(null);
+  const [contextAnswer, setContextAnswer] = useState<ContextAnswer>({});
+  const [onlyOpen, setOnlyOpen] = useState(false);
+  const [onlyFree, setOnlyFree] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [dragDownOffset, setDragDownOffset] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -117,6 +162,9 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
     setNeed(null);
     setAgeBucket(null);
     setChildSelection(null);
+    setContextAnswer({});
+    setOnlyOpen(false);
+    setOnlyFree(false);
     setDragStart(null);
     setDragDownOffset(0);
     void recordAssistantOpened();
@@ -165,7 +213,11 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
   };
 
   const back = () => {
-    if (step === 'context') {
+    if (step === 'extras') {
+      setOnlyOpen(false);
+      setOnlyFree(false);
+      setStep('context');
+    } else if (step === 'context') {
       setAgeBucket(null);
       setChildSelection(null);
       setStep('who');
@@ -180,7 +232,18 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
     setStep('who');
   };
 
-  const finish = (extra: Partial<Pick<AssistantOutcome, 'weather' | 'duration' | 'mealId'>>) => {
+  // La réponse de la 3e question ne termine plus le parcours : elle est gardée, et
+  // l'écran de précisions facultatives clôt.
+  const chooseContext = (answer: ContextAnswer) => {
+    setContextAnswer(answer);
+    setStep('extras');
+  };
+
+  // « Gratuit » n'a pas de sens pour un restaurant : même règle qu'Explorer, où la
+  // bascule n'existe que dans le groupe Activités.
+  const showsFreeOption = need !== null && needGroup(need) === 'activities';
+
+  const finish = () => {
     if (!need) return;
     void recordAssistantCompleted();
     onFinish({
@@ -188,9 +251,11 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
       category: needCategory(need),
       ageBucket,
       childSelection,
-      weather: extra.weather ?? null,
-      duration: extra.duration ?? null,
-      mealId: extra.mealId ?? null,
+      weather: contextAnswer.weather ?? null,
+      duration: contextAnswer.duration ?? null,
+      mealId: contextAnswer.mealId ?? null,
+      onlyOpen,
+      onlyFree: showsFreeOption && onlyFree,
     });
   };
 
@@ -205,12 +270,14 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
     return `${name} · ${age}`;
   };
 
-  const stepIndexLabel = t(step === 'need' ? 'assistant.step_1' : step === 'who' ? 'assistant.step_2' : 'assistant.step_3');
+  const stepIndexLabel = t(`assistant.step_${step === 'need' ? 1 : step === 'who' ? 2 : step === 'context' ? 3 : 4}`);
 
   const question = step === 'need'
     ? t('assistant.question_need')
     : step === 'who'
       ? t('assistant.question_who')
+      : step === 'extras'
+      ? t('assistant.question_extras')
       : need === 'manger'
         ? t('assistant.question_meal')
         : need === 'air'
@@ -221,6 +288,8 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
     ? t('assistant.hint_need')
     : step === 'who'
       ? t('assistant.hint_who')
+      : step === 'extras'
+      ? t('assistant.hint_extras')
       : need === 'manger'
         ? t('assistant.hint_meal')
         : need === 'air'
@@ -280,11 +349,53 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
       ];
     }
 
+    if (step === 'extras') {
+      return [
+        <ToggleCard
+          key="open"
+          icon={<Clock size={17} aria-hidden />}
+          title={t('assistant.open_now_title')}
+          subtitle={nowLabelInParis(i18n.language)}
+          checked={onlyOpen}
+          onClick={() => setOnlyOpen((v) => !v)}
+        />,
+        ...(showsFreeOption
+          ? [
+              <ToggleCard
+                key="free"
+                icon={<Gift size={17} aria-hidden />}
+                title={t('assistant.free_only_title')}
+                subtitle={t('assistant.free_only_subtitle')}
+                checked={onlyFree}
+                onClick={() => setOnlyFree((v) => !v)}
+              />,
+            ]
+          : []),
+        // Les lieux dont on ignore les horaires restent affichés : mieux vaut les montrer
+        // que les faire disparaître pour un champ non renseigné.
+        <p key="note" style={{ textAlign: 'center', margin: '6px 8px 0', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)' }}>
+          {onlyOpen ? t('assistant.extras_unknown_hours') : t('assistant.extras_nothing')}
+        </p>,
+        <button
+          key="go"
+          type="button"
+          onClick={finish}
+          style={{
+            width: '100%', padding: '13px 0', border: 'none', cursor: 'pointer',
+            background: 'var(--primary)', color: '#fff', borderRadius: 'var(--radius)',
+            fontFamily: 'DM Sans', fontSize: 15, fontWeight: 600,
+          }}
+        >
+          {t('assistant.see_results')}
+        </button>,
+      ];
+    }
+
     // step === 'context'
     if (need === 'manger') {
       if (mealTypes.length === 0) {
         return [
-          <ChoiceCard key="none" emoji="🍽️" title={t('assistant.no_preference_title')} onClick={() => finish({})} />,
+          <ChoiceCard key="none" emoji="🍽️" title={t('assistant.no_preference_title')} onClick={() => chooseContext({})} />,
         ];
       }
       return mealTypes.map((meal) => (
@@ -292,23 +403,23 @@ const Assistant = ({ open, catalogCount, kids, mealTypes, onFinish, onSkip }: As
           key={meal.id}
           emoji={meal.emoji}
           title={translateToken('meal', meal.label)}
-          onClick={() => finish({ mealId: meal.id })}
+          onClick={() => chooseContext({ mealId: meal.id })}
         />
       ));
     }
 
     if (need === 'air') {
       return [
-        <ChoiceCard key="1h" emoji="⏱️" title={t('assistant.duration_1h_title')} subtitle={t('assistant.duration_1h_subtitle')} onClick={() => finish({ duration: '1h' })} />,
-        <ChoiceCard key="23h" emoji="🚲" title={t('assistant.duration_23h_title')} subtitle={t('assistant.duration_23h_subtitle')} onClick={() => finish({ duration: '2-3h' })} />,
-        <ChoiceCard key="day" emoji="🧺" title={t('assistant.duration_day_title')} subtitle={t('assistant.duration_day_subtitle')} onClick={() => finish({ duration: 'Journée' })} />,
+        <ChoiceCard key="1h" emoji="⏱️" title={t('assistant.duration_1h_title')} subtitle={t('assistant.duration_1h_subtitle')} onClick={() => chooseContext({ duration: '1h' })} />,
+        <ChoiceCard key="23h" emoji="🚲" title={t('assistant.duration_23h_title')} subtitle={t('assistant.duration_23h_subtitle')} onClick={() => chooseContext({ duration: '2-3h' })} />,
+        <ChoiceCard key="day" emoji="🧺" title={t('assistant.duration_day_title')} subtitle={t('assistant.duration_day_subtitle')} onClick={() => chooseContext({ duration: 'Journée' })} />,
       ];
     }
 
     return [
-      <ChoiceCard key="shelter" emoji="🏠" title={t('assistant.weather_shelter_title')} subtitle={t('assistant.weather_shelter_subtitle')} onClick={() => finish({ weather: 'Pluie' })} />,
-      <ChoiceCard key="outside" emoji="☀️" title={t('assistant.weather_outside_title')} subtitle={t('assistant.weather_outside_subtitle')} onClick={() => finish({ weather: 'Soleil' })} />,
-      <ChoiceCard key="any" emoji="🤷" title={t('assistant.no_preference_title')} subtitle={t('assistant.no_preference_subtitle')} onClick={() => finish({})} />,
+      <ChoiceCard key="shelter" emoji="🏠" title={t('assistant.weather_shelter_title')} subtitle={t('assistant.weather_shelter_subtitle')} onClick={() => chooseContext({ weather: 'Pluie' })} />,
+      <ChoiceCard key="outside" emoji="☀️" title={t('assistant.weather_outside_title')} subtitle={t('assistant.weather_outside_subtitle')} onClick={() => chooseContext({ weather: 'Soleil' })} />,
+      <ChoiceCard key="any" emoji="🤷" title={t('assistant.no_preference_title')} subtitle={t('assistant.no_preference_subtitle')} onClick={() => chooseContext({})} />,
     ];
   };
 

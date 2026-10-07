@@ -1,10 +1,13 @@
 import { motion } from 'framer-motion';
 import { Check, Gift } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import CounterRowPill from '@/components/CounterRowPill';
 
 interface FreeFilterPillProps {
   active: boolean;
   onToggle: () => void;
+  /** Version de la ligne du compteur d'Explorer : même gabarit que `OpenNowPill`, neutre au repos. */
+  compact?: boolean;
 }
 
 /**
@@ -13,9 +16,19 @@ interface FreeFilterPillProps {
  * ne doit jamais pouvoir se confondre avec « inactif ». Miroir de `FreeFilterChip` (iOS).
  * Le filtre lui-même est strict : seul `is_free === true` passe.
  */
-const FreeFilterPill = ({ active, onToggle }: FreeFilterPillProps) => {
+const FreeFilterPill = ({ active, onToggle, compact = false }: FreeFilterPillProps) => {
   const { t } = useTranslation();
   const Icon = active ? Check : Gift;
+  if (compact) {
+    return (
+      <CounterRowPill
+        active={active}
+        onToggle={onToggle}
+        icon={<Gift size={12} aria-hidden />}
+        label={t('filters.free')}
+      />
+    );
+  }
   return (
     <motion.button
       type="button"
