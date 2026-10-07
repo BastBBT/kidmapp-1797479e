@@ -280,7 +280,7 @@
     "sort_recent": "Most recent",
     "loved_by_one": "Loved by {{count}} family",
     "loved_by_other": "Loved by {{count}} families",
-    "unknown_hours": "Including {{count}} with no opening hours listed, kept to be safe."
+    "unknown_hours": "Including {{count}} with no opening hours listed."
   },
   "saved": {
     "title": "Saved",

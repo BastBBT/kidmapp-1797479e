@@ -280,7 +280,7 @@
     "sort_recent": "Los más recientes",
     "loved_by_one": "Le gusta a {{count}} familia",
     "loved_by_other": "Le gusta a {{count}} familias",
-    "unknown_hours": "Incluye {{count}} sin horario indicado, mantenidos por prudencia."
+    "unknown_hours": "Incluye {{count}} sin horario indicado."
   },
   "saved": {
     "title": "Guardados",
