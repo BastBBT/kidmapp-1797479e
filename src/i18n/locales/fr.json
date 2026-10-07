@@ -115,7 +115,8 @@
       "3_5": "3-5 ans",
       "6_plus": "6+ ans"
     },
-    "open": "Ouvert"
+    "open": "Ouvert",
+    "nearby": "Proche de moi"
   },
   "price": {
     "Gratuit": "Gratuit",
@@ -165,7 +166,8 @@
     "empty_day": "Aucune sortie ce jour",
     "empty_day_hint": "Touche un jour avec des pastilles ✦",
     "calendar_prev": "Période précédente",
-    "calendar_next": "Période suivante"
+    "calendar_next": "Période suivante",
+    "remove_nearby_filter": "Retirer le filtre Proche de moi"
   },
   "event": {
     "finished": "Terminé",
@@ -591,5 +593,8 @@
     "extras_nothing": "Rien de coché : je vous montre tout.",
     "extras_unknown_hours": "Les lieux sans horaires renseignés restent affichés, par prudence.",
     "see_results": "Voir les résultats"
+  },
+  "far_badge": {
+    "aria": "À {{km}} km de ta zone"
   }
 }

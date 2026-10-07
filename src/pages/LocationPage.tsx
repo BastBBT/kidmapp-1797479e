@@ -17,6 +17,9 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useLocationContributions } from '@/hooks/useLocationContributions';
 import LocationContributionsSection from '@/components/LocationContributionsSection';
 import { useAuth } from '@/hooks/useAuth';
+import FarBadge from '@/components/FarBadge';
+import { useProximityZone } from '@/hooks/useProximityZone';
+import { locationFarInfo } from '@/lib/proximity';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 import { useQuery } from '@tanstack/react-query';
@@ -120,6 +123,7 @@ const LocationPage = () => {
   const { user } = useAuth();
   const { requireAuth } = useRequireAuth();
   const favorite = location ? isFavorite(location.id) : false;
+  const zone = useProximityZone();
 
 
   const { data: pendingContribution } = useQuery({
@@ -153,6 +157,7 @@ const LocationPage = () => {
     );
   }
 
+  const far = locationFarInfo(zone, location);
   const gradient = categoryGradients[location.category] || categoryGradients.public;
   const media = galleryMedia(location);
 
@@ -260,6 +265,7 @@ const LocationPage = () => {
           <h1 className="font-display text-[30px] font-semibold text-white" style={{ letterSpacing: '-0.03em', lineHeight: 1.15 }}>
             {location.name}
           </h1>
+          {far && <FarBadge info={far} style={{ marginTop: 6 }} />}
           {/* Sous le nom, et pas près du bouton cœur du haut : celui-ci est une
               action (mon favori), celui-là une information (ceux des autres). */}
           {shouldDisplayFavoriteCount(location.favorites_count) && (

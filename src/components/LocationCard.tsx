@@ -10,6 +10,9 @@ import { FavoriteCountBadge, shouldDisplayFavoriteCount } from '@/components/Fav
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 import FeedbackIconsRow from '@/components/FeedbackIconsRow';
 import { useRecommendationFeedback } from '@/hooks/useRecommendationFeedback';
+import FarBadge from '@/components/FarBadge';
+import { useProximityZone } from '@/hooks/useProximityZone';
+import { locationFarInfo } from '@/lib/proximity';
 
 interface LocationCardProps {
   location: Location;
@@ -76,6 +79,8 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBuckets = EMPTY_BU
   const { t } = useTranslation();
   const { isFavorite } = useFavorites();
   const feedback = useRecommendationFeedback();
+  const zone = useProximityZone();
+  const far = locationFarInfo(zone, location);
   const gradient = categoryGradients[location.category] || categoryGradients.public;
   const isMealCategory = location.category === 'restaurant' || location.category === 'cafe';
   const activity = isActivity(location.category);
@@ -136,6 +141,8 @@ const LocationCard = ({ location, index = 0, mealIds = [], ageBuckets = EMPTY_BU
             ))}
           </div>
         )}
+        {/* Hors zone — bas-droite, à l'opposé des bulles repas ; absent pour un lieu proche. */}
+        {far && <FarBadge info={far} className="absolute" style={{ bottom: 6, right: 6 }} />}
         {isFavorite(location.id) && (
           <span
             className="absolute top-2 left-2 font-hand text-xs px-2 py-0.5"

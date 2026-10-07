@@ -12,6 +12,9 @@ import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 import FeedbackIconsRow from '@/components/FeedbackIconsRow';
 import RecurrenceStamp from '@/components/RecurrenceStamp';
 import { useRecommendationFeedback } from '@/hooks/useRecommendationFeedback';
+import FarBadge from '@/components/FarBadge';
+import { useProximityZone } from '@/hooks/useProximityZone';
+import { eventFarInfo } from '@/lib/proximity';
 
 interface Props {
   event: EventItem;
@@ -32,6 +35,8 @@ const EventCard = ({ event, showPast = false, occurrence, occurrenceCount = 1 }:
   const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useEventFavorites();
   const feedback = useRecommendationFeedback();
+  const zone = useProximityZone();
+  const far = eventFarInfo(zone, event);
   const dateStart = occurrence?.date_start ?? event.date_start;
   const dateEnd = occurrence ? occurrence.date_end : event.date_end;
   const time = occurrence ? occurrence.time : event.time;
@@ -156,6 +161,9 @@ const EventCard = ({ event, showPast = false, occurrence, occurrenceCount = 1 }:
             {event.address}
           </div>
         )}
+        {/* Une sortie se fait à une date précise : se tromper de trajet coûte plus cher
+            que pour un lieu, donc le repère est toujours visible ici. */}
+        {far && <FarBadge info={far} style={{ marginTop: 6 }} />}
         <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
           {/* Compteur public, en gris : il informe, il ne se confond pas avec le
               bouton cœur flottant qui est mon propre favori. */}
