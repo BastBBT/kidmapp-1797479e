@@ -9,6 +9,7 @@ import LocationRecurringEvents from '@/components/LocationRecurringEvents';
 import LocationServicesSection from '@/components/LocationServicesSection';
 import LocationOpeningHours from '@/components/LocationOpeningHours';
 import ContributeSheet from '@/components/ContributeSheet';
+import RecommendationFeedbackCard from '@/components/RecommendationFeedbackCard';
 import { useCoachmarks, useCoachmarkTarget } from '@/hooks/useCoachmarks';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
@@ -639,6 +640,9 @@ const LocationPage = () => {
               </div>
             </div>
           )}
+
+          {/* Feedback « C'est pour vous ? » — se masque seul sans enfant enregistré. */}
+          <RecommendationFeedbackCard locationId={location.id} isActivity={isActivity(location.category)} />
 
           {/* Confirm-info invitation card (replaces the standalone Contribuer button) */}
           <div

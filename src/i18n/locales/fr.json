@@ -536,9 +536,14 @@
     "sun": "D"
   },
   "feedback": {
-    "up": "Marquer comme pertinent",
-    "down": "Marquer comme pas pour nous",
-    "error": "Impossible d'enregistrer ton avis."
+    "error": "Impossible d'enregistrer ton avis.",
+    "title_place": "C'est le genre d'endroit pour vous ?",
+    "title_activity": "C'est le genre d'activité pour vous ?",
+    "title_event": "C'est le genre de sortie pour vous ?",
+    "subtitle": "Ton avis affine les suggestions faites à ta famille.",
+    "for_us": "Pour nous",
+    "not_for_us": "Pas pour nous",
+    "noted": "Noté ! Retape pour retirer ton avis."
   },
   "recurrence": {
     "Chaque semaine": "Chaque semaine",
