@@ -7,6 +7,9 @@ import EventsMap from '@/components/EventsMap';
 import EventCard from '@/components/EventCard';
 import { CalendarDays, List } from 'lucide-react';
 import FreeFilterPill from '@/components/FreeFilterPill';
+import NearbyFilterPill from '@/components/NearbyFilterPill';
+import { useProximityZone } from '@/hooks/useProximityZone';
+import { eventFarInfo } from '@/lib/proximity';
 import EventCategoryFilter, { orderEventCategories } from '@/components/EventCategoryFilter';
 import {
   buildWeeks,
@@ -69,6 +72,8 @@ const SortiesPage = () => {
   }, [kids.length, resolvedBuckets, selectedAge]);
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
   const [onlyFree, setOnlyFree] = useState(false);
+  const [onlyNearby, setOnlyNearby] = useState(false);
+  const zone = useProximityZone();
   const [showFinished, setShowFinished] = useState(false);
   const { data: events = [], isLoading } = useEvents();
   // Créneaux des events chargés : le calendrier pose une pastille par créneau
@@ -86,8 +91,10 @@ const SortiesPage = () => {
         .filter(({ event }) => matchesAgeBuckets(event, effectiveAgeBuckets))
         .filter(({ event }) => selectedCategory === 'all' || event.category === selectedCategory)
         // « Gratuit » strict : seul is_free === true passe, un prix inconnu est exclu.
-        .filter(({ event }) => !onlyFree || event.is_free === true),
-    [allSlots, effectiveAgeBuckets, selectedCategory, onlyFree],
+        .filter(({ event }) => !onlyFree || event.is_free === true)
+        // « Proche de moi » : une sortie sans coordonnées reste affichée, on ne sait pas.
+        .filter(({ event }) => !onlyNearby || eventFarInfo(zone, event) === null),
+    [allSlots, effectiveAgeBuckets, selectedCategory, onlyFree, onlyNearby, zone],
   );
 
   // Mode d'affichage retenu d'une session à l'autre. La liste reste le défaut :
@@ -129,7 +136,7 @@ const SortiesPage = () => {
 
   useEffect(() => {
     setSelectedKey(defaultKey);
-  }, [effectiveAgeBuckets, selectedCategory, onlyFree, defaultKey]);
+  }, [effectiveAgeBuckets, selectedCategory, onlyFree, onlyNearby, defaultKey]);
 
   const selectedWeek = weeks.find((w) => w.key === selectedKey) ?? weeks[0];
   const today = todayISO();
@@ -170,7 +177,7 @@ const SortiesPage = () => {
   // ne doivent pas se superposer.
   const displayedEvents = useMemo(() => distinctEvents(displayedSlots), [displayedSlots]);
 
-  const hasActiveFilter = effectiveAgeBuckets.size > 0 || selectedCategory !== 'all' || onlyFree;
+  const hasActiveFilter = effectiveAgeBuckets.size > 0 || selectedCategory !== 'all' || onlyFree || onlyNearby;
 
   // ---- Mode calendrier ----
   // Le calendrier raisonne sur tous les créneaux filtrés, pas sur une seule
@@ -185,7 +192,7 @@ const SortiesPage = () => {
   }, [calendarDefaultDay, dayTouched]);
   useEffect(() => {
     setDayTouched(false);
-  }, [effectiveAgeBuckets, selectedCategory, onlyFree]);
+  }, [effectiveAgeBuckets, selectedCategory, onlyFree, onlyNearby]);
 
   const daySlots = useMemo(() => shortSlotsOn(byDay, selectedDay), [byDay, selectedDay]);
   const dayLongEvents = useMemo(
@@ -249,7 +256,7 @@ const SortiesPage = () => {
 
       {/* Liste ↔ Calendrier. La carte reste en mode liste : au format téléphone
           elle ne cohabite pas avec une grille de dates. */}
-      <div style={{ padding: '4px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+      <div style={{ padding: '4px 16px 8px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         {/* Seul l'onglet actif affiche son libellé : l'autre se réduit à son icône, ce qui
             libère la place de la bascule « Gratuit » sur la même ligne. */}
         <div
@@ -289,7 +296,12 @@ const SortiesPage = () => {
             );
           })}
         </div>
-        <FreeFilterPill active={onlyFree} onToggle={() => setOnlyFree((v) => !v)} />
+        {/* « Proche de moi » et « Gratuit » : trois éléments ne tiennent pas sur une ligne de 375 px,
+            les chips passent à la ligne sous le sélecteur plutôt que de le comprimer. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <NearbyFilterPill active={onlyNearby} onToggle={() => setOnlyNearby((v) => !v)} />
+          <FreeFilterPill active={onlyFree} onToggle={() => setOnlyFree((v) => !v)} />
+        </div>
       </div>
 
       {calendarMode ? (
@@ -447,6 +459,18 @@ const SortiesPage = () => {
                     }}
                   >
                     {t('sorties.remove_free_filter')}
+                  </button>
+                )}
+                {onlyNearby && (
+                  <button
+                    type="button"
+                    onClick={() => setOnlyNearby(false)}
+                    style={{
+                      marginTop: 10, background: 'none', border: 'none', cursor: 'pointer',
+                      fontFamily: 'DM Sans', fontSize: 14, fontWeight: 600, color: 'var(--secondary)',
+                    }}
+                  >
+                    {t('sorties.remove_nearby_filter')}
                   </button>
                 )}
               </div>

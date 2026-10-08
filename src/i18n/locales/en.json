@@ -115,7 +115,8 @@
       "3_5": "3-5 yrs",
       "6_plus": "6+ yrs"
     },
-    "open": "Open"
+    "open": "Open",
+    "nearby": "Near me"
   },
   "price": {
     "Gratuit": "Free",
@@ -165,7 +166,8 @@
     "empty_day": "No outing on this day",
     "empty_day_hint": "Tap a day with dots ✦",
     "calendar_prev": "Previous period",
-    "calendar_next": "Next period"
+    "calendar_next": "Next period",
+    "remove_nearby_filter": "Remove the Near me filter"
   },
   "event": {
     "finished": "Ended",
@@ -591,5 +593,8 @@
     "extras_nothing": "Nothing ticked: I'll show you everything.",
     "extras_unknown_hours": "Places with no opening hours listed stay visible, to be safe.",
     "see_results": "See results"
+  },
+  "far_badge": {
+    "aria": "{{km}} km from your area"
   }
 }

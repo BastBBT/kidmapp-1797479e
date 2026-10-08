@@ -13,6 +13,9 @@ import ActivityFilter from '@/components/ActivityFilter';
 import FreeFilterPill from '@/components/FreeFilterPill';
 import OpenNowPill from '@/components/OpenNowPill';
 import { matchesOpenNow, parseOpeningHours } from '@/lib/openingHours';
+import NearbyFilterPill from '@/components/NearbyFilterPill';
+import { useProximityZone } from '@/hooks/useProximityZone';
+import { locationFarInfo } from '@/lib/proximity';
 import ActiveCategoryBanner from '@/components/ActiveCategoryBanner';
 import Assistant, { AssistantOutcome } from '@/components/Assistant';
 
@@ -132,6 +135,8 @@ const Index = () => {
     const id = window.setInterval(() => setNowTick(Date.now()), 60_000);
     return () => window.clearInterval(id);
   }, [onlyOpen]);
+  const [onlyNearby, setOnlyNearby] = useState(false);
+  const zone = useProximityZone();
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -334,7 +339,9 @@ const Index = () => {
         // contrairement à météo/durée où une donnée absente ne cache jamais l'activité.
         const matchFree = !onlyFree || loc.is_free === true;
         const matchOpen = matchesOpenNow(loc.opening_hours, onlyOpen, now);
-        return matchCategory && matchGroup && matchMeal && matchAge && matchWeather && matchDuration && matchFree && matchOpen;
+        // Un lieu hors du rayon de la zone du profil est écarté ; sans zone, Nantes centre + 20 km.
+        const matchNearby = !onlyNearby || locationFarInfo(zone, loc) === null;
+        return matchCategory && matchGroup && matchMeal && matchAge && matchWeather && matchDuration && matchFree && matchOpen && matchNearby;
       });
 
     // Les filtres ci-dessus réduisent le jeu ; le tri choisi, lui, l'ordonne et
@@ -366,7 +373,7 @@ const Index = () => {
     });
   }, [
     locations, allLocations, isSearching, searchTerm, selectedCategory, selectedGroup,
-    locationIdsForMeal, effectiveAgeBuckets, selectedWeather, selectedDuration, onlyFree, onlyOpen, nowTick, sortMode,
+    locationIdsForMeal, effectiveAgeBuckets, selectedWeather, selectedDuration, onlyFree, onlyOpen, nowTick, onlyNearby, zone, sortMode,
   ]);
 
   // La bulle 3 se termine par « Voir une fiche → » : c'est ici qu'on désigne
@@ -518,6 +525,13 @@ const Index = () => {
           </DropdownMenu>
         )}
       </div>
+
+      {/* Bascules rapides, sur leur propre rangée : le compteur et le tri occupent déjà la ligne du dessus. */}
+      {!isSearching && (
+        <div style={{ padding: '0 16px 8px' }} className="flex items-center gap-2 overflow-x-auto">
+          <NearbyFilterPill active={onlyNearby} onToggle={() => setOnlyNearby((v) => !v)} />
+        </div>
+      )}
 
       {/* Un filtre honnête dit ce qu'il ne sait pas : ces lieux ne sont pas confirmés
           ouverts, juste pas écartés. */}
