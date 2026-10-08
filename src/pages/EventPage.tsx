@@ -463,25 +463,25 @@ const EventPage = () => {
           </>
         ) : (
           <>
-          <button
-            onClick={() => downloadIcs({ ...event, date_start: displayDateStart, date_end: displayDateEnd, time: displayTime })}
-            style={{
-              padding: 13,
-              borderRadius: 100,
-              border: '1.5px solid var(--border)',
-              background: 'var(--surface)',
-              color: 'var(--text)',
-              fontFamily: 'DM Sans',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            {t('event.add_to_calendar')}
-          </button>
-          {/* Pas d'avis sur une sortie terminée : cette branche n'existe que pour
-              un créneau à venir (`EventFeedbackCard` prend le relais sinon). */}
-          <RecommendationFeedbackCard eventId={event.id} />
+            <button
+              onClick={() => downloadIcs({ ...event, date_start: displayDateStart, date_end: displayDateEnd, time: displayTime })}
+              style={{
+                padding: 13,
+                borderRadius: 100,
+                border: '1.5px solid var(--border)',
+                background: 'var(--surface)',
+                color: 'var(--text)',
+                fontFamily: 'DM Sans',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              {t('event.add_to_calendar')}
+            </button>
+            {/* Pas d'avis sur une sortie terminée : cette branche n'existe que pour
+                un créneau à venir (`EventFeedbackCard` prend le relais sinon). */}
+            <RecommendationFeedbackCard eventId={event.id} />
           </>
         )}
         {event.instagram && (

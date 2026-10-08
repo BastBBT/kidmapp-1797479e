@@ -536,8 +536,6 @@
     "sun": "S"
   },
   "feedback": {
-    "up": "Mark as a good fit",
-    "down": "Mark as not for us",
     "error": "Couldn't save your feedback.",
     "title_place": "Is this your kind of place?",
     "title_activity": "Is this your kind of activity?",

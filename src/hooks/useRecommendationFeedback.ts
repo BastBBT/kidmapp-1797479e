@@ -33,7 +33,7 @@ export function useRecommendationFeedback() {
   const queryKey = ['recommendation-feedback', user?.id];
   const enabled = !!user && kids.length > 0;
 
-  const { data = EMPTY_MAPS } = useQuery({
+  const { data = EMPTY_MAPS, isSuccess: isLoaded } = useQuery({
     queryKey,
     enabled,
     queryFn: async (): Promise<VerdictMaps> => {
@@ -105,7 +105,9 @@ export function useRecommendationFeedback() {
    */
   const inFlight = useRef(false);
   const runToggle = (args: { locationId?: string; eventId?: string; verdict: FeedbackVerdict }) => {
-    if (inFlight.current) return;
+    // Avant le premier chargement, l'avis courant est inconnu : retaper un 👍
+    // déjà posé ferait delete puis insert au lieu d'effacer. On n'écrit rien.
+    if (inFlight.current || !isLoaded) return;
     inFlight.current = true;
     toggleMutation.mutate(args, {
       onSettled: () => {
@@ -117,6 +119,9 @@ export function useRecommendationFeedback() {
   return {
     enabled,
     isSaving: toggleMutation.isPending,
+    /** Faux tant que les avis existants ne sont pas chargés : les pouces
+     *  restent alors inactifs (voir `runToggle`). */
+    isLoaded,
     locationVerdict: (id: string): FeedbackVerdict | undefined => data.locations[id],
     eventVerdict: (id: string): FeedbackVerdict | undefined => data.events[id],
     toggleLocation: (locationId: string, verdict: FeedbackVerdict) => runToggle({ locationId, verdict }),

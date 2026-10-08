@@ -536,8 +536,6 @@
     "sun": "D"
   },
   "feedback": {
-    "up": "Marcar como adecuado",
-    "down": "Marcar como no es para nosotros",
     "error": "No se ha podido guardar tu opinión.",
     "title_place": "¿Es el tipo de sitio para vosotros?",
     "title_activity": "¿Es el tipo de actividad para vosotros?",

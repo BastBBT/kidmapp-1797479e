@@ -536,8 +536,6 @@
     "sun": "D"
   },
   "feedback": {
-    "up": "Marquer comme pertinent",
-    "down": "Marquer comme pas pour nous",
     "error": "Impossible d'enregistrer ton avis.",
     "title_place": "C'est le genre d'endroit pour vous ?",
     "title_activity": "C'est le genre d'activité pour vous ?",

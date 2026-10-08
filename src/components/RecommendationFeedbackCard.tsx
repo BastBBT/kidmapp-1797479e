@@ -34,6 +34,10 @@ const RecommendationFeedbackCard = (props: Props) => {
     else feedback.toggleEvent(props.eventId!, v);
   };
 
+  // Inactifs aussi tant que les avis existants ne sont pas chargés : l'avis
+  // courant y est encore inconnu.
+  const isLocked = feedback.isSaving || !feedback.isLoaded;
+
   const button = (target: FeedbackVerdict, Icon: typeof ThumbsUp, label: string, activeColor: string, activeBg: string) => {
     const isActive = verdict === target;
     return (
@@ -41,7 +45,7 @@ const RecommendationFeedbackCard = (props: Props) => {
         type="button"
         onClick={() => tap(target)}
         aria-pressed={isActive}
-        disabled={feedback.isSaving}
+        disabled={isLocked}
         style={{
           flex: 1,
           minWidth: 0,
@@ -50,8 +54,8 @@ const RecommendationFeedbackCard = (props: Props) => {
           border: `1.5px solid ${isActive ? activeColor : 'var(--border)'}`,
           background: isActive ? activeBg : 'var(--surface)',
           color: isActive ? activeColor : 'var(--text)',
-          opacity: feedback.isSaving ? 0.5 : 1,
-          cursor: feedback.isSaving ? 'default' : 'pointer',
+          opacity: isLocked ? 0.5 : 1,
+          cursor: isLocked ? 'default' : 'pointer',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
