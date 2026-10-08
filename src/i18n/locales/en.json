@@ -538,7 +538,14 @@
   "feedback": {
     "up": "Mark as a good fit",
     "down": "Mark as not for us",
-    "error": "Couldn't save your feedback."
+    "error": "Couldn't save your feedback.",
+    "title_place": "Is this your kind of place?",
+    "title_activity": "Is this your kind of activity?",
+    "title_event": "Is this your kind of outing?",
+    "subtitle": "Your feedback fine-tunes the suggestions for your family.",
+    "for_us": "For us",
+    "not_for_us": "Not for us",
+    "noted": "Noted! Tap again to remove your feedback."
   },
   "recurrence": {
     "Chaque semaine": "Every week",

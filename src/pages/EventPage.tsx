@@ -13,6 +13,7 @@ import { eventCategoryColor, eventCategoryEmoji, eventCategoryHex, hasRecurrence
 import { downloadIcs } from '@/lib/ics';
 import { isPastEvent } from '@/lib/weekend';
 import EventFeedbackCard from '@/components/EventFeedbackCard';
+import RecommendationFeedbackCard from '@/components/RecommendationFeedbackCard';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 import { translateToken } from '@/i18n/tokenMaps';
 import { formatDateLong, localeOf } from '@/lib/formatDate';
@@ -461,6 +462,7 @@ const EventPage = () => {
             <EventFeedbackCard eventId={event.id} />
           </>
         ) : (
+          <>
           <button
             onClick={() => downloadIcs({ ...event, date_start: displayDateStart, date_end: displayDateEnd, time: displayTime })}
             style={{
@@ -477,6 +479,10 @@ const EventPage = () => {
           >
             {t('event.add_to_calendar')}
           </button>
+          {/* Pas d'avis sur une sortie terminée : cette branche n'existe que pour
+              un créneau à venir (`EventFeedbackCard` prend le relais sinon). */}
+          <RecommendationFeedbackCard eventId={event.id} />
+          </>
         )}
         {event.instagram && (
           <a

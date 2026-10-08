@@ -538,7 +538,14 @@
   "feedback": {
     "up": "Marcar como adecuado",
     "down": "Marcar como no es para nosotros",
-    "error": "No se ha podido guardar tu opinión."
+    "error": "No se ha podido guardar tu opinión.",
+    "title_place": "¿Es el tipo de sitio para vosotros?",
+    "title_activity": "¿Es el tipo de actividad para vosotros?",
+    "title_event": "¿Es el tipo de plan para vosotros?",
+    "subtitle": "Tu opinión afina las sugerencias para tu familia.",
+    "for_us": "Para nosotros",
+    "not_for_us": "No es para nosotros",
+    "noted": "¡Anotado! Vuelve a tocar para quitar tu opinión."
   },
   "recurrence": {
     "Chaque semaine": "Cada semana",
