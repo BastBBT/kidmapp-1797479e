@@ -279,17 +279,6 @@ const Index = () => {
     }, 500);
   }, []);
 
-  // Map: locationId -> meal_type_ids[]
-  const mealsByLocation = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const lm of locationMeals) {
-      const arr = map.get(lm.location_id) ?? [];
-      arr.push(lm.meal_type_id);
-      map.set(lm.location_id, arr);
-    }
-    return map;
-  }, [locationMeals]);
-
   // Set of location ids matching the selected meal filter
   const locationIdsForMeal = useMemo(() => {
     if (!selectedMeal) return null;
@@ -611,10 +600,9 @@ const Index = () => {
         gap: '12px',
         padding: '0 16px 120px',
       }}>
-        {displayedLocations.map((loc, i) => {
-          const mealIds = mealsByLocation.get(loc.id) ?? [];
-          return <LocationCard key={loc.id} location={loc} index={i} mealIds={mealIds} ageBuckets={effectiveAgeBuckets} />;
-        })}
+        {displayedLocations.map((loc, i) => (
+          <LocationCard key={loc.id} location={loc} index={i} ageBuckets={effectiveAgeBuckets} />
+        ))}
       </div>
 
       {/* Mode carte plein écran */}

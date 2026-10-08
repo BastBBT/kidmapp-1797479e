@@ -159,6 +159,12 @@ const LocationPage = () => {
 
   const far = locationFarInfo(zone, location);
   const gradient = categoryGradients[location.category] || categoryGradients.public;
+  // Chaise haute, table à langer et menu enfant n'ont de sens par défaut que
+  // dans un resto ou un café. Ailleurs (boutique, grand magasin…), ils ne
+  // s'affichent que s'ils sont cochés — un vote communautaire ne suffit pas.
+  const isMealPlace = location.category === 'restaurant' || location.category === 'cafe';
+  const shownEquipKeys = (['high_chair', 'changing_table', 'kids_area', 'kids_menu'] as EquipKey[])
+    .filter((k) => isMealPlace || k === 'kids_area' || !!location[k]);
   const media = galleryMedia(location);
 
   return (
@@ -434,7 +440,8 @@ const LocationPage = () => {
               })}
             </div>
             {ageBucket !== 'all' && (() => {
-              const v = ageVerdict(location as any, ageBucket);
+              const v = ageVerdict(location as any, ageBucket, shownEquipKeys);
+              if (v.total === 0) return null;
               const cfg = v.level === 'perfect'
                 ? { bg: '#EBF6EC', color: '#2E7D32', text: t('location_page.verdict_perfect') }
                 : v.level === 'good'
@@ -465,7 +472,7 @@ const LocationPage = () => {
               isPriority: priority.has(key),
             }));
             const visible = items
-              .filter((i) => i.active || i.yes > 0 || i.no > 0)
+              .filter((i) => shownEquipKeys.includes(i.key) && (i.active || i.yes > 0 || i.no > 0))
               .sort((a, b) => Number(b.isPriority) - Number(a.isPriority));
             if (visible.length === 0) {
               return (
