@@ -32,6 +32,7 @@ import { translateToken } from '@/i18n/tokenMaps';
 import { galleryMedia } from '@/lib/gallery';
 import LocationGallery from '@/components/LocationGallery';
 import LocationMiniMap from '@/components/LocationMiniMap';
+import { directionsUrl } from '@/lib/directions';
 import { trackLinkClick } from '@/lib/trackLinkClick';
 
 const categoryGradients: Record<string, string> = {
@@ -714,7 +715,7 @@ const LocationPage = () => {
 
           {/* Bouton Itinéraire */}
           <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${location.lat},${location.lng}`}
+            href={directionsUrl(location.lat, location.lng)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full mt-3 py-4 rounded-full text-white font-semibold text-base"

@@ -3,6 +3,7 @@ import 'leaflet/dist/leaflet.css';
 import { useTranslation } from 'react-i18next';
 import { getMarkerIcon } from '@/components/MapView';
 import { CARTO_TILE_URL, CARTO_ATTRIBUTION } from '@/lib/mapTiles';
+import { directionsUrl } from '@/lib/directions';
 
 interface LocationMiniMapProps {
   lat: number;
@@ -41,7 +42,7 @@ const LocationMiniMap = ({ lat, lng, category }: LocationMiniMapProps) => {
       </MapContainer>
       {/* Laisse libre la bande du bas, où Leaflet loge le lien d'attribution. */}
       <a
-        href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`}
+        href={directionsUrl(lat, lng)}
         target="_blank"
         rel="noopener noreferrer"
         aria-label={t('location_page.directions')}
