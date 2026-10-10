@@ -120,7 +120,9 @@ export function useProfileSettings() {
   // Optimiste : les pastilles se cochent au tap, plusieurs taps rapides
   // s'enchaînent sur le cache déjà mis à jour plutôt que sur une valeur
   // périmée (piège du double-tap déjà rencontré sur les pouces).
+  const preferencesMutationKey = ['profile-preferences', user?.id];
   const updatePreferencesMutation = useMutation({
+    mutationKey: preferencesMutationKey,
     mutationFn: async (patch: DigestPreferencesPatch) => {
       const { error } = await supabase.from('profiles').update(patch).eq('id', user!.id);
       if (error) throw error;
@@ -134,7 +136,12 @@ export function useProfileSettings() {
     onError: (_error, _patch, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
     },
-    onSettled: invalidate,
+    // On ne relit le serveur qu'après la DERNIÈRE mutation en vol : un refetch
+    // intermédiaire écraserait le cache optimiste du tap suivant, et un 3e tap
+    // recalculerait la liste depuis un état périmé.
+    onSettled: () => {
+      if (queryClient.isMutating({ mutationKey: preferencesMutationKey }) <= 1) invalidate();
+    },
   });
 
   return {

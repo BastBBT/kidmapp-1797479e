@@ -185,3 +185,12 @@ describe('toggleCategory', () => {
     expect(isCategoryOn(['Atelier'], 'Marché')).toBe(false);
   });
 });
+
+describe('groupItems — titre du reste de la semaine', () => {
+  it('une sortie sur plusieurs jours de semaine garde « Le reste de la semaine »', () => {
+    const sat = { id: 'sat', wantedDays: ['2026-10-10'] };
+    const expoSemaine = { id: 'expo', wantedDays: ['2026-10-12', '2026-10-13'] };
+    const groups = groupItems([sat, expoSemaine], 'week');
+    expect(groups[1]).toMatchObject({ kind: 'rest_of_week', day: null });
+  });
+});

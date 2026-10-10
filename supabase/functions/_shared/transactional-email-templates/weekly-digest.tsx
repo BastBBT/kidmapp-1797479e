@@ -97,7 +97,7 @@ const WeeklyDigestEmail = ({
   rangeLabel = null,
   holiday = null,
   categoriesLabel = null,
-  preferencesUrl = `${SITE_URL}/account`,
+  preferencesUrl = `${SITE_URL}/account?section=digest`,
   landingUrl = '',
 }: WeeklyDigestProps) => {
   const names = greetingNames(childrenNames)
@@ -278,7 +278,7 @@ export const template = {
     rangeLabel: 'sam. 12 et dim. 13 sept.',
     holiday: null,
     categoriesLabel: 'tout sauf Marché',
-    preferencesUrl: 'https://kidmapp.app/account',
+    preferencesUrl: 'https://kidmapp.app/account?section=digest',
     groups: [
       {
         title: 'Samedi 12 septembre',

@@ -168,7 +168,9 @@ export function groupItems<T extends GroupableItem>(items: T[], mode: DigestMode
   const groups: ItemGroup<T>[] = []
   if (weekend.length > 0) groups.push({ kind: 'this_weekend', day: null, items: weekend })
   if (rest.length > 0) {
-    const restDays = new Set(rest.map((it) => it.wantedDays[0]))
+    // Titré par son jour seulement si TOUS les jours de TOUS ses items sont ce
+    // jour-là : une expo du jeudi au mardi ne doit pas s'afficher sous « Jeudi ».
+    const restDays = new Set(rest.flatMap((it) => it.wantedDays))
     groups.push({ kind: 'rest_of_week', day: restDays.size === 1 ? rest[0].wantedDays[0] : null, items: rest })
   }
   return groups

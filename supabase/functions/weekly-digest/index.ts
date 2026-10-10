@@ -10,6 +10,7 @@ import {
   digestMode,
   groupItems,
   holidayInWindow,
+  isDayWanted,
   isWeekendISO,
   parseDigestDays,
   wantedDaysOf,
@@ -34,7 +35,7 @@ const MAX_EMAIL_ITEMS = 8
 const SCHOOL_ZONE = 'B'
 // Lien « Modifier mes préférences » du mail : section Ma sélection hebdo de
 // Mon compte (web ; l'app s'ouvre si le lien universel la couvre).
-const PREFERENCES_URL = 'https://kidmapp.app/account'
+const PREFERENCES_URL = 'https://kidmapp.app/account?section=digest'
 // Même vocabulaire que la contrainte events_category_check.
 const EVENT_CATEGORIES = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché', 'Exposition', 'Autre']
 
@@ -370,39 +371,15 @@ async function runDigest() {
     }
 
     const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '')
-    const tokenExpiresAt = new Date(now)
-    tokenExpiresAt.setUTCDate(tokenExpiresAt.getUTCDate() + TOKEN_TTL_DAYS)
-
-    // Idempotence : la contrainte unique (user_id, send_date) est la vraie
-    // garde anti-course, pas une lecture préalable — un run concurrent (retry
-    // pg_net) qui perd la course ne renvoie aucune ligne et n'envoie rien.
-    const { data: claimed, error: claimError } = await supabase
-      .from('digest_sends')
-      .upsert(
-        {
-          user_id: profile.id,
-          send_date: sendDate,
-          occurrence_ids: matched.map((m) => m.occ.id),
-          token,
-          token_expires_at: tokenExpiresAt.toISOString(),
-        },
-        { onConflict: 'user_id,send_date', ignoreDuplicates: true },
-      )
-      .select('id, token')
-
-    if (claimError) {
-      console.error('weekly-digest: digest_sends upsert failed', profile.id, claimError)
-      failedCount++
-      continue
-    }
-    if (!claimed || claimed.length === 0) {
-      // Déjà traité aujourd'hui (course perdue ou re-run du cron) — rien à renvoyer.
-      continue
-    }
-
-    const childrenNames = children.map((c) => c.first_name).filter((n): n is string => !!n && n.trim().length > 0)
     const landingUrl = `${LANDING_BASE_URL}/${token}`
+
+    // Contenu du mail composé AVANT la réservation : une erreur ici ne doit
+    // jamais laisser un créneau digest_sends consommé sans envoi.
+    const childrenNames = children.map((c) => c.first_name).filter((n): n is string => !!n && n.trim().length > 0)
     const mode = digestMode(windowDays, prefs, holidays)
+    // Plage annoncée = jours réellement couverts pour ce parent (vacances qui
+    // commencent en milieu de fenêtre : « du 17 au 21 oct. », pas toute la fenêtre).
+    const wantedWindowDays = windowDays.filter((d) => isDayWanted(d, prefs, holidays))
     const allItems = matched.map(({ occ, wantedDays }) => {
       const ev = eventsById.get(occ.event_id)!
       return {
@@ -431,13 +408,43 @@ async function runDigest() {
         mode === 'weekend'
           ? weekendRangeLabel(windowDays.filter(isWeekendISO))
           : mode === 'holidays'
-            ? windowRangeLabel(windowDays[0], windowDays[windowDays.length - 1])
+            ? windowRangeLabel(wantedWindowDays[0], wantedWindowDays[wantedWindowDays.length - 1])
             : null,
       holiday: holiday
         ? { label: holiday.label, untilLabel: longDateLabel(holiday.last_day), filtered: prefs.digestDays !== 'all' }
         : null,
       categoriesLabel: eventCategoriesSummary(prefs.eventCategories),
       preferencesUrl: PREFERENCES_URL,
+    }
+
+    const tokenExpiresAt = new Date(now)
+    tokenExpiresAt.setUTCDate(tokenExpiresAt.getUTCDate() + TOKEN_TTL_DAYS)
+
+    // Idempotence : la contrainte unique (user_id, send_date) est la vraie
+    // garde anti-course, pas une lecture préalable — un run concurrent (retry
+    // pg_net) qui perd la course ne renvoie aucune ligne et n'envoie rien.
+    const { data: claimed, error: claimError } = await supabase
+      .from('digest_sends')
+      .upsert(
+        {
+          user_id: profile.id,
+          send_date: sendDate,
+          occurrence_ids: matched.map((m) => m.occ.id),
+          token,
+          token_expires_at: tokenExpiresAt.toISOString(),
+        },
+        { onConflict: 'user_id,send_date', ignoreDuplicates: true },
+      )
+      .select('id, token')
+
+    if (claimError) {
+      console.error('weekly-digest: digest_sends upsert failed', profile.id, claimError)
+      failedCount++
+      continue
+    }
+    if (!claimed || claimed.length === 0) {
+      // Déjà traité aujourd'hui (course perdue ou re-run du cron) — rien à renvoyer.
+      continue
     }
 
     // Les deux canaux sont indépendants (cases à cocher séparées) : un profil
