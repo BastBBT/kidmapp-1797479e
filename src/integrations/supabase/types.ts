@@ -426,6 +426,7 @@ export type Database = {
           name: string
           note: string | null
           photo: string | null
+          photos: string[] | null
           price: string | null
           recurrence_label: string | null
           status: string
@@ -460,6 +461,7 @@ export type Database = {
           name: string
           note?: string | null
           photo?: string | null
+          photos?: string[] | null
           price?: string | null
           recurrence_label?: string | null
           status?: string
@@ -494,6 +496,7 @@ export type Database = {
           name?: string
           note?: string | null
           photo?: string | null
+          photos?: string[] | null
           price?: string | null
           recurrence_label?: string | null
           status?: string

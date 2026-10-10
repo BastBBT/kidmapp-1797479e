@@ -50,6 +50,13 @@
       "when": 1791300048363,
       "tag": "0006_add_is_free",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791662775202,
+      "tag": "0007_add_events_photos",
+      "breakpoints": true
     }
   ]
 }
