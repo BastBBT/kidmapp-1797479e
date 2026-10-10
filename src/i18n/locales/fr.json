@@ -355,7 +355,50 @@
     "relance_zone_cta": "Renseigner ma zone",
     "relance_channel_title": "Choisis comment recevoir ta sélection hebdo",
     "relance_channel_desc": "Une sélection de sorties, et une alerte à chaque nouveau lieu qui te correspond, dès que tu choisis un canal pour les recevoir.",
-    "relance_channel_cta": "Choisir mon canal"
+    "relance_channel_cta": "Choisir mon canal",
+    "digest_days_label": "Tes moments dispo",
+    "digest_days_option": {
+      "weekend": "Le week-end",
+      "wed_weekend": "Mercredi + week-end",
+      "all": "Toute la semaine"
+    },
+    "digest_days_option_sub": {
+      "weekend": "Samedi et dimanche",
+      "wed_weekend": "Le mercredi compte aussi",
+      "all": "Tout ce qui se passe, chaque jour"
+    },
+    "digest_days_short": {
+      "weekend": "week-end",
+      "wed_weekend": "mer. + week-end",
+      "all": "toute la semaine"
+    },
+    "digest_holidays_label": "Pendant les vacances scolaires, toute la semaine",
+    "digest_holidays_hint_upcoming": "Zone B · prochaines vacances du {{start}} au {{end}}",
+    "digest_holidays_hint_current": "Zone B · vacances en cours jusqu'au {{end}}",
+    "digest_holidays_hint": "Zone B, calendrier de l'Éducation nationale",
+    "digest_event_categories_label": "Sorties qui nous intéressent",
+    "digest_location_categories_label": "Nouveaux lieux qui nous intéressent",
+    "digest_check_all": "Tout cocher",
+    "digest_recap_title": "Ce que tu recevras",
+    "digest_recap": "Chaque {{day}}, {{when}}{{holidays}} ({{events}}). Nouveaux lieux : {{places}}.",
+    "digest_recap_when": {
+      "weekend": "les sorties du samedi et du dimanche",
+      "wed_weekend": "les sorties du mercredi, du samedi et du dimanche",
+      "all": "les sorties de toute la semaine"
+    },
+    "digest_recap_holidays": ", et de toute la semaine pendant les vacances scolaires",
+    "digest_recap_events_all": "tous types",
+    "digest_recap_events_some": "{{count}} types sur {{total}}",
+    "digest_recap_places": "{{count}} catégories sur {{total}}",
+    "digest_weekday_long": {
+      "0": "dimanche",
+      "1": "lundi",
+      "2": "mardi",
+      "3": "mercredi",
+      "4": "jeudi",
+      "5": "vendredi",
+      "6": "samedi"
+    }
   },
   "auth": {
     "reset_title": "Réinitialiser le mot de passe",

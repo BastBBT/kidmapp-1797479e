@@ -355,7 +355,50 @@
     "relance_zone_cta": "Indicar mi zona",
     "relance_channel_title": "Elige cómo recibir tu selección semanal",
     "relance_channel_desc": "Una selección de salidas, y un aviso con cada nuevo lugar que te encaje, en cuanto elijas un canal para recibirlos.",
-    "relance_channel_cta": "Elegir mi canal"
+    "relance_channel_cta": "Elegir mi canal",
+    "digest_days_label": "Cuándo estás libre",
+    "digest_days_option": {
+      "weekend": "El fin de semana",
+      "wed_weekend": "Miércoles + fin de semana",
+      "all": "Toda la semana"
+    },
+    "digest_days_option_sub": {
+      "weekend": "Sábado y domingo",
+      "wed_weekend": "El miércoles también cuenta",
+      "all": "Todo lo que pasa, cada día"
+    },
+    "digest_days_short": {
+      "weekend": "fin de semana",
+      "wed_weekend": "miér. + fin de semana",
+      "all": "toda la semana"
+    },
+    "digest_holidays_label": "En vacaciones escolares, toda la semana",
+    "digest_holidays_hint_upcoming": "Zona B · próximas vacaciones del {{start}} al {{end}}",
+    "digest_holidays_hint_current": "Zona B · vacaciones en curso hasta el {{end}}",
+    "digest_holidays_hint": "Zona B, calendario escolar francés",
+    "digest_event_categories_label": "Salidas que nos interesan",
+    "digest_location_categories_label": "Lugares nuevos que nos interesan",
+    "digest_check_all": "Marcar todo",
+    "digest_recap_title": "Lo que recibirás",
+    "digest_recap": "Cada {{day}}, {{when}}{{holidays}} ({{events}}). Lugares nuevos: {{places}}.",
+    "digest_recap_when": {
+      "weekend": "las salidas del sábado y el domingo",
+      "wed_weekend": "las salidas del miércoles, el sábado y el domingo",
+      "all": "las salidas de toda la semana"
+    },
+    "digest_recap_holidays": ", y de toda la semana en vacaciones escolares",
+    "digest_recap_events_all": "todos los tipos",
+    "digest_recap_events_some": "{{count}} tipos de {{total}}",
+    "digest_recap_places": "{{count}} categorías de {{total}}",
+    "digest_weekday_long": {
+      "0": "domingo",
+      "1": "lunes",
+      "2": "martes",
+      "3": "miércoles",
+      "4": "jueves",
+      "5": "viernes",
+      "6": "sábado"
+    }
   },
   "auth": {
     "reset_title": "Restablecer contraseña",

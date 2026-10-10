@@ -27,10 +27,47 @@ interface DigestItem {
   url: string
 }
 
+interface DigestGroup {
+  /** « Samedi 10 octobre », « Ce week-end », « Le reste de la semaine »… —
+   * composé par `weekly-digest/index.ts` (cf. `groupItems`). */
+  title: string
+  subtitle: string | null
+  items: DigestItem[]
+}
+
+/** Forme du mail, cf. `digestMode` (_shared/digest/preferences.ts). */
+type DigestMode = 'weekend' | 'holidays' | 'week'
+
 interface WeeklyDigestProps {
   childrenNames?: string[]
-  items?: DigestItem[]
+  /** Groupes déjà plafonnés (week-end en tête). */
+  groups?: DigestGroup[]
+  /** Nombre total de sorties retenues, avant plafond — c'est lui qu'on annonce. */
+  totalCount?: number
+  mode?: DigestMode
+  /** « sam. 10 et dim. 11 oct. » (week-end) ou « du 22 au 28 oct. » (vacances). */
+  rangeLabel?: string | null
+  holiday?: { label: string; untilLabel: string; filtered: boolean } | null
+  /** « tout sauf Marché » quand le parent a restreint les types, sinon null. */
+  categoriesLabel?: string | null
+  preferencesUrl?: string
   landingUrl?: string
+}
+
+function ideas(count: number): string {
+  return `${count} idée${count > 1 ? 's' : ''}`
+}
+
+function headlineFor(mode: DigestMode): string {
+  if (mode === 'weekend') return 'Ton week-end en famille'
+  if (mode === 'holidays') return 'Ta semaine de vacances'
+  return 'Ta sélection de la semaine'
+}
+
+function subjectFor(mode: DigestMode, count: number, names: string): string {
+  if (mode === 'weekend') return `${ideas(count)} pour ${names} ce week-end 🎈`
+  if (mode === 'holidays') return `C'est les vacances : ${ideas(count)} pour ${names} cette semaine 🎈`
+  return `${ideas(count)} pour ${names} cette semaine 🎈`
 }
 
 /** « Léa et Tom », « Léa », ou repli générique si aucun prénom connu (D8).
@@ -52,9 +89,22 @@ function reactionUrl(landingUrl: string, verdict: 'love' | 'neutral' | 'sad'): s
   return `${landingUrl}?r=${verdict}`
 }
 
-const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: WeeklyDigestProps) => {
+const WeeklyDigestEmail = ({
+  childrenNames = [],
+  groups = [],
+  totalCount,
+  mode = 'week',
+  rangeLabel = null,
+  holiday = null,
+  categoriesLabel = null,
+  preferencesUrl = `${SITE_URL}/account?section=digest`,
+  landingUrl = '',
+}: WeeklyDigestProps) => {
   const names = greetingNames(childrenNames)
-  const count = items.length
+  const shown = groups.reduce((n, g) => n + g.items.length, 0)
+  const count = totalCount ?? shown
+  const hidden = Math.max(0, count - shown)
+  const when = mode === 'weekend' ? 'ce week-end' : 'cette semaine'
 
   return (
     <Html lang="fr" dir="ltr">
@@ -64,7 +114,7 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
           rel="stylesheet"
         />
       </Head>
-      <Preview>{`${count} idée${count > 1 ? 's' : ''} pour ${names} cette semaine`}</Preview>
+      <Preview>{subjectFor(mode, count, names).replace(' 🎈', '')}</Preview>
       <Body style={main}>
         <Container style={card}>
           {/* Header */}
@@ -93,15 +143,27 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
             </table>
           </Section>
 
+          {holiday && (
+            <Section style={holidayBanner}>
+              <Text style={holidayText}>
+                <strong>{holiday.label}</strong>
+                {holiday.filtered
+                  ? ` · jusqu'au ${holiday.untilLabel}, on t'envoie les idées de toute la semaine.`
+                  : ` · jusqu'au ${holiday.untilLabel}.`}
+              </Text>
+            </Section>
+          )}
+
           {/* Hero */}
           <Section style={hero}>
             <div style={iconBubble}>
               <span style={{ fontSize: '28px', lineHeight: '64px' }}>🎈</span>
             </div>
-            <Text style={headline}>Ta sélection de la semaine</Text>
+            <Text style={headline}>{headlineFor(mode)}</Text>
             <div style={venueBadge}>
               <span style={venueBadgeText}>
-                {count} idée{count > 1 ? 's' : ''} pour {names}
+                {ideas(count)} pour {names}
+                {rangeLabel ? ` · ${rangeLabel}` : ''}
               </span>
             </div>
           </Section>
@@ -109,38 +171,57 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
           {/* Body */}
           <Section style={bodySection}>
             <Text style={paragraph}>
-              Voici {count} idée{count > 1 ? 's' : ''} pour {names} cette semaine, près de chez
-              toi.
+              {mode === 'holidays'
+                ? 'Le week-end d\'abord, puis le reste de la semaine.'
+                : `Voici ${ideas(count)} pour ${names} ${when}, près de chez toi.`}
+              {hidden > 0
+                ? ` Nos ${shown} coups de cœur sont ci-dessous, ${hidden > 1 ? `les ${hidden} autres t'attendent` : 'la dernière t\'attend'} sur ta page.`
+                : ''}
             </Text>
 
-            <div style={listBox}>
-              {items.map((item, idx) => (
-                <Section key={idx} style={idx === 0 ? itemFirst : itemRow}>
-                  <table role="presentation" cellPadding={0} cellSpacing={0} style={{ width: '100%' }}>
-                    <tbody>
-                      <tr>
-                        <td style={itemEmojiCell}>
-                          <Link href={item.url} style={cellLink}>{item.emoji}</Link>
-                        </td>
-                        <td>
-                          <Link href={item.url} style={itemTitleLink}>{item.name}</Link>
-                          <Link href={item.url} style={itemMetaLink}>
-                            {item.dateLabel}
-                            {item.address ? ` · ${item.address}` : ''}
-                          </Link>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </Section>
-              ))}
-            </div>
+            {groups.map((group, gIdx) => (
+              <div key={gIdx} style={groupBox}>
+                <Text style={groupTitle}>
+                  {group.title}
+                  {group.subtitle ? <span style={groupSubtitle}>{`  ${group.subtitle}`}</span> : null}
+                </Text>
+                {group.items.map((item, idx) => (
+                  <Section key={idx} style={idx === 0 ? itemFirst : itemRow}>
+                    <table role="presentation" cellPadding={0} cellSpacing={0} style={{ width: '100%' }}>
+                      <tbody>
+                        <tr>
+                          <td style={itemEmojiCell}>
+                            <Link href={item.url} style={cellLink}>{item.emoji}</Link>
+                          </td>
+                          <td>
+                            <Link href={item.url} style={itemTitleLink}>{item.name}</Link>
+                            <Link href={item.url} style={itemMetaLink}>
+                              {item.dateLabel}
+                              {item.address ? ` · ${item.address}` : ''}
+                            </Link>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </Section>
+                ))}
+              </div>
+            ))}
 
             <div style={{ textAlign: 'center' }}>
               <Link href={landingUrl} style={ctaButton}>
-                Voir toute la sélection →
+                {hidden > 0 ? `Voir les ${count} idées →` : 'Voir toute la sélection →'}
               </Link>
             </div>
+
+            {categoriesLabel && (
+              <Text style={categoriesNote}>
+                Sorties choisies : {categoriesLabel} ·{' '}
+                <Link href={preferencesUrl} style={categoriesLink}>
+                  Modifier mes préférences
+                </Link>
+              </Text>
+            )}
 
             <div style={feedbackBox}>
               <Text style={feedbackQ}>Cette sélection t'a plu ?</Text>
@@ -165,6 +246,10 @@ const WeeklyDigestEmail = ({ childrenNames = [], items = [], landingUrl = '' }: 
           <Section style={footerCell}>
             <Text style={footerBrand}>{SITE_NAME} — Nantes en famille</Text>
             <Text style={footerNote}>
+              <Link href={preferencesUrl} style={footerLink}>
+                Modifier mes préférences
+              </Link>
+              {' · '}
               <Link href={landingUrl} style={footerLink}>
                 Se désabonner de la sélection hebdo
               </Link>
@@ -180,17 +265,42 @@ export const template = {
   component: WeeklyDigestEmail,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- signature imposée par TemplateEntry['subject'] (registry.ts), même patron que weekly-admin-report.tsx
   subject: (data: Record<string, any>) => {
-    const count = (data.items ?? []).length
-    const names = greetingNames(data.childrenNames ?? [])
-    return `${count} idée${count > 1 ? 's' : ''} pour ${names} cette semaine 🎈`
+    const shown = (data.groups ?? []).reduce((n: number, g: { items?: unknown[] }) => n + (g.items ?? []).length, 0)
+    const count = typeof data.totalCount === 'number' ? data.totalCount : shown
+    const mode: DigestMode = data.mode === 'weekend' || data.mode === 'holidays' ? data.mode : 'week'
+    return subjectFor(mode, count, greetingNames(data.childrenNames ?? []))
   },
   displayName: 'Sélection hebdomadaire (profil famille)',
   previewData: {
     childrenNames: ['Léa', 'Tom'],
-    items: [
-      { emoji: '🎨', name: 'Atelier des Petits Curieux', dateLabel: 'Mer 9 sept · Centre Ville · 2h', address: null, url: 'https://kidmapp.app/event/apercu' },
-      { emoji: '🎭', name: 'Kamishibaï en plein air', dateLabel: 'Sam 12 sept · 16h', address: 'Jardin des Plantes', url: 'https://kidmapp.app/event/apercu' },
-      { emoji: '🧺', name: 'Marché des créateurs', dateLabel: 'Dim 13 sept · 10h', address: 'Bellevue', url: 'https://kidmapp.app/event/apercu' },
+    mode: 'weekend',
+    totalCount: 3,
+    rangeLabel: 'sam. 12 et dim. 13 sept.',
+    holiday: null,
+    categoriesLabel: 'tout sauf Marché',
+    preferencesUrl: 'https://kidmapp.app/account?section=digest',
+    groups: [
+      {
+        title: 'Samedi 12 septembre',
+        subtitle: null,
+        items: [
+          { emoji: '🎭', name: 'Kamishibaï en plein air', dateLabel: 'Sam 12 sept · 16h', address: 'Jardin des Plantes', url: 'https://kidmapp.app/event/apercu' },
+        ],
+      },
+      {
+        title: 'Dimanche 13 septembre',
+        subtitle: null,
+        items: [
+          { emoji: '🎨', name: 'Atelier des Petits Curieux', dateLabel: 'Dim 13 sept · 10h', address: 'Centre Ville', url: 'https://kidmapp.app/event/apercu' },
+        ],
+      },
+      {
+        title: 'Tout le week-end',
+        subtitle: null,
+        items: [
+          { emoji: '🖼️', name: 'Expo Petites bêtes', dateLabel: 'Sam 12 sept', address: 'Muséum', url: 'https://kidmapp.app/event/apercu' },
+        ],
+      },
     ],
     landingUrl: 'https://kidmapp.app/semaine/apercu',
   },
@@ -273,9 +383,47 @@ const paragraph = {
   lineHeight: 1.7,
   margin: '0 0 24px',
 }
-const listBox = {
+const groupBox = {
   borderTop: '1px solid #E7E3DC',
-  margin: '0 0 28px',
+  margin: '0 0 20px',
+}
+const groupTitle = {
+  fontFamily: "'Fraunces', Georgia, serif",
+  fontWeight: 600,
+  fontSize: '16px',
+  color: '#1C1917',
+  margin: '0',
+  padding: '12px 8px 4px',
+}
+const groupSubtitle = {
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontWeight: 400,
+  fontSize: '12px',
+  color: '#78716C',
+}
+const holidayBanner = {
+  background: '#FEF9E7',
+  borderBottom: '1px solid #F5E9BE',
+  padding: '12px 32px',
+}
+const holidayText = {
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontSize: '13px',
+  color: '#6B4A0F',
+  lineHeight: 1.4,
+  margin: 0,
+}
+const categoriesNote = {
+  fontFamily: "'DM Sans', system-ui, sans-serif",
+  fontSize: '12px',
+  color: '#78716C',
+  textAlign: 'center' as const,
+  margin: '14px 0 0',
+}
+const categoriesLink = {
+  color: '#78716C',
+  fontWeight: 600,
+  textDecoration: 'underline',
 }
 const itemFirst = {
   padding: '14px 8px 12px',
