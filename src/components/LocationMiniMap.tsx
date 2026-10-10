@@ -26,7 +26,7 @@ const LocationMiniMap = ({ lat, lng, category }: LocationMiniMapProps) => {
     >
       <MapContainer
         center={position}
-        zoom={15}
+        zoom={14}
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
         dragging={false}
