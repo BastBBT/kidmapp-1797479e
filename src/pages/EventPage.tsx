@@ -43,6 +43,19 @@ const eventCtaPrimaryStyle: CSSProperties = {
   boxShadow: '0 6px 18px rgba(217,95,59,0.28)',
 };
 
+const eventCtaRouteStyle: CSSProperties = {
+  padding: 12,
+  borderRadius: 100,
+  background: 'var(--surface)',
+  border: '1.5px solid var(--primary)',
+  color: 'var(--primary)',
+  fontFamily: 'DM Sans',
+  fontSize: 14,
+  fontWeight: 600,
+  textAlign: 'center',
+  textDecoration: 'none',
+};
+
 const eventCtaSecondaryStyle: CSSProperties = {
   padding: 10,
   borderRadius: 100,
@@ -79,6 +92,10 @@ const EventPage = () => {
 
   const eventPhotos = event ? galleryPhotos({ photo: event.photo, photos: event.photos ?? null }) : [];
   const hasPhotos = eventPhotos.length > 0;
+  // Marche à pied par défaut sur Google Maps, comme sur la fiche lieu.
+  const directionsUrl = event && event.lat != null && event.lng != null
+    ? `https://www.google.com/maps/dir/?api=1&destination=${event.lat},${event.lng}`
+    : undefined;
   const [photoIndex, setPhotoIndex] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
 
@@ -409,16 +426,24 @@ const EventPage = () => {
               </div>
             )
           )}
-          <div style={{ height: 200, borderRadius: 'var(--radius)', overflow: 'hidden', isolation: 'isolate' }}>
+          {/* Aperçu figé, comme sur la fiche lieu : une carte manipulable capte le défilement de la
+              page. Un clic lance l'itinéraire (la bande du bas reste libre pour l'attribution). */}
+          <div style={{ position: 'relative', height: 130, borderRadius: 'var(--radius)', overflow: 'hidden', isolation: 'isolate', border: '1px solid var(--border)' }}>
             <MapContainer
               center={[event.lat, event.lng]}
               zoom={14}
               style={{ height: '100%', width: '100%' }}
               zoomControl={false}
+              dragging={false}
               scrollWheelZoom={false}
+              doubleClickZoom={false}
+              touchZoom={false}
+              boxZoom={false}
+              keyboard={false}
             >
               <TileLayer url={CARTO_TILE_URL} />
               <Marker
+                interactive={false}
                 position={[event.lat, event.lng]}
                 icon={L.divIcon({
                   className: '',
@@ -428,6 +453,13 @@ const EventPage = () => {
                 })}
               />
             </MapContainer>
+            <a
+              href={directionsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t('event.directions')}
+              style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 18, zIndex: 1000 }}
+            />
           </div>
         </div>
       )}
@@ -455,6 +487,18 @@ const EventPage = () => {
             style={event.booking_url ? eventCtaSecondaryStyle : eventCtaPrimaryStyle}
           >
             {event.booking_url ? t('event.website') : t('event.more_details')}
+          </a>
+        )}
+        {/* Itinéraire : toujours sous les liens de la sortie (réservation, site) — action
+            secondaire, en contour. Absent sans coordonnées, comme la carte. */}
+        {directionsUrl && (
+          <a
+            href={directionsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={eventCtaRouteStyle}
+          >
+            ➤ {t('event.directions')}
           </a>
         )}
         {/* `displayIsPast` suit le créneau sélectionné : choisir une date passée

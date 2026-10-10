@@ -15,7 +15,7 @@ const Spans = ({ spans }: { spans: InlineSpan[] }) => (
 /** Rendu de la description d'un événement (gras, italique, listes). Pas de HTML injecté. */
 export function RichNoteText({ note }: { note: string }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, overflowWrap: 'anywhere' }}>
       {parseNote(note).map((b, i) => {
         if (b.kind === 'gap') return <div key={i} style={{ height: 4 }} />;
         if (b.kind === 'bullet') {
