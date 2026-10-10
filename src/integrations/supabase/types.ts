@@ -976,13 +976,17 @@ export type Database = {
           acquisition_detail: string | null
           acquisition_source: string | null
           acquisition_source_at: string | null
+          alert_location_categories: string[] | null
           assistant_completions_count: number
           assistant_opens_count: number
           coachmarks_outcome: string | null
           created_at: string
           digest_channel: string
           digest_day: number
+          digest_days: string
           digest_email_enabled: boolean
+          digest_event_categories: string[] | null
+          digest_holidays_all_week: boolean
           digest_push_enabled: boolean
           full_name: string | null
           id: string
@@ -1002,13 +1006,17 @@ export type Database = {
           acquisition_detail?: string | null
           acquisition_source?: string | null
           acquisition_source_at?: string | null
+          alert_location_categories?: string[] | null
           assistant_completions_count?: number
           assistant_opens_count?: number
           coachmarks_outcome?: string | null
           created_at?: string
           digest_channel?: string
           digest_day?: number
+          digest_days?: string
           digest_email_enabled?: boolean
+          digest_event_categories?: string[] | null
+          digest_holidays_all_week?: boolean
           digest_push_enabled?: boolean
           full_name?: string | null
           id: string
@@ -1028,13 +1036,17 @@ export type Database = {
           acquisition_detail?: string | null
           acquisition_source?: string | null
           acquisition_source_at?: string | null
+          alert_location_categories?: string[] | null
           assistant_completions_count?: number
           assistant_opens_count?: number
           coachmarks_outcome?: string | null
           created_at?: string
           digest_channel?: string
           digest_day?: number
+          digest_days?: string
           digest_email_enabled?: boolean
+          digest_event_categories?: string[] | null
+          digest_holidays_all_week?: boolean
           digest_push_enabled?: boolean
           full_name?: string | null
           id?: string
@@ -1099,6 +1111,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      school_holidays: {
+        Row: {
+          first_day: string
+          id: string
+          label: string
+          last_day: string
+          zone: string
+        }
+        Insert: {
+          first_day: string
+          id?: string
+          label: string
+          last_day: string
+          zone: string
+        }
+        Update: {
+          first_day?: string
+          id?: string
+          label?: string
+          last_day?: string
+          zone?: string
+        }
+        Relationships: []
       }
       suppressed_emails: {
         Row: {

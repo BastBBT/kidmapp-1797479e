@@ -57,6 +57,13 @@
       "when": 1791662775202,
       "tag": "0007_add_events_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791664964358,
+      "tag": "0008_digest_preferences_school_holidays",
+      "breakpoints": true
     }
   ]
 }
