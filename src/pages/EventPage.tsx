@@ -1,3 +1,6 @@
+import { RichNoteText } from '@/components/RichNote';
+import { EventHeroPhotos, EventPhotoViewer } from '@/components/EventPhotoCarousel';
+import { galleryPhotos } from '@/lib/gallery';
 import { useMemo, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -40,6 +43,19 @@ const eventCtaPrimaryStyle: CSSProperties = {
   boxShadow: '0 6px 18px rgba(217,95,59,0.28)',
 };
 
+const eventCtaRouteStyle: CSSProperties = {
+  padding: 12,
+  borderRadius: 100,
+  background: 'var(--surface)',
+  border: '1.5px solid var(--primary)',
+  color: 'var(--primary)',
+  fontFamily: 'DM Sans',
+  fontSize: 14,
+  fontWeight: 600,
+  textAlign: 'center',
+  textDecoration: 'none',
+};
+
 const eventCtaSecondaryStyle: CSSProperties = {
   padding: 10,
   borderRadius: 100,
@@ -73,6 +89,15 @@ const EventPage = () => {
     if (occurrences.length === 0) return null;
     return occurrences.find((o) => o.id === selectedOccurrenceId) ?? occurrences.find((o) => !isPastEvent(o.date_start, o.date_end)) ?? occurrences[occurrences.length - 1];
   }, [occurrences, selectedOccurrenceId]);
+
+  const eventPhotos = event ? galleryPhotos({ photo: event.photo, photos: event.photos ?? null }) : [];
+  const hasPhotos = eventPhotos.length > 0;
+  // Marche à pied par défaut sur Google Maps, comme sur la fiche lieu.
+  const directionsUrl = event && event.lat != null && event.lng != null
+    ? `https://www.google.com/maps/dir/?api=1&destination=${event.lat},${event.lng}`
+    : undefined;
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -124,16 +149,34 @@ const EventPage = () => {
       <div
         style={{
           background: `linear-gradient(160deg, ${hex}22 0%, ${hex}55 100%)`,
-          padding: '48px 20px 28px',
+          padding: hasPhotos ? '0 20px 34px' : '48px 20px 28px',
           position: 'relative',
+          // Avec photos : le header devient la photo, le titre passe dessus (voile sombre en bas).
+          ...(hasPhotos ? { minHeight: 300, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden' } : {}),
         }}
       >
+        {hasPhotos && (
+          <>
+            <EventHeroPhotos
+              photos={eventPhotos}
+              name={event.name}
+              index={photoIndex}
+              onIndexChange={setPhotoIndex}
+              onOpen={() => setViewerOpen(true)}
+            />
+            <div
+              aria-hidden
+              style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(0,0,0,0.28) 0%, transparent 28%, transparent 40%, rgba(0,0,0,0.62) 100%)' }}
+            />
+          </>
+        )}
         <button
           onClick={() => navigate(-1)}
           style={{
             position: 'absolute',
             top: 16,
             left: 16,
+            zIndex: 2,
             width: 36,
             height: 36,
             borderRadius: '50%',
@@ -154,6 +197,7 @@ const EventPage = () => {
               position: 'absolute',
               top: 16,
               right: 16,
+              zIndex: 2,
               width: 36,
               height: 36,
               borderRadius: '50%',
@@ -168,6 +212,7 @@ const EventPage = () => {
           </button>
         )}
 
+        <div style={{ position: 'relative', pointerEvents: hasPhotos ? 'none' : undefined, paddingBottom: hasPhotos ? 10 : 0 }}>
         <div
           style={{
             display: 'inline-flex',
@@ -187,16 +232,27 @@ const EventPage = () => {
           <span>{eventCategoryEmoji(event.category)}</span>
           {translateToken('category_event', event.category)}
         </div>
-        <h1 style={{ fontFamily: 'Fraunces', fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text)' }}>
+        <h1 style={{ fontFamily: 'Fraunces', fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', color: hasPhotos ? '#fff' : 'var(--text)', textShadow: hasPhotos ? '0 1px 8px rgba(0,0,0,0.35)' : undefined }}>
           {event.name}
         </h1>
         {shouldDisplayFavoriteCount(event.favorites_count) && (
-          <p className="flex items-center gap-1 text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+          <p className="flex items-center gap-1 text-xs mt-1" style={{ color: hasPhotos ? 'rgba(255,255,255,0.85)' : 'var(--text-muted)' }}>
             <Heart size={11} fill="currentColor" strokeWidth={0} />
             {t('explore.loved_by', { count: event.favorites_count ?? 0 })}
           </p>
         )}
+        </div>
       </div>
+
+      {viewerOpen && (
+        <EventPhotoViewer
+          photos={eventPhotos}
+          index={photoIndex}
+          onIndexChange={setPhotoIndex}
+          onClose={() => setViewerOpen(false)}
+          closeLabel={t('event.close_photos')}
+        />
+      )}
 
       {/* Date block */}
       <div style={{ padding: '20px 16px 0' }}>
@@ -290,18 +346,6 @@ const EventPage = () => {
         </div>
       </div>
 
-      {/* Photo */}
-      {event.photo && (
-        <div style={{ padding: '16px 16px 0' }}>
-          <img
-            src={supabaseResized(event.photo, { width: 900, height: 440, quality: 80 })}
-            onError={onResizedImageError(event.photo)}
-            alt={event.name}
-            style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 'var(--radius)' }}
-          />
-        </div>
-      )}
-
       {/* Info grid */}
       <div style={{ padding: '20px 16px 0' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -327,10 +371,9 @@ const EventPage = () => {
               fontSize: 14,
               color: 'var(--text)',
               lineHeight: 1.5,
-              whiteSpace: 'pre-wrap',
             }}
           >
-            {event.note}
+            <RichNoteText note={event.note} />
           </div>
         </div>
       )}
@@ -383,16 +426,24 @@ const EventPage = () => {
               </div>
             )
           )}
-          <div style={{ height: 200, borderRadius: 'var(--radius)', overflow: 'hidden', isolation: 'isolate' }}>
+          {/* Aperçu figé, comme sur la fiche lieu : une carte manipulable capte le défilement de la
+              page. Un clic lance l'itinéraire (la bande du bas reste libre pour l'attribution). */}
+          <div style={{ position: 'relative', height: 130, borderRadius: 'var(--radius)', overflow: 'hidden', isolation: 'isolate', border: '1px solid var(--border)' }}>
             <MapContainer
               center={[event.lat, event.lng]}
               zoom={14}
               style={{ height: '100%', width: '100%' }}
               zoomControl={false}
+              dragging={false}
               scrollWheelZoom={false}
+              doubleClickZoom={false}
+              touchZoom={false}
+              boxZoom={false}
+              keyboard={false}
             >
               <TileLayer url={CARTO_TILE_URL} />
               <Marker
+                interactive={false}
                 position={[event.lat, event.lng]}
                 icon={L.divIcon({
                   className: '',
@@ -402,6 +453,13 @@ const EventPage = () => {
                 })}
               />
             </MapContainer>
+            <a
+              href={directionsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t('event.directions')}
+              style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 18, zIndex: 1000 }}
+            />
           </div>
         </div>
       )}
@@ -429,6 +487,18 @@ const EventPage = () => {
             style={event.booking_url ? eventCtaSecondaryStyle : eventCtaPrimaryStyle}
           >
             {event.booking_url ? t('event.website') : t('event.more_details')}
+          </a>
+        )}
+        {/* Itinéraire : toujours sous les liens de la sortie (réservation, site) — action
+            secondaire, en contour. Absent sans coordonnées, comme la carte. */}
+        {directionsUrl && (
+          <a
+            href={directionsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={eventCtaRouteStyle}
+          >
+            ➤ {t('event.directions')}
           </a>
         )}
         {/* `displayIsPast` suit le créneau sélectionné : choisir une date passée
