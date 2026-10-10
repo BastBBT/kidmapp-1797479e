@@ -1,5 +1,5 @@
 import { RichNoteText } from '@/components/RichNote';
-import EventPhotoCarousel from '@/components/EventPhotoCarousel';
+import { EventHeroPhotos, EventPhotoViewer } from '@/components/EventPhotoCarousel';
 import { galleryPhotos } from '@/lib/gallery';
 import { useMemo, useState } from 'react';
 import { Heart } from 'lucide-react';
@@ -78,6 +78,9 @@ const EventPage = () => {
   }, [occurrences, selectedOccurrenceId]);
 
   const eventPhotos = event ? galleryPhotos({ photo: event.photo, photos: event.photos ?? null }) : [];
+  const hasPhotos = eventPhotos.length > 0;
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -129,16 +132,34 @@ const EventPage = () => {
       <div
         style={{
           background: `linear-gradient(160deg, ${hex}22 0%, ${hex}55 100%)`,
-          padding: '48px 20px 28px',
+          padding: hasPhotos ? '0 20px 34px' : '48px 20px 28px',
           position: 'relative',
+          // Avec photos : le header devient la photo, le titre passe dessus (voile sombre en bas).
+          ...(hasPhotos ? { minHeight: 300, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden' } : {}),
         }}
       >
+        {hasPhotos && (
+          <>
+            <EventHeroPhotos
+              photos={eventPhotos}
+              name={event.name}
+              index={photoIndex}
+              onIndexChange={setPhotoIndex}
+              onOpen={() => setViewerOpen(true)}
+            />
+            <div
+              aria-hidden
+              style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(to bottom, rgba(0,0,0,0.28) 0%, transparent 28%, transparent 40%, rgba(0,0,0,0.62) 100%)' }}
+            />
+          </>
+        )}
         <button
           onClick={() => navigate(-1)}
           style={{
             position: 'absolute',
             top: 16,
             left: 16,
+            zIndex: 2,
             width: 36,
             height: 36,
             borderRadius: '50%',
@@ -159,6 +180,7 @@ const EventPage = () => {
               position: 'absolute',
               top: 16,
               right: 16,
+              zIndex: 2,
               width: 36,
               height: 36,
               borderRadius: '50%',
@@ -173,6 +195,7 @@ const EventPage = () => {
           </button>
         )}
 
+        <div style={{ position: 'relative', pointerEvents: hasPhotos ? 'none' : undefined, paddingBottom: hasPhotos ? 10 : 0 }}>
         <div
           style={{
             display: 'inline-flex',
@@ -192,16 +215,27 @@ const EventPage = () => {
           <span>{eventCategoryEmoji(event.category)}</span>
           {translateToken('category_event', event.category)}
         </div>
-        <h1 style={{ fontFamily: 'Fraunces', fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text)' }}>
+        <h1 style={{ fontFamily: 'Fraunces', fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em', color: hasPhotos ? '#fff' : 'var(--text)', textShadow: hasPhotos ? '0 1px 8px rgba(0,0,0,0.35)' : undefined }}>
           {event.name}
         </h1>
         {shouldDisplayFavoriteCount(event.favorites_count) && (
-          <p className="flex items-center gap-1 text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+          <p className="flex items-center gap-1 text-xs mt-1" style={{ color: hasPhotos ? 'rgba(255,255,255,0.85)' : 'var(--text-muted)' }}>
             <Heart size={11} fill="currentColor" strokeWidth={0} />
             {t('explore.loved_by', { count: event.favorites_count ?? 0 })}
           </p>
         )}
+        </div>
       </div>
+
+      {viewerOpen && (
+        <EventPhotoViewer
+          photos={eventPhotos}
+          index={photoIndex}
+          onIndexChange={setPhotoIndex}
+          onClose={() => setViewerOpen(false)}
+          closeLabel={t('event.close_photos')}
+        />
+      )}
 
       {/* Date block */}
       <div style={{ padding: '20px 16px 0' }}>
@@ -294,13 +328,6 @@ const EventPage = () => {
           )}
         </div>
       </div>
-
-      {/* Photos */}
-      {eventPhotos.length > 0 && (
-        <div style={{ padding: '16px 16px 0' }}>
-          <EventPhotoCarousel photos={eventPhotos} name={event.name} />
-        </div>
-      )}
 
       {/* Info grid */}
       <div style={{ padding: '20px 16px 0' }}>
