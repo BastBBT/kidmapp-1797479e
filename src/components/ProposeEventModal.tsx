@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { RichNoteEditor } from '@/components/RichNote';
+import { useEffect, useState } from 'react';
 import { X, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { submitFailureText } from '@/lib/submitFailure';
 import { useAuth } from '@/hooks/useAuth';
 import { useProposalModal } from '@/hooks/useProposalModal';
-import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryEmoji } from '@/types/event';
+import { MAX_EVENT_PHOTOS, EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryEmoji } from '@/types/event';
 import { DURATIONS } from '@/lib/activity';
 import { ageToMonths, ageRangeError, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
@@ -81,8 +82,15 @@ const ProposeEventModal = () => {
   const { user } = useAuth();
   const { isOpen, mode, close, setMode } = useProposalModal();
   const [submitting, setSubmitting] = useState(false);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  // Jusqu'à MAX_EVENT_PHOTOS photos ; la première sert de couverture (`photo`), les autres vont dans `photos`.
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+
+  useEffect(() => {
+    const urls = photoFiles.map((f) => URL.createObjectURL(f));
+    setPhotoPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [photoFiles]);
   const [form, setForm] = useState({
     name: '',
     category: 'Spectacle' as string,
@@ -110,8 +118,7 @@ const ProposeEventModal = () => {
       time: '', age_min: '', age_max: '', age_unit: 'years', duration: '', weather: '',
       price: '', website: '', booking_url: '', instagram: '', note: '',
     });
-    setPhotoFile(null);
-    setPhotoPreview(null);
+    setPhotoFiles([]);
   };
 
   const handleClose = () => {
@@ -119,16 +126,18 @@ const ProposeEventModal = () => {
     setTimeout(reset, 300);
   };
 
-  const handlePhoto = (file: File | null) => {
-    setPhotoFile(file);
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => setPhotoPreview(e.target?.result as string);
-      reader.readAsDataURL(file);
-    } else {
-      setPhotoPreview(null);
+  const addPhotos = (list: FileList | null) => {
+    if (!list) return;
+    const room = MAX_EVENT_PHOTOS - photoFiles.length;
+    const picked = Array.from(list).filter((f) => f.type.startsWith('image/'));
+    if (picked.length > room) {
+      toast({ title: `${MAX_EVENT_PHOTOS} photos maximum`, variant: 'destructive' });
     }
+    setPhotoFiles((prev) => [...prev, ...picked.slice(0, room)]);
   };
+
+  const makeCover = (i: number) =>
+    setPhotoFiles((prev) => [prev[i], ...prev.filter((_, j) => j !== i)]);
 
   const canSubmit = Boolean(form.name.trim() && form.category && form.date_start)
     && !ageRangeError(form.age_min, form.age_max, form.age_unit);
@@ -141,18 +150,17 @@ const ProposeEventModal = () => {
     }
     setSubmitting(true);
     try {
-      let photoUrl: string | null = null;
-      if (photoFile) {
-        const ext = photoFile.name.split('.').pop();
+      const photoUrls: string[] = [];
+      for (const file of photoFiles) {
+        const ext = file.name.split('.').pop();
         // La policy RLS du bucket n'autorise l'écriture que sous `proposals/{auth.uid()}/...`
         // (ou admin) : tout autre préfixe fait échouer l'upload pour un utilisateur normal.
         const fileName = `proposals/${user.id}/${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from('location-photos').upload(fileName, photoFile);
+        const { error: upErr } = await supabase.storage.from('location-photos').upload(fileName, file);
         // L'échec remonte au catch : classé `photo_upload` par submitFailure.ts,
         // message traduit + code technique, formulaire conservé pour réessayer.
         if (upErr) throw upErr;
-        const { data } = supabase.storage.from('location-photos').getPublicUrl(fileName);
-        photoUrl = data.publicUrl;
+        photoUrls.push(supabase.storage.from('location-photos').getPublicUrl(fileName).data.publicUrl);
       }
 
       const insertData: any = {
@@ -172,7 +180,8 @@ const ProposeEventModal = () => {
         booking_url: form.booking_url.trim() || null,
         instagram: form.instagram.trim() || null,
         note: form.note.trim() || null,
-        photo: photoUrl,
+        photo: photoUrls[0] ?? null,
+        photos: photoUrls.length > 1 ? photoUrls.slice(1) : null,
         status: 'pending',
       };
 
@@ -407,31 +416,60 @@ const ProposeEventModal = () => {
                 </div>
 
                 <div>
-                  <Label>Photo (optionnelle)</Label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handlePhoto(e.target.files?.[0] ?? null)}
-                    style={{ fontFamily: 'DM Sans', fontSize: 13 }}
-                  />
-                  {photoPreview && (
-                    <img
-                      src={photoPreview}
-                      alt="Aperçu"
-                      style={{ marginTop: 10, width: '100%', height: 160, objectFit: 'cover', borderRadius: 12 }}
-                    />
-                  )}
+                  <Label>Photos (optionnelles, {MAX_EVENT_PHOTOS} max)</Label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                    {photoPreviews.map((src, i) => (
+                      <div key={src} style={{ position: 'relative', aspectRatio: '1 / 1', borderRadius: 12, overflow: 'hidden' }}>
+                        <img src={src} alt={`Photo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button
+                          type="button"
+                          aria-label={`Retirer la photo ${i + 1}`}
+                          onClick={() => setPhotoFiles((prev) => prev.filter((_, j) => j !== i))}
+                          style={{ position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 12, cursor: 'pointer' }}
+                        >
+                          ✕
+                        </button>
+                        {i === 0 ? (
+                          <span style={{ position: 'absolute', left: 5, bottom: 5, background: 'var(--primary)', color: '#fff', fontFamily: 'DM Sans', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99 }}>
+                            Couverture
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => makeCover(i)}
+                            style={{ position: 'absolute', left: 5, bottom: 5, background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', fontFamily: 'DM Sans', fontSize: 10, padding: '2px 7px', borderRadius: 99, cursor: 'pointer' }}
+                          >
+                            En couverture
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {photoFiles.length < MAX_EVENT_PHOTOS && (
+                      <label style={{ aspectRatio: '1 / 1', borderRadius: 12, border: '1.5px dashed var(--primary)', color: 'var(--primary)', display: 'grid', placeItems: 'center', textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                        <span><b style={{ display: 'block', fontSize: 22, lineHeight: 1 }}>＋</b>Ajouter</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          style={{ display: 'none' }}
+                          onChange={(e) => { addPhotos(e.target.files); e.target.value = ''; }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                    La première photo sert de couverture sur la liste.
+                  </div>
                 </div>
 
                 <div>
                   <Label>Description</Label>
-                  <textarea
+                  <RichNoteEditor
                     rows={4}
-                    style={{ ...inputStyle, resize: 'none' }}
+                    textareaStyle={inputStyle}
                     value={form.note}
-                    onChange={(e) => update('note', e.target.value.slice(0, 2000))}
+                    onChange={(v) => update('note', v)}
                     placeholder="Décris l'événement en quelques mots…"
-                    maxLength={2000}
                   />
                   <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--text-muted)', textAlign: 'right', marginTop: 2 }}>
                     {form.note.length}/2000

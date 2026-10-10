@@ -8,6 +8,8 @@ interface GalleryUploadProps {
   /** Fichiers choisis mais pas encore envoyés — ajoutés à la fin de la galerie. */
   files: File[];
   onFilesChange: (files: File[]) => void;
+  /** Nombre maximal de photos de galerie (déjà enregistrées + à envoyer). Illimité si absent. */
+  max?: number;
 }
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
@@ -22,6 +24,7 @@ export default function GalleryUpload({
   onUrlsChange,
   files,
   onFilesChange,
+  max,
 }: GalleryUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -47,7 +50,9 @@ export default function GalleryUpload({
       }
       accepted.push(f);
     }
-    if (accepted.length) onFilesChange([...files, ...accepted]);
+    const room = max === undefined ? accepted.length : Math.max(0, max - urls.length - files.length);
+    if (accepted.length > room) toast.error(`Maximum ${max} photos en plus de la principale`);
+    if (accepted.length) onFilesChange([...files, ...accepted.slice(0, room)]);
   };
 
   const handleInput = (e: ChangeEvent<HTMLInputElement>) => {
@@ -70,6 +75,7 @@ export default function GalleryUpload({
   };
 
   const total = urls.length + files.length;
+  const full = max !== undefined && total >= max;
 
   const tile: React.CSSProperties = {
     position: 'relative',
@@ -192,6 +198,7 @@ export default function GalleryUpload({
         </div>
       )}
 
+      {!full && (
       <div
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
@@ -223,6 +230,7 @@ export default function GalleryUpload({
           style={{ display: 'none' }}
         />
       </div>
+      )}
 
       <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
         La photo principale ouvre le carrousel ; ces photos viennent ensuite, dans cet ordre.

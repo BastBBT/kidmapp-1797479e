@@ -1,3 +1,6 @@
+import { RichNoteText } from '@/components/RichNote';
+import EventPhotoCarousel from '@/components/EventPhotoCarousel';
+import { galleryPhotos } from '@/lib/gallery';
 import { useMemo, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -73,6 +76,8 @@ const EventPage = () => {
     if (occurrences.length === 0) return null;
     return occurrences.find((o) => o.id === selectedOccurrenceId) ?? occurrences.find((o) => !isPastEvent(o.date_start, o.date_end)) ?? occurrences[occurrences.length - 1];
   }, [occurrences, selectedOccurrenceId]);
+
+  const eventPhotos = event ? galleryPhotos({ photo: event.photo, photos: event.photos ?? null }) : [];
 
   if (isLoading) {
     return (
@@ -290,15 +295,10 @@ const EventPage = () => {
         </div>
       </div>
 
-      {/* Photo */}
-      {event.photo && (
+      {/* Photos */}
+      {eventPhotos.length > 0 && (
         <div style={{ padding: '16px 16px 0' }}>
-          <img
-            src={supabaseResized(event.photo, { width: 900, height: 440, quality: 80 })}
-            onError={onResizedImageError(event.photo)}
-            alt={event.name}
-            style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 'var(--radius)' }}
-          />
+          <EventPhotoCarousel photos={eventPhotos} name={event.name} />
         </div>
       )}
 
@@ -327,10 +327,9 @@ const EventPage = () => {
               fontSize: 14,
               color: 'var(--text)',
               lineHeight: 1.5,
-              whiteSpace: 'pre-wrap',
             }}
           >
-            {event.note}
+            <RichNoteText note={event.note} />
           </div>
         </div>
       )}

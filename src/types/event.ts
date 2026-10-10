@@ -29,6 +29,8 @@ export interface EventItem {
   booking_url: string | null;
   instagram: string | null;
   photo: string | null;
+  /** Photos supplémentaires (max 4), après la photo principale `photo`. */
+  photos?: string[] | null;
   note: string | null;
   status: string;
   user_id: string | null;
@@ -118,3 +120,6 @@ const CATEGORY_EMOJI: Record<string, string> = {
 
 export const eventCategoryEmoji = (category?: string | null): string =>
   (category && CATEGORY_EMOJI[category]) || '📅';
+
+/** Photos par événement, couverture comprise (`photo` + jusqu'à 4 dans `photos`). */
+export const MAX_EVENT_PHOTOS = 5;
