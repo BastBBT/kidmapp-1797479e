@@ -355,7 +355,50 @@
     "relance_zone_cta": "Set my area",
     "relance_channel_title": "Choose how to get your weekly picks",
     "relance_channel_desc": "A selection of outings, plus an alert for every new place that suits you, as soon as you pick a channel to receive them.",
-    "relance_channel_cta": "Choose my channel"
+    "relance_channel_cta": "Choose my channel",
+    "digest_days_label": "When you're free",
+    "digest_days_option": {
+      "weekend": "Weekends",
+      "wed_weekend": "Wednesday + weekend",
+      "all": "All week"
+    },
+    "digest_days_option_sub": {
+      "weekend": "Saturday and Sunday",
+      "wed_weekend": "Wednesday counts too",
+      "all": "Everything that's on, every day"
+    },
+    "digest_days_short": {
+      "weekend": "weekends",
+      "wed_weekend": "Wed + weekend",
+      "all": "all week"
+    },
+    "digest_holidays_label": "During school holidays, all week",
+    "digest_holidays_hint_upcoming": "Zone B · next holidays from {{start}} to {{end}}",
+    "digest_holidays_hint_current": "Zone B · holidays on until {{end}}",
+    "digest_holidays_hint": "Zone B, French school calendar",
+    "digest_event_categories_label": "Outings we're into",
+    "digest_location_categories_label": "New places we're into",
+    "digest_check_all": "Select all",
+    "digest_recap_title": "What you'll get",
+    "digest_recap": "Every {{day}}, {{when}}{{holidays}} ({{events}}). New places: {{places}}.",
+    "digest_recap_when": {
+      "weekend": "outings on Saturday and Sunday",
+      "wed_weekend": "outings on Wednesday, Saturday and Sunday",
+      "all": "outings all week long"
+    },
+    "digest_recap_holidays": ", and all week during school holidays",
+    "digest_recap_events_all": "all types",
+    "digest_recap_events_some": "{{count}} of {{total}} types",
+    "digest_recap_places": "{{count}} of {{total}} categories",
+    "digest_weekday_long": {
+      "0": "Sunday",
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday"
+    }
   },
   "auth": {
     "reset_title": "Reset your password",
