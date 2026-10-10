@@ -152,7 +152,7 @@ export function EventPhotoViewer({
       document.body.style.overflow = prevOverflow;
       window.removeEventListener('keydown', onKey);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- effet de montage : recale le défilement une fois, puis le verrou de scroll est rendu au démontage
   }, []);
 
   const toggleZoom = (i: number, e: React.MouseEvent<HTMLDivElement>) => {
