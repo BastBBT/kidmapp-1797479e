@@ -119,7 +119,13 @@ export type DigestMode = 'weekend' | 'holidays' | 'week'
 export function digestMode(windowDays: string[], prefs: DigestPrefs, holidays: SchoolHoliday[]): DigestMode {
   const wanted = windowDays.filter((d) => isDayWanted(d, prefs, holidays))
   if (wanted.length > 0 && wanted.every(isWeekendISO)) return 'weekend'
-  if (prefs.digestDays !== 'all' && prefs.holidaysAllWeek && holidayInWindow(windowDays, holidays)) return 'holidays'
+  // Mode vacances seulement si les vacances AJOUTENT des jours à ce parent :
+  // des vacances qui ne touchent la fenêtre que par un samedi/dimanche (ou le
+  // mercredi d'un parent « mercredi + week-end ») ne changent rien à ce qu'il
+  // reçoit — un objet « C'est les vacances » serait trompeur.
+  const withoutHolidays: DigestPrefs = { ...prefs, holidaysAllWeek: false }
+  const holidaysAddDays = windowDays.some((d) => holidayOn(d, holidays) && !isDayWanted(d, withoutHolidays, holidays))
+  if (prefs.digestDays !== 'all' && prefs.holidaysAllWeek && holidaysAddDays) return 'holidays'
   return 'week'
 }
 

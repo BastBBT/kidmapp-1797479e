@@ -120,6 +120,11 @@ describe('digestMode', () => {
   it('« toute la semaine » pendant les vacances : mail inchangé, pas de mode vacances', () => {
     expect(digestMode(HOLIDAY_WINDOW, everyDay, HOLIDAYS)).toBe('week');
   });
+  it('vacances qui ne touchent que le week-end de la fenêtre : pas de mode vacances', () => {
+    // Mail du lundi 12 octobre (fenêtre lun. 12 → dim. 18), Toussaint à partir du sam. 17.
+    expect(digestMode(daysInWindow('2026-10-12', '2026-10-19'), wedWeekend, HOLIDAYS)).toBe('week');
+    expect(digestMode(daysInWindow('2026-10-12', '2026-10-19'), weekendOnly, HOLIDAYS)).toBe('weekend');
+  });
   it('« mercredi + week-end » hors vacances', () => {
     expect(digestMode(SCHOOL_WINDOW, wedWeekend, HOLIDAYS)).toBe('week');
   });
