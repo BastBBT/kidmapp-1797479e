@@ -117,6 +117,9 @@ describe('digestMode', () => {
   it('« toute la semaine » hors vacances = comportement d’avant', () => {
     expect(digestMode(SCHOOL_WINDOW, everyDay, HOLIDAYS)).toBe('week');
   });
+  it('« toute la semaine » pendant les vacances : mail inchangé, pas de mode vacances', () => {
+    expect(digestMode(HOLIDAY_WINDOW, everyDay, HOLIDAYS)).toBe('week');
+  });
   it('« mercredi + week-end » hors vacances', () => {
     expect(digestMode(SCHOOL_WINDOW, wedWeekend, HOLIDAYS)).toBe('week');
   });

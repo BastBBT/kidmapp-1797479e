@@ -108,8 +108,10 @@ export function holidayInWindow(windowDays: string[], holidays: SchoolHoliday[])
  * Forme du mail de la semaine :
  * - `weekend` : seuls des jours de week-end sont voulus dans la fenêtre
  *   (parent « week-end » hors vacances) ;
- * - `holidays` : des vacances touchent la fenêtre et le parent reçoit toute
- *   la semaine pendant ce temps ;
+ * - `holidays` : des vacances touchent la fenêtre et le parent a activé
+ *   « toute la semaine pendant les vacances » (avec un choix de jours
+ *   restreint) — décision produit : un parent « toute la semaine » n'a rien
+ *   demandé de spécial pour les vacances, son mail ne change pas ;
  * - `week` : tout le reste (comportement d'avant la feature).
  */
 export type DigestMode = 'weekend' | 'holidays' | 'week'
@@ -117,7 +119,7 @@ export type DigestMode = 'weekend' | 'holidays' | 'week'
 export function digestMode(windowDays: string[], prefs: DigestPrefs, holidays: SchoolHoliday[]): DigestMode {
   const wanted = windowDays.filter((d) => isDayWanted(d, prefs, holidays))
   if (wanted.length > 0 && wanted.every(isWeekendISO)) return 'weekend'
-  if (holidayInWindow(windowDays, holidays) && (prefs.digestDays === 'all' || prefs.holidaysAllWeek)) return 'holidays'
+  if (prefs.digestDays !== 'all' && prefs.holidaysAllWeek && holidayInWindow(windowDays, holidays)) return 'holidays'
   return 'week'
 }
 
