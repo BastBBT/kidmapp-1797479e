@@ -31,6 +31,7 @@ import { formatAgeRangeI18n } from '@/lib/ageFormat';
 import { translateToken } from '@/i18n/tokenMaps';
 import { galleryMedia } from '@/lib/gallery';
 import LocationGallery from '@/components/LocationGallery';
+import LocationMiniMap from '@/components/LocationMiniMap';
 import { trackLinkClick } from '@/lib/trackLinkClick';
 
 const categoryGradients: Record<string, string> = {
@@ -292,6 +293,8 @@ const LocationPage = () => {
               📍 {location.address}
             </p>
           )}
+
+          <LocationMiniMap lat={location.lat} lng={location.lng} category={location.category} />
 
           {/* Website & Instagram links */}
           {((location as any).website || (location as any).instagram) && (
