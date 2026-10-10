@@ -16,6 +16,7 @@ import EventPage from "./pages/EventPage";
 import WeeklyDigestLandingPage from "./pages/WeeklyDigestLandingPage";
 import NewLocationAlertLandingPage from "./pages/NewLocationAlertLandingPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import SupportPage from "./pages/SupportPage";
 import NotFound from "./pages/NotFound";
 import AuthGate from "./components/AuthGate";
@@ -156,6 +157,8 @@ const AppContent = () => {
         <Route path="/nouveaux-lieux/:token" element={<NewLocationAlertLandingPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        {/* Cible du lien « mot de passe oublié » — doit rester publique. */}
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/support" element={<SupportPage />} />
 
         {/* Auth-required routes */}
