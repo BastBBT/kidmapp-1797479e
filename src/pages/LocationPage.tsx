@@ -168,6 +168,32 @@ const LocationPage = () => {
     .filter((k) => isMealPlace || k === 'kids_area' || !!location[k]);
   const media = galleryMedia(location);
 
+  // Resto/café : équipements en tête (critère de choix). Activités : infos activité en tête.
+  // Autres lieux (boutique, lieu public…) : adresse, description et horaires d'abord,
+  // équipements après — le web garde ses avis juste sous les équipements.
+  const isGeneralPlace = !isMealPlace && !isActivity(location.category);
+
+  const hoursBlock = (
+    <>
+      {/* Horaires d'ouverture (Google Places, rafraîchis chaque mois) */}
+      <LocationOpeningHours
+        openingHours={location.opening_hours}
+        source={location.opening_hours_source}
+        updatedAt={location.opening_hours_updated_at}
+      />
+
+      {/* Horaires & services (repas) */}
+      <LocationServicesSection
+        locationId={location.id}
+        category={location.category}
+      />
+
+      {/* Ça revient ici régulièrement — collé aux horaires : les deux répondent
+          à « quand ça se passe ici ». */}
+      <LocationRecurringEvents locationId={location.id} />
+    </>
+  );
+
   return (
     <div className="min-h-screen pb-20" style={{ background: 'var(--bg)' }}>
       <Header />
@@ -370,6 +396,8 @@ const LocationPage = () => {
             </div>
           )}
 
+          {isGeneralPlace && hoursBlock}
+
           {isActivity(location.category) ? (
             <div style={{ marginBottom: 16 }}>
               <h2 className="font-display text-base font-semibold" style={{ color: 'var(--text)', marginBottom: 12 }}>
@@ -399,7 +427,7 @@ const LocationPage = () => {
                 ))}
               </div>
             </div>
-          ) : (<>
+          ) : (<div style={isGeneralPlace ? { marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border)' } : undefined}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <h2 className="font-display text-base font-semibold" style={{ color: 'var(--text)' }}>
               {t('location_page.equipment_title')}
@@ -542,7 +570,7 @@ const LocationPage = () => {
               </div>
             );
           })()}
-          </>)}
+          </div>)}
 
           {/* Bookable - only for restaurant & cafe */}
           {(location.category === 'restaurant' || location.category === 'cafe') && (
@@ -598,23 +626,7 @@ const LocationPage = () => {
           {/* Avis des familles */}
           <LocationContributionsSection locationId={location.id} />
 
-          {/* Horaires d'ouverture (Google Places, rafraîchis chaque mois) */}
-          <LocationOpeningHours
-            openingHours={location.opening_hours}
-            source={location.opening_hours_source}
-            updatedAt={location.opening_hours_updated_at}
-          />
-
-          {/* Horaires & services (repas) */}
-          <LocationServicesSection
-            locationId={location.id}
-            category={location.category}
-          />
-
-          {/* Ça revient ici régulièrement — collé aux horaires : les deux répondent
-              à « quand ça se passe ici ». Sur iOS/Android cette section précède la
-              communauté, mais l'ordre du web place déjà les avis plus haut. */}
-          <LocationRecurringEvents locationId={location.id} />
+          {!isGeneralPlace && hoursBlock}
 
           {pendingContribution && (
             <div style={{
