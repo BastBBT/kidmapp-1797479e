@@ -31,7 +31,9 @@ import {
   dateFromISO,
   defaultSelectedDay,
   distinctEvents,
+  longBarsForWeek,
   longEventsOn,
+  mondayISO,
   shortSlotsByDay,
   shortSlotsOn,
   weekSlots,
@@ -195,9 +197,15 @@ const SortiesPage = () => {
   }, [effectiveAgeBuckets, selectedCategory, onlyFree, onlyNearby]);
 
   const daySlots = useMemo(() => shortSlotsOn(byDay, selectedDay), [byDay, selectedDay]);
-  const dayLongEvents = useMemo(
-    () => longEventsOn(filteredSlots, selectedDay),
+  // Les barres de la grille couvrent déjà les événements longs ; la bande ne
+  // garde que ceux qui n'y ont pas trouvé de ligne (« +N »).
+  const drawnLongIds = useMemo(
+    () => new Set(longBarsForWeek(filteredSlots, mondayISO(selectedDay)).bars.map((b) => b.slot.event.id)),
     [filteredSlots, selectedDay],
+  );
+  const dayLongEvents = useMemo(
+    () => longEventsOn(filteredSlots, selectedDay).filter((e) => !drawnLongIds.has(e.id)),
+    [filteredSlots, selectedDay, drawnLongIds],
   );
   const dayTitle = useMemo(() => {
     const s = dateFromISO(selectedDay).toLocaleDateString(localeOf(i18n.language), {
@@ -316,11 +324,12 @@ const SortiesPage = () => {
               }}
               expanded={monthExpanded}
               onExpandedChange={setMonthExpanded}
+              onOpenEvent={(id) => navigate(`/event/${id}`)}
             />
           </div>
 
-          {/* Événements au long cours couvrant le jour — hors grille, sinon une
-              expo de deux mois pose une pastille sur soixante cases. */}
+          {/* Événements au long cours couvrant le jour qui n'ont pas de barre dans la
+              grille (au-delà de 2 lignes par semaine). */}
           {dayLongEvents.length > 0 && (
             <div style={{ padding: '14px 16px 0' }}>
               <div
@@ -332,7 +341,7 @@ const SortiesPage = () => {
                   marginBottom: 6,
                 }}
               >
-                {t('sorties.happening_now')}
+                {t(drawnLongIds.size > 0 ? 'sorties.also_happening_now' : 'sorties.happening_now')}
               </div>
               <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
                 {dayLongEvents.map((ev) => {

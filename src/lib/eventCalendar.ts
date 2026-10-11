@@ -144,6 +144,89 @@ export const longEventsOn = (slots: EventSlot[], dayISO: string): EventItem[] =>
   return result;
 };
 
+/** Barre d'un événement long dans une rangée de semaine du calendrier. */
+export interface LongBar {
+  slot: EventSlot;
+  /** Colonnes (0 = lundi) couvertes dans la rangée, bornes incluses. */
+  startCol: number;
+  endCol: number;
+  continuesLeft: boolean;
+  continuesRight: boolean;
+  lane: number;
+}
+
+export interface WeekLongBars {
+  bars: LongBar[];
+  /** Events longs qui n'ont pas trouvé de ligne : rendus en « +N » et dans la bande « En ce moment ». */
+  hidden: EventItem[];
+  laneCount: number;
+}
+
+const dayDiff = (fromISO: string, toISO: string): number =>
+  Math.round(
+    (Date.UTC(+toISO.slice(0, 4), +toISO.slice(5, 7) - 1, +toISO.slice(8, 10)) -
+      Date.UTC(+fromISO.slice(0, 4), +fromISO.slice(5, 7) - 1, +fromISO.slice(8, 10))) /
+      86_400_000,
+  );
+
+/**
+ * Barres d'événements longs d'une rangée de semaine, une par event, rangées sur
+ * `maxLanes` lignes. `firstCol`/`lastCol` bornent les colonnes visibles : en
+ * vue mois, les cases hors du mois ne portent rien. Miroir de
+ * `EventsViewModel.longBars` (iOS) et `EventsState.longBarsFor` (Flutter).
+ */
+export const longBarsForWeek = (
+  slots: EventSlot[],
+  mondayOfWeekISO: string,
+  { firstCol = 0, lastCol = 6, maxLanes = 2 }: { firstCol?: number; lastCol?: number; maxLanes?: number } = {},
+): WeekLongBars => {
+  const byEvent = new Map<string, { slot: EventSlot; s: number; e: number }>();
+  for (const slot of slots) {
+    const { date_start, date_end } = slot.occurrence;
+    if (!date_start || isShortEvent(date_start, date_end)) continue;
+    const cs = dayDiff(mondayOfWeekISO, date_start);
+    const ce = dayDiff(mondayOfWeekISO, date_end ?? date_start);
+    if (ce < firstCol || cs > lastCol) continue;
+    const known = byEvent.get(slot.event.id);
+    byEvent.set(
+      slot.event.id,
+      known
+        ? { slot: known.s <= cs ? known.slot : slot, s: Math.min(known.s, cs), e: Math.max(known.e, ce) }
+        : { slot, s: cs, e: ce },
+    );
+  }
+
+  const ordered = [...byEvent.values()].sort((a, b) => {
+    const sa = Math.max(a.s, firstCol);
+    const sb = Math.max(b.s, firstCol);
+    if (sa !== sb) return sa - sb;
+    const la = a.e - a.s;
+    const lb = b.e - b.s;
+    if (la !== lb) return lb - la;
+    return a.slot.event.name.localeCompare(b.slot.event.name);
+  });
+
+  const laneEnds: number[] = [];
+  const bars: LongBar[] = [];
+  const hidden: EventItem[] = [];
+  for (const item of ordered) {
+    const s = Math.max(item.s, firstCol);
+    const e = Math.min(item.e, lastCol);
+    let lane = laneEnds.findIndex((end) => end < s);
+    if (lane >= 0) {
+      laneEnds[lane] = e;
+    } else if (laneEnds.length < maxLanes) {
+      laneEnds.push(e);
+      lane = laneEnds.length - 1;
+    } else {
+      hidden.push(item.slot.event);
+      continue;
+    }
+    bars.push({ slot: item.slot, startCol: s, endCol: e, continuesLeft: item.s < s, continuesRight: item.e > e, lane });
+  }
+  return { bars, hidden, laneCount: laneEnds.length };
+};
+
 /**
  * Mois portant au moins un créneau, sous forme de premier jour de mois.
  * Un mois compte dès qu'un créneau le **traverse**, pas seulement s'il y

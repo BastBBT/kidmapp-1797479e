@@ -4,6 +4,7 @@ import {
   defaultSelectedDay,
   distinctEvents,
   eventsWindowFilter,
+  longBarsForWeek,
   longEventsOn,
   populatedMonths,
   shortSlotsByDay,
@@ -220,5 +221,72 @@ describe('eventsWindowFilter', () => {
     // rester joignable par ses propres dates, sinon il disparaît de la liste.
     const f = eventsWindowFilter(since, today, ['a1']);
     expect(f.startsWith('date_start.gte.2026-08-03,date_end.gte.2026-08-13')).toBe(true);
+  });
+});
+
+describe('longBarsForWeek', () => {
+  // Semaine du lundi 10/08/2026 au dimanche 16/08/2026.
+  const MONDAY = '2026-08-10';
+  const long = (id: string, start: string, end: string, name = id) =>
+    ev(id, start, { name, date_end: end });
+  const barsOf = (events: EventItem[], opts?: Parameters<typeof longBarsForWeek>[2]) =>
+    longBarsForWeek(buildSlots(events, {}), MONDAY, opts);
+
+  it('pose une barre sur les colonnes traversées, avec ses bords de continuation', () => {
+    const { bars } = barsOf([long('expo', '2026-08-01', '2026-09-30')]);
+    expect(bars).toHaveLength(1);
+    expect(bars[0]).toMatchObject({ startCol: 0, endCol: 6, continuesLeft: true, continuesRight: true, lane: 0 });
+  });
+
+  it('borne une barre qui démarre et finit dans la semaine', () => {
+    const { bars } = barsOf([long('fete', '2026-08-12', '2026-08-20')]);
+    expect(bars[0]).toMatchObject({ startCol: 2, endCol: 6, continuesLeft: false, continuesRight: true });
+  });
+
+  it("ignore les créneaux courts et ceux qui ne touchent pas la semaine", () => {
+    const { bars, hidden } = barsOf([
+      long('court', '2026-08-14', '2026-08-16'),
+      long('passe', '2026-06-01', '2026-07-30'),
+      long('futur', '2026-09-01', '2026-10-30'),
+    ]);
+    expect(bars).toHaveLength(0);
+    expect(hidden).toHaveLength(0);
+  });
+
+  it('range les barres qui se chevauchent sur des lignes distinctes, la 3e passe en hidden', () => {
+    const { bars, hidden, laneCount } = barsOf([
+      long('a', '2026-08-01', '2026-09-01'),
+      long('b', '2026-08-05', '2026-09-01'),
+      long('c', '2026-08-08', '2026-09-01'),
+    ]);
+    expect(bars.map((b) => b.lane).sort()).toEqual([0, 1]);
+    expect(hidden.map((e) => e.id)).toEqual(['c']);
+    expect(laneCount).toBe(2);
+  });
+
+  it('réutilise une ligne quand deux barres ne se chevauchent pas', () => {
+    const { bars } = barsOf([
+      long('tot', '2026-08-05', '2026-08-11'),
+      long('tard', '2026-08-13', '2026-08-30'),
+    ]);
+    expect(bars.map((b) => b.lane)).toEqual([0, 0]);
+  });
+
+  it('une seule barre par event même avec deux créneaux longs', () => {
+    const e = ev('serie', '2026-08-01', { name: 'serie', date_end: '2026-08-11' });
+    const slots = buildSlots([e], {
+      serie: [
+        occ('serie', '2026-08-01', { date_end: '2026-08-11' }),
+        occ('serie', '2026-08-13', { date_end: '2026-08-25' }),
+      ],
+    });
+    const { bars } = longBarsForWeek(slots, MONDAY);
+    expect(bars).toHaveLength(1);
+    expect(bars[0]).toMatchObject({ startCol: 0, endCol: 6 });
+  });
+
+  it('coupe aux colonnes visibles (semaine partielle d’un mois)', () => {
+    const { bars } = barsOf([long('expo', '2026-08-01', '2026-09-30')], { firstCol: 4, lastCol: 6 });
+    expect(bars[0]).toMatchObject({ startCol: 4, endCol: 6, continuesLeft: true });
   });
 });

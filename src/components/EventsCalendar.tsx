@@ -2,12 +2,13 @@ import { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { eventCategoryHex } from '@/types/event';
-import { todayISO } from '@/lib/weekend';
+import { isPastEvent, todayISO } from '@/lib/weekend';
 import {
   addDaysISO,
   adjacentPopulated,
   dateFromISO,
   firstEventDay,
+  longBarsForWeek,
   monthEndISO,
   monthGridCells,
   monthStartISO,
@@ -26,13 +27,15 @@ interface Props {
   onSelectDay: (day: string) => void;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
+  /** Ouvre la fiche d'un événement (tap sur une barre d'événement long). */
+  onOpenEvent: (eventId: string) => void;
 }
 
 /**
  * Calendrier des Sorties, en deux états : un bandeau d'une semaine (replié) ou
  * la grille du mois (déplié). Miroir de `SortiesView.swift` côté iOS.
  */
-const EventsCalendar = ({ slots, selectedDay, onSelectDay, expanded, onExpandedChange }: Props) => {
+const EventsCalendar = ({ slots, selectedDay, onSelectDay, expanded, onExpandedChange, onOpenEvent }: Props) => {
   const { t, i18n } = useTranslation();
   const byDay = useMemo(() => shortSlotsByDay(slots), [slots]);
   const months = useMemo(() => populatedMonths(slots), [slots]);
@@ -169,6 +172,98 @@ const EventsCalendar = ({ slots, selectedDay, onSelectDay, expanded, onExpandedC
     );
   };
 
+  // Grille du mois découpée en rangées de 7 ; les cases hors du mois restent nulles.
+  const monthRows = useMemo(() => {
+    const first = monthStartISO(selectedDay);
+    const leading = cells.findIndex((c) => c !== null);
+    const rows: { monday: string; days: (string | null)[] }[] = [];
+    for (let i = 0; i < cells.length; i += 7) {
+      const days = cells.slice(i, i + 7);
+      while (days.length < 7) days.push(null);
+      rows.push({ monday: addDaysISO(first, i - Math.max(leading, 0)), days });
+    }
+    return rows;
+  }, [cells, selectedDay]);
+
+  /** Une rangée de sept cases et, dessous, les barres des événements longs qui la traversent. */
+  const weekRow = (monday: string, days: (string | null)[], key: string, initials?: string[]) => {
+    const present = days.flatMap((d, i) => (d ? [i] : []));
+    const { bars, hidden, laneCount } = longBarsForWeek(slots, monday, {
+      firstCol: present[0] ?? 0,
+      lastCol: present[present.length - 1] ?? 6,
+    });
+    return (
+      <div key={key}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+          {days.map((day, i) => dayCell(day, `${key}-${i}`, initials?.[i]))}
+        </div>
+        {(laneCount > 0 || hidden.length > 0) && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+              gridAutoRows: 17,
+              gap: 2,
+              marginTop: 2,
+            }}
+          >
+            {bars.map((bar) => {
+              const ev = bar.slot.event;
+              const hex = eventCategoryHex(ev.category);
+              const r = 5;
+              const { date_start, date_end } = bar.slot.occurrence;
+              return (
+                <button
+                  key={ev.id}
+                  type="button"
+                  onClick={() => onOpenEvent(ev.id)}
+                  aria-label={ev.name}
+                  style={{
+                    gridColumn: `${bar.startCol + 1} / ${bar.endCol + 2}`,
+                    gridRow: bar.lane + 1,
+                    minWidth: 0,
+                    padding: '0 6px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    fontFamily: 'DM Sans',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: hex,
+                    // L'ambre des spectacles ne tient pas un texte blanc.
+                    color: hex === '#EF9F27' ? '#412402' : '#fff',
+                    opacity: isPastEvent(date_start, date_end) ? 0.4 : 1,
+                    borderRadius: `${bar.continuesLeft ? 0 : r}px ${bar.continuesRight ? 0 : r}px ${bar.continuesRight ? 0 : r}px ${bar.continuesLeft ? 0 : r}px`,
+                  }}
+                >
+                  {ev.name}
+                </button>
+              );
+            })}
+            {hidden.length > 0 && (
+              <span
+                style={{
+                  gridColumn: '1 / 8',
+                  gridRow: laneCount + 1,
+                  justifySelf: 'end',
+                  fontFamily: 'DM Sans',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                }}
+              >
+                +{hidden.length}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const arrow = (direction: 'prev' | 'next') => {
     const target = direction === 'prev' ? prev : next;
     const Icon = direction === 'prev' ? ChevronLeft : ChevronRight;
@@ -230,10 +325,10 @@ const EventsCalendar = ({ slots, selectedDay, onSelectDay, expanded, onExpandedC
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, padding: '0 6px 8px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 6px 8px' }}>
         {expanded
-          ? cells.map((day, i) => dayCell(day, `cell-${i}`))
-          : weekDays.map((day, i) => dayCell(day, `wk-${i}`, weekdayInitials[i]))}
+          ? monthRows.map((row, r) => weekRow(row.monday, row.days, `row-${r}`))
+          : weekRow(mondayISO(selectedDay), weekDays, 'wk', weekdayInitials)}
       </div>
 
       {/* Poignée pleine largeur : cible tactile généreuse, teinte primaire pour
