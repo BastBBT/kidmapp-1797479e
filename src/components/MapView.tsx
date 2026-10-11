@@ -21,7 +21,7 @@ L.Icon.Default.mergeOptions({
 // garde en cache plutôt que d'en recréer une par marqueur à chaque rendu.
 const iconCache = new Map<string, L.DivIcon>();
 
-const getMarkerIcon = (category: string, isSelected: boolean) => {
+export const getMarkerIcon = (category: string, isSelected: boolean) => {
   const cacheKey = `${category}|${isSelected}`;
   const cached = iconCache.get(cacheKey);
   if (cached) return cached;
