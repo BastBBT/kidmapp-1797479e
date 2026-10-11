@@ -72,6 +72,26 @@ export function daysInWindow(start: string, endExclusive: string): string[] {
   return out
 }
 
+/**
+ * Séries de jours de week-end CONSÉCUTIFS de la fenêtre. Une fenêtre de 7 jours contient au plus
+ * un week-end complet (sam.+dim.), mais envoyée un dimanche elle contient le dimanche en cours
+ * puis le samedi suivant : deux séries d'un jour, qui ne forment pas « un week-end ».
+ */
+export function weekendRuns(windowDays: string[]): string[][] {
+  const runs: string[][] = []
+  for (const d of windowDays.filter(isWeekendISO)) {
+    const last = runs[runs.length - 1]
+    if (last && addDays(last[last.length - 1], 1) === d) last.push(d)
+    else runs.push([d])
+  }
+  return runs
+}
+
+/** « Ce week-end » = la première série de la fenêtre ; un samedi plus tardif est « le reste de la semaine ». */
+export function firstWeekendRun(windowDays: string[]): string[] {
+  return weekendRuns(windowDays)[0] ?? []
+}
+
 export function isDayWanted(iso: string, prefs: DigestPrefs, holidays: SchoolHoliday[]): boolean {
   if (prefs.digestDays === 'all') return true
   if (prefs.holidaysAllWeek && holidayOn(iso, holidays)) return true
@@ -150,15 +170,24 @@ export interface ItemGroup<T> {
  *   jour quand il n'y en a qu'un, ex. le mercredi d'un parent « mercredi +
  *   week-end »).
  */
-export function groupItems<T extends GroupableItem>(items: T[], mode: DigestMode): ItemGroup<T>[] {
+export function groupItems<T extends GroupableItem>(
+  items: T[],
+  mode: DigestMode,
+  /** Jours du « ce week-end » (cf. `firstWeekendRun`) ; par défaut, tous les jours de week-end vus. */
+  thisWeekendDays?: string[],
+): ItemGroup<T>[] {
   if (mode === 'weekend') {
     const byDay = new Map<string, T[]>()
     const whole: T[] = []
     for (const it of items) {
       const weekendDays = it.wantedDays.filter(isWeekendISO)
-      if (weekendDays.length >= 2) {
+      // « Tout le week-end » = samedi ET dimanche du même week-end. Le dimanche en cours et le
+      // samedi de la semaine suivante (envoi un dimanche) ne font pas un week-end : l'item est
+      // rangé sous son premier jour.
+      const coversWholeWeekend = weekendDays.some((d) => dowOfISO(d) === 6 && weekendDays.includes(addDays(d, 1)))
+      if (coversWholeWeekend) {
         whole.push(it)
-      } else if (weekendDays.length === 1) {
+      } else if (weekendDays.length >= 1) {
         const list = byDay.get(weekendDays[0]) ?? []
         list.push(it)
         byDay.set(weekendDays[0], list)
@@ -171,8 +200,9 @@ export function groupItems<T extends GroupableItem>(items: T[], mode: DigestMode
     return groups
   }
 
-  const weekend = items.filter((it) => it.wantedDays.some(isWeekendISO))
-  const rest = items.filter((it) => !it.wantedDays.some(isWeekendISO))
+  const isThisWeekend = (d: string) => (thisWeekendDays ? thisWeekendDays.includes(d) : isWeekendISO(d))
+  const weekend = items.filter((it) => it.wantedDays.some(isThisWeekend))
+  const rest = items.filter((it) => !it.wantedDays.some(isThisWeekend))
   const groups: ItemGroup<T>[] = []
   if (weekend.length > 0) groups.push({ kind: 'this_weekend', day: null, items: weekend })
   if (rest.length > 0) {

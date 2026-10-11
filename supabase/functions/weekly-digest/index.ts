@@ -8,12 +8,13 @@ import {
   categoryAllowed,
   daysInWindow,
   digestMode,
+  firstWeekendRun,
   groupItems,
   holidayInWindow,
   isDayWanted,
-  isWeekendISO,
   parseDigestDays,
   wantedDaysOf,
+  weekendRuns,
   type DigestMode,
   type DigestPrefs,
   type ItemGroup,
@@ -151,6 +152,13 @@ function weekendRangeLabel(days: string[]): string | null {
   return `${shortDay(first)} ${shortMonth(first)} et ${shortDay(last)} ${shortMonth(last)}`
 }
 
+/** Toutes les séries de week-end de la fenêtre : « sam. 10 et dim. 11 oct. », ou, envoyé un
+ * dimanche, « dim. 11 oct. et sam. 17 oct. » — jamais deux jours de deux week-ends fondus en un. */
+function weekendsLabel(windowDays: string[]): string | null {
+  const labels = weekendRuns(windowDays).map(weekendRangeLabel).filter((l): l is string => l !== null)
+  return labels.length > 0 ? labels.join(' et ') : null
+}
+
 /** « du 22 au 28 oct. » (ou « du 29 oct. au 4 nov. »). */
 function windowRangeLabel(first: string, last: string): string {
   const d1 = utcDate(first).getUTCDate()
@@ -170,7 +178,7 @@ function groupHeading(
     case 'whole_weekend':
       return { title: 'Tout le week-end', subtitle: null }
     case 'this_weekend':
-      return { title: 'Ce week-end', subtitle: weekendRangeLabel(windowDays.filter(isWeekendISO)) }
+      return { title: 'Ce week-end', subtitle: weekendRangeLabel(firstWeekendRun(windowDays)) }
     case 'rest_of_week':
       return group.day
         ? { title: capitalize(dayTitle(group.day)), subtitle: null }
@@ -187,9 +195,13 @@ function eventCategoriesSummary(chosen: string[] | null): string | null {
   return EVENT_CATEGORIES.filter((c) => chosen.includes(c)).join(', ')
 }
 
-function pushCopy(mode: DigestMode, count: number): { title: string; body: string } {
+function pushCopy(mode: DigestMode, count: number, windowDays: string[]): { title: string; body: string } {
   const ideas = `${count} idée${count > 1 ? 's' : ''} pour ta famille`
-  if (mode === 'weekend') return { title: 'Ton week-end en famille 🎈', body: `${ideas}, samedi et dimanche.` }
+  if (mode === 'weekend') {
+    // Envoyé un dimanche, la fenêtre porte le dimanche en cours puis le samedi suivant.
+    const days = firstWeekendRun(windowDays).length === 2 ? 'samedi et dimanche' : 'dimanche et samedi prochain'
+    return { title: 'Ton week-end en famille 🎈', body: `${ideas}, ${days}.` }
+  }
   if (mode === 'holidays') return { title: "C'est les vacances 🎈", body: `${ideas}, toute la semaine.` }
   return { title: 'Ta sélection de la semaine 👀', body: `${count} sortie${count > 1 ? 's' : ''} pour ta famille cette semaine.` }
 }
@@ -393,7 +405,7 @@ async function runDigest() {
         url: `https://kidmapp.app/event/${ev.id}`,
       }
     })
-    const groups = capGroups(groupItems(allItems, mode), MAX_EMAIL_ITEMS).map((g) => ({
+    const groups = capGroups(groupItems(allItems, mode, firstWeekendRun(windowDays)), MAX_EMAIL_ITEMS).map((g) => ({
       ...groupHeading(g, mode, windowDays),
       items: g.items.map(({ wantedDays: _wantedDays, ...item }) => item),
     }))
@@ -406,7 +418,7 @@ async function runDigest() {
       groups,
       rangeLabel:
         mode === 'weekend'
-          ? weekendRangeLabel(windowDays.filter(isWeekendISO))
+          ? weekendsLabel(windowDays)
           : mode === 'holidays'
             ? windowRangeLabel(wantedWindowDays[0], wantedWindowDays[wantedWindowDays.length - 1])
             : null,
@@ -491,7 +503,7 @@ async function runDigest() {
 
     if (profile.digest_push_enabled && serviceAccount) {
       const devices = devicesByUser.get(profile.id) ?? []
-      const push = pushCopy(mode, allItems.length)
+      const push = pushCopy(mode, allItems.length, windowDays)
       const result = await sendToUserDevices(
         supabase,
         serviceAccount,

@@ -4,10 +4,12 @@ import {
   categoryAllowed,
   daysInWindow,
   digestMode,
+  firstWeekendRun,
   groupItems,
   isDayWanted,
   parseDigestDays,
   wantedDaysOf,
+  weekendRuns,
   type DigestPrefs,
   type SchoolHoliday,
 } from '../../supabase/functions/_shared/digest/preferences.ts';
@@ -200,5 +202,48 @@ describe('groupItems — titre du reste de la semaine', () => {
     const expoSemaine = { id: 'expo', wantedDays: ['2026-10-12', '2026-10-13'] };
     const groups = groupItems([sat, expoSemaine], 'week');
     expect(groups[1]).toMatchObject({ kind: 'rest_of_week', day: null });
+  });
+});
+
+// Mail du dimanche 11 octobre : fenêtre dim. 11 → sam. 17, soit la fin du week-end en cours puis
+// le samedi suivant — deux séries d'un jour, pas « un week-end ».
+describe('envoi un dimanche', () => {
+  const SUNDAY_WINDOW = daysInWindow('2026-10-11', '2026-10-18');
+  const sun = { id: 'sun', wantedDays: ['2026-10-11'] };
+  const nextSat = { id: 'nextSat', wantedDays: ['2026-10-17'] };
+  const expo = { id: 'expo', wantedDays: ['2026-10-11', '2026-10-17'] };
+  const tue = { id: 'tue', wantedDays: ['2026-10-13'] };
+
+  it('weekendRuns : deux séries d’un jour ; envoyé un jeudi, un seul week-end complet', () => {
+    expect(weekendRuns(SUNDAY_WINDOW)).toEqual([['2026-10-11'], ['2026-10-17']]);
+    expect(weekendRuns(SCHOOL_WINDOW)).toEqual([['2026-10-10', '2026-10-11']]);
+    expect(firstWeekendRun(SUNDAY_WINDOW)).toEqual(['2026-10-11']);
+    expect(firstWeekendRun(daysInWindow('2026-10-12', '2026-10-15'))).toEqual([]);
+  });
+
+  it('mode semaine : le samedi suivant est « le reste de la semaine », pas « ce week-end »', () => {
+    const groups = groupItems([sun, nextSat, tue, expo], 'week', firstWeekendRun(SUNDAY_WINDOW));
+    expect(groups.map((g) => [g.kind, g.items.map((i) => i.id)])).toEqual([
+      ['this_weekend', ['sun', 'expo']],
+      ['rest_of_week', ['nextSat', 'tue']],
+    ]);
+  });
+
+  it('mode week-end : une expo sur dim. 11 et sam. 17 n’est pas « tout le week-end »', () => {
+    const groups = groupItems([expo, nextSat, sun], 'weekend', firstWeekendRun(SUNDAY_WINDOW));
+    expect(groups.map((g) => [g.kind, g.day, g.items.map((i) => i.id)])).toEqual([
+      ['day', '2026-10-11', ['expo', 'sun']],
+      ['day', '2026-10-17', ['nextSat']],
+    ]);
+  });
+
+  it('un week-end complet reste « tout le week-end » (envoi un jeudi)', () => {
+    const satSun = { id: 'both', wantedDays: ['2026-10-10', '2026-10-11'] };
+    const groups = groupItems([satSun], 'weekend', firstWeekendRun(SCHOOL_WINDOW));
+    expect(groups.map((g) => g.kind)).toEqual(['whole_weekend']);
+  });
+
+  it('digestMode : un parent « week-end » reste en mode week-end', () => {
+    expect(digestMode(SUNDAY_WINDOW, weekendStrict, HOLIDAYS)).toBe('weekend');
   });
 });
