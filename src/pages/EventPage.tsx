@@ -92,7 +92,7 @@ const EventPage = () => {
 
   const eventPhotos = event ? galleryPhotos({ photo: event.photo, photos: event.photos ?? null }) : [];
   const hasPhotos = eventPhotos.length > 0;
-  // Marche à pied par défaut sur Google Maps, comme sur la fiche lieu.
+  // Itinéraire Google Maps vers l'événement, comme sur la fiche lieu (le mode de transport se choisit dans Maps).
   const directionsUrl = event && event.lat != null && event.lng != null
     ? `https://www.google.com/maps/dir/?api=1&destination=${event.lat},${event.lng}`
     : undefined;

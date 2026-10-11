@@ -1,5 +1,7 @@
 import { RichNoteEditor } from '@/components/RichNote';
 import { plainNote } from '@/lib/richNote';
+import { galleryPhotos } from '@/lib/gallery';
+import { isBucketPhotoUrl } from '@/lib/photoUpload';
 import { useState, useEffect, useMemo } from 'react';
 import { categoryLabels, categoryIcons, PLACE_CATEGORIES, ACTIVITY_CATEGORIES, isActivity } from '@/types/location';
 import { CATEGORY_ICONS } from '@/assets/icons';
@@ -18,7 +20,7 @@ import OpeningHoursAdminEditor from '@/components/admin/OpeningHoursAdminEditor'
 import { draftToHours, initialAdminState, type OpeningHoursAdminState } from '@/lib/openingHoursDraft';
 import { useUserEmails } from '@/hooks/useUserEmails';
 import { useTopContributors } from '@/hooks/useTopContributors';
-import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryHex, eventCategoryEmoji, type EventOccurrence } from '@/types/event';
+import { EVENT_CATEGORIES, EVENT_WEATHERS, MAX_EVENT_PHOTOS, eventCategoryHex, eventCategoryEmoji, type EventOccurrence } from '@/types/event';
 import { occurrencesOf } from '@/lib/eventCalendar';
 import RejectDialog from '@/components/admin/RejectDialog';
 import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
@@ -3839,6 +3841,16 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   };
 
   const handleApprove = async (ev: any, useManual = false) => {
+    // Une proposition utilisateur n'écrit que dans notre bucket : toute autre URL a été injectée
+    // par l'API (pixel de suivi, image externe) et ne doit pas être servie aux familles.
+    if (!isSourcing(ev) && galleryPhotos(ev).some((url) => !isBucketPhotoUrl(url))) {
+      toast({
+        title: 'Photo externe détectée',
+        description: "Une photo ne vient pas du bucket Kidmapp : ouvrez l'édition et remplacez-la avant de publier.",
+        variant: 'destructive',
+      });
+      return;
+    }
     setProcessingId(ev.id);
     try {
       let lat = ev.lat;
@@ -4001,14 +4013,17 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
           >
             <div className="flex items-start justify-between mb-2 gap-2">
               <div className="flex items-center gap-2 flex-wrap">
-                {ev.photo && (
+                {/* En attente : toutes les photos, pas seulement la couverture — approuver depuis
+                    la liste publierait sinon des photos 2 à 5 que personne n'a vues. */}
+                {(ev.status === 'pending' ? galleryPhotos(ev) : ev.photo ? [ev.photo] : []).map((url) => (
                   <img
-                    src={supabaseResized(ev.photo, { width: 120, height: 120, quality: 70 })}
-                    onError={onResizedImageError(ev.photo)}
+                    key={url}
+                    src={supabaseResized(url, { width: 120, height: 120, quality: 70 })}
+                    onError={onResizedImageError(url)}
                     alt={ev.name}
                     style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
                   />
-                )}
+                ))}
                 <span style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, color: 'var(--text)' }}>
                   {eventCategoryEmoji(ev.category)} {ev.name}
                 </span>
@@ -4183,7 +4198,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                     onUrlsChange={setEditGalleryUrls}
                     files={editGalleryFiles}
                     onFilesChange={setEditGalleryFiles}
-                    max={4}
+                    max={MAX_EVENT_PHOTOS - 1}
                   />
                   <RichNoteEditor placeholder="Note" value={editDraft.note ?? ''} onChange={(v) => setEditDraft({ ...editDraft, note: v })}
                     rows={4}
@@ -5104,7 +5119,7 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
               />
             </label>
             <div style={{ marginTop: 12 }}>
-              <GalleryUpload urls={[]} onUrlsChange={() => {}} files={galleryFiles} onFilesChange={setGalleryFiles} max={4} />
+              <GalleryUpload urls={[]} onUrlsChange={() => {}} files={galleryFiles} onFilesChange={setGalleryFiles} max={MAX_EVENT_PHOTOS - 1} />
             </div>
           </div>
 

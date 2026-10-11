@@ -1,4 +1,5 @@
 import { EventItem } from '@/types/event';
+import { plainNote } from '@/lib/richNote';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -51,7 +52,7 @@ export const buildIcs = (event: EventItem): string => {
     event.time ? `DTEND:${dtEnd}` : `DTEND;VALUE=DATE:${dtEnd}`,
     `SUMMARY:${escape(event.name)}`,
     event.address ? `LOCATION:${escape(event.address)}` : '',
-    event.note ? `DESCRIPTION:${escape(event.note)}` : '',
+    event.note ? `DESCRIPTION:${escape(plainNote(event.note))}` : '',
     event.website ? `URL:${escape(event.website)}` : '',
     'END:VEVENT',
     'END:VCALENDAR',

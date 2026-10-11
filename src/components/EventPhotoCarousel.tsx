@@ -157,12 +157,14 @@ export function EventPhotoViewer({
 
   const toggleZoom = (i: number, e: React.MouseEvent<HTMLDivElement>) => {
     if (zoomed === i) { setZoomed(null); return; }
-    const box = e.currentTarget.getBoundingClientRect();
+    // `currentTarget` est remis à null par React à la fin du dispatch : on le capture ici,
+    // pas dans le rAF.
+    const el = e.currentTarget;
+    const box = el.getBoundingClientRect();
     const fx = (e.clientX - box.left) / box.width;
     const fy = (e.clientY - box.top) / box.height;
     setZoomed(i);
     requestAnimationFrame(() => {
-      const el = e.currentTarget;
       el.scrollLeft = fx * el.scrollWidth - el.clientWidth / 2;
       el.scrollTop = fy * el.scrollHeight - el.clientHeight / 2;
     });

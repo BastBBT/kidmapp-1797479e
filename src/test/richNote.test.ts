@@ -38,3 +38,11 @@ describe('barre d\'outils', () => {
     expect(toggleBullet('a\n- b', 4, 5)).toEqual({ value: 'a\nb', start: 2, end: 3 });
   });
 });
+
+describe('parseInline — compat Safari < 16.4', () => {
+  it("n'utilise pas de lookbehind (SyntaxError au chargement sur les vieux Safari)", async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync('src/lib/richNote.ts', 'utf8');
+    expect(src).not.toMatch(/\(\?<[=!]/);
+  });
+});

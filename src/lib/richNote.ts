@@ -12,7 +12,10 @@ export type NoteBlock =
   | { kind: 'bullet'; spans: InlineSpan[] }
   | { kind: 'gap' };
 
-const INLINE = /\*\*(?=\S)(.+?)(?<=\S)\*\*|\*(?=\S)(.+?)(?<=\S)\*/g;
+// Pas de lookbehind (regex en arrière) : Safari < 16.4 lève une SyntaxError au chargement du module, et
+// ce module est importé par App.tsx — tout le site resterait blanc. `\S(?:.*?\S)??` impose la
+// même chose (ni espace après l'ouvrant, ni avant le fermant) sans regarder en arrière.
+const INLINE = /\*\*(\S(?:.*?\S)??)\*\*|\*(\S(?:.*?\S)??)\*/g;
 
 export function parseInline(source: string, bold = false, italic = false): InlineSpan[] {
   const spans: InlineSpan[] = [];

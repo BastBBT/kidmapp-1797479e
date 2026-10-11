@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { submitFailureText } from '@/lib/submitFailure';
+import { ACCEPTED_PHOTO_TYPES, MAX_PHOTO_BYTES } from '@/lib/photoUpload';
 import { useAuth } from '@/hooks/useAuth';
 import { useProposalModal } from '@/hooks/useProposalModal';
 import { MAX_EVENT_PHOTOS, EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryEmoji } from '@/types/event';
@@ -129,7 +130,17 @@ const ProposeEventModal = () => {
   const addPhotos = (list: FileList | null) => {
     if (!list) return;
     const room = MAX_EVENT_PHOTOS - photoFiles.length;
-    const picked = Array.from(list).filter((f) => f.type.startsWith('image/'));
+    const picked = Array.from(list).filter((f) => {
+      if (!ACCEPTED_PHOTO_TYPES.includes(f.type)) {
+        toast({ title: `${f.name} : format non supporté (JPG, PNG, WebP)`, variant: 'destructive' });
+        return false;
+      }
+      if (f.size > MAX_PHOTO_BYTES) {
+        toast({ title: `${f.name} : image trop lourde (max 5 Mo)`, variant: 'destructive' });
+        return false;
+      }
+      return true;
+    });
     if (picked.length > room) {
       toast({ title: `${MAX_EVENT_PHOTOS} photos maximum`, variant: 'destructive' });
     }
@@ -152,7 +163,8 @@ const ProposeEventModal = () => {
     try {
       const photoUrls: string[] = [];
       for (const file of photoFiles) {
-        const ext = file.name.split('.').pop();
+        // Extension déduite du type MIME validé, pas du nom de fichier choisi par l'utilisateur.
+        const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
         // La policy RLS du bucket n'autorise l'écriture que sous `proposals/{auth.uid()}/...`
         // (ou admin) : tout autre préfixe fait échouer l'upload pour un utilisateur normal.
         const fileName = `proposals/${user.id}/${crypto.randomUUID()}.${ext}`;
@@ -449,7 +461,7 @@ const ProposeEventModal = () => {
                         <span><b style={{ display: 'block', fontSize: 22, lineHeight: 1 }}>＋</b>Ajouter</span>
                         <input
                           type="file"
-                          accept="image/*"
+                          accept={ACCEPTED_PHOTO_TYPES.join(',')}
                           multiple
                           style={{ display: 'none' }}
                           onChange={(e) => { addPhotos(e.target.files); e.target.value = ''; }}
