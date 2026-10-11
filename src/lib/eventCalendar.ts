@@ -244,6 +244,20 @@ export const longBarsForWeek = (
 };
 
 /**
+ * Barres d'une rangée de la vue calendrier. Point d'entrée unique de la grille
+ * et de la bande « En ce moment » : les deux doivent décider pareil de ce qui
+ * est dessiné, d'où une seule façon de borner les colonnes (cases du mois
+ * affiché en vue mois, semaine entière sinon).
+ */
+export const longBarsForRow = (
+  slots: EventSlot[],
+  mondayOfRowISO: string,
+  selectedDay: string,
+  monthExpanded: boolean,
+): WeekLongBars =>
+  longBarsForWeek(slots, mondayOfRowISO, weekRowColumns(mondayOfRowISO, monthExpanded ? selectedDay : undefined));
+
+/**
  * Mois portant au moins un créneau, sous forme de premier jour de mois.
  * Un mois compte dès qu'un créneau le **traverse**, pas seulement s'il y
  * démarre. Le mois courant est toujours présent : sans lui le calendrier

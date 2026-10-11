@@ -4,6 +4,7 @@ import {
   defaultSelectedDay,
   distinctEvents,
   eventsWindowFilter,
+  longBarsForRow,
   longBarsForWeek,
   longEventsOn,
   populatedMonths,
@@ -12,7 +13,7 @@ import {
   shortSlotsOn,
   weekSlots,
 } from '@/lib/eventCalendar';
-import { EventItem, EventOccurrence } from '@/types/event';
+import { EventItem, EventOccurrence, eventCategoryInk } from '@/types/event';
 
 // Jeudi 13/08/2026 comme « aujourd'hui » : une partie des dates de test est
 // derrière, une partie devant.
@@ -309,5 +310,26 @@ describe('weekRowColumns', () => {
   it('borne la dernière rangée d’un mois qui ne finit pas un dimanche', () => {
     // Lundi 26/10 : lundi → samedi 31 octobre sont dans le mois.
     expect(weekRowColumns('2026-10-26', '2026-10-15')).toEqual({ firstCol: 0, lastCol: 5 });
+  });
+});
+
+describe('longBarsForRow', () => {
+  it('borne aux cases du mois en vue mois, et pas en vue semaine', () => {
+    const slots = buildSlots([ev('expo', '2026-09-01', { date_end: '2026-10-31' })], {});
+    // Rangée du lundi 28/09, mois d'octobre affiché : seules les colonnes 3 à 6 existent.
+    const month = longBarsForRow(slots, '2026-09-28', '2026-10-02', true);
+    expect(month.bars[0]).toMatchObject({ startCol: 3, endCol: 6, continuesLeft: true });
+    const week = longBarsForRow(slots, '2026-09-28', '2026-10-02', false);
+    expect(week.bars[0]).toMatchObject({ startCol: 0, endCol: 6, continuesLeft: true });
+  });
+});
+
+describe('eventCategoryInk', () => {
+  it('texte foncé sur l’ambre des spectacles, blanc sur les autres catégories', () => {
+    expect(eventCategoryInk('Spectacle')).toBe('#412402');
+    expect(eventCategoryInk(null)).toBe('#412402');
+    for (const c of ['Atelier', 'Festival', 'Fête', 'Marché', 'Exposition']) {
+      expect(eventCategoryInk(c)).toBe('#fff');
+    }
   });
 });

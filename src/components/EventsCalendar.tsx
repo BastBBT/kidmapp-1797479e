@@ -1,15 +1,14 @@
 import { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
-import { eventCategoryHex } from '@/types/event';
+import { eventCategoryHex, eventCategoryInk } from '@/types/event';
 import { isPastEvent, todayISO } from '@/lib/weekend';
 import {
   addDaysISO,
   adjacentPopulated,
   dateFromISO,
   firstEventDay,
-  longBarsForWeek,
-  weekRowColumns,
+  longBarsForRow,
   monthEndISO,
   monthGridCells,
   monthStartISO,
@@ -190,11 +189,7 @@ const EventsCalendar = ({ slots, selectedDay, onSelectDay, expanded, onExpandedC
 
   /** Une rangée de sept cases et, dessous, les barres des événements longs qui la traversent. */
   const weekRow = (monday: string, days: (string | null)[], key: string, initials?: string[]) => {
-    const { bars, hidden, laneCount } = longBarsForWeek(
-      slots,
-      monday,
-      weekRowColumns(monday, expanded ? selectedDay : undefined),
-    );
+    const { bars, hidden, laneCount } = longBarsForRow(slots, monday, selectedDay, expanded);
     return (
       <div key={key}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
@@ -236,8 +231,7 @@ const EventsCalendar = ({ slots, selectedDay, onSelectDay, expanded, onExpandedC
                     fontSize: 11,
                     fontWeight: 600,
                     background: hex,
-                    // L'ambre des spectacles ne tient pas un texte blanc.
-                    color: hex === '#EF9F27' ? '#412402' : '#fff',
+                    color: eventCategoryInk(ev.category),
                     opacity: isPastEvent(date_start, date_end) ? 0.4 : 1,
                     borderRadius: `${bar.continuesLeft ? 0 : r}px ${bar.continuesRight ? 0 : r}px ${bar.continuesRight ? 0 : r}px ${bar.continuesLeft ? 0 : r}px`,
                   }}

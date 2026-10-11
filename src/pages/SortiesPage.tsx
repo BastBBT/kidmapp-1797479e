@@ -31,10 +31,9 @@ import {
   dateFromISO,
   defaultSelectedDay,
   distinctEvents,
-  longBarsForWeek,
+  longBarsForRow,
   longEventsOn,
   mondayISO,
-  weekRowColumns,
   shortSlotsByDay,
   shortSlotsOn,
   weekSlots,
@@ -217,9 +216,8 @@ const SortiesPage = () => {
   // Mêmes colonnes que la grille : en vue mois, la rangée du jour peut être à
   // cheval sur deux mois et ses cases hors du mois ne portent rien.
   const drawnLongIds = useMemo(() => {
-    const monday = mondayISO(selectedDay);
-    const columns = weekRowColumns(monday, monthExpanded ? selectedDay : undefined);
-    return new Set(longBarsForWeek(filteredSlots, monday, columns).bars.map((b) => b.slot.event.id));
+    const row = longBarsForRow(filteredSlots, mondayISO(selectedDay), selectedDay, monthExpanded);
+    return new Set(row.bars.map((b) => b.slot.event.id));
   }, [filteredSlots, selectedDay, monthExpanded]);
   const dayLongEvents = useMemo(
     () => longEventsOn(filteredSlots, selectedDay).filter((e) => !drawnLongIds.has(e.id)),

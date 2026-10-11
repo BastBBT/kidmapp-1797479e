@@ -104,6 +104,24 @@ const CATEGORY_HEX: Record<string, string> = {
 export const eventCategoryHex = (category?: string | null): string =>
   (category && CATEGORY_HEX[category]) || '#EF9F27';
 
+/** Luminance relative (WCAG) d'une couleur `#RRGGBB`, de 0 (noir) à 1 (blanc). */
+const luminanceOf = (hex: string): number => {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+/**
+ * Couleur de texte à poser sur le fond `eventCategoryHex` : blanc, sauf sur les
+ * teintes claires (l'ambre des spectacles) où il ne tiendrait pas. Calculée sur
+ * la luminosité plutôt que sur une teinte nommée, pour suivre un changement de
+ * palette.
+ */
+export const eventCategoryInk = (category?: string | null): string =>
+  luminanceOf(eventCategoryHex(category)) > 0.35 ? '#412402' : '#fff';
+
 const CATEGORY_EMOJI: Record<string, string> = {
   Spectacle: '🎭',
   Atelier: '🎨',
