@@ -31,7 +31,9 @@ import {
   dateFromISO,
   defaultSelectedDay,
   distinctEvents,
+  longBarsForRow,
   longEventsOn,
+  mondayISO,
   shortSlotsByDay,
   shortSlotsOn,
   weekSlots,
@@ -138,6 +140,20 @@ const SortiesPage = () => {
     setSelectedKey(defaultKey);
   }, [effectiveAgeBuckets, selectedCategory, onlyFree, onlyNearby, defaultKey]);
 
+  // « +N » du calendrier : on passe en liste sur cette semaine. Les semaines que
+  // seuls des événements longs traversent n'ont pas d'onglet (voir `weeks`) : on
+  // retombe alors sur l'onglet le plus proche.
+  const showWeekInList = (weekMondayISO: string) => {
+    switchMode(false);
+    const target = dateFromISO(weekMondayISO).getTime();
+    const nearest = weeks.reduce<Week | undefined>(
+      (best, w) =>
+        !best || Math.abs(w.monday.getTime() - target) < Math.abs(best.monday.getTime() - target) ? w : best,
+      undefined,
+    );
+    if (nearest) setSelectedKey(nearest.key);
+  };
+
   const selectedWeek = weeks.find((w) => w.key === selectedKey) ?? weeks[0];
   const today = todayISO();
   const showPast = selectedWeek ? toISODate(selectedWeek.monday) <= today : false;
@@ -195,9 +211,17 @@ const SortiesPage = () => {
   }, [effectiveAgeBuckets, selectedCategory, onlyFree, onlyNearby]);
 
   const daySlots = useMemo(() => shortSlotsOn(byDay, selectedDay), [byDay, selectedDay]);
+  // Les barres de la grille couvrent déjà les événements longs ; la bande ne
+  // garde que ceux qui n'y ont pas trouvé de ligne (« +N »).
+  // Mêmes colonnes que la grille : en vue mois, la rangée du jour peut être à
+  // cheval sur deux mois et ses cases hors du mois ne portent rien.
+  const drawnLongIds = useMemo(() => {
+    const row = longBarsForRow(filteredSlots, mondayISO(selectedDay), selectedDay, monthExpanded);
+    return new Set(row.bars.map((b) => b.slot.event.id));
+  }, [filteredSlots, selectedDay, monthExpanded]);
   const dayLongEvents = useMemo(
-    () => longEventsOn(filteredSlots, selectedDay),
-    [filteredSlots, selectedDay],
+    () => longEventsOn(filteredSlots, selectedDay).filter((e) => !drawnLongIds.has(e.id)),
+    [filteredSlots, selectedDay, drawnLongIds],
   );
   const dayTitle = useMemo(() => {
     const s = dateFromISO(selectedDay).toLocaleDateString(localeOf(i18n.language), {
@@ -316,11 +340,13 @@ const SortiesPage = () => {
               }}
               expanded={monthExpanded}
               onExpandedChange={setMonthExpanded}
+              onOpenEvent={(id) => navigate(`/event/${id}`)}
+              onShowWeekInList={showWeekInList}
             />
           </div>
 
-          {/* Événements au long cours couvrant le jour — hors grille, sinon une
-              expo de deux mois pose une pastille sur soixante cases. */}
+          {/* Événements au long cours couvrant le jour qui n'ont pas de barre dans la
+              grille (au-delà de 2 lignes par semaine). */}
           {dayLongEvents.length > 0 && (
             <div style={{ padding: '14px 16px 0' }}>
               <div
@@ -332,7 +358,7 @@ const SortiesPage = () => {
                   marginBottom: 6,
                 }}
               >
-                {t('sorties.happening_now')}
+                {t(drawnLongIds.size > 0 ? 'sorties.also_happening_now' : 'sorties.happening_now')}
               </div>
               <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
                 {dayLongEvents.map((ev) => {
