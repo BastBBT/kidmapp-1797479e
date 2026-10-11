@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, type ChangeEvent, type DragEvent } from 'react';
 import { toast } from 'sonner';
+import { ACCEPTED_PHOTO_TYPES, MAX_PHOTO_BYTES } from '@/lib/photoUpload';
 
 interface GalleryUploadProps {
   /** Photos supplémentaires déjà enregistrées, dans l'ordre d'affichage. */
@@ -8,10 +9,9 @@ interface GalleryUploadProps {
   /** Fichiers choisis mais pas encore envoyés — ajoutés à la fin de la galerie. */
   files: File[];
   onFilesChange: (files: File[]) => void;
+  /** Nombre maximal de photos de galerie (déjà enregistrées + à envoyer). Illimité si absent. */
+  max?: number;
 }
-
-const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_BYTES = 5 * 1024 * 1024; // 5 Mo
 
 /**
  * Galerie du lieu : les photos qui viennent **en plus** de la photo principale.
@@ -22,6 +22,7 @@ export default function GalleryUpload({
   onUrlsChange,
   files,
   onFilesChange,
+  max,
 }: GalleryUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -37,17 +38,19 @@ export default function GalleryUpload({
     if (!list?.length) return;
     const accepted: File[] = [];
     for (const f of Array.from(list)) {
-      if (!ACCEPTED.includes(f.type)) {
+      if (!ACCEPTED_PHOTO_TYPES.includes(f.type)) {
         toast.error(`${f.name} : format non supporté (JPG, PNG, WebP)`);
         continue;
       }
-      if (f.size > MAX_BYTES) {
+      if (f.size > MAX_PHOTO_BYTES) {
         toast.error(`${f.name} : image trop lourde (max 5 Mo)`);
         continue;
       }
       accepted.push(f);
     }
-    if (accepted.length) onFilesChange([...files, ...accepted]);
+    const room = max === undefined ? accepted.length : Math.max(0, max - urls.length - files.length);
+    if (accepted.length > room) toast.error(`Maximum ${max} photos en plus de la principale`);
+    if (accepted.length) onFilesChange([...files, ...accepted.slice(0, room)]);
   };
 
   const handleInput = (e: ChangeEvent<HTMLInputElement>) => {
@@ -70,6 +73,7 @@ export default function GalleryUpload({
   };
 
   const total = urls.length + files.length;
+  const full = max !== undefined && total >= max;
 
   const tile: React.CSSProperties = {
     position: 'relative',
@@ -192,6 +196,7 @@ export default function GalleryUpload({
         </div>
       )}
 
+      {!full && (
       <div
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
@@ -223,6 +228,7 @@ export default function GalleryUpload({
           style={{ display: 'none' }}
         />
       </div>
+      )}
 
       <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
         La photo principale ouvre le carrousel ; ces photos viennent ensuite, dans cet ordre.

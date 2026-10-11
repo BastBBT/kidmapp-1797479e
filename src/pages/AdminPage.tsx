@@ -1,3 +1,7 @@
+import { RichNoteEditor } from '@/components/RichNote';
+import { plainNote } from '@/lib/richNote';
+import { galleryPhotos } from '@/lib/gallery';
+import { isBucketPhotoUrl } from '@/lib/photoUpload';
 import { useState, useEffect, useMemo } from 'react';
 import { categoryLabels, categoryIcons, PLACE_CATEGORIES, ACTIVITY_CATEGORIES, isActivity } from '@/types/location';
 import { CATEGORY_ICONS } from '@/assets/icons';
@@ -16,7 +20,7 @@ import OpeningHoursAdminEditor from '@/components/admin/OpeningHoursAdminEditor'
 import { draftToHours, initialAdminState, type OpeningHoursAdminState } from '@/lib/openingHoursDraft';
 import { useUserEmails } from '@/hooks/useUserEmails';
 import { useTopContributors } from '@/hooks/useTopContributors';
-import { EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryHex, eventCategoryEmoji, type EventOccurrence } from '@/types/event';
+import { EVENT_CATEGORIES, EVENT_WEATHERS, MAX_EVENT_PHOTOS, eventCategoryHex, eventCategoryEmoji, type EventOccurrence } from '@/types/event';
 import { occurrencesOf } from '@/lib/eventCalendar';
 import RejectDialog from '@/components/admin/RejectDialog';
 import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
@@ -3585,6 +3589,10 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  // Photos supplémentaires de l'événement (en plus de la photo principale `photo`) : max 4.
+  const [editGalleryUrls, setEditGalleryUrls] = useState<string[]>([]);
+  const [editGalleryFiles, setEditGalleryFiles] = useState<File[]>([]);
+  const [editOriginalGallery, setEditOriginalGallery] = useState<string[]>([]);
 
   const { data: events = [] } = useQuery({
     queryKey: ['admin-events'],
@@ -3657,6 +3665,9 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     });
     setPhotoFile(null);
     setPhotoPreview(null);
+    setEditGalleryUrls(ev.photos ?? []);
+    setEditOriginalGallery(ev.photos ?? []);
+    setEditGalleryFiles([]);
     setRemovedSlotIds([]);
     const { data: occRows } = await supabase
       .from('event_occurrences' as any)
@@ -3678,6 +3689,9 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     setRemovedSlotIds([]);
     setPhotoFile(null);
     setPhotoPreview(null);
+    setEditGalleryUrls([]);
+    setEditGalleryFiles([]);
+    setEditOriginalGallery([]);
   };
 
   const geocodeEditAddress = async () => {
@@ -3741,6 +3755,19 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
           }
         }
       }
+      // Photos supplémentaires : envoi des nouvelles, dans l'ordre choisi.
+      const finalGallery = [...editGalleryUrls];
+      for (const gf of editGalleryFiles) {
+        const gExt = gf.name.split('.').pop() || 'jpg';
+        const gPath = `events/${editingId}-gallery-${Date.now()}-${Math.round(Math.random() * 1e6)}.${gExt}`;
+        const { error: gErr } = await supabase.storage.from('location-photos').upload(gPath, gf, { contentType: gf.type });
+        if (gErr) {
+          toast({ title: 'Erreur upload photo', description: gErr.message, variant: 'destructive' });
+          setProcessingId(null);
+          return;
+        }
+        finalGallery.push(supabase.storage.from('location-photos').getPublicUrl(gPath).data.publicUrl);
+      }
       const update: any = {
         name: editDraft.name,
         category: editDraft.category,
@@ -3757,6 +3784,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         location_id: editDraft.location_id || null,
         recurrence_label: (editDraft.recurrence_label ?? '').trim() || null,
         photo: finalPhotoUrl,
+        photos: finalGallery.length ? finalGallery : null,
         note: editDraft.note || null,
         lat: finalLat,
         lng: finalLng,
@@ -3764,6 +3792,14 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       };
       const { error } = await supabase.from('events' as any).update(update).eq('id', editingId);
       if (error) throw error;
+
+      // Efface du bucket les photos retirées (après l'update : si celui-ci échoue, la fiche
+      // référence encore ces fichiers).
+      for (const url of editOriginalGallery.filter((u) => !finalGallery.includes(u))) {
+        if (!url.includes('/location-photos/')) continue;
+        const path = url.split('/location-photos/')[1]?.split('?')[0];
+        if (path) await supabase.storage.from('location-photos').remove([path]);
+      }
 
       // Créneaux : les dates/heures de `events` sont recopiées automatiquement par le
       // trigger event_occurrences_sync_legacy à chaque écriture ci-dessous.
@@ -3805,6 +3841,16 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   };
 
   const handleApprove = async (ev: any, useManual = false) => {
+    // Une proposition utilisateur n'écrit que dans notre bucket : toute autre URL a été injectée
+    // par l'API (pixel de suivi, image externe) et ne doit pas être servie aux familles.
+    if (!isSourcing(ev) && galleryPhotos(ev).some((url) => !isBucketPhotoUrl(url))) {
+      toast({
+        title: 'Photo externe détectée',
+        description: "Une photo ne vient pas du bucket Kidmapp : ouvrez l'édition et remplacez-la avant de publier.",
+        variant: 'destructive',
+      });
+      return;
+    }
     setProcessingId(ev.id);
     try {
       let lat = ev.lat;
@@ -3967,14 +4013,17 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
           >
             <div className="flex items-start justify-between mb-2 gap-2">
               <div className="flex items-center gap-2 flex-wrap">
-                {ev.photo && (
+                {/* En attente : toutes les photos, pas seulement la couverture — approuver depuis
+                    la liste publierait sinon des photos 2 à 5 que personne n'a vues. */}
+                {(ev.status === 'pending' ? galleryPhotos(ev) : ev.photo ? [ev.photo] : []).map((url) => (
                   <img
-                    src={supabaseResized(ev.photo, { width: 120, height: 120, quality: 70 })}
-                    onError={onResizedImageError(ev.photo)}
+                    key={url}
+                    src={supabaseResized(url, { width: 120, height: 120, quality: 70 })}
+                    onError={onResizedImageError(url)}
                     alt={ev.name}
                     style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
                   />
-                )}
+                ))}
                 <span style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, color: 'var(--text)' }}>
                   {eventCategoryEmoji(ev.category)} {ev.name}
                 </span>
@@ -4037,7 +4086,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
             </div>
             {ev.note && (
               <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '6px' }}>
-                "{ev.note}"
+                "{plainNote(ev.note)}"
               </div>
             )}
             <div style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
@@ -4144,8 +4193,16 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                       }}
                     />
                   </label>
-                  <textarea placeholder="Note" value={editDraft.note} onChange={(e) => setEditDraft({ ...editDraft, note: e.target.value })}
-                    style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px', minHeight: 60 }} />
+                  <GalleryUpload
+                    urls={editGalleryUrls}
+                    onUrlsChange={setEditGalleryUrls}
+                    files={editGalleryFiles}
+                    onFilesChange={setEditGalleryFiles}
+                    max={MAX_EVENT_PHOTOS - 1}
+                  />
+                  <RichNoteEditor placeholder="Note" value={editDraft.note ?? ''} onChange={(v) => setEditDraft({ ...editDraft, note: v })}
+                    rows={4}
+                    textareaStyle={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px', minHeight: 60 }} />
                   <div className="flex gap-2 items-center">
                     <input placeholder="Latitude" value={editDraft.lat ?? ''} onChange={(e) => setEditDraft({ ...editDraft, lat: e.target.value === '' ? null : Number(e.target.value) })}
                       style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--border)', fontFamily: 'DM Sans', fontSize: '13px' }} />
@@ -4693,6 +4750,7 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
   const removeSlot = (i: number) => setSlots((prev) => prev.filter((_, idx) => idx !== i));
   const [submitting, setSubmitting] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [showManualCoords, setShowManualCoords] = useState(false);
   const [manualLat, setManualLat] = useState('47.2184');
@@ -4814,6 +4872,19 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
       photoUrl = urlData.publicUrl;
     }
 
+    const galleryUrls: string[] = [];
+    for (const gf of galleryFiles) {
+      const gExt = gf.name.split('.').pop() || 'jpg';
+      const gPath = `events/${crypto.randomUUID()}.${gExt}`;
+      const { error: gErr } = await supabase.storage.from('location-photos').upload(gPath, gf, { contentType: gf.type });
+      if (gErr) {
+        toast({ title: 'Erreur upload photo', description: gErr.message, variant: 'destructive' });
+        setSubmitting(false);
+        return;
+      }
+      galleryUrls.push(supabase.storage.from('location-photos').getPublicUrl(gPath).data.publicUrl);
+    }
+
     const firstSlot = slots[0];
     const insertData: any = {
       name: form.name,
@@ -4833,6 +4904,7 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
       booking_url: form.booking_url || null,
       instagram: form.instagram || null,
       photo: photoUrl,
+      photos: galleryUrls.length ? galleryUrls : null,
       note: form.note || null,
       status: form.status,
       // uuid : '' ferait échouer l'insert (invalid input syntax for type uuid).
@@ -4872,6 +4944,7 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
     toast({ title: 'Événement ajouté ✓' });
     setForm(emptyEventForm);
     setSlots([emptyEventSlot()]);
+    setGalleryFiles([]);
     setPhotoFile(null);
     setPhotoPreview(null);
     setShowManualCoords(false);
@@ -5045,6 +5118,9 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
                 }}
               />
             </label>
+            <div style={{ marginTop: 12 }}>
+              <GalleryUpload urls={[]} onUrlsChange={() => {}} files={galleryFiles} onFilesChange={setGalleryFiles} max={MAX_EVENT_PHOTOS - 1} />
+            </div>
           </div>
 
           <FormField label="Site web" value={form.website} onChange={(v) => updateForm('website', v)} placeholder="https://..." />
@@ -5070,13 +5146,12 @@ function AddEventTab({ geocodeAddress, queryClient, toast }: {
             <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
               Note (optionnelle)
             </label>
-            <textarea
+            <RichNoteEditor
               value={form.note}
-              onChange={(e) => updateForm('note', e.target.value.slice(0, 2000))}
+              onChange={(v) => updateForm('note', v)}
               placeholder="Un mot sur cet événement, une info pratique…"
-              maxLength={2000}
               rows={3}
-              style={{ width: '100%', padding: '13px 16px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px', resize: 'none' }}
+              textareaStyle={{ padding: '13px 16px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: '15px' }}
             />
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>
               {(form.note || '').length}/2000
