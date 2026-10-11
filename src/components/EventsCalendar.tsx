@@ -29,13 +29,15 @@ interface Props {
   onExpandedChange: (expanded: boolean) => void;
   /** Ouvre la fiche d'un événement (tap sur une barre d'événement long). */
   onOpenEvent: (eventId: string) => void;
+  /** « +N » : bascule en vue Liste, sur la semaine dont le lundi est donné. */
+  onShowWeekInList: (mondayISO: string) => void;
 }
 
 /**
  * Calendrier des Sorties, en deux états : un bandeau d'une semaine (replié) ou
  * la grille du mois (déplié). Miroir de `SortiesView.swift` côté iOS.
  */
-const EventsCalendar = ({ slots, selectedDay, onSelectDay, expanded, onExpandedChange, onOpenEvent }: Props) => {
+const EventsCalendar = ({ slots, selectedDay, onSelectDay, expanded, onExpandedChange, onOpenEvent, onShowWeekInList }: Props) => {
   const { t, i18n } = useTranslation();
   const byDay = useMemo(() => shortSlotsByDay(slots), [slots]);
   const months = useMemo(() => populatedMonths(slots), [slots]);
@@ -244,19 +246,26 @@ const EventsCalendar = ({ slots, selectedDay, onSelectDay, expanded, onExpandedC
               );
             })}
             {hidden.length > 0 && (
-              <span
+              <button
+                type="button"
+                onClick={() => onShowWeekInList(monday)}
+                aria-label={t('sorties.see_week_in_list', { count: hidden.length })}
                 style={{
                   gridColumn: '1 / 8',
                   gridRow: laneCount + 1,
                   justifySelf: 'end',
+                  background: 'none',
+                  border: 'none',
+                  padding: '0 4px',
+                  cursor: 'pointer',
                   fontFamily: 'DM Sans',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: 'var(--primary)',
                 }}
               >
-                +{hidden.length}
-              </span>
+                +{hidden.length} ›
+              </button>
             )}
           </div>
         )}

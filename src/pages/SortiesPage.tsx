@@ -140,6 +140,20 @@ const SortiesPage = () => {
     setSelectedKey(defaultKey);
   }, [effectiveAgeBuckets, selectedCategory, onlyFree, onlyNearby, defaultKey]);
 
+  // « +N » du calendrier : on passe en liste sur cette semaine. Les semaines que
+  // seuls des événements longs traversent n'ont pas d'onglet (voir `weeks`) : on
+  // retombe alors sur l'onglet le plus proche.
+  const showWeekInList = (mondayISO: string) => {
+    switchMode(false);
+    const target = dateFromISO(mondayISO).getTime();
+    const nearest = weeks.reduce<Week | undefined>(
+      (best, w) =>
+        !best || Math.abs(w.monday.getTime() - target) < Math.abs(best.monday.getTime() - target) ? w : best,
+      undefined,
+    );
+    if (nearest) setSelectedKey(nearest.key);
+  };
+
   const selectedWeek = weeks.find((w) => w.key === selectedKey) ?? weeks[0];
   const today = todayISO();
   const showPast = selectedWeek ? toISODate(selectedWeek.monday) <= today : false;
@@ -325,6 +339,7 @@ const SortiesPage = () => {
               expanded={monthExpanded}
               onExpandedChange={setMonthExpanded}
               onOpenEvent={(id) => navigate(`/event/${id}`)}
+              onShowWeekInList={showWeekInList}
             />
           </div>
 
