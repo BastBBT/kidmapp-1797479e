@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { buildZoneUpdatePayload } from '@/lib/zones';
+import { parseDigestDays, type DigestDays } from '@/lib/digestPreferences';
 
 export interface ProfileSettings {
   createdAt: string | null;
@@ -14,6 +15,21 @@ export interface ProfileSettings {
   digestPushEnabled: boolean;
   /** Convention Postgres EXTRACT(DOW) : 0 = dimanche … 6 = samedi. */
   digestDay: number;
+  /** Jours dont le parent veut les sorties ; 'all' = comportement d'avant. */
+  digestDays: DigestDays;
+  /** Pendant les vacances scolaires, toute la semaine (ignoré si 'all'). */
+  digestHolidaysAllWeek: boolean;
+  /** null = toutes les catégories. */
+  digestEventCategories: string[] | null;
+  alertLocationCategories: string[] | null;
+}
+
+/** Les 4 colonnes de personnalisation, écrites indépendamment du canal/jour. */
+export interface DigestPreferencesPatch {
+  digest_days?: DigestDays;
+  digest_holidays_all_week?: boolean;
+  digest_event_categories?: string[] | null;
+  alert_location_categories?: string[] | null;
 }
 
 interface ProfileSettingsRow {
@@ -26,6 +42,10 @@ interface ProfileSettingsRow {
   digest_email_enabled: boolean | null;
   digest_push_enabled: boolean | null;
   digest_day: number | null;
+  digest_days: string | null;
+  digest_holidays_all_week: boolean | null;
+  digest_event_categories: string[] | null;
+  alert_location_categories: string[] | null;
 }
 
 /**
@@ -45,7 +65,9 @@ export function useProfileSettings() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('created_at, zone_city, zone_district, zone_lat, zone_lng, zone_radius_km, digest_email_enabled, digest_push_enabled, digest_day')
+        .select(
+          'created_at, zone_city, zone_district, zone_lat, zone_lng, zone_radius_km, digest_email_enabled, digest_push_enabled, digest_day, digest_days, digest_holidays_all_week, digest_event_categories, alert_location_categories',
+        )
         .eq('id', user!.id)
         .single();
       if (error) throw error;
@@ -64,6 +86,10 @@ export function useProfileSettings() {
         digestEmailEnabled: data.digest_email_enabled ?? false,
         digestPushEnabled: data.digest_push_enabled ?? false,
         digestDay: data.digest_day ?? 4,
+        digestDays: parseDigestDays(data.digest_days),
+        digestHolidaysAllWeek: data.digest_holidays_all_week ?? true,
+        digestEventCategories: data.digest_event_categories,
+        alertLocationCategories: data.alert_location_categories,
       }
     : null;
 
@@ -91,6 +117,33 @@ export function useProfileSettings() {
     onSuccess: invalidate,
   });
 
+  // Optimiste : les pastilles se cochent au tap, plusieurs taps rapides
+  // s'enchaînent sur le cache déjà mis à jour plutôt que sur une valeur
+  // périmée (piège du double-tap déjà rencontré sur les pouces).
+  const preferencesMutationKey = ['profile-preferences', user?.id];
+  const updatePreferencesMutation = useMutation({
+    mutationKey: preferencesMutationKey,
+    mutationFn: async (patch: DigestPreferencesPatch) => {
+      const { error } = await supabase.from('profiles').update(patch).eq('id', user!.id);
+      if (error) throw error;
+    },
+    onMutate: async (patch) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<ProfileSettingsRow>(queryKey);
+      if (previous) queryClient.setQueryData<ProfileSettingsRow>(queryKey, { ...previous, ...patch });
+      return { previous };
+    },
+    onError: (_error, _patch, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
+    },
+    // On ne relit le serveur qu'après la DERNIÈRE mutation en vol : un refetch
+    // intermédiaire écraserait le cache optimiste du tap suivant, et un 3e tap
+    // recalculerait la liste depuis un état périmé.
+    onSettled: () => {
+      if (queryClient.isMutating({ mutationKey: preferencesMutationKey }) <= 1) invalidate();
+    },
+  });
+
   return {
     settings,
     isLoading,
@@ -99,6 +152,7 @@ export function useProfileSettings() {
     updateDigest: (input: { emailEnabled: boolean; pushEnabled: boolean; day: number }) =>
       updateDigestMutation.mutateAsync(input),
     isSavingZone: updateZoneMutation.isPending,
-    isSavingDigest: updateDigestMutation.isPending,
+    updatePreferences: (patch: DigestPreferencesPatch) => updatePreferencesMutation.mutateAsync(patch),
+    isSavingDigest: updateDigestMutation.isPending || updatePreferencesMutation.isPending,
   };
 }

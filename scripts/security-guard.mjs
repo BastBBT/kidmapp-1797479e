@@ -173,9 +173,18 @@ for (const file of changed) {
 // ------------------------------------------- 2. service_role hors des edge functions
 // Couvre tout le repo sauf les edge functions, qui sont le seul endroit légitime.
 // Auparavant limité à ^src/, ce qui laissait index.html, public/, vite.config.ts, scripts/.
+//
+// Exception étroite : dans une migration SQL, `service_role` désigne aussi le RÔLE
+// Postgres (« GRANT … TO service_role », « CREATE POLICY … TO service_role »), pas la
+// clé. Seules ces deux formes sont admises, et seulement dans un .sql de migration ;
+// toute autre mention reste bloquante (une clé JWT est de toute façon jugée par la
+// garde 1 sur sa claim role).
+const MIGRATION_SQL = /^(supabase|drizzle)\/migrations\/.*\.sql$/;
+const SQL_ROLE_GRANT = /^\s*(GRANT\b[^;]*\bTO\s+|CREATE\s+POLICY\b[^;]*\bTO\s+)([a-z_]+\s*,\s*)*service_role\b[\s,a-z_]*;?\s*$/i;
 for (const file of changed) {
   if (/^supabase\/functions\//.test(file) || SCAN_SKIP.test(file)) continue;
   for (const { n, text } of addedLines(file)) {
+    if (MIGRATION_SQL.test(file) && SQL_ROLE_GRANT.test(text)) continue;
     if (/service_role|SERVICE_ROLE/.test(text)) {
       err(file, n, "La clé service_role contourne totalement RLS et ne doit jamais atteindre le navigateur. Elle n'est admise que dans supabase/functions/.");
     }

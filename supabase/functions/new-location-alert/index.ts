@@ -3,6 +3,7 @@ import { sendTemplateEmail } from '../_shared/transactional-email-templates/send
 import { haversineKm } from '../_shared/digest/haversine.ts'
 import { ageInMonths, ageMatches } from '../_shared/digest/matching.ts'
 import { locationCategoryEmoji } from '../_shared/digest/locationStyle.ts'
+import { categoryAllowed } from '../_shared/digest/preferences.ts'
 import { notifiedIdsByUser, withoutAlreadyNotified, type PreviousSendRow } from '../_shared/digest/dedupe.ts'
 import { loadServiceAccount, loadDevicesByUser, sendToUserDevices, type DeviceRow } from '../_shared/push/dispatch.ts'
 
@@ -31,6 +32,8 @@ interface ProfileRow {
   zone_radius_km: number | null
   digest_email_enabled: boolean
   digest_push_enabled: boolean
+  /** null = toutes les catégories de lieux (défaut). */
+  alert_location_categories: string[] | null
 }
 
 interface ChildRow {
@@ -94,7 +97,7 @@ async function runAlert() {
   // lieu n'est pas un rendez-vous daté, rien à aligner sur un jour choisi.
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, zone_lat, zone_lng, zone_radius_km, digest_email_enabled, digest_push_enabled')
+    .select('id, zone_lat, zone_lng, zone_radius_km, digest_email_enabled, digest_push_enabled, alert_location_categories')
     .or('digest_email_enabled.eq.true,digest_push_enabled.eq.true')
     .not('zone_lat', 'is', null)
     .not('zone_lng', 'is', null)
@@ -189,6 +192,7 @@ async function runAlert() {
     const relevant = locations.filter((loc) => {
       const ageOk = ages.some((age) => ageMatches(age, loc.age_min_months, loc.age_max_months))
       if (!ageOk) return false
+      if (!categoryAllowed(loc.category, profile.alert_location_categories)) return false
       const distance = haversineKm(profile.zone_lat!, profile.zone_lng!, loc.lat, loc.lng)
       return distance <= (profile.zone_radius_km ?? 12)
     })

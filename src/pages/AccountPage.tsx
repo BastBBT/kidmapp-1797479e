@@ -161,7 +161,12 @@ const AccountPage = () => {
   const [nameSaved, setNameSaved] = useState(false);
   // Dépliage remonté ici : la bannière de relance doit pouvoir ouvrir la
   // section qu'elle désigne. Une seule section ouverte à la fois.
-  const [expandedSection, setExpandedSection] = useState<'zone' | 'digest' | null>(null);
+  // `?section=digest` : lien « Modifier mes préférences » du mail hebdo, qui doit
+  // arriver sur la section dépliée plutôt que sur Mon compte replié.
+  const [expandedSection, setExpandedSection] = useState<'zone' | 'digest' | null>(() => {
+    const section = new URLSearchParams(window.location.search).get('section');
+    return section === 'zone' || section === 'digest' ? section : null;
+  });
 
   useEffect(() => {
     setNameDraft(profile?.full_name ?? '');
