@@ -170,6 +170,22 @@ const dayDiff = (fromISO: string, toISO: string): number =>
   );
 
 /**
+ * Colonnes (0 = lundi) d'une rangée de semaine qui portent des cases. En vue
+ * mois, les cases hors du mois affiché sont vides : la grille et la bande « En
+ * ce moment » doivent borner les barres de la même façon, sinon elles ne
+ * s'accordent pas sur ce qui est dessiné.
+ */
+export const weekRowColumns = (
+  mondayOfWeekISO: string,
+  monthISO?: string,
+): { firstCol: number; lastCol: number } => {
+  if (!monthISO) return { firstCol: 0, lastCol: 6 };
+  const prefix = monthISO.slice(0, 7);
+  const cols = [0, 1, 2, 3, 4, 5, 6].filter((i) => addDaysISO(mondayOfWeekISO, i).startsWith(prefix));
+  return { firstCol: cols[0] ?? 0, lastCol: cols[cols.length - 1] ?? 6 };
+};
+
+/**
  * Barres d'événements longs d'une rangée de semaine, une par event, rangées sur
  * `maxLanes` lignes. `firstCol`/`lastCol` bornent les colonnes visibles : en
  * vue mois, les cases hors du mois ne portent rien. Miroir de

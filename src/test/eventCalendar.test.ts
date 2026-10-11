@@ -7,6 +7,7 @@ import {
   longBarsForWeek,
   longEventsOn,
   populatedMonths,
+  weekRowColumns,
   shortSlotsByDay,
   shortSlotsOn,
   weekSlots,
@@ -288,5 +289,25 @@ describe('longBarsForWeek', () => {
   it('coupe aux colonnes visibles (semaine partielle d’un mois)', () => {
     const { bars } = barsOf([long('expo', '2026-08-01', '2026-09-30')], { firstCol: 4, lastCol: 6 });
     expect(bars[0]).toMatchObject({ startCol: 4, endCol: 6, continuesLeft: true });
+  });
+});
+
+describe('weekRowColumns', () => {
+  it('toutes les colonnes en vue semaine (pas de mois)', () => {
+    expect(weekRowColumns('2026-10-12')).toEqual({ firstCol: 0, lastCol: 6 });
+  });
+
+  it('toutes les colonnes pour une semaine entièrement dans le mois', () => {
+    expect(weekRowColumns('2026-10-12', '2026-10-15')).toEqual({ firstCol: 0, lastCol: 6 });
+  });
+
+  it('borne la première rangée d’un mois qui ne commence pas un lundi', () => {
+    // Lundi 28/09 : seuls jeudi 1er → dimanche 4 octobre sont dans le mois.
+    expect(weekRowColumns('2026-09-28', '2026-10-15')).toEqual({ firstCol: 3, lastCol: 6 });
+  });
+
+  it('borne la dernière rangée d’un mois qui ne finit pas un dimanche', () => {
+    // Lundi 26/10 : lundi → samedi 31 octobre sont dans le mois.
+    expect(weekRowColumns('2026-10-26', '2026-10-15')).toEqual({ firstCol: 0, lastCol: 5 });
   });
 });

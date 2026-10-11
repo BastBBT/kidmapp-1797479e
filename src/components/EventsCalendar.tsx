@@ -9,6 +9,7 @@ import {
   dateFromISO,
   firstEventDay,
   longBarsForWeek,
+  weekRowColumns,
   monthEndISO,
   monthGridCells,
   monthStartISO,
@@ -189,11 +190,11 @@ const EventsCalendar = ({ slots, selectedDay, onSelectDay, expanded, onExpandedC
 
   /** Une rangée de sept cases et, dessous, les barres des événements longs qui la traversent. */
   const weekRow = (monday: string, days: (string | null)[], key: string, initials?: string[]) => {
-    const present = days.flatMap((d, i) => (d ? [i] : []));
-    const { bars, hidden, laneCount } = longBarsForWeek(slots, monday, {
-      firstCol: present[0] ?? 0,
-      lastCol: present[present.length - 1] ?? 6,
-    });
+    const { bars, hidden, laneCount } = longBarsForWeek(
+      slots,
+      monday,
+      weekRowColumns(monday, expanded ? selectedDay : undefined),
+    );
     return (
       <div key={key}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>

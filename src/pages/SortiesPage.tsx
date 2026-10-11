@@ -34,6 +34,7 @@ import {
   longBarsForWeek,
   longEventsOn,
   mondayISO,
+  weekRowColumns,
   shortSlotsByDay,
   shortSlotsOn,
   weekSlots,
@@ -143,9 +144,9 @@ const SortiesPage = () => {
   // « +N » du calendrier : on passe en liste sur cette semaine. Les semaines que
   // seuls des événements longs traversent n'ont pas d'onglet (voir `weeks`) : on
   // retombe alors sur l'onglet le plus proche.
-  const showWeekInList = (mondayISO: string) => {
+  const showWeekInList = (weekMondayISO: string) => {
     switchMode(false);
-    const target = dateFromISO(mondayISO).getTime();
+    const target = dateFromISO(weekMondayISO).getTime();
     const nearest = weeks.reduce<Week | undefined>(
       (best, w) =>
         !best || Math.abs(w.monday.getTime() - target) < Math.abs(best.monday.getTime() - target) ? w : best,
@@ -213,10 +214,13 @@ const SortiesPage = () => {
   const daySlots = useMemo(() => shortSlotsOn(byDay, selectedDay), [byDay, selectedDay]);
   // Les barres de la grille couvrent déjà les événements longs ; la bande ne
   // garde que ceux qui n'y ont pas trouvé de ligne (« +N »).
-  const drawnLongIds = useMemo(
-    () => new Set(longBarsForWeek(filteredSlots, mondayISO(selectedDay)).bars.map((b) => b.slot.event.id)),
-    [filteredSlots, selectedDay],
-  );
+  // Mêmes colonnes que la grille : en vue mois, la rangée du jour peut être à
+  // cheval sur deux mois et ses cases hors du mois ne portent rien.
+  const drawnLongIds = useMemo(() => {
+    const monday = mondayISO(selectedDay);
+    const columns = weekRowColumns(monday, monthExpanded ? selectedDay : undefined);
+    return new Set(longBarsForWeek(filteredSlots, monday, columns).bars.map((b) => b.slot.event.id));
+  }, [filteredSlots, selectedDay, monthExpanded]);
   const dayLongEvents = useMemo(
     () => longEventsOn(filteredSlots, selectedDay).filter((e) => !drawnLongIds.has(e.id)),
     [filteredSlots, selectedDay, drawnLongIds],
