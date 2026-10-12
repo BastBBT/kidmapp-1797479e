@@ -1,0 +1,533 @@
+{
+ "description": "Tableau partagé de webLink (Android, iOS, web). `out` = URL canonique, null = refusé. Toute évolution se fait sur les trois plateformes.",
+ "cases": [
+  {
+   "in": "https://exemple.fr/resa?a=1",
+   "out": "https://exemple.fr/resa?a=1"
+  },
+  {
+   "in": "http://exemple.fr",
+   "out": "http://exemple.fr/"
+  },
+  {
+   "in": "HTTP://Exemple.FR/Path",
+   "out": "http://exemple.fr/Path"
+  },
+  {
+   "in": "  https://a.fr  ",
+   "out": "https://a.fr/"
+  },
+  {
+   "in": "​https://a.fr﻿",
+   "out": "https://a.fr/"
+  },
+  {
+   "in": "bistrotkiwaa.fr",
+   "out": "https://bistrotkiwaa.fr/"
+  },
+  {
+   "in": "www.x.fr/a?b=1",
+   "out": "https://www.x.fr/a?b=1"
+  },
+  {
+   "in": "exemple.fr?x=1",
+   "out": "https://exemple.fr/?x=1"
+  },
+  {
+   "in": "exemple.fr#top",
+   "out": "https://exemple.fr/#top"
+  },
+  {
+   "in": "site.fr:8080/x",
+   "out": "https://site.fr:8080/x"
+  },
+  {
+   "in": "https://site.fr:443/x",
+   "out": "https://site.fr/x"
+  },
+  {
+   "in": "http://site.fr:80",
+   "out": "http://site.fr/"
+  },
+  {
+   "in": "http://site.fr:443/",
+   "out": "http://site.fr:443/"
+  },
+  {
+   "in": "https://site.fr:0443/",
+   "out": "https://site.fr/"
+  },
+  {
+   "in": "site.fr:00080",
+   "out": "https://site.fr:80/"
+  },
+  {
+   "in": "www.tiktok.com/@compte",
+   "out": "https://www.tiktok.com/@compte"
+  },
+  {
+   "in": "site.fr/?h=12:30",
+   "out": "https://site.fr/?h=12:30"
+  },
+  {
+   "in": "site.fr/#a:b",
+   "out": "https://site.fr/#a:b"
+  },
+  {
+   "in": "exemple.fr/?u=https://x.fr",
+   "out": "https://exemple.fr/?u=https://x.fr"
+  },
+  {
+   "in": "a-b.fr",
+   "out": "https://a-b.fr/"
+  },
+  {
+   "in": "site.fr.",
+   "out": "https://site.fr/"
+  },
+  {
+   "in": "https://site.fr./x",
+   "out": "https://site.fr/x"
+  },
+  {
+   "in": "bücher.de",
+   "out": "https://bücher.de/"
+  },
+  {
+   "in": "https://café.fr/menu",
+   "out": "https://café.fr/menu"
+  },
+  {
+   "in": "https://xn--bcher-kva.de",
+   "out": "https://xn--bcher-kva.de/"
+  },
+  {
+   "in": "site.xn--p1ai",
+   "out": "https://site.xn--p1ai/"
+  },
+  {
+   "in": "https://exemple.fr/é/à?q=é",
+   "out": "https://exemple.fr/é/à?q=é"
+  },
+  {
+   "in": "https://www.facebook.com/page?x=a@b",
+   "out": "https://www.facebook.com/page?x=a@b"
+  },
+  {
+   "in": "https://exemple.fr/a:b",
+   "out": "https://exemple.fr/a:b"
+  },
+  {
+   "in": "https://exemple.fr/a%20b",
+   "out": "https://exemple.fr/a%20b"
+  },
+  {
+   "in": "EXEMPLE.FR",
+   "out": "https://exemple.fr/"
+  },
+  {
+   "in": "https://sub.domain.exemple.co.uk/x",
+   "out": "https://sub.domain.exemple.co.uk/x"
+  },
+  {
+   "in": "https://exemple.fr#@evil.com",
+   "out": "https://exemple.fr/#@evil.com"
+  },
+  {
+   "in": "https://exemple.fr/@evil",
+   "out": "https://exemple.fr/@evil"
+  },
+  {
+   "in": "evenement@pleincentre.net",
+   "out": null
+  },
+  {
+   "in": "sans réservation",
+   "out": null
+  },
+  {
+   "in": "📞 Prise de rendez-vous par téléphone au : 02 40 63 30 40",
+   "out": null
+  },
+  {
+   "in": "tel:0240633040",
+   "out": null
+  },
+  {
+   "in": "sms:0600000000",
+   "out": null
+  },
+  {
+   "in": "mailto:a@b.fr",
+   "out": null
+  },
+  {
+   "in": "market://details?id=x",
+   "out": null
+  },
+  {
+   "in": "itms-apps://apps.apple.com/x",
+   "out": null
+  },
+  {
+   "in": "javascript://x",
+   "out": null
+  },
+  {
+   "in": "javascript:alert(1)",
+   "out": null
+  },
+  {
+   "in": "data:text/html,<script>1</script>",
+   "out": null
+  },
+  {
+   "in": "intent://scan/#Intent;scheme=zxing;end",
+   "out": null
+  },
+  {
+   "in": "ftp://exemple.fr",
+   "out": null
+  },
+  {
+   "in": "file:///etc/passwd",
+   "out": null
+  },
+  {
+   "in": "https://",
+   "out": null
+  },
+  {
+   "in": "http://",
+   "out": null
+  },
+  {
+   "in": "",
+   "out": null
+  },
+  {
+   "in": "   ",
+   "out": null
+  },
+  {
+   "in": "localhost",
+   "out": null
+  },
+  {
+   "in": "localhost:8080",
+   "out": null
+  },
+  {
+   "in": "http://localhost/",
+   "out": null
+  },
+  {
+   "in": "http://192.168.1.1:3000/",
+   "out": null
+  },
+  {
+   "in": "https://127.0.0.1",
+   "out": null
+  },
+  {
+   "in": "https://[::1]/",
+   "out": null
+  },
+  {
+   "in": "http://2130706433",
+   "out": null
+  },
+  {
+   "in": "02.40.63.30.40",
+   "out": null
+  },
+  {
+   "in": "10.30",
+   "out": null
+  },
+  {
+   "in": "v1.2",
+   "out": null
+  },
+  {
+   "in": "Contact.",
+   "out": null
+  },
+  {
+   "in": "12.50€",
+   "out": null
+  },
+  {
+   "in": "12.50 €",
+   "out": null
+  },
+  {
+   "in": "site.f",
+   "out": null
+  },
+  {
+   "in": ".fr",
+   "out": null
+  },
+  {
+   "in": "a..fr",
+   "out": null
+  },
+  {
+   "in": "-a.fr",
+   "out": null
+  },
+  {
+   "in": "a-.fr",
+   "out": null
+  },
+  {
+   "in": "a_b.fr",
+   "out": null
+  },
+  {
+   "in": "https://a",
+   "out": null
+  },
+  {
+   "in": "https://instagram",
+   "out": null
+  },
+  {
+   "in": "https://10.30",
+   "out": null
+  },
+  {
+   "in": "https://.fr",
+   "out": null
+  },
+  {
+   "in": "https://trusted.com@evil.com/",
+   "out": null
+  },
+  {
+   "in": "trusted.com@evil.com",
+   "out": null
+  },
+  {
+   "in": "user:pass@host.fr",
+   "out": null
+  },
+  {
+   "in": "https://@site.fr",
+   "out": null
+  },
+  {
+   "in": "https://user@site.fr",
+   "out": null
+  },
+  {
+   "in": "https:evil.com",
+   "out": null
+  },
+  {
+   "in": "http:\\\\evil.com",
+   "out": null
+  },
+  {
+   "in": "https:/\\evil.com",
+   "out": null
+  },
+  {
+   "in": "//evil.com",
+   "out": null
+  },
+  {
+   "in": "https:///x",
+   "out": null
+  },
+  {
+   "in": "https://site.fr\\@evil.com",
+   "out": null
+  },
+  {
+   "in": "https://site .fr",
+   "out": null
+  },
+  {
+   "in": "https://site.fr\nevil",
+   "out": null
+  },
+  {
+   "in": "https://a.fr\t.evil.com",
+   "out": null
+  },
+  {
+   "in": "https://‮evil.com",
+   "out": null
+  },
+  {
+   "in": "https://evil.com‮.fr",
+   "out": null
+  },
+  {
+   "in": "https://evil​.com",
+   "out": null
+  },
+  {
+   "in": "https://exemple.fr, https://autre.fr",
+   "out": null
+  },
+  {
+   "in": "https://　evil.com",
+   "out": null
+  },
+  {
+   "in": "https://evil.com%40trusted.com",
+   "out": null
+  },
+  {
+   "in": "https://evil.com%2f.trusted.com",
+   "out": null
+  },
+  {
+   "in": "https://evil.com%00",
+   "out": null
+  },
+  {
+   "in": "site.fr:",
+   "out": null
+  },
+  {
+   "in": "site.fr:123456",
+   "out": null
+  },
+  {
+   "in": "site.fr:99999",
+   "out": null
+  },
+  {
+   "in": "site.fr:0",
+   "out": null
+  },
+  {
+   "in": "site.fr:abc",
+   "out": null
+  },
+  {
+   "in": "http://site.fr:-1",
+   "out": null
+  },
+  {
+   "in": "café.fr",
+   "out": null
+  },
+  {
+   "in": "https://exemple.fr/a b",
+   "out": null
+  },
+  {
+   "in": "exemple.fr/a\u0007",
+   "out": null
+  },
+  {
+   "in": "https://exemple.fr/x",
+   "out": null
+  },
+  {
+   "in": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.fr",
+   "out": null
+  },
+  {
+   "in": "https://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.fr/",
+   "out": null
+  },
+  {
+   "in": "abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi.fr",
+   "out": null
+  },
+  {
+   "in": "İstanbul.tr",
+   "out": "https://İstanbul.tr/"
+  },
+  {
+   "in": "ΑΣ.gr",
+   "out": "https://ΑΣ.gr/"
+  },
+  {
+   "in": "x.ΣΣ",
+   "out": "https://x.ΣΣ/"
+  },
+  {
+   "in": "https://BÜCHER.DE/x",
+   "out": "https://bÜcher.de/x"
+  },
+  {
+   "in": "١٢٣.fr",
+   "out": "https://١٢٣.fr/"
+  },
+  {
+   "in": "EXEMPLE.Fr/A",
+   "out": "https://exemple.fr/A"
+  },
+  {
+   "in": "aㅤ.fr",
+   "out": null
+  },
+  {
+   "in": "aᅟ.fr",
+   "out": null
+  },
+  {
+   "in": "aﾠ.fr",
+   "out": null
+  },
+  {
+   "in": "ª.fr",
+   "out": null
+  },
+  {
+   "in": "µ.fr",
+   "out": null
+  },
+  {
+   "in": "a².fr",
+   "out": null
+  },
+  {
+   "in": "１２３.fr",
+   "out": null
+  },
+  {
+   "in": "ａ.fr",
+   "out": null
+  },
+  {
+   "in": "a⒈.fr",
+   "out": null
+  },
+  {
+   "in": "🄀a.fr",
+   "out": null
+  },
+  {
+   "in": "ĳ.fr",
+   "out": null
+  },
+  {
+   "in": "ﬁ.fr",
+   "out": null
+  },
+  {
+   "in": "𝐚.fr",
+   "out": null
+  },
+  {
+   "in": "ⅷ.fr",
+   "out": null
+  },
+  {
+   "in": "a.ｆｒ",
+   "out": null
+  },
+  {
+   "in": "a.ᵃᵇ",
+   "out": null
+  }
+ ]
+}

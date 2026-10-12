@@ -39,6 +39,7 @@ import { sanitizePhotoUrls } from '@/lib/sanitizePhotoUrls';
 import { AudienceTab } from '@/components/admin/AudienceTab';
 import { EngagementTab } from '@/components/admin/EngagementTab';
 import { PLATFORMS, type AudienceStats } from '@/components/admin/audiencePlatforms';
+import { webLink } from '@/lib/webLink';
 
 
 type AdminTab = 'dashboard' | 'audience' | 'engagement' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events' | 'outbound';
@@ -2147,7 +2148,7 @@ const AdminPage = () => {
                   // Galerie : le lien du reel doit être une URL, sinon la fiche
                   // proposerait d'ouvrir quelque chose d'invalide.
                   const reelUrl = (editForm.reel_url ?? '').trim();
-                  if (reelUrl && !/^https?:\/\//i.test(reelUrl)) {
+                  if (reelUrl && !webLink(reelUrl)) {
                     toast({ title: 'Lien du reel invalide', description: 'Colle l\'URL complète du reel Instagram (https://…).', variant: 'destructive' });
                     return;
                   }
@@ -4247,15 +4248,15 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
 
             {!isEditing && (
               <div className="flex gap-2 flex-wrap">
-                {ev.website && (
-                  <a href={ev.website} target="_blank" rel="noopener noreferrer"
+                {webLink(ev.website) && (
+                  <a href={webLink(ev.website)!} target="_blank" rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
                     style={{ flex: '1 1 30%', textAlign: 'center', textDecoration: 'none', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid #3B7D6E', background: 'transparent', color: '#3B7D6E', cursor: 'pointer' }}>
                     ↗ Voir le lien
                   </a>
                 )}
-                {ev.booking_url && (
-                  <a href={ev.booking_url} target="_blank" rel="noopener noreferrer"
+                {webLink(ev.booking_url) && (
+                  <a href={webLink(ev.booking_url)!} target="_blank" rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
                     style={{ flex: '1 1 30%', textAlign: 'center', textDecoration: 'none', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer' }}>
                     🎟️ Voir la réservation

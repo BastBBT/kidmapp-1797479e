@@ -9,10 +9,13 @@ import { submitFailureText } from '@/lib/submitFailure';
 import { ACCEPTED_PHOTO_TYPES, MAX_PHOTO_BYTES } from '@/lib/photoUpload';
 import { useAuth } from '@/hooks/useAuth';
 import { useProposalModal } from '@/hooks/useProposalModal';
+import { webLink, webLinkInputError } from '@/lib/webLink';
 import { MAX_EVENT_PHOTOS, EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryEmoji } from '@/types/event';
 import { DURATIONS } from '@/lib/activity';
 import { ageToMonths, ageRangeError, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
+
+const linkErrorStyle = { color: 'var(--destructive, #c0392b)', fontFamily: 'DM Sans', fontSize: 12, margin: '4px 0 0' } as const;
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -83,6 +86,8 @@ const ProposeEventModal = () => {
   const { user } = useAuth();
   const { isOpen, mode, close, setMode } = useProposalModal();
   const [submitting, setSubmitting] = useState(false);
+  const [websiteTouched, setWebsiteTouched] = useState(false);
+  const [bookingTouched, setBookingTouched] = useState(false);
   // Jusqu'à MAX_EVENT_PHOTOS photos ; la première sert de couverture (`photo`), les autres vont dans `photos`.
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
@@ -120,6 +125,8 @@ const ProposeEventModal = () => {
       price: '', website: '', booking_url: '', instagram: '', note: '',
     });
     setPhotoFiles([]);
+    setWebsiteTouched(false);
+    setBookingTouched(false);
   };
 
   const handleClose = () => {
@@ -150,8 +157,12 @@ const ProposeEventModal = () => {
   const makeCover = (i: number) =>
     setPhotoFiles((prev) => [prev[i], ...prev.filter((_, j) => j !== i)]);
 
+  // Le message n'apparaît qu'une fois le champ quitté ; l'envoi reste bloqué tant que le lien est refusé.
+  const websiteError = webLinkInputError(form.website);
+  const bookingUrlError = webLinkInputError(form.booking_url);
   const canSubmit = Boolean(form.name.trim() && form.category && form.date_start)
-    && !ageRangeError(form.age_min, form.age_max, form.age_unit);
+    && !ageRangeError(form.age_min, form.age_max, form.age_unit)
+    && !websiteError && !bookingUrlError;
 
   const handleSubmit = async () => {
     if (!user) return;
@@ -188,8 +199,8 @@ const ProposeEventModal = () => {
         duration: form.duration || null,
         weather: form.weather || null,
         price: form.price.trim() || null,
-        website: form.website.trim() || null,
-        booking_url: form.booking_url.trim() || null,
+        website: webLink(form.website),
+        booking_url: webLink(form.booking_url),
         instagram: form.instagram.trim() || null,
         note: form.note.trim() || null,
         photo: photoUrls[0] ?? null,
@@ -388,8 +399,10 @@ const ProposeEventModal = () => {
                     style={inputStyle}
                     value={form.website}
                     onChange={(e) => update('website', e.target.value)}
+                    onBlur={() => setWebsiteTouched(true)}
                     placeholder="https://…"
                   />
+                  {websiteTouched && websiteError && <p style={linkErrorStyle}>{websiteError}</p>}
                 </div>
 
                 <div>
@@ -398,8 +411,10 @@ const ProposeEventModal = () => {
                     style={inputStyle}
                     value={form.booking_url}
                     onChange={(e) => update('booking_url', e.target.value)}
+                    onBlur={() => setBookingTouched(true)}
                     placeholder="https://…"
                   />
+                  {bookingTouched && bookingUrlError && <p style={linkErrorStyle}>{bookingUrlError}</p>}
                 </div>
 
                 <div>

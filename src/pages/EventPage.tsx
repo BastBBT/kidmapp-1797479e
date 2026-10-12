@@ -26,6 +26,7 @@ import { trackLinkClick } from '@/lib/trackLinkClick';
 import { useLocation as useLocationById } from '@/hooks/useLocations';
 import RecurrenceStamp from '@/components/RecurrenceStamp';
 import type { CSSProperties } from 'react';
+import { webLink } from '@/lib/webLink';
 
 // Boutons CTA « Réserver »/« Site web » de la fiche sortie : la primaire sert aux deux quand un
 // seul des deux liens existe (comportement inchangé), la secondaire seulement quand les deux
@@ -142,6 +143,11 @@ const EventPage = () => {
   const displayDateEnd = selectedOccurrence?.date_end ?? event.date_end;
   const displayTime = selectedOccurrence?.time ?? event.time;
   const displayIsPast = selectedOccurrence ? isPastEvent(selectedOccurrence.date_start, selectedOccurrence.date_end) : past;
+
+  // Seuls les liens http(s) exploitables font un bouton : un e-mail ou une phrase dans
+  // `booking_url` donnerait sinon un `href` relatif, c'est-à-dire une page du site.
+  const bookingHref = webLink(event.booking_url);
+  const websiteHref = webLink(event.website);
 
   return (
     <div style={{ paddingBottom: 140, background: 'var(--bg)', minHeight: '100vh' }}>
@@ -467,26 +473,26 @@ const EventPage = () => {
       {/* CTAs — la réservation prime sur le site web quand les deux existent : c'est
           l'action que les parents cherchent en premier sur une sortie. */}
       <div style={{ padding: '24px 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {event.booking_url && (
+        {bookingHref && (
           <a
-            href={event.booking_url}
+            href={bookingHref}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => trackLinkClick({ entityType: 'event', entityId: event.id, url: event.booking_url!, linkType: 'booking' })}
+            onClick={() => trackLinkClick({ entityType: 'event', entityId: event.id, url: bookingHref, linkType: 'booking' })}
             style={eventCtaPrimaryStyle}
           >
             {t('event.book')}
           </a>
         )}
-        {event.website && (
+        {websiteHref && (
           <a
-            href={event.website}
+            href={websiteHref}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => trackLinkClick({ entityType: 'event', entityId: event.id, url: event.website!, linkType: 'website' })}
-            style={event.booking_url ? eventCtaSecondaryStyle : eventCtaPrimaryStyle}
+            onClick={() => trackLinkClick({ entityType: 'event', entityId: event.id, url: websiteHref, linkType: 'website' })}
+            style={bookingHref ? eventCtaSecondaryStyle : eventCtaPrimaryStyle}
           >
-            {event.booking_url ? t('event.website') : t('event.more_details')}
+            {bookingHref ? t('event.website') : t('event.more_details')}
           </a>
         )}
         {/* Itinéraire : toujours sous les liens de la sortie (réservation, site) — action

@@ -1,5 +1,6 @@
 import { EventItem } from '@/types/event';
 import { plainNote } from '@/lib/richNote';
+import { webLink } from '@/lib/webLink';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -19,6 +20,8 @@ const escape = (s: string) =>
   s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
 
 export const buildIcs = (event: EventItem): string => {
+  // Seul un lien http(s) exploitable part dans l'agenda : pas d'e-mail ni de phrase dans `URL:`.
+  const websiteUrl = webLink(event.website);
   const dtStart = formatICSDate(event.date_start, event.time);
   const dtEndRaw = event.date_end ?? event.date_start;
   // If time provided, use 2h default; else all-day end = date_end + 1
@@ -53,7 +56,9 @@ export const buildIcs = (event: EventItem): string => {
     `SUMMARY:${escape(event.name)}`,
     event.address ? `LOCATION:${escape(event.address)}` : '',
     event.note ? `DESCRIPTION:${escape(plainNote(event.note))}` : '',
-    event.website ? `URL:${escape(event.website)}` : '',
+    // `URL` est de type URI, pas TEXT : y échapper `,` et `;` casserait le lien dans l'agenda.
+    // Pas d'injection possible : l'URL canonique ne contient ni retour à la ligne ni contrôle.
+    websiteUrl ? `URL:${websiteUrl}` : '',
     'END:VEVENT',
     'END:VCALENDAR',
   ].filter(Boolean);

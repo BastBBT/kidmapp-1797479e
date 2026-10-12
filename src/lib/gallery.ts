@@ -1,4 +1,5 @@
 import type { Location } from '@/types/location';
+import { webLink } from '@/lib/webLink';
 
 /**
  * Un média de la galerie : une photo, ou le reel Instagram du lieu.
@@ -31,17 +32,21 @@ export function galleryPhotos(location: Pick<Location, 'photo' | 'photos'>): str
 export function reelCoverPhoto(
   location: Pick<Location, 'photo' | 'photos' | 'reel_url'>,
 ): string | null {
-  if (!location.reel_url) return null;
+  if (!webLink(location.reel_url)) return null;
   const photos = galleryPhotos(location);
   return photos.length ? photos[0] : null;
 }
 
-/** Photos puis, s'il existe, le reel en dernière position. */
+/**
+ * Photos puis, s'il existe, le reel en dernière position. Un `reel_url` qui n'est pas un lien web
+ * exploitable ne donne aucune diapo : sinon la pastille de lecture s'afficherait sans que rien
+ * puisse s'ouvrir.
+ */
 export function galleryMedia(
   location: Pick<Location, 'photo' | 'photos' | 'reel_url'>,
 ): LocationMedia[] {
   const media: LocationMedia[] = galleryPhotos(location).map((coverUrl) => ({ coverUrl }));
-  if (location.reel_url) {
+  if (webLink(location.reel_url)) {
     media.push({ coverUrl: reelCoverPhoto(location), reelUrl: location.reel_url });
   }
   return media;

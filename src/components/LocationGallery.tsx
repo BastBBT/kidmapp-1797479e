@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import type { LocationMedia } from '@/lib/gallery';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
+import { webLink } from '@/lib/webLink';
 
 interface LocationGalleryProps {
   media: LocationMedia[];
@@ -43,8 +44,14 @@ export default function LocationGallery({ media, gradient, name }: LocationGalle
   const go = (delta: number) => setIndex((i) => (i + delta + media.length) % media.length);
 
   const openReel = () => {
-    if (reelToOpen) window.open(reelToOpen, '_blank', 'noopener,noreferrer');
+    // `window.open` exécuterait un `javascript:` : on n'ouvre que ce que `webLink` a validé.
+    const href = webLink(reelToOpen);
     setReelToOpen(null);
+    try {
+      if (href) window.open(href, '_blank', 'noopener,noreferrer');
+    } catch {
+      // Hôte accepté par webLink mais refusé par le navigateur (règles IDNA/bidi) : rien à ouvrir.
+    }
   };
 
   return (

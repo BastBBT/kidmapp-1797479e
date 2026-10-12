@@ -15,6 +15,7 @@ import { isActivity } from '@/types/location';
 import { ageToMonths, ageRangeError, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
 import { compressImage } from '@/lib/compressImage';
+import { webLink, webLinkInputError } from '@/lib/webLink';
 
 const PLACE_CATEGORY_OPTIONS: { id: string; label: string }[] = [
   { id: 'restaurant', label: 'Restaurant' },
@@ -71,6 +72,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
   const { user } = useAuth();
   const { data: mealTypes = [] } = useMealTypes();
   const [submitting, setSubmitting] = useState(false);
+  const [websiteTouched, setWebsiteTouched] = useState(false);
   const [step, setStep] = useState(0);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -128,6 +130,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
     setPhotoFile(null);
     setPhotoPreview(null);
     setPhotoUrlInput('');
+    setWebsiteTouched(false);
     setStep(0);
   };
 
@@ -137,7 +140,10 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
     setTimeout(resetAll, 300);
   };
 
-  const canContinueStep0 = form.name.trim() && form.address.trim();
+  // Le site web est saisi à l'étape 0 : c'est là que l'erreur doit bloquer, pas à l'étape finale où
+  // plus rien ne l'explique. Le message n'apparaît qu'une fois le champ quitté.
+  const websiteLinkError = webLinkInputError(form.website);
+  const canContinueStep0 = form.name.trim() && form.address.trim() && !websiteLinkError;
 
   const STEPS = hasMealsStep(form.category) ? FULL_STEPS : SHORT_STEPS;
   const isPhotosStep = step === STEPS.length - 1;
@@ -214,7 +220,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
         kids_menu: form.kids_menu,
         note: form.note || null,
         photo: photoUrl,
-        website: form.website || null,
+        website: webLink(form.website),
         instagram: form.instagram || null,
         status: 'pending',
         metadata: { meal_types: selectedMeals },
@@ -399,7 +405,10 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
                     <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
                       Site web
                     </label>
-                    <input value={form.website} onChange={(e) => updateForm('website', e.target.value)} placeholder="https://www.lepetitbeurre.fr" style={inputStyle} />
+                    <input value={form.website} onChange={(e) => updateForm('website', e.target.value)} onBlur={() => setWebsiteTouched(true)} placeholder="https://www.lepetitbeurre.fr" style={inputStyle} />
+                    {websiteTouched && websiteLinkError && (
+                      <p style={{ color: 'var(--destructive, #c0392b)', fontFamily: 'DM Sans', fontSize: 12, margin: '4px 0 0' }}>{websiteLinkError}</p>
+                    )}
                   </div>
                   <div>
                     <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
