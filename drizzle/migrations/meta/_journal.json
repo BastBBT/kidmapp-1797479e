@@ -71,6 +71,13 @@
       "when": 1791818242991,
       "tag": "0009_add_event_review_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791819777263,
+      "tag": "0010_events_guard_review_and_bot_notify",
+      "breakpoints": true
     }
   ]
 }
