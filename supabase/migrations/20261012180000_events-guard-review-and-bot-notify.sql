@@ -22,6 +22,7 @@ BEGIN
 END;
 $$;
 
+-- guard:allow-destructive recréation idempotente du trigger (DROP IF EXISTS + CREATE), aucune donnée touchée
 DROP TRIGGER IF EXISTS events_guard_review_fields ON public.events;
 CREATE TRIGGER events_guard_review_fields
   BEFORE INSERT OR UPDATE ON public.events
