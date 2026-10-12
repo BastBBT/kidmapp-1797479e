@@ -27,6 +27,7 @@ import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
 import { BOT_SOURCING_EMAIL } from '@/lib/adminBot';
+import { reviewReasons, reviewStateOf, type ReviewState } from '@/lib/eventReview';
 import { ageToMonths, ageRangeError, contributionAgeToMonths, formatAgeRange, monthsPairToDraft, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
 import { useLinkClicksStats, type LinkClickStatRow } from '@/hooks/useLinkClicksStats';
@@ -3569,6 +3570,8 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'published' | 'rejected'>('pending');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'user' | 'sourcing'>('all');
+  const [reviewFilter, setReviewFilter] = useState<'all' | ReviewState>('all');
+  const [bulkPublishing, setBulkPublishing] = useState(false);
   const [favOnly, setFavOnly] = useState(false);
   const [search, setSearch] = useState('');
   const [eventSort, setEventSort] = useState<'eventDateDesc' | 'eventDateAsc' | 'createdAtDesc' | 'favAtDesc'>('eventDateDesc');
@@ -3965,13 +3968,57 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
 
   const favCount = events.filter((ev: any) => ev.admin_fav).length;
 
-  const filtered = events.filter((ev: any) => {
+  // Base commune aux compteurs du pré-tri et à la liste : tous les filtres sauf le pré-tri lui-même.
+  const baseFiltered = events.filter((ev: any) => {
     if (statusFilter !== 'all' && ev.status !== statusFilter) return false;
     if (sourceFilter === 'user' && isSourcing(ev)) return false;
     if (sourceFilter === 'sourcing' && !isSourcing(ev)) return false;
     if (favOnly && !ev.admin_fav) return false;
     return matchSearch(search, ev.name, ev.address, ev.website);
   });
+  const reviewCounts = baseFiltered.reduce(
+    (acc: Record<ReviewState, number>, ev: any) => { acc[reviewStateOf(ev)] += 1; return acc; },
+    { flagged: 0, clear: 0, unchecked: 0 } as Record<ReviewState, number>,
+  );
+  const filtered = reviewFilter === 'all' ? baseFiltered : baseFiltered.filter((ev: any) => reviewStateOf(ev) === reviewFilter);
+
+  // Publication en lot : seulement les events du bot évalués sans drapeau, encore en attente et déjà
+  // géocodés (le géocodage à la volée de handleApprove peut demander une saisie manuelle).
+  const bulkCandidates = events.filter((ev: any) =>
+    ev.status === 'pending' && isSourcing(ev) && reviewStateOf(ev) === 'clear' && ev.lat != null && ev.lng != null,
+  );
+  const clearPendingWithoutCoords = events.filter((ev: any) =>
+    ev.status === 'pending' && isSourcing(ev) && reviewStateOf(ev) === 'clear' && (ev.lat == null || ev.lng == null),
+  ).length;
+
+  const handleBulkPublish = async () => {
+    const ids = bulkCandidates.map((ev: any) => ev.id);
+    if (ids.length === 0) return;
+    if (!window.confirm(`Publier ${ids.length} événement${ids.length > 1 ? 's' : ''} du bot sans point à vérifier ?`)) return;
+    setBulkPublishing(true);
+    try {
+      // .eq('status', 'pending') : un event traité entre-temps par quelqu'un d'autre n'est pas republié.
+      const { data, error } = await supabase
+        .from('events' as any)
+        .update({ status: 'published' })
+        .in('id', ids)
+        .eq('status', 'pending')
+        .select('id');
+      if (error) throw error;
+      const published = (data as any[] | null)?.length ?? 0;
+      queryClient.invalidateQueries({ queryKey: ['admin-events'] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      toast({
+        title: `${published} événement${published > 1 ? 's' : ''} publié${published > 1 ? 's' : ''} ✓`,
+        description: published < ids.length ? `${ids.length - published} déjà traité(s) entre-temps, laissé(s) tel(s) quel(s).` : undefined,
+      });
+    } catch (err: any) {
+      toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
+    } finally {
+      setBulkPublishing(false);
+    }
+  };
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -4061,9 +4108,30 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                 >
                   {ev.admin_fav ? '★' : '☆'}
                 </button>
+                {ev.status === 'pending' && reviewStateOf(ev) !== 'unchecked' && (
+                  <span style={{
+                    display: 'inline-block', padding: '2px 8px', borderRadius: '100px',
+                    fontSize: '10px', fontWeight: 600, fontFamily: 'DM Sans',
+                    background: reviewStateOf(ev) === 'flagged' ? '#FAEEDA' : '#E1F5EE',
+                    color: reviewStateOf(ev) === 'flagged' ? '#854F0B' : '#0F6E56',
+                  }}>
+                    {reviewStateOf(ev) === 'flagged' ? '🟠 À vérifier' : '🟢 Rien à vérifier'}
+                  </span>
+                )}
                 <StatusBadge status={ev.status === 'published' ? 'validated' : ev.status} />
               </div>
             </div>
+
+            {reviewStateOf(ev) === 'flagged' && (
+              <div style={{ borderLeft: '3px solid #EF9F27', background: '#FDF6EA', padding: '8px 10px', marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {reviewReasons(ev).map((r, idx) => (
+                  <div key={`${r.code ?? 'note'}-${idx}`} style={{ fontFamily: 'DM Sans', fontSize: 12, lineHeight: 1.45 }}>
+                    <span style={{ fontWeight: 600, color: '#854F0B' }}>{r.label}</span>
+                    {r.detail && <span style={{ color: 'var(--text-muted)', overflowWrap: 'anywhere' }}> — {r.detail}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {ev.address && (
               <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
@@ -4341,6 +4409,35 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
           </button>
         ))}
       </div>
+
+      <div className="flex flex-wrap gap-2" style={{ alignItems: 'center' }}>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)', marginRight: 2 }}>Pré-tri</span>
+        {([
+          { key: 'all', label: `Tous · ${baseFiltered.length}` },
+          { key: 'flagged', label: `🟠 À vérifier · ${reviewCounts.flagged}` },
+          { key: 'clear', label: `🟢 Rien à vérifier · ${reviewCounts.clear}` },
+          { key: 'unchecked', label: `Non évalués · ${reviewCounts.unchecked}` },
+        ] as const).map((f) => (
+          <button key={f.key} onClick={() => setReviewFilter(f.key)} aria-pressed={reviewFilter === f.key} style={pillStyle(reviewFilter === f.key)}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {statusFilter === 'pending' && (bulkCandidates.length > 0 || clearPendingWithoutCoords > 0) && (
+        <div className="flex flex-wrap gap-2" style={{ alignItems: 'center', justifyContent: 'space-between', background: '#E1F5EE', borderRadius: 'var(--radius-sm)', padding: '10px 14px' }}>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#0F6E56' }}>
+            {bulkCandidates.length} événement{bulkCandidates.length > 1 ? 's' : ''} du bot sans point à vérifier
+            {clearPendingWithoutCoords > 0 && ` (+ ${clearPendingWithoutCoords} sans coordonnées, à approuver un par un)`}
+          </span>
+          {bulkCandidates.length > 0 && (
+            <button onClick={handleBulkPublish} disabled={bulkPublishing}
+              style={{ fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 100, border: 'none', background: '#3B7D6E', color: 'white', cursor: bulkPublishing ? 'not-allowed' : 'pointer', opacity: bulkPublishing ? 0.6 : 1 }}>
+              {bulkPublishing ? 'Publication…' : `✓ Publier les ${bulkCandidates.length}`}
+            </button>
+          )}
+        </div>
+      )}
 
       <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
         {filtered.length} {filtered.length > 1 ? 'événements affichés' : 'événement affiché'}
