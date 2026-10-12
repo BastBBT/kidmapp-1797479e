@@ -9,10 +9,13 @@ import { submitFailureText } from '@/lib/submitFailure';
 import { ACCEPTED_PHOTO_TYPES, MAX_PHOTO_BYTES } from '@/lib/photoUpload';
 import { useAuth } from '@/hooks/useAuth';
 import { useProposalModal } from '@/hooks/useProposalModal';
+import { webLink, webLinkInputError } from '@/lib/webLink';
 import { MAX_EVENT_PHOTOS, EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryEmoji } from '@/types/event';
 import { DURATIONS } from '@/lib/activity';
 import { ageToMonths, ageRangeError, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
+
+const linkErrorStyle = { color: 'var(--destructive, #c0392b)', fontFamily: 'DM Sans', fontSize: 12, margin: '4px 0 0' } as const;
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -150,8 +153,11 @@ const ProposeEventModal = () => {
   const makeCover = (i: number) =>
     setPhotoFiles((prev) => [prev[i], ...prev.filter((_, j) => j !== i)]);
 
+  const websiteError = webLinkInputError(form.website);
+  const bookingUrlError = webLinkInputError(form.booking_url);
   const canSubmit = Boolean(form.name.trim() && form.category && form.date_start)
-    && !ageRangeError(form.age_min, form.age_max, form.age_unit);
+    && !ageRangeError(form.age_min, form.age_max, form.age_unit)
+    && !websiteError && !bookingUrlError;
 
   const handleSubmit = async () => {
     if (!user) return;
@@ -188,8 +194,8 @@ const ProposeEventModal = () => {
         duration: form.duration || null,
         weather: form.weather || null,
         price: form.price.trim() || null,
-        website: form.website.trim() || null,
-        booking_url: form.booking_url.trim() || null,
+        website: webLink(form.website),
+        booking_url: webLink(form.booking_url),
         instagram: form.instagram.trim() || null,
         note: form.note.trim() || null,
         photo: photoUrls[0] ?? null,
@@ -390,6 +396,7 @@ const ProposeEventModal = () => {
                     onChange={(e) => update('website', e.target.value)}
                     placeholder="https://…"
                   />
+                  {websiteError && <p style={linkErrorStyle}>{websiteError}</p>}
                 </div>
 
                 <div>
@@ -400,6 +407,7 @@ const ProposeEventModal = () => {
                     onChange={(e) => update('booking_url', e.target.value)}
                     placeholder="https://…"
                   />
+                  {bookingUrlError && <p style={linkErrorStyle}>{bookingUrlError}</p>}
                 </div>
 
                 <div>

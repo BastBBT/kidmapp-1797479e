@@ -15,6 +15,7 @@ import { isActivity } from '@/types/location';
 import { ageToMonths, ageRangeError, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
 import { compressImage } from '@/lib/compressImage';
+import { webLink, webLinkInputError } from '@/lib/webLink';
 
 const PLACE_CATEGORY_OPTIONS: { id: string; label: string }[] = [
   { id: 'restaurant', label: 'Restaurant' },
@@ -155,6 +156,10 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
 
   const handleSubmit = async () => {
     if (!user) return;
+    if (webLinkInputError(form.website)) {
+      toast({ title: 'Lien invalide', description: webLinkInputError(form.website) ?? '', variant: 'destructive' });
+      return;
+    }
     if (!form.name || !form.address) {
       toast({ title: 'Champs requis', description: 'Nom, catégorie et adresse sont obligatoires.', variant: 'destructive' });
       setStep(0);
@@ -214,7 +219,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
         kids_menu: form.kids_menu,
         note: form.note || null,
         photo: photoUrl,
-        website: form.website || null,
+        website: webLink(form.website),
         instagram: form.instagram || null,
         status: 'pending',
         metadata: { meal_types: selectedMeals },
@@ -400,6 +405,9 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
                       Site web
                     </label>
                     <input value={form.website} onChange={(e) => updateForm('website', e.target.value)} placeholder="https://www.lepetitbeurre.fr" style={inputStyle} />
+                    {webLinkInputError(form.website) && (
+                      <p style={{ color: 'var(--destructive, #c0392b)', fontFamily: 'DM Sans', fontSize: 12, margin: '4px 0 0' }}>{webLinkInputError(form.website)}</p>
+                    )}
                   </div>
                   <div>
                     <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
@@ -695,7 +703,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
               ) : (
                 <button
                   onClick={handleSubmit}
-                  disabled={submitting || !form.name || !form.address}
+                  disabled={submitting || !form.name || !form.address || !!webLinkInputError(form.website)}
                   className="w-full flex items-center justify-center gap-2 py-3 font-semibold text-sm disabled:opacity-40 transition-opacity"
                   style={{ borderRadius: '100px', background: 'var(--primary)', color: '#fff', border: 'none', fontFamily: 'DM Sans', cursor: submitting ? 'not-allowed' : 'pointer' }}
                 >
