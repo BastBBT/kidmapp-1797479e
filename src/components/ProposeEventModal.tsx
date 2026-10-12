@@ -86,6 +86,8 @@ const ProposeEventModal = () => {
   const { user } = useAuth();
   const { isOpen, mode, close, setMode } = useProposalModal();
   const [submitting, setSubmitting] = useState(false);
+  const [websiteTouched, setWebsiteTouched] = useState(false);
+  const [bookingTouched, setBookingTouched] = useState(false);
   // Jusqu'à MAX_EVENT_PHOTOS photos ; la première sert de couverture (`photo`), les autres vont dans `photos`.
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
@@ -123,6 +125,8 @@ const ProposeEventModal = () => {
       price: '', website: '', booking_url: '', instagram: '', note: '',
     });
     setPhotoFiles([]);
+    setWebsiteTouched(false);
+    setBookingTouched(false);
   };
 
   const handleClose = () => {
@@ -153,6 +157,7 @@ const ProposeEventModal = () => {
   const makeCover = (i: number) =>
     setPhotoFiles((prev) => [prev[i], ...prev.filter((_, j) => j !== i)]);
 
+  // Le message n'apparaît qu'une fois le champ quitté ; l'envoi reste bloqué tant que le lien est refusé.
   const websiteError = webLinkInputError(form.website);
   const bookingUrlError = webLinkInputError(form.booking_url);
   const canSubmit = Boolean(form.name.trim() && form.category && form.date_start)
@@ -394,9 +399,10 @@ const ProposeEventModal = () => {
                     style={inputStyle}
                     value={form.website}
                     onChange={(e) => update('website', e.target.value)}
+                    onBlur={() => setWebsiteTouched(true)}
                     placeholder="https://…"
                   />
-                  {websiteError && <p style={linkErrorStyle}>{websiteError}</p>}
+                  {websiteTouched && websiteError && <p style={linkErrorStyle}>{websiteError}</p>}
                 </div>
 
                 <div>
@@ -405,9 +411,10 @@ const ProposeEventModal = () => {
                     style={inputStyle}
                     value={form.booking_url}
                     onChange={(e) => update('booking_url', e.target.value)}
+                    onBlur={() => setBookingTouched(true)}
                     placeholder="https://…"
                   />
-                  {bookingUrlError && <p style={linkErrorStyle}>{bookingUrlError}</p>}
+                  {bookingTouched && bookingUrlError && <p style={linkErrorStyle}>{bookingUrlError}</p>}
                 </div>
 
                 <div>

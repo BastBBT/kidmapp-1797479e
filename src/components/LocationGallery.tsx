@@ -46,8 +46,12 @@ export default function LocationGallery({ media, gradient, name }: LocationGalle
   const openReel = () => {
     // `window.open` exécuterait un `javascript:` : on n'ouvre que ce que `webLink` a validé.
     const href = webLink(reelToOpen);
-    if (href) window.open(href, '_blank', 'noopener,noreferrer');
     setReelToOpen(null);
+    try {
+      if (href) window.open(href, '_blank', 'noopener,noreferrer');
+    } catch {
+      // Hôte accepté par webLink mais refusé par le navigateur (règles IDNA/bidi) : rien à ouvrir.
+    }
   };
 
   return (

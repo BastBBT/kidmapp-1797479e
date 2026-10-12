@@ -72,6 +72,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
   const { user } = useAuth();
   const { data: mealTypes = [] } = useMealTypes();
   const [submitting, setSubmitting] = useState(false);
+  const [websiteTouched, setWebsiteTouched] = useState(false);
   const [step, setStep] = useState(0);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -129,6 +130,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
     setPhotoFile(null);
     setPhotoPreview(null);
     setPhotoUrlInput('');
+    setWebsiteTouched(false);
     setStep(0);
   };
 
@@ -138,7 +140,10 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
     setTimeout(resetAll, 300);
   };
 
-  const canContinueStep0 = form.name.trim() && form.address.trim();
+  // Le site web est saisi à l'étape 0 : c'est là que l'erreur doit bloquer, pas à l'étape finale où
+  // plus rien ne l'explique. Le message n'apparaît qu'une fois le champ quitté.
+  const websiteLinkError = webLinkInputError(form.website);
+  const canContinueStep0 = form.name.trim() && form.address.trim() && !websiteLinkError;
 
   const STEPS = hasMealsStep(form.category) ? FULL_STEPS : SHORT_STEPS;
   const isPhotosStep = step === STEPS.length - 1;
@@ -156,10 +161,6 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
 
   const handleSubmit = async () => {
     if (!user) return;
-    if (webLinkInputError(form.website)) {
-      toast({ title: 'Lien invalide', description: webLinkInputError(form.website) ?? '', variant: 'destructive' });
-      return;
-    }
     if (!form.name || !form.address) {
       toast({ title: 'Champs requis', description: 'Nom, catégorie et adresse sont obligatoires.', variant: 'destructive' });
       setStep(0);
@@ -404,9 +405,9 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
                     <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
                       Site web
                     </label>
-                    <input value={form.website} onChange={(e) => updateForm('website', e.target.value)} placeholder="https://www.lepetitbeurre.fr" style={inputStyle} />
-                    {webLinkInputError(form.website) && (
-                      <p style={{ color: 'var(--destructive, #c0392b)', fontFamily: 'DM Sans', fontSize: 12, margin: '4px 0 0' }}>{webLinkInputError(form.website)}</p>
+                    <input value={form.website} onChange={(e) => updateForm('website', e.target.value)} onBlur={() => setWebsiteTouched(true)} placeholder="https://www.lepetitbeurre.fr" style={inputStyle} />
+                    {websiteTouched && websiteLinkError && (
+                      <p style={{ color: 'var(--destructive, #c0392b)', fontFamily: 'DM Sans', fontSize: 12, margin: '4px 0 0' }}>{websiteLinkError}</p>
                     )}
                   </div>
                   <div>
@@ -703,7 +704,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
               ) : (
                 <button
                   onClick={handleSubmit}
-                  disabled={submitting || !form.name || !form.address || !!webLinkInputError(form.website)}
+                  disabled={submitting || !form.name || !form.address}
                   className="w-full flex items-center justify-center gap-2 py-3 font-semibold text-sm disabled:opacity-40 transition-opacity"
                   style={{ borderRadius: '100px', background: 'var(--primary)', color: '#fff', border: 'none', fontFamily: 'DM Sans', cursor: submitting ? 'not-allowed' : 'pointer' }}
                 >

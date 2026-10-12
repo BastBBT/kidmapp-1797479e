@@ -19,11 +19,18 @@
  *     et échouent sur le port.
  *  4. Autorité (jusqu'au premier `/`, `?` ou `#`) : aucun `@` (identifiants refusés, vides compris),
  *     port numérique de 1 à 5 chiffres (1-65535).
- *  5. Hôte : au moins deux étiquettes de 1 à 63 caractères (lettres, chiffres, tiret au milieu ; pas
- *     de marque combinante, donc forme composée), 253 au plus, dernière étiquette alphabétique de
- *     2 lettres ou plus (ou `xn--…`). Ni adresse IP, ni `localhost`, ni `%`. Un point final est toléré.
- *  6. Sortie : schéma et hôte en minuscules, port omis s'il est celui du schéma, chemin, requête et
- *     fragment inchangés, `/` ajouté si le chemin est vide.
+ *  5. Hôte : au moins deux étiquettes de 1 à 63 caractères (lettres, chiffres décimaux, tiret au
+ *     milieu ; pas de marque combinante, donc forme composée), 253 au plus, dernière étiquette
+ *     alphabétique de 2 lettres ou plus (ou `xn--…`). Ni adresse IP, ni `localhost`, ni `%`. Un
+ *     point final est toléré. Sont écartés les caractères de remplissage invisibles (jamo hangul) et
+ *     les formes de compatibilité usuelles (pleine chasse, exposants, ligatures, lettres
+ *     mathématiques, enclosed…) que la normalisation d'un navigateur ramènerait à une autre
+ *     écriture : l'hôte validé est celui qui s'ouvre. La liste est celle de `COMPAT_*` ci-dessous,
+ *     identique sur les trois plateformes ; ce n'est pas une normalisation NFKC complète.
+ *  6. Sortie : schéma et hôte en minuscules ASCII — les lettres non ASCII ne sont **pas** changées en
+ *     casse, car `toLowerCase()` diffère d'une plateforme à l'autre (`İ`, sigma final) —, port omis
+ *     s'il est celui du schéma, chemin, requête et fragment inchangés, `/` ajouté si le chemin est
+ *     vide.
  */
 export function webLink(raw: string | null | undefined): string | null {
   const chars = Array.from(raw ?? '');
@@ -40,7 +47,7 @@ export function webLink(raw: string | null | undefined): string | null {
   let rest = text;
   const explicit = /^([A-Za-z][A-Za-z0-9+.-]*):\/\//.exec(text);
   if (explicit) {
-    scheme = explicit[1].toLowerCase();
+    scheme = asciiLower(explicit[1]);
     if (scheme !== 'http' && scheme !== 'https') return null;
     rest = text.slice(explicit[0].length);
   }
@@ -61,7 +68,7 @@ export function webLink(raw: string | null | undefined): string | null {
     host = authority.slice(0, colon);
   }
 
-  host = host.toLowerCase();
+  host = asciiLower(host);
   if (host.endsWith('.')) host = host.slice(0, -1);
   if (!isHostname(host)) return null;
 
@@ -78,14 +85,26 @@ const WHITE_SPACE: [number, number][] = [
 ];
 const ZERO_WIDTH = [0x200b, 0x200c, 0x200d, 0x2060, 0xfeff];
 const BIDI: [number, number][] = [[0x200e, 0x200f], [0x202a, 0x202e], [0x2066, 0x2069]];
+// Caractères de remplissage invisibles (catégorie Lo) : un hôte qui en contient s'ouvre sans eux.
+const FILLERS = [0x115f, 0x1160, 0x3164, 0xffa0];
+// Formes de compatibilité usuelles, ramenées à une autre écriture par la normalisation d'un navigateur.
+const COMPAT_SINGLE = [0xaa, 0xb5, 0xba, 0x132, 0x133, 0x13f, 0x140, 0x149, 0x17f];
+const COMPAT_RANGES: [number, number][] = [
+  [0x1c4, 0x1cc], [0x1f1, 0x1f3], [0x2b0, 0x2ff], [0x1d2c, 0x1d6a], [0x1d78, 0x1d78], [0x1d9b, 0x1dbf],
+  [0x2c7c, 0x2c7d], [0xa69c, 0xa69d], [0xa770, 0xa770], [0xa7f8, 0xa7f9], [0x2100, 0x218f], [0x2460, 0x24ff], [0x2e80, 0x2fdf],
+  [0x3130, 0x318f], [0x3200, 0x33ff], [0xf900, 0xfaff], [0xfb00, 0xfdff], [0xfe70, 0xfeff],
+  [0xff00, 0xffef], [0x1d400, 0x1d7ff], [0x1f100, 0x1f1ff], [0x2f800, 0x2fa1f],
+];
+const isCompat = (cp: number) => COMPAT_SINGLE.includes(cp) || inRanges(cp, COMPAT_RANGES);
 
 const inRanges = (cp: number, ranges: [number, number][]) => ranges.some(([a, b]) => cp >= a && cp <= b);
 const isEdge = (cp: number) => inRanges(cp, WHITE_SPACE) || ZERO_WIDTH.includes(cp);
 const isForbidden = (cp: number) =>
-  cp <= 0x1f || (cp >= 0x7f && cp <= 0x9f) || cp === 0x5c || isEdge(cp) || inRanges(cp, BIDI);
+  cp <= 0x1f || (cp >= 0x7f && cp <= 0x9f) || cp === 0x5c || isEdge(cp) || inRanges(cp, BIDI) || FILLERS.includes(cp);
 
-const isLetter = (c: string) => /^\p{L}$/u.test(c);
-const isNumber = (c: string) => /^\p{N}$/u.test(c);
+const isLetter = (c: string) => /^\p{L}$/u.test(c) && !isCompat(c.codePointAt(0)!);
+const isNumber = (c: string) => /^\p{Nd}$/u.test(c) && !isCompat(c.codePointAt(0)!);
+const asciiLower = (s: string) => s.replace(/[A-Z]/g, (c) => c.toLowerCase());
 
 function isHostname(host: string): boolean {
   if (Array.from(host).length > 253) return false;
@@ -109,7 +128,8 @@ function isHostname(host: string): boolean {
  * Android (« URL invalide (ex : monsite.fr ou https://monsite.fr) »).
  */
 export function webLinkInputError(value: string): string | null {
-  return value.trim() === '' || webLink(value) !== null
+  const blank = Array.from(value).every((c) => isEdge(c.codePointAt(0)!));
+  return blank || webLink(value) !== null
     ? null
     : 'URL invalide (ex : monsite.fr ou https://monsite.fr)';
 }

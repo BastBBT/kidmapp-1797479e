@@ -440,6 +440,94 @@
   {
    "in": "abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi.fr",
    "out": null
+  },
+  {
+   "in": "İstanbul.tr",
+   "out": "https://İstanbul.tr/"
+  },
+  {
+   "in": "ΑΣ.gr",
+   "out": "https://ΑΣ.gr/"
+  },
+  {
+   "in": "x.ΣΣ",
+   "out": "https://x.ΣΣ/"
+  },
+  {
+   "in": "https://BÜCHER.DE/x",
+   "out": "https://bÜcher.de/x"
+  },
+  {
+   "in": "١٢٣.fr",
+   "out": "https://١٢٣.fr/"
+  },
+  {
+   "in": "EXEMPLE.Fr/A",
+   "out": "https://exemple.fr/A"
+  },
+  {
+   "in": "aㅤ.fr",
+   "out": null
+  },
+  {
+   "in": "aᅟ.fr",
+   "out": null
+  },
+  {
+   "in": "aﾠ.fr",
+   "out": null
+  },
+  {
+   "in": "ª.fr",
+   "out": null
+  },
+  {
+   "in": "µ.fr",
+   "out": null
+  },
+  {
+   "in": "a².fr",
+   "out": null
+  },
+  {
+   "in": "１２３.fr",
+   "out": null
+  },
+  {
+   "in": "ａ.fr",
+   "out": null
+  },
+  {
+   "in": "a⒈.fr",
+   "out": null
+  },
+  {
+   "in": "🄀a.fr",
+   "out": null
+  },
+  {
+   "in": "ĳ.fr",
+   "out": null
+  },
+  {
+   "in": "ﬁ.fr",
+   "out": null
+  },
+  {
+   "in": "𝐚.fr",
+   "out": null
+  },
+  {
+   "in": "ⅷ.fr",
+   "out": null
+  },
+  {
+   "in": "a.ｆｒ",
+   "out": null
+  },
+  {
+   "in": "a.ᵃᵇ",
+   "out": null
   }
  ]
 }

@@ -56,7 +56,9 @@ export const buildIcs = (event: EventItem): string => {
     `SUMMARY:${escape(event.name)}`,
     event.address ? `LOCATION:${escape(event.address)}` : '',
     event.note ? `DESCRIPTION:${escape(plainNote(event.note))}` : '',
-    websiteUrl ? `URL:${escape(websiteUrl)}` : '',
+    // `URL` est de type URI, pas TEXT : y échapper `,` et `;` casserait le lien dans l'agenda.
+    // Pas d'injection possible : l'URL canonique ne contient ni retour à la ligne ni contrôle.
+    websiteUrl ? `URL:${websiteUrl}` : '',
     'END:VEVENT',
     'END:VCALENDAR',
   ].filter(Boolean);

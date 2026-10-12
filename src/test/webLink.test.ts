@@ -31,6 +31,8 @@ describe('saisie : webLinkInputError', () => {
   it('champ vide ou lien exploitable : pas d\'erreur', () => {
     expect(webLinkInputError('')).toBeNull();
     expect(webLinkInputError('   ')).toBeNull();
+    expect(webLinkInputError('\u200b')).toBeNull();
+    expect(webLinkInputError(' \u200b\ufeff ')).toBeNull();
     expect(webLinkInputError('monsite.fr')).toBeNull();
     expect(webLinkInputError('https://monsite.fr/resa')).toBeNull();
   });
@@ -64,6 +66,10 @@ describe('export calendrier : URL', () => {
 
   it("un site exploitable part dans l'agenda, canonique", () => {
     expect(buildIcs(ev('exemple.fr/atelier'))).toContain('URL:https://exemple.fr/atelier');
+  });
+
+  it("l'URL n'est pas échappée comme du texte : `,` et `;` restent intacts (type URI)", () => {
+    expect(buildIcs(ev('exemple.fr/?a=1,2;b=3'))).toContain('URL:https://exemple.fr/?a=1,2;b=3');
   });
 
   it('une adresse e-mail ou une phrase ne part pas dans `URL:`', () => {
