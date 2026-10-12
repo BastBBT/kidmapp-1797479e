@@ -64,6 +64,13 @@
       "when": 1791664964358,
       "tag": "0008_digest_preferences_school_holidays",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791818242991,
+      "tag": "0009_add_event_review_columns",
+      "breakpoints": true
     }
   ]
 }
