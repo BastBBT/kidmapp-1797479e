@@ -3969,7 +3969,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const favCount = events.filter((ev: any) => ev.admin_fav).length;
 
   // Base commune aux compteurs du pré-tri et à la liste : tous les filtres sauf le pré-tri lui-même.
-  const baseFiltered = events.filter((ev: any) => {
+  const baseFiltered = events.filter((ev) => {
     if (statusFilter !== 'all' && ev.status !== statusFilter) return false;
     if (sourceFilter === 'user' && isSourcing(ev)) return false;
     if (sourceFilter === 'sourcing' && !isSourcing(ev)) return false;
@@ -3977,35 +3977,35 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     return matchSearch(search, ev.name, ev.address, ev.website);
   });
   const reviewCounts = baseFiltered.reduce(
-    (acc: Record<ReviewState, number>, ev: any) => { acc[reviewStateOf(ev)] += 1; return acc; },
+    (acc: Record<ReviewState, number>, ev) => { acc[reviewStateOf(ev)] += 1; return acc; },
     { flagged: 0, clear: 0, unchecked: 0 } as Record<ReviewState, number>,
   );
-  const filtered = reviewFilter === 'all' ? baseFiltered : baseFiltered.filter((ev: any) => reviewStateOf(ev) === reviewFilter);
+  const filtered = reviewFilter === 'all' ? baseFiltered : baseFiltered.filter((ev) => reviewStateOf(ev) === reviewFilter);
 
   // Publication en lot : seulement les events du bot évalués sans drapeau, encore en attente et déjà
   // géocodés (le géocodage à la volée de handleApprove peut demander une saisie manuelle).
-  const bulkCandidates = events.filter((ev: any) =>
+  const bulkCandidates = events.filter((ev) =>
     ev.status === 'pending' && isSourcing(ev) && reviewStateOf(ev) === 'clear' && ev.lat != null && ev.lng != null,
   );
-  const clearPendingWithoutCoords = events.filter((ev: any) =>
+  const clearPendingWithoutCoords = events.filter((ev) =>
     ev.status === 'pending' && isSourcing(ev) && reviewStateOf(ev) === 'clear' && (ev.lat == null || ev.lng == null),
   ).length;
 
   const handleBulkPublish = async () => {
-    const ids = bulkCandidates.map((ev: any) => ev.id);
+    const ids: string[] = bulkCandidates.map((ev) => ev.id);
     if (ids.length === 0) return;
     if (!window.confirm(`Publier ${ids.length} événement${ids.length > 1 ? 's' : ''} du bot sans point à vérifier ?`)) return;
     setBulkPublishing(true);
     try {
       // .eq('status', 'pending') : un event traité entre-temps par quelqu'un d'autre n'est pas republié.
       const { data, error } = await supabase
-        .from('events' as any)
+        .from('events')
         .update({ status: 'published' })
         .in('id', ids)
         .eq('status', 'pending')
         .select('id');
       if (error) throw error;
-      const published = (data as any[] | null)?.length ?? 0;
+      const published = data?.length ?? 0;
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
@@ -4013,8 +4013,8 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         title: `${published} événement${published > 1 ? 's' : ''} publié${published > 1 ? 's' : ''} ✓`,
         description: published < ids.length ? `${ids.length - published} déjà traité(s) entre-temps, laissé(s) tel(s) quel(s).` : undefined,
       });
-    } catch (err: any) {
-      toast({ title: 'Erreur', description: err?.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erreur', description: (err as { message?: string })?.message ?? String(err), variant: 'destructive' });
     } finally {
       setBulkPublishing(false);
     }
