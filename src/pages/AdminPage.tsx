@@ -3982,39 +3982,52 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   );
   const filtered = reviewFilter === 'all' ? baseFiltered : baseFiltered.filter((ev) => reviewStateOf(ev) === reviewFilter);
 
-  // Publication en lot : seulement les events du bot évalués sans drapeau, encore en attente et déjà
-  // géocodés (le géocodage à la volée de handleApprove peut demander une saisie manuelle).
-  const bulkCandidates = events.filter((ev) =>
-    ev.status === 'pending' && isSourcing(ev) && reviewStateOf(ev) === 'clear' && ev.lat != null && ev.lng != null,
-  );
-  const clearPendingWithoutCoords = events.filter((ev) =>
-    ev.status === 'pending' && isSourcing(ev) && reviewStateOf(ev) === 'clear' && (ev.lat == null || ev.lng == null),
-  ).length;
+  // Publication en lot : seulement les events DU COMPTE BOT (auteur identifié — un user_id NULL,
+  // p. ex. compte supprimé, compte comme « Sourcing » dans l'affichage mais jamais ici : un
+  // utilisateur peut écrire lui-même les colonnes review_* de sa proposition), évalués sans
+  // drapeau, encore en attente et déjà géocodés (le géocodage à la volée de handleApprove peut
+  // demander une saisie manuelle). Restreint aux filtres affichés : on ne publie que ce qu'on voit.
+  const botUserId = Object.keys(emails).find((uid) => emails[uid] === BOT_SOURCING_EMAIL) ?? null;
+  const isBotClear = (ev: { status: string; user_id: string | null }) =>
+    ev.status === 'pending' && !!botUserId && ev.user_id === botUserId && reviewStateOf(ev) === 'clear';
+  const bulkCandidates = baseFiltered.filter((ev) => isBotClear(ev) && ev.lat != null && ev.lng != null);
+  const clearPendingWithoutCoords = baseFiltered.filter((ev) => isBotClear(ev) && (ev.lat == null || ev.lng == null)).length;
 
   const handleBulkPublish = async () => {
     const ids: string[] = bulkCandidates.map((ev) => ev.id);
-    if (ids.length === 0) return;
-    if (!window.confirm(`Publier ${ids.length} événement${ids.length > 1 ? 's' : ''} du bot sans point à vérifier ?`)) return;
+    if (ids.length === 0 || !botUserId) return;
+    if (!window.confirm(`Publier ${ids.length} événement${ids.length > 1 ? 's' : ''} du bot sans point à vérifier (filtres actuels) ?`)) return;
     setBulkPublishing(true);
+    let published = 0;
     try {
-      // .eq('status', 'pending') : un event traité entre-temps par quelqu'un d'autre n'est pas republié.
-      const { data, error } = await supabase
-        .from('events')
-        .update({ status: 'published' })
-        .in('id', ids)
-        .eq('status', 'pending')
-        .select('id');
-      if (error) throw error;
-      const published = data?.length ?? 0;
+      // La requête revérifie elle-même chaque condition côté serveur (le cache peut être en retard sur
+      // le bot) : auteur = bot, toujours en attente, toujours sans drapeau, bien évalué.
+      // Paquets de 100 ids pour rester sous la limite de longueur d'URL de PostgREST.
+      for (let i = 0; i < ids.length; i += 100) {
+        const { data, error } = await supabase
+          .from('events')
+          .update({ status: 'published' })
+          .in('id', ids.slice(i, i + 100))
+          .eq('user_id', botUserId)
+          .eq('status', 'pending')
+          .eq('review_flags', '{}')
+          .not('review_checked_at', 'is', null)
+          .select('id');
+        if (error) throw error;
+        published += data?.length ?? 0;
+      }
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       toast({
         title: `${published} événement${published > 1 ? 's' : ''} publié${published > 1 ? 's' : ''} ✓`,
-        description: published < ids.length ? `${ids.length - published} déjà traité(s) entre-temps, laissé(s) tel(s) quel(s).` : undefined,
+        description: published < ids.length ? `${ids.length - published} modifié(s) entre-temps (traité ou nouveau drapeau), laissé(s) tel(s) quel(s).` : undefined,
       });
     } catch (err) {
-      toast({ title: 'Erreur', description: (err as { message?: string })?.message ?? String(err), variant: 'destructive' });
+      // Les paquets déjà passés restent publiés : on le dit, et on rafraîchit la liste.
+      queryClient.invalidateQueries({ queryKey: ['admin-events'] });
+      const msg = (err as { message?: string })?.message ?? String(err);
+      toast({ title: 'Erreur', description: published > 0 ? `${published} publié(s) avant l'erreur. ${msg}` : msg, variant: 'destructive' });
     } finally {
       setBulkPublishing(false);
     }
