@@ -34,6 +34,7 @@ import LocationGallery from '@/components/LocationGallery';
 import LocationMiniMap from '@/components/LocationMiniMap';
 import { directionsUrl } from '@/lib/directions';
 import { trackLinkClick } from '@/lib/trackLinkClick';
+import { webLink } from '@/lib/webLink';
 
 const categoryGradients: Record<string, string> = {
   restaurant: 'linear-gradient(145deg, #F5C0A8, #D9805E)',
@@ -196,6 +197,9 @@ const LocationPage = () => {
     </>
   );
 
+  // Seuls les liens http(s) exploitables font un bouton.
+  const websiteHref = webLink((location as any).website);
+
   return (
     <div className="min-h-screen pb-20" style={{ background: 'var(--bg)' }}>
       <Header />
@@ -324,11 +328,11 @@ const LocationPage = () => {
           <LocationMiniMap lat={location.lat} lng={location.lng} category={location.category} />
 
           {/* Website & Instagram links */}
-          {((location as any).website || (location as any).instagram) && (
+          {(websiteHref || (location as any).instagram) && (
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-              {(location as any).website && (
+              {websiteHref && (
                 <a
-                  href={(location as any).website.startsWith('http') ? (location as any).website : `https://${(location as any).website}`}
+                  href={websiteHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() =>
@@ -336,9 +340,7 @@ const LocationPage = () => {
                       entityType: 'location',
                       entityId: location.id,
                       category: location.category,
-                      url: (location as any).website.startsWith('http')
-                        ? (location as any).website
-                        : `https://${(location as any).website}`,
+                      url: websiteHref,
                     })
                   }
                   style={{
