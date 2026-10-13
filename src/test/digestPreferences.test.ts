@@ -8,6 +8,7 @@ import {
   groupItems,
   isDayWanted,
   parseDigestDays,
+  upcomingHoliday,
   wantedDaysOf,
   weekendRuns,
   type DigestPrefs,
@@ -113,8 +114,21 @@ describe('digestMode', () => {
   it('« week-end » pendant la Toussaint, interrupteur coupé', () => {
     expect(digestMode(HOLIDAY_WINDOW, weekendStrict, HOLIDAYS)).toBe('weekend');
   });
-  it('fenêtre à cheval sur le début des vacances (jeudi 15 → mercredi 21)', () => {
-    expect(digestMode(daysInWindow('2026-10-15', '2026-10-22'), weekendOnly, HOLIDAYS)).toBe('holidays');
+  it('fenêtre à cheval sur le début des vacances (jeudi 15 → mercredi 21) : sélection normale, pas « C\'est les vacances »', () => {
+    expect(digestMode(daysInWindow('2026-10-15', '2026-10-22'), weekendOnly, HOLIDAYS)).toBe('week');
+  });
+  it('mail du mardi 13 octobre, « mercredi + week-end » : seul le lundi 19 est ajouté, pas de mode vacances', () => {
+    expect(digestMode(daysInWindow('2026-10-13', '2026-10-20'), wedWeekend, HOLIDAYS)).toBe('week');
+  });
+  it('fenêtre qui commence en vacances et finit après la reprise (mardi 27 → lundi 2) : mode vacances', () => {
+    expect(digestMode(daysInWindow('2026-10-27', '2026-11-03'), wedWeekend, HOLIDAYS)).toBe('holidays');
+  });
+  it('fenêtre qui commence en vacances un samedi (envoi samedi 17) : mode vacances', () => {
+    expect(digestMode(daysInWindow('2026-10-17', '2026-10-24'), weekendOnly, HOLIDAYS)).toBe('holidays');
+  });
+  it('première semaine après la reprise : plus rien de vacances', () => {
+    expect(digestMode(daysInWindow('2026-11-03', '2026-11-10'), wedWeekend, HOLIDAYS)).toBe('week');
+    expect(upcomingHoliday(daysInWindow('2026-11-03', '2026-11-10'), wedWeekend, HOLIDAYS)).toBeNull();
   });
   it('« toute la semaine » hors vacances = comportement d’avant', () => {
     expect(digestMode(SCHOOL_WINDOW, everyDay, HOLIDAYS)).toBe('week');
@@ -129,6 +143,33 @@ describe('digestMode', () => {
   });
   it('« mercredi + week-end » hors vacances', () => {
     expect(digestMode(SCHOOL_WINDOW, wedWeekend, HOLIDAYS)).toBe('week');
+  });
+});
+
+describe('upcomingHoliday', () => {
+  it('mail du mardi 13 octobre, « mercredi + week-end » : Toussaint annoncée, lundi 19 ajouté', () => {
+    expect(upcomingHoliday(daysInWindow('2026-10-13', '2026-10-20'), wedWeekend, HOLIDAYS)).toEqual({
+      holiday: TOUSSAINT,
+      addedDays: ['2026-10-19'],
+    });
+  });
+  it('mail du vendredi 16 octobre, « mercredi + week-end » : lun., mar., jeu. ajoutés (le mercredi l\'était déjà)', () => {
+    expect(upcomingHoliday(daysInWindow('2026-10-16', '2026-10-23'), wedWeekend, HOLIDAYS)?.addedDays).toEqual([
+      '2026-10-19',
+      '2026-10-20',
+      '2026-10-22',
+    ]);
+  });
+  it('vacances qui ne touchent que le week-end (mail du lundi 12) : rien à annoncer', () => {
+    expect(upcomingHoliday(daysInWindow('2026-10-12', '2026-10-19'), wedWeekend, HOLIDAYS)).toBeNull();
+  });
+  it('fenêtre qui commence déjà en vacances : pas d\'annonce, c\'est le mode vacances', () => {
+    expect(upcomingHoliday(HOLIDAY_WINDOW, wedWeekend, HOLIDAYS)).toBeNull();
+  });
+  it('« toute la semaine » ou interrupteur coupé : rien à annoncer', () => {
+    const window = daysInWindow('2026-10-13', '2026-10-20');
+    expect(upcomingHoliday(window, everyDay, HOLIDAYS)).toBeNull();
+    expect(upcomingHoliday(window, weekendStrict, HOLIDAYS)).toBeNull();
   });
 });
 

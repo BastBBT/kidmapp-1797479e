@@ -48,6 +48,9 @@ interface WeeklyDigestProps {
   /** « sam. 10 et dim. 11 oct. » (week-end) ou « du 22 au 28 oct. » (vacances). */
   rangeLabel?: string | null
   holiday?: { label: string; untilLabel: string; filtered: boolean } | null
+  /** Vacances qui commencent en cours de semaine (mode `week`) : « Les vacances
+   * de la Toussaint commencent samedi 17 » + jours ajoutés (« du lundi 19 »). */
+  holidayStart?: { title: string; addedLabel: string } | null
   /** « tout sauf Marché » quand le parent a restreint les types, sinon null. */
   categoriesLabel?: string | null
   preferencesUrl?: string
@@ -96,6 +99,7 @@ const WeeklyDigestEmail = ({
   mode = 'week',
   rangeLabel = null,
   holiday = null,
+  holidayStart = null,
   categoriesLabel = null,
   preferencesUrl = `${SITE_URL}/account?section=digest`,
   landingUrl = '',
@@ -150,6 +154,15 @@ const WeeklyDigestEmail = ({
                 {holiday.filtered
                   ? ` · jusqu'au ${holiday.untilLabel}, on t'envoie les idées de toute la semaine.`
                   : ` · jusqu'au ${holiday.untilLabel}.`}
+              </Text>
+            </Section>
+          )}
+
+          {holidayStart && (
+            <Section style={holidayBanner}>
+              <Text style={holidayText}>
+                <strong>{holidayStart.title}</strong>
+                {` · on a ajouté les idées ${holidayStart.addedLabel} à ta sélection.`}
               </Text>
             </Section>
           )}
