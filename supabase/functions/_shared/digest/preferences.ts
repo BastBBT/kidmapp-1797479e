@@ -125,14 +125,26 @@ export function holidayInWindow(windowDays: string[], holidays: SchoolHoliday[])
 }
 
 /**
+ * Jours que les vacances AJOUTENT à ce parent dans la fenêtre : jours de
+ * vacances qu'il n'aurait pas reçus avec ses seuls « moments dispo ». Vide
+ * pour un parent « toute la semaine » ou interrupteur vacances coupé.
+ */
+export function holidayAddedDays(windowDays: string[], prefs: DigestPrefs, holidays: SchoolHoliday[]): string[] {
+  if (prefs.digestDays === 'all' || !prefs.holidaysAllWeek) return []
+  const withoutHolidays: DigestPrefs = { ...prefs, holidaysAllWeek: false }
+  return windowDays.filter((d) => holidayOn(d, holidays) && !isDayWanted(d, withoutHolidays, holidays))
+}
+
+/**
  * Forme du mail de la semaine :
  * - `weekend` : seuls des jours de week-end sont voulus dans la fenêtre
  *   (parent « week-end » hors vacances) ;
- * - `holidays` : des vacances touchent la fenêtre et le parent a activé
- *   « toute la semaine pendant les vacances » (avec un choix de jours
- *   restreint) — décision produit : un parent « toute la semaine » n'a rien
- *   demandé de spécial pour les vacances, son mail ne change pas ;
- * - `week` : tout le reste (comportement d'avant la feature).
+ * - `holidays` : la fenêtre COMMENCE pendant des vacances qui ajoutent des
+ *   jours à ce parent (choix de jours restreint + « toute la semaine pendant
+ *   les vacances ») — décision produit : un parent « toute la semaine » n'a
+ *   rien demandé de spécial pour les vacances, son mail ne change pas ;
+ * - `week` : tout le reste (comportement d'avant la feature), y compris des
+ *   vacances qui ne commencent qu'en cours de fenêtre — cf. `upcomingHoliday`.
  */
 export type DigestMode = 'weekend' | 'holidays' | 'week'
 
@@ -143,10 +155,30 @@ export function digestMode(windowDays: string[], prefs: DigestPrefs, holidays: S
   // des vacances qui ne touchent la fenêtre que par un samedi/dimanche (ou le
   // mercredi d'un parent « mercredi + week-end ») ne changent rien à ce qu'il
   // reçoit — un objet « C'est les vacances » serait trompeur.
-  const withoutHolidays: DigestPrefs = { ...prefs, holidaysAllWeek: false }
-  const holidaysAddDays = windowDays.some((d) => holidayOn(d, holidays) && !isDayWanted(d, withoutHolidays, holidays))
-  if (prefs.digestDays !== 'all' && prefs.holidaysAllWeek && holidaysAddDays) return 'holidays'
+  // Et seulement si la fenêtre commence en vacances : un mail du mardi 13
+  // octobre dont seul le lundi 19 tombe dans la Toussaint (qui commence le
+  // samedi 17) n'est pas « ta semaine de vacances ».
+  const startsInHolidays = holidayOn(windowDays[0] ?? '', holidays) !== null
+  if (startsInHolidays && holidayAddedDays(windowDays, prefs, holidays).length > 0) return 'holidays'
   return 'week'
+}
+
+/**
+ * Vacances qui commencent en cours de fenêtre et ajoutent des jours à ce
+ * parent : le mail reste une sélection normale, avec un bandeau qui annonce
+ * le début des vacances et les jours ajoutés. null si la fenêtre commence
+ * déjà en vacances (mode `holidays`) ou si les vacances n'ajoutent rien.
+ */
+export function upcomingHoliday(
+  windowDays: string[],
+  prefs: DigestPrefs,
+  holidays: SchoolHoliday[],
+): { holiday: SchoolHoliday; addedDays: string[] } | null {
+  if (windowDays.length === 0 || holidayOn(windowDays[0], holidays)) return null
+  const added = holidayAddedDays(windowDays, prefs, holidays)
+  if (added.length === 0) return null
+  const holiday = holidayOn(added[0], holidays)!
+  return { holiday, addedDays: added.filter((d) => holidayOn(d, holidays) === holiday) }
 }
 
 export interface GroupableItem {

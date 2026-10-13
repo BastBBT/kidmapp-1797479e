@@ -13,6 +13,7 @@ import {
   holidayInWindow,
   isDayWanted,
   parseDigestDays,
+  upcomingHoliday,
   wantedDaysOf,
   weekendRuns,
   type DigestMode,
@@ -128,6 +129,23 @@ function shortDay(iso: string): string {
   return utcDate(iso).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', timeZone: 'UTC' })
 }
 
+/** « samedi 17 » */
+function weekdayDay(iso: string): string {
+  return utcDate(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', timeZone: 'UTC' })
+}
+
+/** « du lundi 19 », « du lundi 19 au jeudi 22 » */
+function daysSpanLabel(days: string[]): string {
+  const first = days[0]
+  const last = days[days.length - 1]
+  return first === last ? `du ${weekdayDay(first)}` : `du ${weekdayDay(first)} au ${weekdayDay(last)}`
+}
+
+/** « Vacances de la Toussaint » → « vacances de la Toussaint » (milieu de phrase). */
+function lowerFirst(s: string): string {
+  return s.charAt(0).toLowerCase() + s.slice(1)
+}
+
 /** « oct. » */
 function shortMonth(iso: string): string {
   return utcDate(iso).toLocaleDateString('fr-FR', { month: 'short', timeZone: 'UTC' })
@@ -171,6 +189,8 @@ function groupHeading(
   group: ItemGroup<unknown>,
   mode: DigestMode,
   windowDays: string[],
+  /** Premier jour de vacances qui commencent en cours de fenêtre (cf. `upcomingHoliday`). */
+  holidayStart: string | null,
 ): { title: string; subtitle: string | null } {
   switch (group.kind) {
     case 'day':
@@ -182,7 +202,15 @@ function groupHeading(
     case 'rest_of_week':
       return group.day
         ? { title: capitalize(dayTitle(group.day)), subtitle: null }
-        : { title: 'Le reste de la semaine', subtitle: mode === 'holidays' ? 'vacances scolaires' : null }
+        : {
+            title: 'Le reste de la semaine',
+            subtitle:
+              mode === 'holidays'
+                ? 'vacances scolaires'
+                : holidayStart
+                  ? `vacances dès ${weekdayDay(holidayStart)}`
+                  : null,
+          }
   }
 }
 
@@ -195,7 +223,12 @@ function eventCategoriesSummary(chosen: string[] | null): string | null {
   return EVENT_CATEGORIES.filter((c) => chosen.includes(c)).join(', ')
 }
 
-function pushCopy(mode: DigestMode, count: number, windowDays: string[]): { title: string; body: string } {
+function pushCopy(
+  mode: DigestMode,
+  count: number,
+  windowDays: string[],
+  holidayStart: string | null,
+): { title: string; body: string } {
   const ideas = `${count} idée${count > 1 ? 's' : ''} pour ta famille`
   if (mode === 'weekend') {
     // Envoyé un dimanche, la fenêtre porte le dimanche en cours puis le samedi suivant.
@@ -203,7 +236,12 @@ function pushCopy(mode: DigestMode, count: number, windowDays: string[]): { titl
     return { title: 'Ton week-end en famille 🎈', body: `${ideas}, ${days}.` }
   }
   if (mode === 'holidays') return { title: "C'est les vacances 🎈", body: `${ideas}, toute la semaine.` }
-  return { title: 'Ta sélection de la semaine 👀', body: `${count} sortie${count > 1 ? 's' : ''} pour ta famille cette semaine.` }
+  const sorties = `${count} sortie${count > 1 ? 's' : ''} pour ta famille cette semaine`
+  if (holidayStart) {
+    const day = utcDate(holidayStart).toLocaleDateString('fr-FR', { weekday: 'long', timeZone: 'UTC' })
+    return { title: 'Ta sélection de la semaine 👀', body: `${sorties}, vacances dès ${day}.` }
+  }
+  return { title: 'Ta sélection de la semaine 👀', body: `${sorties}.` }
 }
 
 async function runDigest() {
@@ -389,6 +427,10 @@ async function runDigest() {
     // jamais laisser un créneau digest_sends consommé sans envoi.
     const childrenNames = children.map((c) => c.first_name).filter((n): n is string => !!n && n.trim().length > 0)
     const mode = digestMode(windowDays, prefs, holidays)
+    // Vacances qui commencent en cours de fenêtre (mail du mardi avant la
+    // Toussaint) : sélection normale + bandeau d'annonce, pas « C'est les vacances ».
+    const upcoming = mode === 'week' ? upcomingHoliday(windowDays, prefs, holidays) : null
+    const holidayStart = upcoming?.holiday.first_day ?? null
     // Plage annoncée = jours réellement couverts pour ce parent (vacances qui
     // commencent en milieu de fenêtre : « du 17 au 21 oct. », pas toute la fenêtre).
     const wantedWindowDays = windowDays.filter((d) => isDayWanted(d, prefs, holidays))
@@ -406,7 +448,7 @@ async function runDigest() {
       }
     })
     const groups = capGroups(groupItems(allItems, mode, firstWeekendRun(windowDays)), MAX_EMAIL_ITEMS).map((g) => ({
-      ...groupHeading(g, mode, windowDays),
+      ...groupHeading(g, mode, windowDays, holidayStart),
       items: g.items.map(({ wantedDays: _wantedDays, ...item }) => item),
     }))
     const holiday = mode === 'holidays' ? holidayInWindow(windowDays, holidays) : null
@@ -419,11 +461,17 @@ async function runDigest() {
       rangeLabel:
         mode === 'weekend'
           ? weekendsLabel(windowDays)
-          : mode === 'holidays'
+          : mode === 'holidays' || upcoming
             ? windowRangeLabel(wantedWindowDays[0], wantedWindowDays[wantedWindowDays.length - 1])
             : null,
       holiday: holiday
         ? { label: holiday.label, untilLabel: longDateLabel(holiday.last_day), filtered: prefs.digestDays !== 'all' }
+        : null,
+      holidayStart: upcoming
+        ? {
+            title: `Les ${lowerFirst(upcoming.holiday.label)} commencent ${weekdayDay(upcoming.holiday.first_day)}`,
+            addedLabel: daysSpanLabel(upcoming.addedDays),
+          }
         : null,
       categoriesLabel: eventCategoriesSummary(prefs.eventCategories),
       preferencesUrl: PREFERENCES_URL,
@@ -503,7 +551,7 @@ async function runDigest() {
 
     if (profile.digest_push_enabled && serviceAccount) {
       const devices = devicesByUser.get(profile.id) ?? []
-      const push = pushCopy(mode, allItems.length, windowDays)
+      const push = pushCopy(mode, allItems.length, windowDays, holidayStart)
       const result = await sendToUserDevices(
         supabase,
         serviceAccount,
