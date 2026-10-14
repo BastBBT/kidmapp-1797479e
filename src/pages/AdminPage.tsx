@@ -3988,7 +3988,7 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   // drapeau, encore en attente et déjà géocodés (le géocodage à la volée de handleApprove peut
   // demander une saisie manuelle). Restreint aux filtres affichés : on ne publie que ce qu'on voit.
   const botUserId = Object.keys(emails).find((uid) => emails[uid] === BOT_SOURCING_EMAIL) ?? null;
-  const isBotClear = (ev: { status: string; user_id: string | null }) =>
+  const isBotClear = (ev: { status: string; user_id: string | null; review_flags?: string[] | null; review_checked_at?: string | null }) =>
     ev.status === 'pending' && !!botUserId && ev.user_id === botUserId && reviewStateOf(ev) === 'clear';
   const bulkCandidates = baseFiltered.filter((ev) => isBotClear(ev) && ev.lat != null && ev.lng != null);
   const clearPendingWithoutCoords = baseFiltered.filter((ev) => isBotClear(ev) && (ev.lat == null || ev.lng == null)).length;
@@ -4010,7 +4010,8 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
           .in('id', ids.slice(i, i + 100))
           .eq('user_id', botUserId)
           .eq('status', 'pending')
-          .eq('review_flags', '{}')
+          // PostgREST attend le littéral array '{}' pour l'égalité tableau vide.
+          .eq('review_flags', '{}' as unknown as string[])
           .not('review_checked_at', 'is', null)
           .select('id');
         if (error) throw error;
