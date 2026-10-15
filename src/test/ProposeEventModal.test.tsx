@@ -8,6 +8,8 @@ import ProposeEventModal from '@/components/ProposeEventModal';
 type Call = { table: string; op: 'insert' | 'delete'; payload?: unknown; eq?: [string, unknown] };
 const calls: Call[] = [];
 let occurrencesError: { message: string } | null = null;
+let rollbackError: { message: string } | null = null;
+const toastMock = vi.fn();
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -19,7 +21,7 @@ vi.mock('@/integrations/supabase/client', () => ({
       delete: () => ({
         eq: async (col: string, val: unknown) => {
           calls.push({ table, op: 'delete', eq: [col, val] });
-          return { error: null };
+          return { error: table === 'events' ? rollbackError : null };
         },
       }),
     }),
@@ -30,7 +32,7 @@ vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'user-1' } }) 
 vi.mock('@/hooks/useProposalModal', () => ({
   useProposalModal: () => ({ isOpen: true, mode: 'event', close: vi.fn(), setMode: vi.fn() }),
 }));
-vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }));
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: toastMock }) }));
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let container: HTMLDivElement;
@@ -57,6 +59,8 @@ const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0))
 beforeEach(() => {
   calls.length = 0;
   occurrencesError = null;
+  rollbackError = null;
+  toastMock.mockClear();
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -152,5 +156,52 @@ describe('ProposeEventModal — créneaux multiples', () => {
       'delete:events',
     ]);
     expect(calls[2].eq).toEqual(['id', eventId]);
+  });
+
+  it('refuse une année à 5 chiffres sans planter, et bloque l’envoi', () => {
+    fillBasics();
+    setValue(dateInputs()[0], '20261-10-26');
+    expect(() => click(button('Ajouter un autre créneau'))).not.toThrow();
+    expect(container.textContent).toContain('Date invalide');
+    expect(button('Envoyer la proposition').disabled).toBe(true);
+  });
+
+  it('masque le bouton d’ajout à 20 créneaux', () => {
+    setValue(dateInputs()[0], '2026-10-26');
+    for (let i = 1; i < 20; i++) click(button('Ajouter un autre créneau'));
+    expect(container.textContent).toContain('Créneau 20');
+    expect(button('Ajouter un autre créneau')).toBeUndefined();
+  });
+
+  it('si le retrait échoue aussi : prévient de ne pas renvoyer, sans signaler un échec « réessaie »', async () => {
+    occurrencesError = { message: 'offline' };
+    rollbackError = { message: 'offline' };
+    fillBasics();
+    setValue(dateInputs()[0], '2026-10-26');
+    click(button('Ajouter un autre créneau'));
+    click(button('Envoyer la proposition'));
+    await flush();
+
+    expect(calls.map((c) => `${c.op}:${c.table}`)).toEqual([
+      'insert:events',
+      'insert:event_occurrences',
+      'delete:events',
+    ]);
+    expect(toastMock).toHaveBeenCalledTimes(1);
+    expect(toastMock.mock.calls[0][0].title).toContain('dates incomplètes');
+    expect(toastMock.mock.calls[0][0].description).toContain('Ne renvoie pas');
+  });
+
+  it('si le retrait réussit : message d’erreur classique pour réessayer', async () => {
+    occurrencesError = { message: 'offline' };
+    fillBasics();
+    setValue(dateInputs()[0], '2026-10-26');
+    click(button('Ajouter un autre créneau'));
+    click(button('Envoyer la proposition'));
+    await flush();
+
+    expect(toastMock).toHaveBeenCalledTimes(1);
+    expect(toastMock.mock.calls[0][0].variant).toBe('destructive');
+    expect(toastMock.mock.calls[0][0].title).not.toContain('dates incomplètes');
   });
 });

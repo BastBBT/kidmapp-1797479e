@@ -19,6 +19,9 @@ import {
   emptySlotDraft,
   nextSlotDraft,
   preparedSlots,
+  MAX_SLOT_DATE,
+  MIN_SLOT_DATE,
+  slotDateError,
   slotRangeError,
   slotsAreValid,
   type SlotDraft,
@@ -128,7 +131,8 @@ const ProposeEventModal = () => {
   const [slots, setSlots] = useState<SlotDraft[]>([emptySlotDraft()]);
   const updateSlot = (i: number, patch: Partial<SlotDraft>) =>
     setSlots((prev) => prev.map((s, j) => (j === i ? { ...s, ...patch } : s)));
-  const addSlot = () => setSlots((prev) => [...prev, nextSlotDraft(prev[prev.length - 1])]);
+  const addSlot = () =>
+    setSlots((prev) => (prev.length >= MAX_EVENT_SLOTS ? prev : [...prev, nextSlotDraft(prev[prev.length - 1])]));
   const removeSlot = (i: number) => setSlots((prev) => prev.filter((_, j) => j !== i));
 
   const reset = () => {
@@ -237,10 +241,25 @@ const ProposeEventModal = () => {
           .from('event_occurrences')
           .insert(extraSlots.map((slot) => ({ event_id: eventId, ...slot })));
         if (slotsError) {
+          console.error('Insert into event_occurrences failed:', slotsError);
           // Sans les créneaux suivants l'événement serait publié avec une seule date : on retire la
           // proposition (RLS : l'auteur peut supprimer son event en attente) pour que « Réessaie »
           // ne crée pas de doublon.
-          await supabase.from('events').delete().eq('id', eventId);
+          const { error: rollbackError } = await supabase.from('events').delete().eq('id', eventId);
+          if (rollbackError) {
+            // Retrait impossible (typiquement la même coupure réseau) : la proposition existe avec
+            // sa seule première date. Un « Réessaie » en créerait une seconde, donc on dit plutôt
+            // de ne pas renvoyer et on referme le formulaire.
+            console.error('Rollback of event failed:', rollbackError);
+            toast({
+              title: 'Événement envoyé, dates incomplètes',
+              description:
+                'Seule la première date a été enregistrée. Ne renvoie pas la proposition : écris-nous pour compléter les autres.',
+              variant: 'destructive',
+            });
+            handleClose();
+            return;
+          }
           throw slotsError;
         }
       }
@@ -253,7 +272,7 @@ const ProposeEventModal = () => {
     } catch (err) {
       // Un message par famille de cause, code technique affiché avec : voir
       // src/lib/submitFailure.ts.
-      console.error('Insert into events failed:', err);
+      console.error('Event proposal failed:', err);
       toast({
         title: t('common.error'),
         description: submitFailureText(err, t, t('submit_error.retry')),
@@ -397,6 +416,8 @@ const ProposeEventModal = () => {
                         <input
                           type="date"
                           style={inputStyle}
+                          min={MIN_SLOT_DATE}
+                          max={MAX_SLOT_DATE}
                           value={slot.date_start}
                           onChange={(e) => updateSlot(i, { date_start: e.target.value })}
                         />
@@ -406,12 +427,16 @@ const ProposeEventModal = () => {
                         <input
                           type="date"
                           style={inputStyle}
-                          min={slot.date_start || undefined}
+                          min={slot.date_start || MIN_SLOT_DATE}
+                          max={MAX_SLOT_DATE}
                           value={slot.date_end}
                           onChange={(e) => updateSlot(i, { date_end: e.target.value })}
                         />
                       </div>
                     </div>
+                    {slotDateError(slot) && (
+                      <p style={linkErrorStyle}>Date invalide : vérifie l'année.</p>
+                    )}
                     {slotRangeError(slot) && (
                       <p style={linkErrorStyle}>La date de fin ne peut pas précéder la date de début.</p>
                     )}
