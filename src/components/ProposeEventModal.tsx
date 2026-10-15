@@ -14,6 +14,18 @@ import { MAX_EVENT_PHOTOS, EVENT_CATEGORIES, EVENT_WEATHERS, eventCategoryEmoji 
 import { DURATIONS } from '@/lib/activity';
 import { ageToMonths, ageRangeError, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
+import {
+  MAX_EVENT_SLOTS,
+  emptySlotDraft,
+  nextSlotDraft,
+  preparedSlots,
+  MAX_SLOT_DATE,
+  MIN_SLOT_DATE,
+  slotDateError,
+  slotRangeError,
+  slotsAreValid,
+  type SlotDraft,
+} from '@/lib/eventSlots';
 
 const linkErrorStyle = { color: 'var(--destructive, #c0392b)', fontFamily: 'DM Sans', fontSize: 12, margin: '4px 0 0' } as const;
 
@@ -101,9 +113,6 @@ const ProposeEventModal = () => {
     name: '',
     category: 'Spectacle' as string,
     address: '',
-    date_start: '',
-    date_end: '',
-    time: '',
     age_min: '',
     age_max: '',
     age_unit: 'years' as AgeUnit,
@@ -118,12 +127,21 @@ const ProposeEventModal = () => {
 
   const update = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
 
+  // Un événement peut avoir plusieurs créneaux (atelier proposé 4 jours, pas forcément de suite).
+  const [slots, setSlots] = useState<SlotDraft[]>([emptySlotDraft()]);
+  const updateSlot = (i: number, patch: Partial<SlotDraft>) =>
+    setSlots((prev) => prev.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  const addSlot = () =>
+    setSlots((prev) => (prev.length >= MAX_EVENT_SLOTS ? prev : [...prev, nextSlotDraft(prev[prev.length - 1])]));
+  const removeSlot = (i: number) => setSlots((prev) => prev.filter((_, j) => j !== i));
+
   const reset = () => {
     setForm({
-      name: '', category: 'Spectacle', address: '', date_start: '', date_end: '',
-      time: '', age_min: '', age_max: '', age_unit: 'years', duration: '', weather: '',
+      name: '', category: 'Spectacle', address: '',
+      age_min: '', age_max: '', age_unit: 'years', duration: '', weather: '',
       price: '', website: '', booking_url: '', instagram: '', note: '',
     });
+    setSlots([emptySlotDraft()]);
     setPhotoFiles([]);
     setWebsiteTouched(false);
     setBookingTouched(false);
@@ -160,7 +178,7 @@ const ProposeEventModal = () => {
   // Le message n'apparaît qu'une fois le champ quitté ; l'envoi reste bloqué tant que le lien est refusé.
   const websiteError = webLinkInputError(form.website);
   const bookingUrlError = webLinkInputError(form.booking_url);
-  const canSubmit = Boolean(form.name.trim() && form.category && form.date_start)
+  const canSubmit = Boolean(form.name.trim() && form.category && slotsAreValid(slots))
     && !ageRangeError(form.age_min, form.age_max, form.age_unit)
     && !websiteError && !bookingUrlError;
 
@@ -186,14 +204,21 @@ const ProposeEventModal = () => {
         photoUrls.push(supabase.storage.from('location-photos').getPublicUrl(fileName).data.publicUrl);
       }
 
+      // Premier créneau → ligne `events` (un trigger en fait l'occurrence par défaut) ; les suivants
+      // sont insérés dans `event_occurrences` juste après. L'id est choisi ici pour les rattacher
+      // sans relire la ligne insérée.
+      const [first, ...extraSlots] = preparedSlots(slots);
+      const eventId = crypto.randomUUID();
+
       const insertData: any = {
+        id: eventId,
         user_id: user.id,
         name: form.name.trim(),
         category: form.category,
         address: form.address.trim() || null,
-        date_start: form.date_start,
-        date_end: form.date_end || null,
-        time: form.time || null,
+        date_start: first.date_start,
+        date_end: first.date_end,
+        time: first.time,
         age_min_months: form.age_min === '' ? null : ageToMonths(Math.max(0, parseInt(form.age_min, 10)), form.age_unit) || null,
         age_max_months: form.age_max === '' ? null : ageToMonths(Math.max(0, parseInt(form.age_max, 10)), form.age_unit) || null,
         duration: form.duration || null,
@@ -211,6 +236,34 @@ const ProposeEventModal = () => {
       const { error } = await supabase.from('events' as any).insert(insertData);
       if (error) throw error;
 
+      if (extraSlots.length > 0) {
+        const { error: slotsError } = await supabase
+          .from('event_occurrences')
+          .insert(extraSlots.map((slot) => ({ event_id: eventId, ...slot })));
+        if (slotsError) {
+          console.error('Insert into event_occurrences failed:', slotsError);
+          // Sans les créneaux suivants l'événement serait publié avec une seule date : on retire la
+          // proposition (RLS : l'auteur peut supprimer son event en attente) pour que « Réessaie »
+          // ne crée pas de doublon.
+          const { error: rollbackError } = await supabase.from('events').delete().eq('id', eventId);
+          if (rollbackError) {
+            // Retrait impossible (typiquement la même coupure réseau) : la proposition existe avec
+            // sa seule première date. Un « Réessaie » en créerait une seconde, donc on dit plutôt
+            // de ne pas renvoyer et on referme le formulaire.
+            console.error('Rollback of event failed:', rollbackError);
+            toast({
+              title: 'Événement envoyé, dates incomplètes',
+              description:
+                'Seule la première date a été enregistrée. Ne renvoie pas la proposition : écris-nous pour compléter les autres.',
+              variant: 'destructive',
+            });
+            handleClose();
+            return;
+          }
+          throw slotsError;
+        }
+      }
+
       toast({
         title: 'Événement envoyé ✦',
         description: 'Merci ! On vérifie avant publication.',
@@ -219,7 +272,7 @@ const ProposeEventModal = () => {
     } catch (err) {
       // Un message par famille de cause, code technique affiché avec : voir
       // src/lib/submitFailure.ts.
-      console.error('Insert into events failed:', err);
+      console.error('Event proposal failed:', err);
       toast({
         title: t('common.error'),
         description: submitFailureText(err, t, t('submit_error.retry')),
@@ -333,36 +386,97 @@ const ProposeEventModal = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <div>
-                    <Label>Date début *</Label>
-                    <input
-                      type="date"
-                      style={inputStyle}
-                      value={form.date_start}
-                      onChange={(e) => update('date_start', e.target.value)}
-                    />
+                {slots.map((slot, i) => (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {slots.length > 1 && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text)', fontWeight: 600 }}>
+                          Créneau {i + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeSlot(i)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            fontFamily: 'DM Sans',
+                            fontSize: 12,
+                            color: 'var(--destructive, #c0392b)',
+                          }}
+                        >
+                          Retirer ce créneau
+                        </button>
+                      </div>
+                    )}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <div>
+                        <Label>{i === 0 ? 'Date début *' : 'Date début'}</Label>
+                        <input
+                          type="date"
+                          style={inputStyle}
+                          min={MIN_SLOT_DATE}
+                          max={MAX_SLOT_DATE}
+                          value={slot.date_start}
+                          onChange={(e) => updateSlot(i, { date_start: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label>Date fin</Label>
+                        <input
+                          type="date"
+                          style={inputStyle}
+                          min={slot.date_start || MIN_SLOT_DATE}
+                          max={MAX_SLOT_DATE}
+                          value={slot.date_end}
+                          onChange={(e) => updateSlot(i, { date_end: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    {slotDateError(slot) && (
+                      <p style={linkErrorStyle}>Date invalide : vérifie l'année.</p>
+                    )}
+                    {slotRangeError(slot) && (
+                      <p style={linkErrorStyle}>La date de fin ne peut pas précéder la date de début.</p>
+                    )}
+                    <div>
+                      <Label>Heure</Label>
+                      <input
+                        type="time"
+                        style={inputStyle}
+                        value={slot.time}
+                        onChange={(e) => updateSlot(i, { time: e.target.value })}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <Label>Date fin</Label>
-                    <input
-                      type="date"
-                      style={inputStyle}
-                      value={form.date_end}
-                      onChange={(e) => update('date_end', e.target.value)}
-                    />
-                  </div>
-                </div>
+                ))}
 
-                <div>
-                  <Label>Heure</Label>
-                  <input
-                    type="time"
-                    style={inputStyle}
-                    value={form.time}
-                    onChange={(e) => update('time', e.target.value)}
-                  />
-                </div>
+                {slots.length < MAX_EVENT_SLOTS && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={addSlot}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: 12,
+                        border: '1.5px dashed var(--primary)',
+                        background: 'transparent',
+                        color: 'var(--primary)',
+                        fontFamily: 'DM Sans',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      + Ajouter un autre créneau
+                    </button>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, fontFamily: 'DM Sans' }}>
+                      Un atelier proposé plusieurs jours (pas forcément à la suite) ? Ajoute un créneau par date.
+                    </div>
+                  </div>
+                )}
 
                 <AgeRangeInput
                   minValue={form.age_min}
