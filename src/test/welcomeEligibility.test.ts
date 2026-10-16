@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  welcomeExclusions,
   welcomeRecipients,
   type WelcomeCandidate,
 } from '../../supabase/functions/_shared/welcome/eligibility.ts';
@@ -43,5 +44,25 @@ describe('welcomeRecipients', () => {
 
   it('ignore une date de création illisible', () => {
     expect(welcomeRecipients([user({ created_at: 'pas une date' })], new Set(), NOW)).toEqual([]);
+  });
+});
+
+describe('welcomeExclusions', () => {
+  it('exclut les envois réussis ou supprimés, casse comprise', () => {
+    const ex = welcomeExclusions([
+      { recipient_email: 'A@x.fr', status: 'sent' },
+      { recipient_email: 'b@x.fr', status: 'suppressed' },
+    ]);
+    expect([...ex].sort()).toEqual(['a@x.fr', 'b@x.fr']);
+  });
+
+  it('retente après 1 ou 2 échecs, abandonne au 3e', () => {
+    const fail = (n: number) => Array.from({ length: n }, () => ({ recipient_email: 'c@x.fr', status: 'failed' }));
+    expect(welcomeExclusions(fail(2)).has('c@x.fr')).toBe(false);
+    expect(welcomeExclusions(fail(3)).has('c@x.fr')).toBe(true);
+  });
+
+  it('ignore les lignes run_aborted', () => {
+    expect(welcomeExclusions([{ recipient_email: '', status: 'run_aborted' }]).size).toBe(0);
   });
 });

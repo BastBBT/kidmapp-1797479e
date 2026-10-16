@@ -36,3 +36,33 @@ export function welcomeRecipients(
     return !alreadySent.has(u.email.toLowerCase())
   })
 }
+
+/** Au-delà de ce nombre d'échecs, une adresse n'est plus retentée (sinon une
+ * adresse durablement en erreur serait relancée chaque heure pendant 47 h). */
+export const WELCOME_MAX_FAILURES = 3
+/** Profondeur de relecture du journal : la fenêtre d'éligibilité plus un jour
+ * de marge. Borne aussi la requête (PostgREST plafonne les lectures). */
+export const WELCOME_LOG_LOOKBACK_HOURS = WELCOME_LOOKBACK_HOURS + 24
+
+export interface WelcomeLogRow {
+  recipient_email: string
+  status: string
+}
+
+/** Emails (en minuscules) à ne plus servir : déjà accueillis (`sent` /
+ * `suppressed`) ou en échec `WELCOME_MAX_FAILURES` fois. */
+export function welcomeExclusions(rows: WelcomeLogRow[]): Set<string> {
+  const excluded = new Set<string>()
+  const failures = new Map<string, number>()
+  for (const row of rows) {
+    const email = row.recipient_email.toLowerCase()
+    if (row.status === 'sent' || row.status === 'suppressed') {
+      excluded.add(email)
+    } else if (row.status === 'failed') {
+      const n = (failures.get(email) ?? 0) + 1
+      failures.set(email, n)
+      if (n >= WELCOME_MAX_FAILURES) excluded.add(email)
+    }
+  }
+  return excluded
+}

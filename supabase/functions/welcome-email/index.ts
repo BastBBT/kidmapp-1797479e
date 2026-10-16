@@ -1,6 +1,11 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
-import { welcomeRecipients, type WelcomeCandidate } from '../_shared/welcome/eligibility.ts'
+import {
+  WELCOME_LOG_LOOKBACK_HOURS,
+  welcomeExclusions,
+  welcomeRecipients,
+  type WelcomeCandidate,
+} from '../_shared/welcome/eligibility.ts'
 
 // Mail de bienvenue, envoyé une seule fois ~1 h après l'inscription (cron
 // horaire). Pas de colonne dédiée : le dédoublonnage s'appuie sur
@@ -29,25 +34,35 @@ async function runWelcome() {
 
   const users = await listAllUsers(supabase)
 
-  // Un envoi « failed » ne compte pas : il sera retenté au run suivant, tant
-  // que le compte reste dans la fenêtre de rattrapage.
+  // Relecture bornée dans le temps : la fenêtre d'éligibilité ne remonte pas
+  // au-delà, et une lecture non bornée serait tronquée par PostgREST.
+  const logSince = new Date(now.getTime() - WELCOME_LOG_LOOKBACK_HOURS * 3600_000).toISOString()
   const { data: logRows, error: logError } = await supabase
     .from('email_send_log')
-    .select('recipient_email')
+    .select('recipient_email, status')
     .eq('template_name', TEMPLATE)
-    .in('status', ['sent', 'suppressed'])
+    .in('status', ['sent', 'suppressed', 'failed'])
+    .gte('created_at', logSince)
   if (logError) {
     // Sans le journal, impossible de savoir qui a déjà été accueilli : on
-    // n'envoie rien plutôt que de risquer un doublon.
+    // n'envoie rien plutôt que de risquer un doublon. Ligne `run_aborted`
+    // (même patron que new-location-alert) : pg_cron ne voit pas l'échec,
+    // la fonction ayant déjà répondu ok.
     console.error('welcome-email: lecture email_send_log impossible (run annulé)', logError)
+    const { error } = await supabase.from('email_send_log').insert({
+      template_name: TEMPLATE,
+      recipient_email: '',
+      status: 'run_aborted',
+      error_message: `relecture des envois précédents impossible: ${logError.message}`.slice(0, 1000),
+    })
+    if (error) console.error('email_send_log insert failed (run annulé)', error)
     return
   }
-  const alreadySent = new Set(
-    (logRows ?? []).map((r: { recipient_email: string }) => r.recipient_email.toLowerCase()),
-  )
+  const alreadySent = welcomeExclusions(logRows ?? [])
 
   const recipients = welcomeRecipients(users, alreadySent, now)
   let sentCount = 0
+  let suppressedCount = 0
   let failedCount = 0
 
   for (const user of recipients) {
@@ -62,7 +77,8 @@ async function runWelcome() {
         status: result.sent ? 'sent' : 'suppressed',
       })
       if (error) console.error('email_send_log insert failed', error)
-      sentCount++
+      if (result.sent) sentCount++
+      else suppressedCount++
     } catch (sendError) {
       const message = sendError instanceof Error ? sendError.message : String(sendError)
       console.error('welcome-email send error', user.id, message)
@@ -81,6 +97,7 @@ async function runWelcome() {
     scanned: users.length,
     eligible: recipients.length,
     sentCount,
+    suppressedCount,
     failedCount,
   })
 }
