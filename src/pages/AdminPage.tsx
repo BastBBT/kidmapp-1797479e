@@ -4443,10 +4443,6 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
           <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: '#0F6E56' }}>
             {bulkCandidates.length} événement{bulkCandidates.length > 1 ? 's' : ''} du bot sans point à vérifier
             {clearPendingWithoutCoords > 0 && ` (+ ${clearPendingWithoutCoords} sans coordonnées, à approuver un par un)`}
-            {/* Cron auto-publish-bot-clear : chaque matin (05:00 UTC), les 🟢 géocodés insérés depuis plus de 12 h. */}
-            <span style={{ display: 'block', fontSize: 12, opacity: 0.8 }}>
-              Publiés automatiquement chaque matin s'ils sont là depuis plus de 12 h : rejette avant ce qui ne doit pas passer.
-            </span>
           </span>
           {bulkCandidates.length > 0 && (
             <button onClick={handleBulkPublish} disabled={bulkPublishing}
