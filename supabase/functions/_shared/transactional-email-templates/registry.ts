@@ -16,6 +16,7 @@ import { template as contributionValidated } from './contribution-validated.tsx'
 import { template as proposalApproved } from './proposal-approved.tsx'
 import { template as eventPublished } from './event-published.tsx'
 import { template as submissionRejected } from './submission-rejected.tsx'
+import { template as sourcingAlert } from './sourcing-alert.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'weekly-admin-report': weeklyAdminReport,
@@ -25,4 +26,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'proposal-approved': proposalApproved,
   'event-published': eventPublished,
   'submission-rejected': submissionRejected,
+  'sourcing-alert': sourcingAlert,
 }
