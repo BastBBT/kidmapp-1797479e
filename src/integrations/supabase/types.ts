@@ -1145,6 +1145,54 @@ export type Database = {
         }
         Relationships: []
       }
+      sourcing_runs: {
+        Row: {
+          error: string | null
+          finished_at: string
+          flagged: number
+          id: string
+          inserted: number
+          mode: string | null
+          report: Json | null
+          routine: string
+          started_at: string
+          status: string
+          user_id: string
+          window_end: string | null
+          window_start: string | null
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string
+          flagged?: number
+          id?: string
+          inserted?: number
+          mode?: string | null
+          report?: Json | null
+          routine: string
+          started_at: string
+          status: string
+          user_id?: string
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string
+          flagged?: number
+          id?: string
+          inserted?: number
+          mode?: string | null
+          report?: Json | null
+          routine?: string
+          started_at?: string
+          status?: string
+          user_id?: string
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
