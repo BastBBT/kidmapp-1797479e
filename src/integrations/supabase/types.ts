@@ -1286,6 +1286,7 @@ export type Database = {
           website: string
         }[]
       }
+      admin_top_pages: { Args: never; Returns: Json }
       apply_data_retention: { Args: never; Returns: undefined }
       award_points: {
         Args: {
