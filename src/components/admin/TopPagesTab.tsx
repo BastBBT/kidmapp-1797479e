@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { categoryLabels, type LocationCategory } from '@/types/location';
-import { rankBy, splitLocations, type PageSort, type TopEvent, type TopLocation, type TopPagesStats } from './topPages';
+import { PLATFORMS, type Platform } from './audiencePlatforms';
+import { forPlatform, rankBy, splitLocations, type PageSort, type TopEvent, type TopLocation, type TopPagesStats } from './topPages';
 
 type Kind = 'places' | 'activities' | 'events';
 
@@ -23,6 +24,7 @@ const fmt = (n: number) => n.toLocaleString('fr-FR');
 export function TopPagesTab({ isAdmin }: { isAdmin: boolean }) {
   const [kind, setKind] = useState<Kind>('places');
   const [sort, setSort] = useState<PageSort>('views30d');
+  const [platform, setPlatform] = useState<Platform | 'all'>('all');
   const [expanded, setExpanded] = useState(false);
 
   const { data, isLoading, error } = useQuery({
@@ -46,7 +48,7 @@ export function TopPagesTab({ isAdmin }: { isAdmin: boolean }) {
     return <div style={{ ...muted, textAlign: 'center', padding: '24px 0' }}>Impossible de charger le classement des pages.</div>;
   }
 
-  const rows = rankBy<TopLocation | TopEvent>(lists[kind], sort);
+  const rows = rankBy<TopLocation | TopEvent>(forPlatform<TopLocation | TopEvent>(lists[kind], platform), sort);
   const shown = expanded ? rows : rows.slice(0, PAGE_SIZE);
   const unvisited = kind === 'events' ? 0 : rows.filter((r) => r.viewsTotal === 0).length;
   const since = data.trackingSince ? new Date(data.trackingSince).toLocaleDateString('fr-FR') : null;
@@ -64,12 +66,19 @@ export function TopPagesTab({ isAdmin }: { isAdmin: boolean }) {
         </div>
       </div>
 
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+        <Chip active={platform === 'all'} onClick={() => setPlatform('all')}>Toutes plateformes</Chip>
+        {PLATFORMS.map((p) => (
+          <Chip key={p.key} active={platform === p.key} onClick={() => setPlatform(p.key)}>{p.label}</Chip>
+        ))}
+      </div>
+
       <div style={card}>
         <div style={{ ...rowStyle(true), borderTop: 'none' }}>
           <div>{KIND_LABELS[kind]}</div>
           <SortHead active={sort === 'views30d'} onClick={() => setSort('views30d')}>30 j</SortHead>
           <SortHead active={sort === 'viewsTotal'} onClick={() => setSort('viewsTotal')}>Total</SortHead>
-          <div style={{ textAlign: 'right' }} title="Visiteurs distincts sur 30 jours">Visit.</div>
+          <div style={{ textAlign: 'right' }} title="Visiteurs distincts sur 30 jours, toutes plateformes">{platform === 'all' ? 'Visit.' : ''}</div>
         </div>
 
         {shown.length === 0 && <div style={{ ...muted, padding: '12px 0' }}>Aucune visite enregistrée.</div>}
@@ -89,7 +98,7 @@ export function TopPagesTab({ isAdmin }: { isAdmin: boolean }) {
               </div>
               <Num strong={sort === 'views30d'} value={r.views30d} />
               <Num strong={sort === 'viewsTotal'} value={r.viewsTotal} />
-              <Num value={r.visitors30d} />
+              {platform === 'all' ? <Num value={r.visitors30d} /> : <div />}
             </div>
           );
         })}
@@ -110,11 +119,11 @@ export function TopPagesTab({ isAdmin }: { isAdmin: boolean }) {
       </div>
 
       <div style={{ ...muted, fontSize: '11px', marginTop: '8px' }}>
-        Visites = pages vues <strong>sur le web uniquement</strong> : les apps iOS et Android ne journalisent qu'une ligne
-        par session, pas les fiches consultées — leur trafic n'est donc pas compté ici.
+        Visites = fiches ouvertes (une ouverture = une visite, une même personne qui revient compte plusieurs fois).
+        Les apps iOS et Android ne comptent les fiches qu'à partir de la version qui suit cette mise à jour : tant qu'elle
+        n'est pas installée, leurs visites sont absentes, donc le total est sous-estimé.
         Les visites des admins sont exclues. « Total » court {since ? `depuis le ${since}` : 'depuis le début du suivi'} (rétention 12 mois) ;
         « Visit. » compte les appareils distincts sur 30 jours, fiable à partir du 24/10 (suivi par appareil introduit le 24/09).
-        Une même personne qui revient compte plusieurs fois dans les visites.
       </div>
     </div>
   );

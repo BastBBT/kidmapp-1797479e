@@ -1,4 +1,8 @@
 import { isActivity } from '@/types/location';
+import type { Platform } from './audiencePlatforms';
+
+export type PlatformViews = { views30d: number; viewsTotal: number };
+export type ByPlatform = Record<Platform, PlatformViews>;
 
 /** Forme renvoyée par la RPC `admin_top_pages` (supabase/migrations/20261017120000). */
 export type TopLocation = {
@@ -9,6 +13,8 @@ export type TopLocation = {
   viewsTotal: number;
   views30d: number;
   visitors30d: number;
+  /** Ventilation des deux compteurs par plateforme d'origine de la visite. */
+  byPlatform: ByPlatform;
 };
 
 export type TopEvent = {
@@ -20,6 +26,8 @@ export type TopEvent = {
   viewsTotal: number;
   views30d: number;
   visitors30d: number;
+  /** Ventilation des deux compteurs par plateforme d'origine de la visite. */
+  byPlatform: ByPlatform;
 };
 
 export type TopPagesStats = {
@@ -44,4 +52,17 @@ export function rankBy<T extends { name: string; viewsTotal: number; views30d: n
   return [...rows].sort(
     (a, b) => b[sort] - a[sort] || b[other] - a[other] || a.name.localeCompare(b.name, 'fr'),
   );
+}
+
+/** « Toutes » garde les compteurs de la RPC ; une plateforme les remplace par les siens. Les visiteurs
+ *  distincts ne sont comptés que toutes plateformes confondues (un appareil n'a qu'une plateforme). */
+export function forPlatform<T extends { viewsTotal: number; views30d: number; visitors30d: number; byPlatform: ByPlatform }>(
+  rows: T[],
+  platform: Platform | 'all',
+): T[] {
+  if (platform === 'all') return rows;
+  return rows.map((r) => {
+    const v = r.byPlatform?.[platform] ?? { views30d: 0, viewsTotal: 0 };
+    return { ...r, views30d: v.views30d, viewsTotal: v.viewsTotal, visitors30d: 0 };
+  });
 }

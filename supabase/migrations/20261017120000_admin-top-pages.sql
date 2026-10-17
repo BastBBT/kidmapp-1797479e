@@ -1,8 +1,9 @@
 -- Trace de la RPC admin_top_pages, À APPLIQUER PAR LOVABLE (drizzle/migrations/0012 sera créé de son côté).
 
 -- Classement des fiches les plus visitées (lieux / activités et sorties), pour l'onglet admin
--- « Top pages ». Lit `page_views` (chemins `/location/<uuid>` et `/event/<uuid>`) — seul le web
--- journalise les pages ; les apps iOS/Android n'écrivent qu'une ligne `/app/session` par session.
+-- « Top pages ». Lit `page_views` (chemins `/location/<uuid>` et `/event/<uuid>`), écrits par le web
+-- et, depuis la version qui suit cette PR, par les apps iOS et Android (même chemins, `platform`
+-- distingue l'origine). Les versions d'apps plus anciennes n'écrivent qu'une ligne `/app/session`.
 -- Les visites des admins (et du compte de test events) sont exclues, comme dans admin_audience_stats.
 CREATE OR REPLACE FUNCTION public.admin_top_pages()
  RETURNS jsonb
@@ -38,13 +39,21 @@ BEGIN
   INTO v_locations
   FROM (
     SELECT l.id, l.name, l.category, l.city,
+           jsonb_build_object(
+             'web', jsonb_build_object('views30d', count(pv.path) FILTER (WHERE pv.platform = 'web' AND pv.created_at >= v_since30),
+                                       'viewsTotal', count(pv.path) FILTER (WHERE pv.platform = 'web')),
+             'ios', jsonb_build_object('views30d', count(pv.path) FILTER (WHERE pv.platform = 'ios' AND pv.created_at >= v_since30),
+                                       'viewsTotal', count(pv.path) FILTER (WHERE pv.platform = 'ios')),
+             'android', jsonb_build_object('views30d', count(pv.path) FILTER (WHERE pv.platform = 'android' AND pv.created_at >= v_since30),
+                                           'viewsTotal', count(pv.path) FILTER (WHERE pv.platform = 'android'))
+           ) AS "byPlatform",
            count(pv.path) AS "viewsTotal",
            count(pv.path) FILTER (WHERE pv.created_at >= v_since30) AS "views30d",
            count(DISTINCT COALESCE(pv.device_id::text, pv.user_id::text))
              FILTER (WHERE pv.created_at >= v_since30) AS "visitors30d"
     FROM public.locations l
     LEFT JOIN (
-      SELECT lower(substr(path, length('/location/') + 1)) AS ref, path, created_at, device_id, user_id
+      SELECT lower(substr(path, length('/location/') + 1)) AS ref, path, platform, created_at, device_id, user_id
       FROM public.page_views
       WHERE path ~* '^/location/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
         AND (user_id IS NULL OR NOT (user_id = ANY(v_excluded)))
@@ -58,13 +67,21 @@ BEGIN
   INTO v_events
   FROM (
     SELECT e.id, e.name, e.status, e.date_start AS "dateStart", e.recurrence_label AS "recurrenceLabel",
+           jsonb_build_object(
+             'web', jsonb_build_object('views30d', count(pv.path) FILTER (WHERE pv.platform = 'web' AND pv.created_at >= v_since30),
+                                       'viewsTotal', count(pv.path) FILTER (WHERE pv.platform = 'web')),
+             'ios', jsonb_build_object('views30d', count(pv.path) FILTER (WHERE pv.platform = 'ios' AND pv.created_at >= v_since30),
+                                       'viewsTotal', count(pv.path) FILTER (WHERE pv.platform = 'ios')),
+             'android', jsonb_build_object('views30d', count(pv.path) FILTER (WHERE pv.platform = 'android' AND pv.created_at >= v_since30),
+                                           'viewsTotal', count(pv.path) FILTER (WHERE pv.platform = 'android'))
+           ) AS "byPlatform",
            count(pv.path) AS "viewsTotal",
            count(pv.path) FILTER (WHERE pv.created_at >= v_since30) AS "views30d",
            count(DISTINCT COALESCE(pv.device_id::text, pv.user_id::text))
              FILTER (WHERE pv.created_at >= v_since30) AS "visitors30d"
     FROM public.events e
     JOIN (
-      SELECT lower(substr(path, length('/event/') + 1)) AS ref, path, created_at, device_id, user_id
+      SELECT lower(substr(path, length('/event/') + 1)) AS ref, path, platform, created_at, device_id, user_id
       FROM public.page_views
       WHERE path ~* '^/event/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
         AND (user_id IS NULL OR NOT (user_id = ANY(v_excluded)))
