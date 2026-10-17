@@ -92,6 +92,13 @@
       "when": 1792247827769,
       "tag": "0012_admin_top_pages",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792248631984,
+      "tag": "0013_admin_top_pages_exclude_admin_devices",
+      "breakpoints": true
     }
   ]
 }
