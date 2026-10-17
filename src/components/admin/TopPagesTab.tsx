@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { categoryLabels, type LocationCategory } from '@/types/location';
 import { PLATFORMS, type Platform } from './audiencePlatforms';
-import { forPlatform, rankBy, splitLocations, type PageSort, type TopEvent, type TopLocation, type TopPagesStats } from './topPages';
+import { EVENTS_CAP, VISITORS_RELIABLE_FROM, eventStatusLabel, forPlatform, formatIsoDate, hasAppViews, rankBy, splitLocations, type PageSort, type TopEvent, type TopLocation, type TopPagesStats } from './topPages';
 
 type Kind = 'places' | 'activities' | 'events';
 
@@ -51,6 +51,8 @@ export function TopPagesTab({ isAdmin }: { isAdmin: boolean }) {
   const rows = rankBy<TopLocation | TopEvent>(forPlatform<TopLocation | TopEvent>(lists[kind], platform), sort);
   const shown = expanded ? rows : rows.slice(0, PAGE_SIZE);
   const unvisited = kind === 'events' ? 0 : rows.filter((r) => r.viewsTotal === 0).length;
+  const appViews = hasAppViews(data.locations ?? []) || hasAppViews(data.events ?? []);
+  const visitorsPartial = new Date().toISOString().slice(0, 10) < VISITORS_RELIABLE_FROM;
   const since = data.trackingSince ? new Date(data.trackingSince).toLocaleDateString('fr-FR') : null;
 
   return (
@@ -60,7 +62,7 @@ export function TopPagesTab({ isAdmin }: { isAdmin: boolean }) {
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {(Object.keys(KIND_LABELS) as Kind[]).map((k) => (
             <Chip key={k} active={kind === k} onClick={() => { setKind(k); setExpanded(false); }}>
-              {KIND_LABELS[k]} <span style={{ opacity: 0.7 }}>({fmt(lists[k].length)})</span>
+              {KIND_LABELS[k]} <span style={{ opacity: 0.7 }}>({k === 'events' && lists[k].length >= EVENTS_CAP ? `top ${EVENTS_CAP}` : fmt(lists[k].length)})</span>
             </Chip>
           ))}
         </div>
@@ -87,13 +89,19 @@ export function TopPagesTab({ isAdmin }: { isAdmin: boolean }) {
           const sub =
             'category' in r
               ? `${categoryLabels[r.category as LocationCategory] ?? r.category} · ${r.city}`
-              : r.recurrenceLabel ?? new Date(r.dateStart).toLocaleDateString('fr-FR');
+              : r.recurrenceLabel ?? formatIsoDate(r.dateStart);
+          const statusLabel = 'status' in r ? eventStatusLabel(r.status) : null;
           return (
             <div key={r.id} style={rowStyle(false)}>
               <div style={{ minWidth: 0 }}>
                 <a href={href} target="_blank" rel="noreferrer" style={{ color: 'var(--text)', textDecoration: 'none', fontWeight: 500 }}>
                   <span style={{ ...muted, marginRight: '6px' }}>{i + 1}.</span>{r.name}
                 </a>
+                {statusLabel && (
+                  <span style={{ marginLeft: '6px', padding: '1px 7px', borderRadius: '999px', fontFamily: 'DM Sans', fontSize: '10px', fontWeight: 600, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                    {statusLabel}
+                  </span>
+                )}
                 <div style={{ ...muted, fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub}</div>
               </div>
               <Num strong={sort === 'views30d'} value={r.views30d} />
@@ -111,6 +119,12 @@ export function TopPagesTab({ isAdmin }: { isAdmin: boolean }) {
             {expanded ? 'Réduire' : `Voir les ${fmt(rows.length)} fiches`}
           </button>
         )}
+        {kind === 'events' && lists.events.length >= EVENTS_CAP && (
+          <div style={{ ...muted, fontSize: '11px', marginTop: '8px' }}>
+            Seules les {EVENTS_CAP} sorties les plus vues (30 jours, toutes plateformes) sont listées : le filtre par plateforme
+            reclasse ces {EVENTS_CAP}, il ne remonte pas une sortie absente de ce top.
+          </div>
+        )}
         {unvisited > 0 && (
           <div style={{ ...muted, fontSize: '11px', marginTop: '8px' }}>
             {fmt(unvisited)} fiche(s) sans aucune visite enregistrée — en fin de liste quand on trie par visites.
@@ -120,10 +134,9 @@ export function TopPagesTab({ isAdmin }: { isAdmin: boolean }) {
 
       <div style={{ ...muted, fontSize: '11px', marginTop: '8px' }}>
         Visites = fiches ouvertes (une ouverture = une visite, une même personne qui revient compte plusieurs fois).
-        Les apps iOS et Android ne comptent les fiches qu'à partir de la version qui suit cette mise à jour : tant qu'elle
-        n'est pas installée, leurs visites sont absentes, donc le total est sous-estimé.
-        Les visites des admins sont exclues. « Total » court {since ? `depuis le ${since}` : 'depuis le début du suivi'} (rétention 12 mois) ;
-        « Visit. » compte les appareils distincts sur 30 jours, fiable à partir du 24/10 (suivi par appareil introduit le 24/09).
+        Seules les versions récentes des apps iOS et Android comptent les fiches{appViews ? '' : ' : aucune visite d\u2019app n\u2019est enregistrée pour l\u2019instant, les chiffres sont donc ceux du web'}.
+        Les visites des admins sont exclues, y compris celles faites déconnecté depuis un appareil déjà vu connecté en admin. « Total » court {since ? `depuis le ${since}` : 'depuis le début du suivi'} (rétention 12 mois).
+        {visitorsPartial && ` « Visit. » compte les appareils distincts sur 30 jours : pas encore sur 30 jours pleins, fiable à partir du ${formatIsoDate(VISITORS_RELIABLE_FROM)}.`}
       </div>
     </div>
   );

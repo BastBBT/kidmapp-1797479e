@@ -66,3 +66,30 @@ export function forPlatform<T extends { viewsTotal: number; views30d: number; vi
     return { ...r, views30d: v.views30d, viewsTotal: v.viewsTotal, visitors30d: 0 };
   });
 }
+
+const EVENT_STATUS_LABELS: Record<string, string> = { pending: 'En attente', rejected: 'Rejetée', unpublished: 'Dépubliée' };
+
+/** `null` pour une sortie publiée : seul le cas anormal mérite un badge dans le classement. */
+export function eventStatusLabel(status: string): string | null {
+  if (status === 'published') return null;
+  return EVENT_STATUS_LABELS[status] ?? status;
+}
+
+/** `events.date_start` est une colonne `date` (YYYY-MM-DD) : on la reformate sans passer par `Date`,
+ *  qui la lirait comme minuit UTC et la ferait reculer d'un jour dans un fuseau négatif. */
+export function formatIsoDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+}
+
+/** Vrai dès qu'au moins une fiche a une visite venue d'une app : tant que ce n'est pas le cas, les
+ *  versions d'apps qui journalisent les fiches ne sont probablement pas encore installées. */
+export function hasAppViews(rows: { byPlatform?: ByPlatform }[]): boolean {
+  return rows.some((r) => (r.byPlatform?.ios?.viewsTotal ?? 0) + (r.byPlatform?.android?.viewsTotal ?? 0) > 0);
+}
+
+/** Le suivi par appareil date du 2026-09-24 : les « visiteurs » ne couvrent 30 jours pleins qu'à partir de là. */
+export const VISITORS_RELIABLE_FROM = '2026-10-24';
+
+/** Plafond de la liste des sorties côté RPC (`LIMIT 100`). */
+export const EVENTS_CAP = 100;
