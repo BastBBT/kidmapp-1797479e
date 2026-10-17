@@ -39,11 +39,12 @@ import { fr } from 'date-fns/locale';
 import { sanitizePhotoUrls } from '@/lib/sanitizePhotoUrls';
 import { AudienceTab } from '@/components/admin/AudienceTab';
 import { EngagementTab } from '@/components/admin/EngagementTab';
+import { TopPagesTab } from '@/components/admin/TopPagesTab';
 import { PLATFORMS, type AudienceStats } from '@/components/admin/audiencePlatforms';
 import { webLink } from '@/lib/webLink';
 
 
-type AdminTab = 'dashboard' | 'audience' | 'engagement' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events' | 'outbound';
+type AdminTab = 'dashboard' | 'audience' | 'top-pages' | 'engagement' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events' | 'outbound';
 
 type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; confirmed_count: number }>;
 
@@ -58,6 +59,7 @@ const buildEmptyMealsState = (mealTypes: MealType[]): MealsState => {
 const tabs: { key: AdminTab; label: string }[] = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'audience', label: 'Audience' },
+  { key: 'top-pages', label: 'Top pages' },
   { key: 'engagement', label: 'Engagement' },
   { key: 'outbound', label: 'Trafic sortant' },
   { key: 'locations', label: 'Lieux & activités' },
@@ -924,6 +926,12 @@ const AdminPage = () => {
         {activeTab === 'engagement' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <EngagementTab isAdmin={isAdmin} />
+          </motion.div>
+        )}
+
+        {activeTab === 'top-pages' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <TopPagesTab isAdmin={isAdmin} />
           </motion.div>
         )}
 
