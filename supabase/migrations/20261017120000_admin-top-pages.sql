@@ -1,4 +1,4 @@
--- Trace de la RPC admin_top_pages, À APPLIQUER PAR LOVABLE (drizzle/migrations/0012 sera créé de son côté).
+-- Copie de drizzle/migrations/0012_admin_top_pages.sql (appliquée par Lovable le 2026-10-17).
 
 -- Classement des fiches les plus visitées (lieux / activités et sorties), pour l'onglet admin
 -- « Top pages ». Lit `page_views` (chemins `/location/<uuid>` et `/event/<uuid>`), écrits par le web
