@@ -10,6 +10,7 @@ AS $$
 $$;
 GRANT EXECUTE ON FUNCTION public.get_event_feedback_counts(uuid) TO anon, authenticated, service_role;
 
+-- guard:allow-destructive remplacement de la policy de lecture publique par own-or-admin (voulu : les totaux passent par la RPC), aucune donnée touchée
 DROP POLICY IF EXISTS event_feedback_select_public ON public.event_feedback;
 CREATE POLICY event_feedback_select_own_or_admin ON public.event_feedback
 FOR SELECT TO authenticated
