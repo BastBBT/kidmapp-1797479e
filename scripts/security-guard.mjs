@@ -273,9 +273,13 @@ for (const file of newMigrations) {
 }
 
 // ------------------------------------------------------------- 4. verify_jwt = false
-// Seule exception réellement présente sur main. Ne PAS pré-autoriser de noms absents du
+// Exceptions réellement présentes sur main. Ne PAS pré-autoriser de noms absents du
 // fichier : ce serait une approbation dormante qui passerait sans revue le jour venu.
-const JWT_EXEMPT = new Set(['preview-transactional-email']);
+// - auth-email-hook : webhook d'auth appelé par Lovable, sans JWT Supabase. Il vérifie
+//   lui-même sa provenance : createAuthEmailHandler (@lovable.dev/email-js) contrôle la
+//   signature HMAC horodatée (x-lovable-signature / x-lovable-timestamp, 401 sinon), et
+//   la route /preview exige `Authorization: Bearer <LOVABLE_API_KEY>`.
+const JWT_EXEMPT = new Set(['preview-transactional-email', 'auth-email-hook']);
 
 // Tout le fichier est reparsé, pas seulement les lignes ajoutées : renommer une section
 // exemptée en laissant `verify_jwt = false` intact rendait auparavant une nouvelle fonction
