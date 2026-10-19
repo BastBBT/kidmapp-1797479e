@@ -13,8 +13,10 @@ import {
 import type { TemplateEntry } from './registry.ts'
 
 // Mail de bienvenue (une fois, ~1 h après l'inscription — cf. welcome-email).
-// Mail de service : il explique comment régler le compte, sans promotion
-// (Lovable Emails n'accepte que du transactionnel). Maquette validée :
+// Mail de service : il explique comment régler le compte (Lovable Emails
+// n'accepte que du transactionnel). Seule exception assumée : un P.S. discret
+// vers Instagram, en simple suggestion — pas d'encart, pas de bouton, ne pas
+// le transformer en appel promotionnel. Maquette validée :
 // Kidmapp/emails/bienvenue.html.
 
 const SITE_NAME = 'Kidmapp'
@@ -118,12 +120,13 @@ const WelcomeEmail = () => (
             <span style={signature}>Julie et Bastien, Kidmapp</span>
           </Text>
 
-          <div style={instaBox}>
-            <Text style={instaText}>📸 Nos idées de sorties du moment, c'est aussi sur Instagram&nbsp;!</Text>
-            <Link href={INSTAGRAM_URL} style={instaLink}>
-              Suivre @kidmapp →
+          <Text style={postScript}>
+            P.S. On partage aussi quelques coups de cœur sur{' '}
+            <Link href={INSTAGRAM_URL} style={postScriptLink}>
+              Instagram
             </Link>
-          </div>
+            , si ça te dit.
+          </Text>
         </Section>
 
         <Section style={footerCell}>
@@ -219,15 +222,8 @@ const tipsText = { fontFamily: sans, fontSize: '14px', lineHeight: 1.6, color: '
 const inlineLink = { color: '#3B7D6E', fontWeight: 600, textDecoration: 'underline' }
 const signOff = { fontFamily: sans, fontSize: '15px', lineHeight: 1.6, color: '#44403C', margin: '24px 0 0' }
 const signature = { fontFamily: serif, fontWeight: 600, color: '#1C1917' }
-const instaBox = {
-  background: '#FAF0EC',
-  borderRadius: '12px',
-  padding: '18px 20px',
-  marginTop: '24px',
-  textAlign: 'center' as const,
-}
-const instaText = { fontFamily: sans, fontSize: '14px', lineHeight: 1.55, color: '#44403C', margin: '0 0 8px' }
-const instaLink = { fontFamily: sans, fontSize: '14px', fontWeight: 600, color: '#D95F3B', textDecoration: 'none' }
+const postScript = { fontFamily: sans, fontSize: '13px', lineHeight: 1.5, color: '#78716C', margin: '20px 0 0' }
+const postScriptLink = { color: '#44403C', textDecoration: 'underline' }
 const footerCell = {
   padding: '20px 40px 24px',
   borderTop: '1px solid #E7E3DC',
