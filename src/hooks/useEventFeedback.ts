@@ -22,15 +22,10 @@ export const useEventFeedback = (eventId: string) => {
     queryKey: ['event-feedback', eventId],
     enabled: !!eventId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('event_feedback' as any)
-        .select('verdict')
-        .eq('event_id', eventId);
+      const { data, error } = await supabase.rpc('get_event_feedback_counts', { _event_id: eventId });
       if (error) throw error;
-      const rows = (data ?? []) as unknown as { verdict: Verdict }[];
-      const up = rows.filter((r) => r.verdict === 'up').length;
-      const down = rows.filter((r) => r.verdict === 'down').length;
-      return { up, down };
+      const row = (Array.isArray(data) ? data[0] : data) as { up: number; down: number } | undefined;
+      return { up: Number(row?.up ?? 0), down: Number(row?.down ?? 0) };
     },
   });
 

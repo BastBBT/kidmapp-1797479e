@@ -1304,6 +1304,13 @@ export type Database = {
           id: string
         }[]
       }
+      get_event_feedback_counts: {
+        Args: { _event_id: string }
+        Returns: {
+          down: number
+          up: number
+        }[]
+      }
       increment_meal_confirmed_count: {
         Args: { p_location_id: string; p_meal_type_id: string }
         Returns: undefined
