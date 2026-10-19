@@ -25,6 +25,10 @@ const LOGO_URL = `${SITE_URL}/icon-512.png`
 const ACCOUNT_URL = `${SITE_URL}/account`
 const PROPOSE_URL = `${SITE_URL}/propose`
 const INSTAGRAM_URL = 'https://www.instagram.com/kidmapp/'
+// Fiches store : elles affichent « Ouvrir » si l'appli est installée, « Installer »
+// sinon — utile au parent inscrit depuis le site, qui ne connaît pas l'appli.
+const APP_STORE_URL = 'https://apps.apple.com/fr/app/kidmapp/id6763571262'
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=bastienboubat.kidmapp_flutter'
 
 const STEPS = [
   {
@@ -129,6 +133,31 @@ const WelcomeEmail = () => (
           </Text>
         </Section>
 
+        {/* Rappel discret de l'appli : les notifications n'existent pas sur le site. */}
+        <Section style={appRow}>
+          <table role="presentation" width="100%" cellPadding={0} cellSpacing={0}>
+            <tbody>
+              <tr>
+                <td width="40" valign="top" style={appIcon}>
+                  📱
+                </td>
+                <td valign="top" style={appText}>
+                  <strong style={hintStrong}>Kidmapp existe aussi en appli.</strong> C'est là que tu
+                  reçois ta sélection en notification et que tu retrouves tes lieux en un geste.
+                  <br />
+                  <Link href={APP_STORE_URL} style={appLink}>
+                    iPhone
+                  </Link>
+                  <span style={appSeparator}>&nbsp;·&nbsp;</span>
+                  <Link href={PLAY_STORE_URL} style={appLink}>
+                    Android
+                  </Link>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </Section>
+
         <Section style={footerCell}>
           <Text style={footerBrand}>{SITE_NAME} · Nantes en famille</Text>
           <Text style={footerNote}>
@@ -224,6 +253,11 @@ const signOff = { fontFamily: sans, fontSize: '15px', lineHeight: 1.6, color: '#
 const signature = { fontFamily: serif, fontWeight: 600, color: '#1C1917' }
 const postScript = { fontFamily: sans, fontSize: '13px', lineHeight: 1.5, color: '#78716C', margin: '20px 0 0' }
 const postScriptLink = { color: '#44403C', textDecoration: 'underline' }
+const appRow = { padding: '18px 40px', borderTop: '1px solid #E7E3DC' }
+const appIcon = { fontSize: '22px', lineHeight: 1.2 }
+const appText = { fontFamily: sans, fontSize: '13px', lineHeight: 1.55, color: '#78716C' }
+const appLink = { color: '#3B7D6E', fontWeight: 600, textDecoration: 'none' }
+const appSeparator = { color: '#D6D3CE' }
 const footerCell = {
   padding: '20px 40px 24px',
   borderTop: '1px solid #E7E3DC',
