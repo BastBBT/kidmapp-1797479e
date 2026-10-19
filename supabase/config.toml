@@ -13,3 +13,5 @@ project_id = "rcwepnqjyowlbtmltwxo"
     verify_jwt = true
   [functions.digest-landing]
     verify_jwt = true
+  [functions.welcome-email]
+    verify_jwt = true
