@@ -17,13 +17,30 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const TEMPLATE = 'welcome'
 const PER_PAGE = 1000
 
-async function listAllUsers(supabase: ReturnType<typeof createClient>): Promise<WelcomeCandidate[]> {
+// Le client Supabase est intentionnellement non-typé (pas de générique
+// Database) dans les edge functions. ReturnType<typeof createClient> résout
+// des génériques différents selon l'overload, ce qui provoque des conflits de
+// type avec l'instance réelle — on garde le type large (même patron que
+// `_shared/push/dispatch.ts`).
+type SupabaseClientType = any
+
+async function listAllUsers(supabase: SupabaseClientType): Promise<WelcomeCandidate[]> {
   const users: WelcomeCandidate[] = []
   for (let page = 1; ; page++) {
     const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: PER_PAGE })
     if (error) throw error
     const batch = data?.users ?? []
-    users.push(...batch)
+    // `User.email` est optionnel alors que `WelcomeCandidate` l'exige (nullable) :
+    // on mappe explicitement au lieu de pousser les objets bruts. Un compte sans
+    // `created_at` ressort avec '' → écarté plus tard par `welcomeRecipients`.
+    for (const user of batch) {
+      users.push({
+        id: user.id,
+        email: user.email ?? null,
+        created_at: user.created_at ?? '',
+        email_confirmed_at: user.email_confirmed_at ?? null,
+      })
+    }
     if (batch.length < PER_PAGE) return users
   }
 }
