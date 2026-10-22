@@ -54,6 +54,18 @@ describe('DuplicateLocationAlert', () => {
     expect(feedback()).toHaveLength(0);
   });
 
+  it('nom proche seul : lien discret « C\'est bien ce lieu ? », jamais en double avec le bouton', () => {
+    const doubt = () => [...container.querySelectorAll('a')].filter((a) => a.textContent === 'C\'est bien ce lieu ? Donner mon avis');
+    act(() => root.render(<DuplicateLocationAlert matches={weakName} isActivity={false} onDismiss={() => {}} />));
+    expect(doubt()).toHaveLength(1);
+    expect(doubt()[0].getAttribute('href')).toBe('/location/atl?contribuer=1');
+    expect(doubt()[0].getAttribute('target')).toBe('_blank');
+    act(() => root.render(<DuplicateLocationAlert matches={strong} isActivity={false} onDismiss={() => {}} />));
+    expect(doubt()).toHaveLength(0);
+    act(() => root.render(<DuplicateLocationAlert matches={weakAddress} isActivity={false} onDismiss={() => {}} />));
+    expect(doubt()).toHaveLength(0);
+  });
+
   it('activité : le titre parle d\'activité', () => {
     act(() => root.render(<DuplicateLocationAlert matches={strong} isActivity onDismiss={() => {}} />));
     expect(container.textContent).toContain('Cette activité existe peut-être déjà');
@@ -79,6 +91,8 @@ describe('DuplicateLocationAlert', () => {
     act(() => root.render(<DuplicateLocationAlert matches={strong} isActivity={false} onDismiss={() => {}} />));
     expect(container.textContent).toContain('This place may already exist');
     expect(container.textContent).toContain('Share my feedback');
+    act(() => root.render(<DuplicateLocationAlert matches={weakName} isActivity={false} onDismiss={() => {}} />));
+    expect(container.textContent).toContain('Is this the place? Share my feedback');
     await act(async () => { await i18n.changeLanguage('es'); });
     act(() => root.render(<DuplicateLocationAlert matches={strong} isActivity={false} onDismiss={() => {}} />));
     expect(container.textContent).toContain('Puede que este lugar ya exista');

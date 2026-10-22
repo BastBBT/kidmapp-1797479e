@@ -669,6 +669,7 @@
     "chip_similar_name": "Nom proche",
     "view": "Voir ›",
     "not_the_same": "Non, ce n'est pas le même",
-    "give_feedback": "Donner mon avis"
+    "give_feedback": "Donner mon avis",
+    "is_this_the_place": "C'est bien ce lieu ? Donner mon avis"
   }
 }
