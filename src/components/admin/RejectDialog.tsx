@@ -37,7 +37,7 @@ export default function RejectDialog({
       setBusy(false);
     }
     // `initialReason` est lu à l'ouverture seulement : retaper ne doit pas le réécrire.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- le motif proposé ne doit être lu qu'à l'ouverture
   }, [open]);
 
   if (!open) return null;
