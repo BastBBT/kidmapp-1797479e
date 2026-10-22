@@ -720,7 +720,8 @@
     "chip_similar_name": "Similar name",
     "view": "View ›",
     "not_the_same": "No, it's not the same one",
-    "give_feedback": "Share my feedback"
+    "give_feedback": "Share my feedback",
+    "is_this_the_place": "Is this the place? Share my feedback"
   },
   "sorties_assistant": {
     "question_when": "When is it for?",

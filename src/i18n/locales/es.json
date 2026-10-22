@@ -720,7 +720,8 @@
     "chip_similar_name": "Nombre parecido",
     "view": "Ver ›",
     "not_the_same": "No, no es el mismo",
-    "give_feedback": "Dar mi opinión"
+    "give_feedback": "Dar mi opinión",
+    "is_this_the_place": "¿Es este el lugar? Dar mi opinión"
   },
   "sorties_assistant": {
     "question_when": "¿Para cuándo es?",

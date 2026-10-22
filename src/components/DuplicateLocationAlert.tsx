@@ -81,7 +81,7 @@ export default function DuplicateLocationAlert({ matches, isActivity, onDismiss 
             {t('duplicate_location.view')}
           </span>
         </a>
-        {canContribute(m) && (
+        {canContribute(m) ? (
           <a
             href={`/location/${m.candidate.id}?contribuer=1`}
             target="_blank"
@@ -92,6 +92,17 @@ export default function DuplicateLocationAlert({ matches, isActivity, onDismiss 
             }}
           >
             {t('duplicate_location.give_feedback')}
+          </a>
+        ) : (
+          // Nom proche à une autre adresse : peut-être une autre enseigne. Un lien discret plutôt qu'un
+          // bouton, avec le doute dans le libellé.
+          <a
+            href={`/location/${m.candidate.id}?contribuer=1`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--primary)', textDecoration: 'underline', textUnderlineOffset: 3, padding: '2px 0' }}
+          >
+            {t('duplicate_location.is_this_the_place')}
           </a>
         )}
         </div>
