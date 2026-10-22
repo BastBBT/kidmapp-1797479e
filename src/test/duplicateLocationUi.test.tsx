@@ -6,7 +6,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import i18n from '@/i18n';
 import DuplicateLocationAlert from '@/components/DuplicateLocationAlert';
 import RejectDialog from '@/components/admin/RejectDialog';
-import { duplicateRejectMessage } from '@/lib/duplicateRejection';
+import { duplicateRejectMessage, suggestedRejectReason } from '@/lib/duplicateRejection';
 import type { DuplicateMatch } from '@/lib/duplicateLocation';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -101,5 +101,27 @@ describe('motif de refus d\'un doublon', () => {
   it('sans e-mail, rien n\'est pré-rempli', () => {
     renderDialog(null);
     expect(textarea().value).toBe('');
+  });
+});
+
+describe('motif de refus suggéré', () => {
+  const sameAddressOnly: DuplicateMatch[] = [{ candidate: atlantis, level: 'weak', sameAddress: true }];
+
+  it('pré-rempli pour une correspondance forte ou une même adresse', () => {
+    expect(suggestedRejectReason('You Kids Atlantis', strong)).toContain('est déjà dans Kidmapp');
+    expect(suggestedRejectReason('Pizzeria Roma', sameAddressOnly)).toContain('est déjà dans Kidmapp');
+  });
+
+  it('vide pour un nom proche à une autre adresse (autre enseigne possible) ou sans correspondance', () => {
+    expect(suggestedRejectReason('You Kids Atlantis', weakName)).toBe('');
+    expect(suggestedRejectReason('You Kids Atlantis', [])).toBe('');
+    expect(suggestedRejectReason('You Kids Atlantis', undefined)).toBe('');
+  });
+
+  it('un nom très long garde le motif sous la limite de 1000 caractères', () => {
+    const long = 'A'.repeat(900);
+    const msg = suggestedRejectReason(long, [{ candidate: { ...atlantis, name: 'B'.repeat(900) }, level: 'strong', sameAddress: true }]);
+    expect(msg.length).toBeLessThan(1000);
+    expect(msg).toContain('…');
   });
 });

@@ -80,8 +80,12 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
   // `dismissedDuplicateKey` mémorise « non, ce n'est pas le même » pour CETTE liste de lieux : si la
   // saisie change et remonte d'autres lieux, l'alerte reparaît.
   const { data: publishedPlaces = [] } = useDuplicateCandidates(open);
-  const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
+  // On garde la saisie vérifiée plutôt que le résultat : les correspondances se recalculent d'elles-mêmes
+  // quand la liste des lieux arrive après le blur (réseau lent).
+  const [checkedInput, setCheckedInput] = useState<{ name: string; address: string } | null>(null);
   const [dismissedDuplicateKey, setDismissedDuplicateKey] = useState<string | null>(null);
+  // Liste de lieux déjà montrée à l'utilisateur au moment de « Continuer » : ne la retient qu'une fois.
+  const [seenDuplicateKey, setSeenDuplicateKey] = useState<string | null>(null);
   const [step, setStep] = useState(0);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -140,13 +144,20 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
     setPhotoPreview(null);
     setPhotoUrlInput('');
     setWebsiteTouched(false);
-    setDuplicateMatches([]);
+    setCheckedInput(null);
     setDismissedDuplicateKey(null);
+    setSeenDuplicateKey(null);
     setStep(0);
   };
 
-  const refreshDuplicates = () => setDuplicateMatches(findDuplicateLocations(form.name, form.address, publishedPlaces));
-  const duplicateKey = duplicateMatches.map((m) => m.candidate.id).sort().join(',');
+  const duplicateMatches = useMemo(
+    () => (checkedInput ? findDuplicateLocations(checkedInput.name, checkedInput.address, publishedPlaces) : []),
+    [checkedInput, publishedPlaces],
+  );
+  const refreshDuplicates = () => setCheckedInput({ name: form.name, address: form.address });
+  // Le niveau fait partie de la clé : écarter un rappel faible ne doit pas masquer le même lieu devenu fort.
+  const duplicateKeyOf = (matches: DuplicateMatch[]) => matches.map((m) => `${m.candidate.id}:${m.level}`).sort().join(',');
+  const duplicateKey = duplicateKeyOf(duplicateMatches);
   const visibleDuplicates = duplicateMatches.length > 0 && dismissedDuplicateKey !== duplicateKey ? duplicateMatches : null;
 
 
@@ -164,7 +175,22 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
   const isPhotosStep = step === STEPS.length - 1;
   const isMealsStep = hasMealsStep(form.category) && step === 2;
 
-  const goNext = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  const goNext = () => {
+    // Le clic sur « Continuer » arrive avant que le blur du champ ait été rendu : on recalcule ici, et si
+    // des lieux ressemblants n'ont pas encore été vus on reste sur l'étape pour que l'alerte soit lue.
+    // Le clic suivant continue : l'alerte ne bloque jamais.
+    if (step === 0) {
+      const fresh = findDuplicateLocations(form.name, form.address, publishedPlaces);
+      const key = duplicateKeyOf(fresh);
+      setCheckedInput({ name: form.name, address: form.address });
+      const alreadyShown = visibleDuplicates !== null && duplicateKeyOf(visibleDuplicates) === key;
+      if (fresh.length > 0 && dismissedDuplicateKey !== key && seenDuplicateKey !== key && !alreadyShown) {
+        setSeenDuplicateKey(key);
+        return;
+      }
+    }
+    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  };
   const goPrev = () => setStep((s) => Math.max(s - 1, 0));
 
   const toggleMeal = (id: string) =>

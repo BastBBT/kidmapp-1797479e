@@ -24,7 +24,7 @@ import { EVENT_CATEGORIES, EVENT_WEATHERS, MAX_EVENT_PHOTOS, eventCategoryHex, e
 import { occurrencesOf } from '@/lib/eventCalendar';
 import RejectDialog from '@/components/admin/RejectDialog';
 import { DuplicateBadge, DuplicateReviewNote } from '@/components/admin/DuplicateReviewNote';
-import { duplicateRejectMessage } from '@/lib/duplicateRejection';
+import { suggestedRejectReason } from '@/lib/duplicateRejection';
 import { findDuplicateLocations, type DuplicateMatch } from '@/lib/duplicateLocation';
 import { useDuplicateCandidates } from '@/hooks/useDuplicateCandidates';
 import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
@@ -3298,6 +3298,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
             {filteredProposals.map((proposal: any, i: number) => {
               const catStyle = categoryBadgeColors[proposal.category] ?? { bg: 'var(--bg)', color: 'var(--text-muted)' };
               const isProcessing = processingId === proposal.id;
+              const duplicates = duplicatesById.get(proposal.id);
               return (
           <motion.div
             key={proposal.id}
@@ -3328,14 +3329,14 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                 </span>
               </div>
               <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
-                {duplicatesById.has(proposal.id) && <DuplicateBadge />}
+                {duplicates && <DuplicateBadge />}
                 <StatusBadge status={proposal.status === 'approved' ? 'validated' : proposal.status} />
               </div>
             </div>
             <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
               📍 {proposal.address}
             </div>
-            {duplicatesById.has(proposal.id) && <DuplicateReviewNote matches={duplicatesById.get(proposal.id)!} />}
+            {duplicates && <DuplicateReviewNote matches={duplicates} />}
             <div className="flex gap-3 mb-2" style={{ fontFamily: 'DM Sans', fontSize: '12px', flexWrap: 'wrap' }}>
               {isActivity(proposal.category) ? (
                 <>
@@ -3600,11 +3601,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         submissionType="location"
         submissionName={rejectTarget?.name || 'Proposition'}
         recipientEmail={rejectTarget?.user_id ? (proposalEmails[rejectTarget.user_id] ?? null) : null}
-        initialReason={
-          rejectTarget && duplicatesById.has(rejectTarget.id)
-            ? duplicateRejectMessage(rejectTarget.name ?? '', duplicatesById.get(rejectTarget.id)![0])
-            : ''
-        }
+        initialReason={rejectTarget ? suggestedRejectReason(rejectTarget.name ?? '', duplicatesById.get(rejectTarget.id)) : ''}
         onCancel={() => setRejectTarget(null)}
         onConfirm={confirmReject}
       />
