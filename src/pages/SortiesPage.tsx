@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, ChevronsUpDown, List, Map as MapIcon, SlidersHorizontal, X } from 'lucide-react';
@@ -148,7 +148,10 @@ const SortiesPage = () => {
     () => ({ days, ageBuckets, categories, moments, onlyFree, onlyNearby }),
     [days, ageBuckets, categories, moments, onlyFree, onlyNearby],
   );
-  const count = (c: EventCriteria) => countSorties(events, occurrencesByEvent, c, isNear);
+  const count = useCallback(
+    (c: EventCriteria) => countSorties(events, occurrencesByEvent, c, isNear),
+    [events, occurrencesByEvent, isNear],
+  );
 
   // Créneaux passant tous les filtres sauf la période : base de la liste et du calendrier.
   const slots = useMemo(() => filterSlots(events, occurrencesByEvent, criteria, isNear), [events, occurrencesByEvent, criteria, isNear]);
@@ -162,7 +165,7 @@ const SortiesPage = () => {
     return new Set(row.bars.map((b) => b.slot.event.id));
   }, [when.kind, slots, selectedDay, monthExpanded]);
   const longs = useMemo(() => longEventsInRange(slots, days).filter((e) => !drawnLongIds.has(e.id)), [slots, days, drawnLongIds]);
-  const total = useMemo(() => count(criteria), [criteria, events, occurrencesByEvent, isNear]); // eslint-disable-line react-hooks/exhaustive-deps
+  const total = useMemo(() => count(criteria), [count, criteria]);
 
   const availableCategories = useMemo(
     () => orderEventCategories(Array.from(new Set(events.map((e) => e.category).filter(Boolean) as string[]))),
@@ -245,8 +248,9 @@ const SortiesPage = () => {
 
   // Pour chaque filtre actif, ce qu'on obtiendrait en le retirant — puis les
   // autres périodes avec les mêmes filtres. Seules les pistes non vides restent.
-  const relaxers = useMemo(() => {
-    if (groups.length > 0 || longs.length > 0) return [];
+  // Pas mémoïsé : calculé seulement quand la liste est vide, et ses actions
+  // doivent voir les setters du rendu courant, pas ceux d'un rendu précédent.
+  const buildRelaxers = () => {
     const out: { id: string; label: string; count: number; apply: () => void }[] = [];
     const add = (id: string, label: string, patch: Partial<EventCriteria>, apply: () => void) => {
       const n = count({ ...criteria, ...patch });
@@ -266,7 +270,7 @@ const SortiesPage = () => {
       add(`when-${w.kind}`, t('sorties.relax_period', { period: periodLabel(w) }), { days: whenDays(w) }, () => setWhen(w));
     }
     return out;
-  }, [groups.length, longs.length, criteria, categories, moments, ageBuckets, onlyFree, onlyNearby, when, kids.length, t]); // eslint-disable-line react-hooks/exhaustive-deps
+  };
 
   const sectionTitle = (s: MomentSection) =>
     s.moment
@@ -427,7 +431,7 @@ const SortiesPage = () => {
           <p style={{ fontFamily: 'Fraunces, serif', fontSize: 18, fontWeight: 600, color: 'var(--text)', marginTop: 4 }}>{t('sorties.nothing_title')}</p>
           <p style={{ fontFamily: 'Caveat', fontSize: 17, color: 'var(--text-muted)' }}>{t('sorties.nothing_hint')}</p>
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
-            {relaxers.map((r) => (
+            {buildRelaxers().map((r) => (
               <button
                 key={r.id}
                 type="button"
