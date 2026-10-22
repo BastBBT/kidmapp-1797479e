@@ -16,6 +16,9 @@ import { ageToMonths, ageRangeError, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
 import { compressImage } from '@/lib/compressImage';
 import { webLink, webLinkInputError } from '@/lib/webLink';
+import { findDuplicateLocations, type DuplicateMatch } from '@/lib/duplicateLocation';
+import { useDuplicateCandidates } from '@/hooks/useDuplicateCandidates';
+import DuplicateLocationAlert from '@/components/DuplicateLocationAlert';
 
 const PLACE_CATEGORY_OPTIONS: { id: string; label: string }[] = [
   { id: 'restaurant', label: 'Restaurant' },
@@ -73,6 +76,12 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
   const { data: mealTypes = [] } = useMealTypes();
   const [submitting, setSubmitting] = useState(false);
   const [websiteTouched, setWebsiteTouched] = useState(false);
+  // Doublons : lieux publiés chargés à l'ouverture, comparés quand on quitte le champ nom ou adresse.
+  // `dismissedDuplicateKey` mémorise « non, ce n'est pas le même » pour CETTE liste de lieux : si la
+  // saisie change et remonte d'autres lieux, l'alerte reparaît.
+  const { data: publishedPlaces = [] } = useDuplicateCandidates(open);
+  const [duplicateMatches, setDuplicateMatches] = useState<DuplicateMatch[]>([]);
+  const [dismissedDuplicateKey, setDismissedDuplicateKey] = useState<string | null>(null);
   const [step, setStep] = useState(0);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -131,8 +140,14 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
     setPhotoPreview(null);
     setPhotoUrlInput('');
     setWebsiteTouched(false);
+    setDuplicateMatches([]);
+    setDismissedDuplicateKey(null);
     setStep(0);
   };
+
+  const refreshDuplicates = () => setDuplicateMatches(findDuplicateLocations(form.name, form.address, publishedPlaces));
+  const duplicateKey = duplicateMatches.map((m) => m.candidate.id).sort().join(',');
+  const visibleDuplicates = duplicateMatches.length > 0 && dismissedDuplicateKey !== duplicateKey ? duplicateMatches : null;
 
 
   const handleClose = () => {
@@ -352,7 +367,7 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
                     <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
                       {copy.nameLabel}
                     </label>
-                    <input value={form.name} onChange={(e) => updateForm('name', e.target.value)} placeholder={copy.namePlaceholder} style={inputStyle} />
+                    <input value={form.name} onChange={(e) => updateForm('name', e.target.value)} onBlur={refreshDuplicates} placeholder={copy.namePlaceholder} style={inputStyle} />
 
                   </div>
                   <div>
@@ -396,11 +411,18 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
                     <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
                       Adresse *
                     </label>
-                    <input value={form.address} onChange={(e) => updateForm('address', e.target.value)} placeholder="Ex: 6 rue Saint-Léonard, 44000 Nantes" style={inputStyle} />
+                    <input value={form.address} onChange={(e) => updateForm('address', e.target.value)} onBlur={refreshDuplicates} placeholder="Ex: 6 rue Saint-Léonard, 44000 Nantes" style={inputStyle} />
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', fontFamily: 'DM Sans' }}>
                       Incluez le numéro, la rue et le code postal pour de meilleurs résultats.
                     </div>
                   </div>
+                  {visibleDuplicates && (
+                    <DuplicateLocationAlert
+                      matches={visibleDuplicates}
+                      isActivity={isActivity(form.category)}
+                      onDismiss={() => setDismissedDuplicateKey(duplicateKey)}
+                    />
+                  )}
                   <div>
                     <label style={{ fontFamily: 'Caveat', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: 4 }}>
                       Site web

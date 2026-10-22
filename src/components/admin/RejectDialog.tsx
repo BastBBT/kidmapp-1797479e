@@ -7,6 +7,8 @@ export interface RejectDialogProps {
   submissionType: RejectSubmissionType;
   submissionName: string;
   recipientEmail: string | null;
+  /** Motif proposé à l'ouverture, modifiable (ex. doublon d'un lieu déjà en base). Vide par défaut. */
+  initialReason?: string;
   onCancel: () => void;
   onConfirm: (reason: string) => Promise<void> | void;
 }
@@ -22,6 +24,7 @@ export default function RejectDialog({
   submissionType,
   submissionName,
   recipientEmail,
+  initialReason = '',
   onCancel,
   onConfirm,
 }: RejectDialogProps) {
@@ -30,9 +33,11 @@ export default function RejectDialog({
 
   useEffect(() => {
     if (open) {
-      setReason('');
+      setReason(recipientEmail ? initialReason : '');
       setBusy(false);
     }
+    // `initialReason` est lu à l'ouverture seulement : retaper ne doit pas le réécrire.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   if (!open) return null;
