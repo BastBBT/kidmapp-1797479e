@@ -107,9 +107,12 @@ describe('motif de refus d\'un doublon', () => {
 describe('motif de refus suggéré', () => {
   const sameAddressOnly: DuplicateMatch[] = [{ candidate: atlantis, level: 'weak', sameAddress: true }];
 
-  it('pré-rempli pour une correspondance forte ou une même adresse', () => {
+  it('pré-rempli pour une correspondance forte seulement', () => {
     expect(suggestedRejectReason('You Kids Atlantis', strong)).toContain('est déjà dans Kidmapp');
-    expect(suggestedRejectReason('Pizzeria Roma', sameAddressOnly)).toContain('est déjà dans Kidmapp');
+  });
+
+  it('vide pour une même adresse sans nom proche (second commerce du même immeuble possible)', () => {
+    expect(suggestedRejectReason('Pizzeria Roma', sameAddressOnly)).toBe('');
   });
 
   it('vide pour un nom proche à une autre adresse (autre enseigne possible) ou sans correspondance', () => {

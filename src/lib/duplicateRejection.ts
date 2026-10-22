@@ -20,12 +20,14 @@ export function duplicateRejectMessage(proposalName: string, match: DuplicateMat
 }
 
 /**
- * Motif à pré-remplir pour une proposition en doublon, ou « » si rien ne le justifie. Un nom proche à une
- * autre adresse est souvent une autre enseigne de la même chaîne : pré-remplir un refus « déjà dans
- * Kidmapp » serait alors faux et partirait en un clic.
+ * Motif à pré-remplir pour une proposition en doublon, ou « » si rien ne le justifie. Seule la
+ * correspondance forte (nom proche ET même adresse) dit « c'est le même lieu » : un nom proche à une autre
+ * adresse est souvent une autre enseigne de la même chaîne, et une même adresse sans nom proche peut être
+ * un second commerce du même immeuble. Un refus « déjà dans Kidmapp » serait alors faux et partirait en
+ * un clic ; l'encart de l'admin montre quand même le lieu, et il peut écrire son motif à la main.
  */
 export function suggestedRejectReason(proposalName: string, matches: DuplicateMatch[] | undefined): string {
   const first = matches?.[0];
-  if (!first || (first.level !== 'strong' && !first.sameAddress)) return '';
+  if (first?.level !== 'strong') return '';
   return duplicateRejectMessage(proposalName, first);
 }

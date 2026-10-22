@@ -23,9 +23,10 @@ export const useDuplicateCandidates = (enabled = true) =>
         .eq('status', 'published')
         .limit(2000);
       if (error) throw error;
-      if ((data?.length ?? 0) >= POSTGREST_DEFAULT_MAX_ROWS) {
-        console.warn(`useDuplicateCandidates : ${data!.length} lieux reçus, la liste est peut-être tronquée (doublons non détectés au-delà).`);
+      const rows = (data ?? []) as DuplicateCandidate[];
+      if (rows.length >= POSTGREST_DEFAULT_MAX_ROWS) {
+        console.warn(`useDuplicateCandidates : ${rows.length} lieux reçus, la liste est peut-être tronquée (doublons non détectés au-delà).`);
       }
-      return (data ?? []) as DuplicateCandidate[];
+      return rows;
     },
   });
