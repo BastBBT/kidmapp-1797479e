@@ -90,7 +90,7 @@ describe('motif de refus d\'un doublon', () => {
     const msg = duplicateRejectMessage('You Kids Atlantis', strong[0]);
     expect(msg).toContain('« You Kids Atlantis » est déjà dans Kidmapp (« You Kids Nantes Atlantis »)');
     expect(msg).toContain('https://kidmapp.app/location/atl');
-    expect(msg).toContain('compléter sa fiche avec « Contribuer »');
+    expect(msg).toContain('compléter sa fiche avec « Confirmer les infos »');
     expect(msg.length).toBeLessThan(1000);
   });
 
