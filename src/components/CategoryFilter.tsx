@@ -12,32 +12,52 @@ import { translateToken } from '@/i18n/tokenMaps';
 interface CategoryFilterProps {
   selected: LocationCategory | 'all';
   onChange: (cat: LocationCategory | 'all') => void;
-  /** Groupe actif, piloté par la page : il borne aussi les résultats, pas seulement les pastilles. */
+  /** Groupe affiché, choisi au-dessus dans ses propres onglets. */
   group: CategoryGroup;
-  onGroupChange: (g: CategoryGroup) => void;
 }
 
-type Group = CategoryGroup;
+/** Contour et fond clair de chaque catégorie, mêmes valeurs que `LocationCategory.color` (iOS). */
+const CATEGORY_TINT: Record<LocationCategory | 'all', { stroke: string; bg: string }> = {
+  all:        { stroke: 'var(--secondary)', bg: 'var(--secondary-light)' },
+  restaurant: { stroke: '#D95F3B', bg: '#FAF0EC' },
+  cafe:       { stroke: '#3B7D6E', bg: '#EBF4F2' },
+  shop:       { stroke: '#C49A35', bg: '#FEF9E7' },
+  public:     { stroke: '#5A9A56', bg: '#EEF6EC' },
+  coiffeur:   { stroke: '#9B59B6', bg: '#F3EAF7' },
+  librairie:  { stroke: '#4A55A2', bg: '#ECEEF8' },
+  nature:     { stroke: '#3E8E41', bg: '#E8F3E6' },
+  sport:      { stroke: '#2F80B5', bg: '#E6F1FB' },
+  creatif:    { stroke: '#7F5BB5', bg: '#F1EAF9' },
+  culture:    { stroke: '#BA7517', bg: '#FAEEDA' },
+  jeux:       { stroke: '#C64B7A', bg: '#FBEAF0' },
+};
 
 const CategoryIcon = ({ cat }: { cat: string }) => {
   const src = CATEGORY_ICONS[cat];
   if (!src) return null;
-  return <img src={src} alt="" style={{ width: 15, height: 15, objectFit: 'contain', flexShrink: 0 }} />;
+  return <img src={src} alt="" style={{ width: 16, height: 16, objectFit: 'contain', flexShrink: 0 }} />;
 };
 
+/** Active : fond clair et contour de la couleur de la catégorie, texte foncé — même grammaire que les pastilles de filtres. */
 const Pill = ({
   cat, label, isActive, onClick,
-}: { cat: string; label: string; isActive: boolean; onClick: () => void }) => (
+}: { cat: LocationCategory | 'all'; label: string; isActive: boolean; onClick: () => void }) => (
   <motion.button
+    type="button"
     whileTap={{ scale: 0.95 }}
     onClick={onClick}
-    className="flex shrink-0 items-center gap-1.5 px-3 py-0.5 text-[14px] font-medium leading-4 whitespace-nowrap transition-all"
+    aria-pressed={isActive}
+    className="flex shrink-0 items-center gap-1.5 whitespace-nowrap transition-all"
     style={{
-      borderRadius: '100px',
-      minHeight: 28,
-      background: isActive ? 'var(--primary)' : 'var(--bg)',
-      color: isActive ? '#fff' : 'var(--text-muted)',
-      border: isActive ? 'none' : '1px solid var(--border)',
+      borderRadius: 999,
+      minHeight: 36,
+      padding: '0 13px',
+      fontFamily: 'DM Sans',
+      fontSize: 13,
+      fontWeight: isActive ? 600 : 500,
+      background: isActive ? CATEGORY_TINT[cat].bg : 'var(--surface)',
+      color: isActive ? 'var(--text)' : 'var(--text-muted)',
+      border: `${isActive ? 1.5 : 1}px solid ${isActive ? CATEGORY_TINT[cat].stroke : 'var(--border)'}`,
     }}
   >
     <CategoryIcon cat={cat} />
@@ -45,98 +65,27 @@ const Pill = ({
   </motion.button>
 );
 
-const SegmentedControl = ({
-  group,
-  onChange,
-  otherHasFilter,
-}: {
-  group: Group;
-  onChange: (g: Group) => void;
-  otherHasFilter: { places: boolean; activities: boolean };
-}) => {
+/**
+ * Rangée des catégories du groupe affiché (Lieux ou Activités), en tête
+ * d'Explorer. Miroir de `CategoryFilterView` (iOS) et `category_filter.dart`.
+ */
+const CategoryFilter = ({ selected, onChange, group }: CategoryFilterProps) => {
   const { t } = useTranslation();
-  const segStyle = (active: boolean): React.CSSProperties => ({
-    position: 'relative',
-    padding: '5px 12px',
-    borderRadius: 100,
-    fontFamily: 'DM Sans, sans-serif',
-    fontSize: 12,
-    fontWeight: active ? 600 : 500,
-    color: active ? 'var(--text)' : 'var(--text-muted)',
-    background: active ? '#fff' : 'transparent',
-    boxShadow: active ? '0 1px 2px rgba(0,0,0,.08)' : 'none',
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'all .15s',
-    whiteSpace: 'nowrap',
-  });
-
-  const Dot = () => (
-    <span
-      style={{
-        position: 'absolute',
-        top: 2,
-        right: 4,
-        width: 6,
-        height: 6,
-        borderRadius: '50%',
-        background: 'var(--primary)',
-      }}
-    />
-  );
+  const cats = group === 'places' ? PLACE_CATEGORIES : ACTIVITY_CATEGORIES;
 
   return (
-    <div
-      style={{
-        display: 'inline-flex',
-        padding: 3,
-        background: '#E7E3DC',
-        borderRadius: 100,
-        flexShrink: 0,
-        alignSelf: 'center',
-      }}
-    >
-      <button type="button" onClick={() => onChange('places')} style={segStyle(group === 'places')}>
-        {t('filters.places')}
-        {group !== 'places' && otherHasFilter.places && <Dot />}
-      </button>
-      <button type="button" onClick={() => onChange('activities')} style={segStyle(group === 'activities')}>
-        {t('filters.activities')}
-        {group !== 'activities' && otherHasFilter.activities && <Dot />}
-      </button>
-    </div>
-  );
-};
-
-const CategoryFilter = ({ selected, onChange, group, onGroupChange }: CategoryFilterProps) => {
-  const { t } = useTranslation();
-
-  const activeCats = group === 'places' ? PLACE_CATEGORIES : ACTIVITY_CATEGORIES;
-
-  const selectedInPlaces =
-    selected !== 'all' && (PLACE_CATEGORIES as readonly string[]).includes(selected as string);
-  const selectedInActivities =
-    selected !== 'all' && (ACTIVITY_CATEGORIES as readonly string[]).includes(selected as string);
-
-  return (
-    <div className="flex items-center gap-2">
-      <SegmentedControl
-        group={group}
-        onChange={onGroupChange}
-        otherHasFilter={{ places: selectedInPlaces, activities: selectedInActivities }}
-      />
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide items-center min-w-0 flex-1">
-        <Pill cat="all" label={t('filters.any')} isActive={selected === 'all'} onClick={() => onChange('all')} />
-        {activeCats.map((cat) => (
-          <Pill
-            key={cat}
-            cat={cat}
-            label={translateToken('category_place', cat)}
-            isActive={selected === cat}
-            onClick={() => onChange(cat)}
-          />
-        ))}
-      </div>
+    <div className="flex gap-1.5 overflow-x-auto scrollbar-hide items-center" style={{ margin: '0 -16px', padding: '0 16px' }}>
+      <Pill cat="all" label={t('filters.any')} isActive={selected === 'all'} onClick={() => onChange('all')} />
+      {cats.map((cat) => (
+        <Pill
+          key={cat}
+          cat={cat}
+          label={translateToken('category_place', cat)}
+          isActive={selected === cat}
+          // Toucher la catégorie active la retire : on revient à « Tout ».
+          onClick={() => onChange(selected === cat ? 'all' : cat)}
+        />
+      ))}
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { FilterOption, FilterSection } from '@/components/FilterParts';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { AGE_LABEL_KEY, ChildAgeBucket, bucketForChildMonths } from '@/lib/ageFilter';
 import { Child, ChildFilterSelection, ageInMonths } from '@/lib/children';
@@ -8,32 +9,6 @@ import { DAY_MOMENTS, type DayMoment, type EventCriteria } from '@/lib/sortiesFi
 
 const KNOWN_CATEGORIES = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché', 'Exposition'];
 const AGE_BUCKET_CHOICES: ChildAgeBucket[] = ['0-2', '3-5', '6+'];
-
-/** Option à cocher, avec son nombre de sorties. Une option qui ne donnerait rien s'estompe. */
-const Option = ({ label, on, count, onClick }: { label: string; on: boolean; count: number; onClick: () => void }) => (
-  <button
-    type="button"
-    aria-pressed={on}
-    onClick={onClick}
-    style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5, minHeight: 40, padding: '0 12px', borderRadius: 999, cursor: 'pointer',
-      fontFamily: 'DM Sans', fontSize: 13, fontWeight: on ? 600 : 500, color: 'var(--text)',
-      background: on ? 'var(--secondary-light)' : 'var(--surface)',
-      border: `${on ? 1.5 : 1}px solid ${on ? 'var(--secondary)' : 'var(--border)'}`,
-      opacity: count === 0 && !on ? 0.45 : 1,
-    }}
-  >
-    {label}
-    <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>{count}</span>
-  </button>
-);
-
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
-    <p style={{ fontFamily: 'DM Sans', fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', color: 'var(--text-muted)' }}>{title}</p>
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{children}</div>
-  </div>
-);
 
 interface Props {
   open: boolean;
@@ -94,10 +69,10 @@ const SortiesFiltersSheet = (p: Props) => {
         </div>
         <SheetDescription className="sr-only">{t('sorties.filters')}</SheetDescription>
         <div className="flex-1 overflow-y-auto" style={{ padding: '12px 16px 4px' }}>
-          <Section title={t('sorties.for_whom')}>
+          <FilterSection title={t('sorties.for_whom')}>
             {p.kids.length === 0
               ? AGE_BUCKET_CHOICES.map((b) => (
-                  <Option
+                  <FilterOption
                     key={b}
                     label={t(AGE_LABEL_KEY[b])}
                     on={p.ageBucket === b}
@@ -109,7 +84,7 @@ const SortiesFiltersSheet = (p: Props) => {
                   ...p.kids.map((child) => {
                     const on = p.childSelection.kind === 'child' && p.childSelection.id === child.id;
                     return (
-                      <Option
+                      <FilterOption
                         key={child.id}
                         label={childLabel(child)}
                         on={on}
@@ -120,7 +95,7 @@ const SortiesFiltersSheet = (p: Props) => {
                   }),
                   ...(p.kids.length > 1
                     ? [
-                        <Option
+                        <FilterOption
                           key="__all__"
                           label={t('children.pill_all_mine')}
                           on={p.childSelection.kind === 'allChildren'}
@@ -130,10 +105,10 @@ const SortiesFiltersSheet = (p: Props) => {
                       ]
                     : []),
                 ]}
-          </Section>
-          <Section title={t('sorties.what_kind')}>
+          </FilterSection>
+          <FilterSection title={t('sorties.what_kind')}>
             {categories.map((cat) => (
-              <Option
+              <FilterOption
                 key={cat}
                 label={`${eventCategoryEmoji(cat)} ${translateToken('category_event', cat)}`}
                 on={base.categories.has(cat)}
@@ -141,10 +116,10 @@ const SortiesFiltersSheet = (p: Props) => {
                 onClick={() => p.onToggleCategory(cat)}
               />
             ))}
-          </Section>
-          <Section title={t('sorties.what_time')}>
+          </FilterSection>
+          <FilterSection title={t('sorties.what_time')}>
             {DAY_MOMENTS.map((m) => (
-              <Option
+              <FilterOption
                 key={m}
                 label={t(`sorties.moment_${m}`)}
                 on={base.moments.has(m)}
@@ -152,11 +127,11 @@ const SortiesFiltersSheet = (p: Props) => {
                 onClick={() => p.onToggleMoment(m)}
               />
             ))}
-          </Section>
-          <Section title={t('sorties.price_distance')}>
-            <Option label={t('sorties.free')} on={p.onlyFree} count={with_({ onlyFree: true })} onClick={() => p.onFree(!p.onlyFree)} />
-            <Option label={t('sorties.nearby')} on={p.onlyNearby} count={with_({ onlyNearby: true })} onClick={() => p.onNearby(!p.onlyNearby)} />
-          </Section>
+          </FilterSection>
+          <FilterSection title={t('sorties.price_distance')}>
+            <FilterOption label={t('sorties.free')} on={p.onlyFree} count={with_({ onlyFree: true })} onClick={() => p.onFree(!p.onlyFree)} />
+            <FilterOption label={t('sorties.nearby')} on={p.onlyNearby} count={with_({ onlyNearby: true })} onClick={() => p.onNearby(!p.onlyNearby)} />
+          </FilterSection>
         </div>
         <div style={{ padding: '4px 16px 16px' }}>
           <button
