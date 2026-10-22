@@ -1,367 +1,460 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { CalendarDays, ChevronsUpDown, List, Map as MapIcon, SlidersHorizontal, X } from 'lucide-react';
 import Header from '@/components/Header';
-import WeekendPicker from '@/components/WeekendPicker';
 import EventsMap from '@/components/EventsMap';
-import EventCard from '@/components/EventCard';
-import { CalendarDays, List } from 'lucide-react';
-import FreeFilterPill from '@/components/FreeFilterPill';
-import NearbyFilterPill from '@/components/NearbyFilterPill';
+import EventsCalendar from '@/components/EventsCalendar';
+import EventDayCard from '@/components/EventDayCard';
+import SortiesAssistant, { SortiesAssistantOutcome } from '@/components/SortiesAssistant';
+import SortiesFiltersSheet from '@/components/SortiesFiltersSheet';
+import { MascotteMiniature } from '@/components/Mascotte';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { orderEventCategories } from '@/components/EventCategoryFilter';
 import { useProximityZone } from '@/hooks/useProximityZone';
 import { eventFarInfo } from '@/lib/proximity';
-import EventCategoryFilter, { orderEventCategories } from '@/components/EventCategoryFilter';
-import {
-  buildWeeks,
-  eventInWeek,
-  eventSortRank,
-  isPastEvent,
-  todayISO,
-  toISODate,
-  type Week,
-} from '@/lib/weekend';
 import { useEvents, useEventOccurrences } from '@/hooks/useEvents';
-import { AgeBucket, ChildAgeBucket, matchesAgeBuckets } from '@/lib/ageFilter';
+import { AGE_LABEL_KEY, ChildAgeBucket, bucketForChildMonths } from '@/lib/ageFilter';
 import { useChildren } from '@/hooks/useChildren';
-import ChildrenPillBar from '@/components/ChildrenPillBar';
-import { formatMonthShort, localeOf } from '@/lib/formatDate';
-import EventsCalendar from '@/components/EventsCalendar';
+import { Child, ageInMonths } from '@/lib/children';
+import { localeOf } from '@/lib/formatDate';
+import { addDaysISO, dateFromISO, defaultSelectedDay, longBarsForRow, mondayISO, firstEventDay, shortSlotsByDay } from '@/lib/eventCalendar';
+import { EventItem, eventCategoryEmoji, eventCategoryHex } from '@/types/event';
+import { translateToken } from '@/i18n/tokenMaps';
 import {
-  buildSlots,
-  dateFromISO,
-  defaultSelectedDay,
-  distinctEvents,
-  longBarsForRow,
-  longEventsOn,
-  mondayISO,
-  shortSlotsByDay,
-  shortSlotsOn,
-  weekSlots,
-} from '@/lib/eventCalendar';
-import { eventCategoryEmoji, eventCategoryHex } from '@/types/event';
+  DAY_MOMENTS,
+  WHEN_SHORTCUTS,
+  buildDayGroups,
+  countSorties,
+  filterSlots,
+  longEventsInRange,
+  sameWhen,
+  whenDays,
+  type DayMoment,
+  type EventCriteria,
+  type EventSortMode,
+  type MomentSection,
+  type SortiesWhen,
+} from '@/lib/sortiesFilters';
 
-const CALENDAR_MODE_KEY = 'sorties.calendarMode';
 const AGE_BAND_KEY = 'sorties.ageBand';
-const VALID_AGES = new Set<string>(['all', '0-2', '3-5', '6+']);
+const SHOW_MAP_KEY = 'sorties.showMap';
+const VALID_AGES = new Set<string>(['0-2', '3-5', '6+']);
 
+const readStorage = (key: string): string | null => {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+const writeStorage = (key: string, value: string | null) => {
+  try {
+    if (value === null) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, value);
+  } catch {
+    // Stockage indisponible (navigation privée) : le réglage reste pour la session.
+  }
+};
+
+const WHEN_LABEL_KEY: Record<Exclude<SortiesWhen['kind'], 'day'>, string> = {
+  today: 'sorties.when_today',
+  tomorrow: 'sorties.when_tomorrow',
+  weekend: 'sorties.when_weekend',
+  week: 'sorties.when_week',
+};
+const PERIOD_LABEL_KEY: Record<Exclude<SortiesWhen['kind'], 'day'>, string> = {
+  today: 'sorties.period_today',
+  tomorrow: 'sorties.period_tomorrow',
+  weekend: 'sorties.period_weekend',
+  week: 'sorties.period_week',
+};
+
+/** Pastille de la barre de filtres ; `removable` = filtre posé depuis le panneau, avec sa croix. */
+const FilterChip = ({ label, on, removable, onClick, removeLabel }: { label: string; on: boolean; removable?: boolean; onClick: () => void; removeLabel: string }) => (
+  <button
+    type="button"
+    aria-pressed={on}
+    title={removable ? removeLabel : undefined}
+    onClick={onClick}
+    style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0, minHeight: 36, padding: '0 13px', borderRadius: 999, cursor: 'pointer',
+      fontFamily: 'DM Sans', fontSize: 13, fontWeight: on ? 600 : 500, whiteSpace: 'nowrap',
+      color: on ? 'var(--text)' : 'var(--text-muted)',
+      background: on ? 'var(--secondary-light)' : 'var(--surface)',
+      border: `${on ? 1.5 : 1}px solid ${on ? 'var(--secondary)' : 'var(--border)'}`,
+    }}
+  >
+    {label}
+    {removable && <X size={13} aria-hidden />}
+  </button>
+);
+
+/**
+ * Onglet Sorties : période (Auj. · Demain · Week-end · Semaine · 📅), une seule
+ * rangée de filtres, puis la liste par jour et par moment. Miroir de
+ * `SortiesView.swift` (iOS) et `sorties_screen.dart` (Android).
+ */
 const SortiesPage = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  // Persistée : rouvrir l'app doit retrouver la dernière tranche choisie
-  // plutôt que de repartir sans filtre à chaque lancement.
-  const [selectedAge, setSelectedAgeState] = useState<AgeBucket>(() => {
-    const stored = typeof window !== 'undefined' ? window.localStorage.getItem(AGE_BAND_KEY) : null;
-    return stored && VALID_AGES.has(stored) ? (stored as AgeBucket) : 'all';
-  });
-  const setSelectedAge = (age: AgeBucket) => {
-    setSelectedAgeState(age);
-    if (age === 'all') window.localStorage.removeItem(AGE_BAND_KEY);
-    else window.localStorage.setItem(AGE_BAND_KEY, age);
-  };
+  const zone = useProximityZone();
+  const isNear = useMemo(() => (e: EventItem) => eventFarInfo(zone, e) === null, [zone]);
   const { children: kids, selection: childSelection, setSelection: setChildSelection, resolvedBuckets, requestHookIfNeeded } = useChildren();
-  // Cf. Explorer : le hook de capture (écran 2) se déclenche au premier usage
-  // d'une vraie tranche, sans enfant enregistré, sans bloquer le filtre.
-  const handleAgeChange = (age: AgeBucket) => {
-    setSelectedAge(age);
-    if (age !== 'all') requestHookIfNeeded();
+
+  // Tranche unique sans profil famille, persistée comme avant.
+  const [ageBucket, setAgeBucketState] = useState<ChildAgeBucket | null>(() => {
+    const stored = readStorage(AGE_BAND_KEY);
+    return stored && VALID_AGES.has(stored) ? (stored as ChildAgeBucket) : null;
+  });
+  // Le hook « enregistrez vos enfants » se déclenche au premier filtre d'âge,
+  // sauf quand c'est l'assistant qui vient de le poser : enchaîner sa fermeture
+  // avec une feuille ferait deux écrans d'affilée.
+  const setAgeBucket = (b: ChildAgeBucket | null, offerHook = true) => {
+    setAgeBucketState(b);
+    writeStorage(AGE_BAND_KEY, b);
+    if (b && offerHook) requestHookIfNeeded();
   };
-  // Dès qu'au moins un enfant est enregistré, la barre générique cède la
-  // place à la sélection enfant (union de tranches) ; sans enfant, repli sur
-  // la tranche unique choisie via la barre générique.
-  const effectiveAgeBuckets = useMemo<Set<ChildAgeBucket>>(() => {
-    if (kids.length > 0) return resolvedBuckets;
-    return selectedAge === 'all' ? new Set() : new Set([selectedAge as ChildAgeBucket]);
-  }, [kids.length, resolvedBuckets, selectedAge]);
-  const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
+  const ageBuckets = useMemo<Set<ChildAgeBucket>>(
+    () => (kids.length > 0 ? resolvedBuckets : ageBucket ? new Set([ageBucket]) : new Set()),
+    [kids.length, resolvedBuckets, ageBucket],
+  );
+
+  const [when, setWhen] = useState<SortiesWhen>({ kind: 'today' });
+  const [categories, setCategories] = useState<Set<string>>(new Set());
+  const [moments, setMoments] = useState<Set<DayMoment>>(new Set());
   const [onlyFree, setOnlyFree] = useState(false);
   const [onlyNearby, setOnlyNearby] = useState(false);
-  const zone = useProximityZone();
-  const [showFinished, setShowFinished] = useState(false);
+  const [sortMode, setSortMode] = useState<EventSortMode>('heure');
+  const [monthExpanded, setMonthExpanded] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  // La carte n'occupe plus l'écran en permanence : elle s'affiche à la demande,
+  // et ce choix est retenu d'une session à l'autre.
+  const [showMap, setShowMapState] = useState(() => readStorage(SHOW_MAP_KEY) === '1');
+  const setShowMap = (v: boolean) => {
+    setShowMapState(v);
+    writeStorage(SHOW_MAP_KEY, v ? '1' : '0');
+  };
+
   const { data: events = [], isLoading } = useEvents();
-  // Créneaux des events chargés : le calendrier pose une pastille par créneau
-  // (pas une par event, sans quoi il retombe sur la date portée par l'event),
-  // et la liste s'en sert aussi pour le badge « +N dates » des cartes.
   const eventIds = useMemo(() => events.map((ev) => ev.id), [events]);
   const { data: occurrencesByEvent = {} } = useEventOccurrences(eventIds);
 
-  // Base commune des deux modes : chaque event déplié en autant de créneaux
-  // qu'il en porte, puis filtré par âge et catégorie.
-  const allSlots = useMemo(() => buildSlots(events, occurrencesByEvent), [events, occurrencesByEvent]);
-  const filteredSlots = useMemo(
-    () =>
-      allSlots
-        .filter(({ event }) => matchesAgeBuckets(event, effectiveAgeBuckets))
-        .filter(({ event }) => selectedCategory === 'all' || event.category === selectedCategory)
-        // « Gratuit » strict : seul is_free === true passe, un prix inconnu est exclu.
-        .filter(({ event }) => !onlyFree || event.is_free === true)
-        // « Proche de moi » : une sortie sans coordonnées reste affichée, on ne sait pas.
-        .filter(({ event }) => !onlyNearby || eventFarInfo(zone, event) === null),
-    [allSlots, effectiveAgeBuckets, selectedCategory, onlyFree, onlyNearby, zone],
+  const days = useMemo(() => whenDays(when), [when]);
+  const criteria = useMemo<EventCriteria>(
+    () => ({ days, ageBuckets, categories, moments, onlyFree, onlyNearby }),
+    [days, ageBuckets, categories, moments, onlyFree, onlyNearby],
   );
+  const count = (c: EventCriteria) => countSorties(events, occurrencesByEvent, c, isNear);
 
-  // Mode d'affichage retenu d'une session à l'autre. La liste reste le défaut :
-  // c'est le comportement historique de l'onglet.
-  const [calendarMode, setCalendarMode] = useState(
-    () => typeof window !== 'undefined' && window.localStorage.getItem(CALENDAR_MODE_KEY) === '1',
-  );
-  const [monthExpanded, setMonthExpanded] = useState(false);
-  const [selectedDay, setSelectedDay] = useState<string>(() => todayISO());
-  const [dayTouched, setDayTouched] = useState(false);
-
-  const switchMode = (calendar: boolean) => {
-    setCalendarMode(calendar);
-    window.localStorage.setItem(CALENDAR_MODE_KEY, calendar ? '1' : '0');
-  };
-
-  // Build weeks: always show last + current, plus any future week where at
-  // least one *créneau* starts (avoids phantom tabs for long-running events
-  // whose start date is far in the past). Un event à plusieurs dates ouvre donc
-  // un onglet par semaine où il joue.
-  const weeks = useMemo<Week[]>(() => {
-    const base = buildWeeks(12, new Date(), true); // last + current + 11 upcoming
-    const [lastW, currentW, ...upcoming] = base;
-    const keeps = upcoming.filter((w) => {
-      const mon = toISODate(w.monday);
-      const sun = toISODate(w.sunday);
-      return allSlots.some(
-        ({ occurrence }) => occurrence.date_start >= mon && occurrence.date_start <= sun,
-      );
-    });
-    return [lastW, currentW, ...keeps].filter(Boolean);
-  }, [allSlots]);
-
-  const defaultKey = useMemo(
-    () => weeks.find((w) => !w.past)?.key ?? weeks[0]?.key ?? '',
-    [weeks],
-  );
-  const [selectedKey, setSelectedKey] = useState<string>(defaultKey);
-
-  useEffect(() => {
-    setSelectedKey(defaultKey);
-  }, [effectiveAgeBuckets, selectedCategory, onlyFree, onlyNearby, defaultKey]);
-
-  // « +N » du calendrier : on passe en liste sur cette semaine. Les semaines que
-  // seuls des événements longs traversent n'ont pas d'onglet (voir `weeks`) : on
-  // retombe alors sur l'onglet le plus proche.
-  const showWeekInList = (weekMondayISO: string) => {
-    switchMode(false);
-    const target = dateFromISO(weekMondayISO).getTime();
-    const nearest = weeks.reduce<Week | undefined>(
-      (best, w) =>
-        !best || Math.abs(w.monday.getTime() - target) < Math.abs(best.monday.getTime() - target) ? w : best,
-      undefined,
-    );
-    if (nearest) setSelectedKey(nearest.key);
-  };
-
-  const selectedWeek = weeks.find((w) => w.key === selectedKey) ?? weeks[0];
-  const today = todayISO();
-  const showPast = selectedWeek ? toISODate(selectedWeek.monday) <= today : false;
+  // Créneaux passant tous les filtres sauf la période : base de la liste et du calendrier.
+  const slots = useMemo(() => filterSlots(events, occurrencesByEvent, criteria, isNear), [events, occurrencesByEvent, criteria, isNear]);
+  const groups = useMemo(() => buildDayGroups(slots, days, sortMode), [slots, days, sortMode]);
+  const selectedDay = when.kind === 'day' ? when.date : days[0];
+  // En vue calendrier, les sorties longues déjà dessinées en barres n'ont pas à
+  // revenir dans la bande « En ce moment » : seules restent celles du « +N ».
+  const drawnLongIds = useMemo(() => {
+    if (when.kind !== 'day') return new Set<string>();
+    const row = longBarsForRow(slots, mondayISO(selectedDay), selectedDay, monthExpanded);
+    return new Set(row.bars.map((b) => b.slot.event.id));
+  }, [when.kind, slots, selectedDay, monthExpanded]);
+  const longs = useMemo(() => longEventsInRange(slots, days).filter((e) => !drawnLongIds.has(e.id)), [slots, days, drawnLongIds]);
+  const total = useMemo(() => count(criteria), [criteria, events, occurrencesByEvent, isNear]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const availableCategories = useMemo(
     () => orderEventCategories(Array.from(new Set(events.map((e) => e.category).filter(Boolean) as string[]))),
     [events],
   );
 
-  // L'unité de la liste est le créneau et non l'event : un spectacle joué trois
-  // samedis apparaît dans les trois semaines, chaque fois à sa date.
-  const selectedWeekSlots = useMemo(
-    () => (selectedWeek ? weekSlots(filteredSlots, selectedWeek) : []),
-    [filteredSlots, selectedWeek],
-  );
+  const mapEvents = useMemo(() => {
+    const seen = new Set<string>();
+    const all = [...groups.flatMap((g) => g.sections.flatMap((s) => s.cards.map((c) => c.slot.event))), ...longs];
+    return all.filter((e) => (seen.has(e.id) ? false : (seen.add(e.id), true)));
+  }, [groups, longs]);
 
-  // Dans une semaine en cours ou à venir, les créneaux individuellement terminés
-  // (l'atelier de lundi consulté le jeudi) sont masqués par défaut. Une semaine
-  // entièrement passée reste affichée en entier : c'est son sens même.
-  const weekIsPast = selectedWeek?.past ?? false;
-  const finishedCount = useMemo(
-    () =>
-      weekIsPast
-        ? 0
-        : selectedWeekSlots.filter(({ occurrence }) => isPastEvent(occurrence.date_start, occurrence.date_end))
-            .length,
-    [selectedWeekSlots, weekIsPast],
-  );
-  const displayedSlots = useMemo(
-    () =>
-      weekIsPast || showFinished
-        ? selectedWeekSlots
-        : selectedWeekSlots.filter(({ occurrence }) => !isPastEvent(occurrence.date_start, occurrence.date_end)),
-    [selectedWeekSlots, weekIsPast, showFinished],
-  );
-  // La mini-carte ne veut qu'un marqueur par lieu : deux créneaux du même event
-  // ne doivent pas se superposer.
-  const displayedEvents = useMemo(() => distinctEvents(displayedSlots), [displayedSlots]);
+  const locale = localeOf(i18n.language);
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const dayTitle = (iso: string) => cap(dateFromISO(iso).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }));
+  const shortDay = (iso: string) => cap(dateFromISO(iso).toLocaleDateString(locale, { weekday: 'short', day: 'numeric' }));
+  const periodLabel = (w: SortiesWhen) =>
+    w.kind === 'day'
+      ? cap(dateFromISO(w.date).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' }))
+      : t(PERIOD_LABEL_KEY[w.kind]);
 
-  const hasActiveFilter = effectiveAgeBuckets.size > 0 || selectedCategory !== 'all' || onlyFree || onlyNearby;
+  const selectDay = (iso: string) => setWhen({ kind: 'day', date: iso });
 
-  // ---- Mode calendrier ----
-  // Le calendrier raisonne sur tous les créneaux filtrés, pas sur une seule
-  // semaine : c'est lui qui porte la navigation dans le temps.
-  const byDay = useMemo(() => shortSlotsByDay(filteredSlots), [filteredSlots]);
-  const calendarDefaultDay = useMemo(() => defaultSelectedDay(byDay), [byDay]);
+  const toggleIn = <T,>(set: Set<T>, v: T): Set<T> => {
+    const next = new Set(set);
+    if (!next.delete(v)) next.add(v);
+    return next;
+  };
 
-  // Tant que l'utilisateur n'a pas choisi de jour, on suit le premier jour
-  // porteur d'événements — y compris après un changement de filtre.
-  useEffect(() => {
-    if (!dayTouched) setSelectedDay(calendarDefaultDay);
-  }, [calendarDefaultDay, dayTouched]);
-  useEffect(() => {
-    setDayTouched(false);
-  }, [effectiveAgeBuckets, selectedCategory, onlyFree, onlyNearby]);
+  const childLabel = (child: Child): string => {
+    const name = child.first_name?.trim();
+    const months = ageInMonths(child);
+    if (!name) return t(AGE_LABEL_KEY[bucketForChildMonths(months)]);
+    const age = months < 24 ? t('common.age_in_months', { age: months }) : t('common.age_in_years', { age: Math.round(months / 12) });
+    return `${name} · ${age}`;
+  };
+  const isChildOn = (child: Child) =>
+    childSelection.kind === 'allChildren' || (childSelection.kind === 'child' && childSelection.id === child.id);
+  /**
+   * Deux enfants : chaque pastille s'ajoute ou se retire (les deux = « Tous mes
+   * enfants »). Au-delà, la sélection partagée ne sait dire qu'un enfant ou
+   * tous : une pastille touchée devient la seule sélectionnée.
+   */
+  const toggleChild = (child: Child) => {
+    if (childSelection.kind === 'none') return setChildSelection({ kind: 'child', id: child.id });
+    if (childSelection.kind === 'child') {
+      if (childSelection.id === child.id) return setChildSelection({ kind: 'none' });
+      return setChildSelection(kids.length === 2 ? { kind: 'allChildren' } : { kind: 'child', id: child.id });
+    }
+    const other = kids.find((k) => k.id !== child.id);
+    setChildSelection(kids.length === 2 && other ? { kind: 'child', id: other.id } : { kind: 'child', id: child.id });
+  };
 
-  const daySlots = useMemo(() => shortSlotsOn(byDay, selectedDay), [byDay, selectedDay]);
-  // Les barres de la grille couvrent déjà les événements longs ; la bande ne
-  // garde que ceux qui n'y ont pas trouvé de ligne (« +N »).
-  // Mêmes colonnes que la grille : en vue mois, la rangée du jour peut être à
-  // cheval sur deux mois et ses cases hors du mois ne portent rien.
-  const drawnLongIds = useMemo(() => {
-    const row = longBarsForRow(filteredSlots, mondayISO(selectedDay), selectedDay, monthExpanded);
-    return new Set(row.bars.map((b) => b.slot.event.id));
-  }, [filteredSlots, selectedDay, monthExpanded]);
-  const dayLongEvents = useMemo(
-    () => longEventsOn(filteredSlots, selectedDay).filter((e) => !drawnLongIds.has(e.id)),
-    [filteredSlots, selectedDay, drawnLongIds],
-  );
-  const dayTitle = useMemo(() => {
-    const s = dateFromISO(selectedDay).toLocaleDateString(localeOf(i18n.language), {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-    });
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  }, [selectedDay, i18n.language]);
+  const activeCount =
+    (kids.length > 0 ? (childSelection.kind === 'none' ? 0 : 1) : ageBucket ? 1 : 0) +
+    categories.size + moments.size + (onlyFree ? 1 : 0) + (onlyNearby ? 1 : 0);
 
-  const currentKey = todayISO && weeks.find((w) => !w.past)?.key;
-  const localizedWeeks = useMemo(
-    () =>
-      weeks.map((w) => ({
-        key: w.key,
-        past: w.past,
-        label: w.past
-          ? t('week.last')
-          : w.key === currentKey
-            ? t('week.current')
-            : t('week.of', { date: `${w.monday.getDate()} ${formatMonthShort(w.monday)}` }),
-      })),
-    [weeks, currentKey, t],
-  );
+  const clearAll = () => {
+    if (kids.length > 0) setChildSelection({ kind: 'none' });
+    else setAgeBucket(null);
+    setCategories(new Set());
+    setMoments(new Set());
+    setOnlyFree(false);
+    setOnlyNearby(false);
+  };
+
+  /** L'assistant ne pose que des filtres visibles dans la barre, défaisables d'un tap. */
+  const applyOutcome = (o: SortiesAssistantOutcome) => {
+    setWhen(o.when);
+    if (o.childSelection) setChildSelection(o.childSelection);
+    else if (kids.length > 0) setChildSelection({ kind: 'none' });
+    else setAgeBucket(o.ageBuckets.size === 1 ? [...o.ageBuckets][0] : null, false);
+    setCategories(o.categories);
+    setMoments(o.moments);
+    setOnlyFree(o.onlyFree);
+    setOnlyNearby(o.onlyNearby);
+    setShowMap(false);
+    setAssistantOpen(false);
+  };
+
+  // Pour chaque filtre actif, ce qu'on obtiendrait en le retirant — puis les
+  // autres périodes avec les mêmes filtres. Seules les pistes non vides restent.
+  const relaxers = useMemo(() => {
+    if (groups.length > 0 || longs.length > 0) return [];
+    const out: { id: string; label: string; count: number; apply: () => void }[] = [];
+    const add = (id: string, label: string, patch: Partial<EventCriteria>, apply: () => void) => {
+      const n = count({ ...criteria, ...patch });
+      if (n > 0) out.push({ id, label, count: n, apply });
+    };
+    if (categories.size) add('cat', t('sorties.relax_categories'), { categories: new Set() }, () => setCategories(new Set()));
+    if (moments.size) add('moment', t('sorties.relax_moments'), { moments: new Set() }, () => setMoments(new Set()));
+    if (ageBuckets.size) {
+      add('age', t('sorties.relax_ages'), { ageBuckets: new Set() }, () =>
+        kids.length > 0 ? setChildSelection({ kind: 'none' }) : setAgeBucket(null),
+      );
+    }
+    if (onlyFree) add('free', t('sorties.relax_free'), { onlyFree: false }, () => setOnlyFree(false));
+    if (onlyNearby) add('near', t('sorties.relax_nearby'), { onlyNearby: false }, () => setOnlyNearby(false));
+    for (const w of WHEN_SHORTCUTS) {
+      if (sameWhen(w, when)) continue;
+      add(`when-${w.kind}`, t('sorties.relax_period', { period: periodLabel(w) }), { days: whenDays(w) }, () => setWhen(w));
+    }
+    return out;
+  }, [groups.length, longs.length, criteria, categories, moments, ageBuckets, onlyFree, onlyNearby, when, kids.length, t]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sectionTitle = (s: MomentSection) =>
+    s.moment
+      ? t(`sorties.section_${s.moment}`)
+      : sortMode === 'aimes'
+        ? t('sorties.section_aimes')
+        : sortMode === 'recents'
+          ? t('sorties.section_recents')
+          : t('sorties.section_none');
+
+  const segStyle = (active: boolean): React.CSSProperties => ({
+    flex: 1, minHeight: 34, border: 'none', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap',
+    fontFamily: 'DM Sans', fontSize: 13, fontWeight: active ? 600 : 500,
+    background: active ? 'var(--surface)' : 'transparent',
+    color: active ? 'var(--text)' : 'var(--text-muted)',
+    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+  });
 
   return (
     <div className="min-h-screen pb-24" style={{ background: 'var(--bg)' }}>
-      <Header
-        selectedAge={selectedAge}
-        onAgeChange={handleAgeChange}
-        ageRowOverride={
-          kids.length > 0 ? (
-            <ChildrenPillBar children={kids} selection={childSelection} onChange={setChildSelection} />
-          ) : undefined
-        }
-      />
+      <Header onOpenAssistant={() => setAssistantOpen(true)} />
 
-      <div style={{ padding: '8px 16px 4px' }}>
+      <div style={{ padding: '10px 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <h1 style={{ fontFamily: 'Fraunces', fontSize: 22, fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text)' }}>
-          {t('sorties.title')}
+          🎈 {t('sorties.title_nantes')}
         </h1>
-        <p style={{ fontFamily: 'Caveat', fontSize: 15, color: 'var(--text-muted)', marginTop: 2 }}>
-          {t('sorties.subtitle')}
-        </p>
+
+        {/* Période. Le dernier segment affiche le jour choisi dans le calendrier,
+            pour que la période soit toujours lisible. */}
+        <div role="tablist" aria-label={t('sorties.view_mode')} style={{ display: 'flex', gap: 2, padding: 3, background: 'var(--border)', borderRadius: 999 }}>
+          {WHEN_SHORTCUTS.map((w) => {
+            const active = sameWhen(w, when);
+            return (
+              <button key={w.kind} type="button" role="tab" aria-selected={active} onClick={() => setWhen(w)} style={segStyle(active)}>
+                {t(WHEN_LABEL_KEY[w.kind as Exclude<SortiesWhen['kind'], 'day'>])}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={when.kind === 'day'}
+            aria-label={t('sorties.pick_date')}
+            onClick={() => {
+              if (when.kind !== 'day') selectDay(defaultSelectedDay(shortSlotsByDay(slots)));
+            }}
+            style={{ ...segStyle(when.kind === 'day'), flex: 'none', minWidth: 40, padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            {when.kind === 'day' ? shortDay(when.date) : <CalendarDays size={15} aria-hidden />}
+          </button>
+        </div>
+
+        {/* Une seule rangée : le bouton Filtres, les filtres qu'on touche le plus
+            (enfants, Gratuit), puis chaque autre filtre actif avec sa croix. */}
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', margin: '0 -16px', padding: '0 16px 2px' }}>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0, minHeight: 36, padding: '0 13px', borderRadius: 999, cursor: 'pointer',
+              fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, color: 'var(--text)', background: 'var(--surface)', border: '1px solid var(--text)',
+            }}
+          >
+            <SlidersHorizontal size={14} aria-hidden />
+            {t('sorties.filters')}
+            {activeCount > 0 && (
+              <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: 'var(--primary)', color: '#fff', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                {activeCount}
+              </span>
+            )}
+          </button>
+          {kids.length > 0
+            ? kids.map((child) => (
+                <FilterChip key={child.id} label={childLabel(child)} on={isChildOn(child)} onClick={() => toggleChild(child)} removeLabel={t('sorties.remove_filter')} />
+              ))
+            : ageBucket && (
+                <FilterChip label={t(AGE_LABEL_KEY[ageBucket])} on removable onClick={() => setAgeBucket(null)} removeLabel={t('sorties.remove_filter')} />
+              )}
+          <FilterChip label={t('sorties.free')} on={onlyFree} onClick={() => setOnlyFree((v) => !v)} removeLabel={t('sorties.remove_filter')} />
+          {[...availableCategories.filter((c) => categories.has(c)), ...[...categories].filter((c) => !availableCategories.includes(c))].map((cat) => (
+            <FilterChip
+              key={cat}
+              label={`${eventCategoryEmoji(cat)} ${translateToken('category_event', cat)}`}
+              on
+              removable
+              onClick={() => setCategories((s) => toggleIn(s, cat))}
+              removeLabel={t('sorties.remove_filter')}
+            />
+          ))}
+          {DAY_MOMENTS.filter((m) => moments.has(m)).map((m) => (
+            <FilterChip key={m} label={t(`sorties.moment_${m}`)} on removable onClick={() => setMoments((s) => toggleIn(s, m))} removeLabel={t('sorties.remove_filter')} />
+          ))}
+          {onlyNearby && (
+            <FilterChip label={t('sorties.nearby')} on removable onClick={() => setOnlyNearby(false)} removeLabel={t('sorties.remove_filter')} />
+          )}
+        </div>
       </div>
 
-      {availableCategories.length >= 2 && (
-        <div style={{ padding: '4px 16px 8px' }}>
-          <EventCategoryFilter
-            available={availableCategories}
-            selected={selectedCategory}
-            onChange={setSelectedCategory}
+      {/* Ligne du compteur : résumé, tri (même menu qu'Explorer, au même endroit), carte. */}
+      <div style={{ marginTop: 10, padding: '6px 12px 6px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ flex: 1, minWidth: 0, fontFamily: 'Caveat', fontSize: 20, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {isLoading ? t('common.loading') : `${periodLabel(when)} · ${t('sorties.total', { count: total })}`}
+        </span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="flex items-center gap-1 text-sm font-medium shrink-0"
+              style={{ minHeight: 36, padding: '0 6px', color: sortMode === 'heure' ? 'var(--text-muted)' : 'var(--primary)' }}
+              aria-label={t('sorties.sort')}
+            >
+              {t(`sorties.sort_${sortMode}`)}
+              <ChevronsUpDown size={14} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {(['heure', 'aimes', 'recents'] as const).map((mode) => (
+              <DropdownMenuItem key={mode} onSelect={() => setSortMode(mode)} className={sortMode === mode ? 'font-semibold' : undefined}>
+                {t(`sorties.sort_${mode}`)}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <button
+          type="button"
+          onClick={() => setShowMap(!showMap)}
+          aria-label={showMap ? t('sorties.show_list') : t('sorties.show_map')}
+          style={{ width: 40, height: 36, borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text)' }}
+        >
+          {showMap ? <List size={16} aria-hidden /> : <MapIcon size={16} aria-hidden />}
+        </button>
+      </div>
+
+      {when.kind === 'day' && (
+        <div style={{ padding: '6px 16px 0' }}>
+          <EventsCalendar
+            slots={slots}
+            selectedDay={selectedDay}
+            onSelectDay={selectDay}
+            expanded={monthExpanded}
+            onExpandedChange={setMonthExpanded}
+            onOpenEvent={(id) => navigate(`/event/${id}`)}
+            // « +N » : les sorties longues sans barre sont listées sous le
+            // calendrier, dans « En ce moment » — on se pose sur la semaine.
+            onShowWeekInList={(monday) => selectDay(firstEventDay(shortSlotsByDay(slots), monday, addDaysISO(monday, 6)) ?? monday)}
           />
         </div>
       )}
 
-      {/* Liste ↔ Calendrier. La carte reste en mode liste : au format téléphone
-          elle ne cohabite pas avec une grille de dates. */}
-      <div style={{ padding: '4px 16px 8px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        {/* Seul l'onglet actif affiche son libellé : l'autre se réduit à son icône, ce qui
-            libère la place de la bascule « Gratuit » sur la même ligne. */}
-        <div
-          role="tablist"
-          aria-label={t('sorties.view_mode')}
-          style={{ display: 'inline-flex', gap: 2, padding: 2, background: 'var(--border)', borderRadius: 999 }}
-        >
-          {([false, true] as const).map((calendar) => {
-            const active = calendarMode === calendar;
-            const ModeIcon = calendar ? CalendarDays : List;
-            const modeLabel = t(calendar ? 'sorties.mode_calendar' : 'sorties.mode_list');
-            return (
+      {showMap && (
+        <div style={{ margin: '8px 16px 0', borderRadius: 'var(--radius)', overflow: 'hidden', height: 300, isolation: 'isolate', zIndex: 0 }}>
+          <EventsMap events={mapEvents} />
+        </div>
+      )}
+
+      {!isLoading && groups.length === 0 && longs.length === 0 ? (
+        <div style={{ padding: '22px 16px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center' }}>
+          <MascotteMiniature size={64} />
+          <p style={{ fontFamily: 'Fraunces, serif', fontSize: 18, fontWeight: 600, color: 'var(--text)', marginTop: 4 }}>{t('sorties.nothing_title')}</p>
+          <p style={{ fontFamily: 'Caveat', fontSize: 17, color: 'var(--text-muted)' }}>{t('sorties.nothing_hint')}</p>
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            {relaxers.map((r) => (
               <button
-                key={String(calendar)}
+                key={r.id}
                 type="button"
-                role="tab"
-                aria-selected={active}
-                aria-label={modeLabel}
-                onClick={() => switchMode(calendar)}
+                onClick={r.apply}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5, minHeight: 32,
-                  padding: active ? '6px 12px' : '6px 10px',
-                  borderRadius: 999,
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontFamily: 'DM Sans',
-                  fontSize: 13,
-                  fontWeight: active ? 600 : 400,
-                  background: active ? 'var(--surface)' : 'transparent',
-                  color: active ? 'var(--text)' : 'var(--text-muted)',
-                  boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 48, padding: '0 14px', cursor: 'pointer',
+                  background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14,
+                  fontFamily: 'DM Sans', fontSize: 14, fontWeight: 500, color: 'var(--text)', textAlign: 'left',
                 }}
               >
-                <ModeIcon size={14} aria-hidden />
-                {active && modeLabel}
+                {r.label}
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--secondary)', background: 'var(--secondary-light)', borderRadius: 999, padding: '3px 9px' }}>
+                  {t('sorties.total', { count: r.count })}
+                </span>
               </button>
-            );
-          })}
-        </div>
-        {/* « Proche de moi » et « Gratuit » : trois éléments ne tiennent pas sur une ligne de 375 px,
-            les chips passent à la ligne sous le sélecteur plutôt que de le comprimer. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <NearbyFilterPill active={onlyNearby} onToggle={() => setOnlyNearby((v) => !v)} />
-          <FreeFilterPill active={onlyFree} onToggle={() => setOnlyFree((v) => !v)} />
-        </div>
-      </div>
-
-      {calendarMode ? (
-        <>
-          <div style={{ padding: '0 16px' }}>
-            <EventsCalendar
-              slots={filteredSlots}
-              selectedDay={selectedDay}
-              onSelectDay={(day) => {
-                setSelectedDay(day);
-                setDayTouched(true);
-              }}
-              expanded={monthExpanded}
-              onExpandedChange={setMonthExpanded}
-              onOpenEvent={(id) => navigate(`/event/${id}`)}
-              onShowWeekInList={showWeekInList}
-            />
+            ))}
           </div>
-
-          {/* Événements au long cours couvrant le jour qui n'ont pas de barre dans la
-              grille (au-delà de 2 lignes par semaine). */}
-          {dayLongEvents.length > 0 && (
-            <div style={{ padding: '14px 16px 0' }}>
-              <div
-                style={{
-                  fontFamily: 'DM Sans',
-                  fontSize: 10,
-                  fontWeight: 600,
-                  color: 'var(--text-muted)',
-                  marginBottom: 6,
-                }}
-              >
-                {t(drawnLongIds.size > 0 ? 'sorties.also_happening_now' : 'sorties.happening_now')}
+        </div>
+      ) : (
+        <div style={{ padding: '0 16px 32px' }}>
+          {longs.length > 0 && (
+            <div style={{ paddingTop: 12 }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
+                {t('sorties.happening_now')}
               </div>
               <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
-                {dayLongEvents.map((ev) => {
+                {longs.map((ev) => {
                   const hex = eventCategoryHex(ev.category);
                   return (
                     <button
@@ -369,18 +462,8 @@ const SortiesPage = () => {
                       type="button"
                       onClick={() => navigate(`/event/${ev.id}`)}
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        flexShrink: 0,
-                        padding: '6px 10px',
-                        borderRadius: 999,
-                        cursor: 'pointer',
-                        background: `${hex}1A`,
-                        border: `1px solid ${hex}73`,
-                        color: hex,
-                        fontFamily: 'DM Sans',
-                        fontSize: 12,
+                        display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, padding: '6px 10px', borderRadius: 999, cursor: 'pointer',
+                        background: `${hex}1A`, border: `1px solid ${hex}73`, color: hex, fontFamily: 'DM Sans', fontSize: 12,
                       }}
                     >
                       <span aria-hidden>{eventCategoryEmoji(ev.category)}</span>
@@ -391,129 +474,55 @@ const SortiesPage = () => {
               </div>
             </div>
           )}
-
-          <div style={{ padding: '14px 16px 8px', display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <span style={{ fontFamily: 'Caveat', fontSize: 19, fontWeight: 600, color: 'var(--text)' }}>
-              {dayTitle}
-            </span>
-            {daySlots.length > 0 && (
-              <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--text-muted)' }}>
-                · {t('sorties.count', { count: daySlots.length })}
-              </span>
-            )}
-          </div>
-
-          <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {daySlots.length === 0 && !isLoading ? (
-              <div style={{ textAlign: 'center', padding: '24px 16px' }}>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--text-muted)' }}>
-                  {t('sorties.empty_day')}
+          {groups.map((group) => (
+            <div key={group.day}>
+              {groups.length > 1 && (
+                <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: 18, fontWeight: 600, color: 'var(--text)', marginTop: 18 }}>{dayTitle(group.day)}</h2>
+              )}
+              {group.sections.map((section) => (
+                <div key={section.moment ?? 'none'}>
+                  <p style={{ fontFamily: 'DM Sans', fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', color: 'var(--text-muted)', margin: '12px 0 8px' }}>
+                    {sectionTitle(section)}
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {section.cards.map((card) => (
+                      <EventDayCard key={`${card.slot.event.id}|${card.day}`} card={card} />
+                    ))}
+                  </div>
                 </div>
-                <div style={{ fontFamily: 'Caveat', fontSize: 16, color: 'var(--text-muted)', marginTop: 6 }}>
-                  {t('sorties.empty_day_hint')}
-                </div>
-              </div>
-            ) : (
-              daySlots.map((slot) => (
-                <EventCard
-                  key={slot.occurrence.id}
-                  event={slot.event}
-                  occurrence={slot.occurrence}
-                  occurrenceCount={occurrencesByEvent[slot.event.id]?.length ?? 1}
-                  showPast={selectedDay <= today}
-                />
-              ))
-            )}
-          </div>
-        </>
-      ) : (
-        <>
-          <WeekendPicker weekends={localizedWeeks} selectedKey={selectedKey} onChange={setSelectedKey} />
-
-          <div style={{ padding: '8px 16px' }}>
-            <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
-              {isLoading
-                ? t('common.loading')
-                : t('sorties.count', { count: displayedSlots.length, defaultValue: `${displayedSlots.length} événements` })}
-            </p>
-          </div>
-
-          {/* Map */}
-          <div
-            style={{
-              margin: '0 16px 12px',
-              borderRadius: 'var(--radius)',
-              overflow: 'hidden',
-              height: 220,
-              isolation: 'isolate',
-              zIndex: 0,
-            }}
-          >
-            <EventsMap events={displayedEvents} />
-          </div>
-
-          {/* Toggle « événements terminés » — seulement s'il y en a à masquer */}
-          {finishedCount > 0 && (
-            <div style={{ padding: '0 16px 10px' }}>
-              <button
-                type="button"
-                onClick={() => setShowFinished((v) => !v)}
-                className="flex items-center gap-1.5 text-sm"
-                style={{ color: 'var(--text-muted)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-              >
-                <span aria-hidden style={{ fontSize: 13 }}>{showFinished ? '☑' : '☐'}</span>
-                {showFinished ? t('sorties.hide_finished') : t('sorties.show_finished', { count: finishedCount })}
-              </button>
+              ))}
             </div>
-          )}
-
-          {/* List */}
-          <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {displayedSlots.length === 0 && !isLoading ? (
-              <div style={{ textAlign: 'center', padding: '32px 16px' }}>
-                <div style={{ fontSize: 34, marginBottom: 8 }}>🎪</div>
-                <div style={{ fontFamily: 'Caveat', fontSize: 17, color: 'var(--text-muted)' }}>
-                  {hasActiveFilter ? t('sorties.empty_filtered') : t('sorties.empty')}
-                </div>
-                {onlyFree && (
-                  <button
-                    type="button"
-                    onClick={() => setOnlyFree(false)}
-                    style={{
-                      marginTop: 10, background: 'none', border: 'none', cursor: 'pointer',
-                      fontFamily: 'DM Sans', fontSize: 14, fontWeight: 600, color: 'var(--secondary)',
-                    }}
-                  >
-                    {t('sorties.remove_free_filter')}
-                  </button>
-                )}
-                {onlyNearby && (
-                  <button
-                    type="button"
-                    onClick={() => setOnlyNearby(false)}
-                    style={{
-                      marginTop: 10, background: 'none', border: 'none', cursor: 'pointer',
-                      fontFamily: 'DM Sans', fontSize: 14, fontWeight: 600, color: 'var(--secondary)',
-                    }}
-                  >
-                    {t('sorties.remove_nearby_filter')}
-                  </button>
-                )}
-              </div>
-            ) : (
-              displayedSlots.map((slot) => (
-                <EventCard
-                  key={slot.occurrence.id}
-                  event={slot.event}
-                  occurrence={slot.occurrence}
-                  occurrenceCount={occurrencesByEvent[slot.event.id]?.length ?? 1}
-                  showPast={showPast}
-                />
-              ))
-            )}
-          </div>
-        </>
+          ))}
+        </div>
       )}
+
+      <SortiesFiltersSheet
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        criteria={criteria}
+        count={count}
+        availableCategories={availableCategories}
+        kids={kids}
+        childSelection={childSelection}
+        onChildSelection={setChildSelection}
+        ageBucket={ageBucket}
+        onAgeBucket={setAgeBucket}
+        onToggleCategory={(cat) => setCategories((s) => toggleIn(s, cat))}
+        onToggleMoment={(m) => setMoments((s) => toggleIn(s, m))}
+        onlyFree={onlyFree}
+        onFree={setOnlyFree}
+        onlyNearby={onlyNearby}
+        onNearby={setOnlyNearby}
+        onClearAll={clearAll}
+      />
+
+      <SortiesAssistant
+        open={assistantOpen}
+        kids={kids}
+        count={count}
+        onFinish={applyOutcome}
+        onSkip={() => setAssistantOpen(false)}
+      />
     </div>
   );
 };
