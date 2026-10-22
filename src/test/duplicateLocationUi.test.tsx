@@ -42,6 +42,18 @@ describe('DuplicateLocationAlert', () => {
     expect(link.getAttribute('target')).toBe('_blank');
   });
 
+  it('« Donner mon avis » : sur la correspondance forte et sur une même adresse, pas sur un nom proche seul', () => {
+    const feedback = () => [...container.querySelectorAll('a')].filter((a) => a.textContent === 'Donner mon avis');
+    act(() => root.render(<DuplicateLocationAlert matches={strong} isActivity={false} onDismiss={() => {}} />));
+    expect(feedback()).toHaveLength(1);
+    expect(feedback()[0].getAttribute('href')).toBe('/location/atl?contribuer=1');
+    expect(feedback()[0].getAttribute('target')).toBe('_blank');
+    act(() => root.render(<DuplicateLocationAlert matches={weakAddress} isActivity={false} onDismiss={() => {}} />));
+    expect(feedback()).toHaveLength(1);
+    act(() => root.render(<DuplicateLocationAlert matches={weakName} isActivity={false} onDismiss={() => {}} />));
+    expect(feedback()).toHaveLength(0);
+  });
+
   it('activité : le titre parle d\'activité', () => {
     act(() => root.render(<DuplicateLocationAlert matches={strong} isActivity onDismiss={() => {}} />));
     expect(container.textContent).toContain('Cette activité existe peut-être déjà');
@@ -66,6 +78,7 @@ describe('DuplicateLocationAlert', () => {
     await act(async () => { await i18n.changeLanguage('en'); });
     act(() => root.render(<DuplicateLocationAlert matches={strong} isActivity={false} onDismiss={() => {}} />));
     expect(container.textContent).toContain('This place may already exist');
+    expect(container.textContent).toContain('Share my feedback');
     await act(async () => { await i18n.changeLanguage('es'); });
     act(() => root.render(<DuplicateLocationAlert matches={strong} isActivity={false} onDismiss={() => {}} />));
     expect(container.textContent).toContain('Puede que este lugar ya exista');
@@ -77,6 +90,7 @@ describe('motif de refus d\'un doublon', () => {
     const msg = duplicateRejectMessage('You Kids Atlantis', strong[0]);
     expect(msg).toContain('« You Kids Atlantis » est déjà dans Kidmapp (« You Kids Nantes Atlantis »)');
     expect(msg).toContain('https://kidmapp.app/location/atl');
+    expect(msg).toContain('compléter sa fiche avec « Confirmer les infos »');
     expect(msg.length).toBeLessThan(1000);
   });
 

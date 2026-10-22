@@ -10,6 +10,12 @@ interface DuplicateLocationAlertProps {
 }
 
 /**
+ * « Donner mon avis » : seulement quand c'est bien ce lieu-là (nom ET adresse, ou même adresse). Un nom
+ * proche à une autre adresse peut être une autre enseigne de la chaîne.
+ */
+const canContribute = (m: DuplicateMatch): boolean => m.level === 'strong' || m.sameAddress;
+
+/**
  * Alerte « existe peut-être déjà » du formulaire de proposition : carte jaune quand le nom ET l'adresse
  * concordent, simple rappel gris sinon. Elle n'empêche jamais l'envoi. La fiche s'ouvre dans un nouvel
  * onglet : ce qui est déjà saisi dans le formulaire n'est pas perdu.
@@ -37,8 +43,8 @@ export default function DuplicateLocationAlert({ matches, isActivity, onDismiss 
         {title}
       </div>
       {matches.map((m) => (
+        <div key={m.candidate.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <a
-          key={m.candidate.id}
           href={`/location/${m.candidate.id}`}
           target="_blank"
           rel="noopener noreferrer"
@@ -75,6 +81,20 @@ export default function DuplicateLocationAlert({ matches, isActivity, onDismiss 
             {t('duplicate_location.view')}
           </span>
         </a>
+        {canContribute(m) && (
+          <a
+            href={`/location/${m.candidate.id}?contribuer=1`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'block', textAlign: 'center', padding: '10px 14px', borderRadius: 100, textDecoration: 'none',
+              background: 'var(--primary)', color: '#fff', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
+            }}
+          >
+            {t('duplicate_location.give_feedback')}
+          </a>
+        )}
+        </div>
       ))}
       <button
         type="button"
