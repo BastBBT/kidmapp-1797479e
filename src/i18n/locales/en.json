@@ -668,6 +668,7 @@
     "chip_same_address": "Same address",
     "chip_similar_name": "Similar name",
     "view": "View ›",
-    "not_the_same": "No, it's not the same one"
+    "not_the_same": "No, it's not the same one",
+    "give_feedback": "Share my feedback"
   }
 }

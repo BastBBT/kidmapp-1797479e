@@ -15,6 +15,7 @@ export function duplicateRejectMessage(proposalName: string, match: DuplicateMat
   return (
     `Merci pour ta proposition ! « ${clip(name, 120)} » est déjà dans Kidmapp${nameBit}, on ne peut donc pas l'ajouter une deuxième fois. ` +
     `Tu peux le retrouver ici : https://kidmapp.app/location/${existing.id}\n` +
+    `Si tu y es déjà allé, tu peux compléter sa fiche avec « Contribuer » : photos, équipements, un petit commentaire.\n` +
     `N'hésite pas à nous proposer d'autres adresses !`
   );
 }

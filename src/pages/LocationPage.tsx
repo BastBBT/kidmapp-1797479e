@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { categoryIcons, isActivity } from '@/types/location';
 import { ArrowLeft, ArrowUpFromLine, Heart } from 'lucide-react';
@@ -126,6 +126,19 @@ const LocationPage = () => {
   const contributorCount = contribData?.contributorCount ?? 0;
   const { user } = useAuth();
   const { requireAuth } = useRequireAuth();
+
+  // `?contribuer=1` : l'alerte « existe peut-être déjà » du formulaire de proposition amène ici quelqu'un
+  // qui voulait ajouter ce lieu ; on ouvre « Contribuer » pour qu'il donne son avis tout de suite. Une
+  // seule fois (le paramètre est retiré), et seulement connecté : sans session, le bouton de la fiche
+  // garde son parcours de connexion.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('contribuer') !== '1' || !location || !user) return;
+    setShowContribute(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('contribuer');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, location, user]);
   const favorite = location ? isFavorite(location.id) : false;
   const zone = useProximityZone();
 
