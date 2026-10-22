@@ -144,16 +144,6 @@ export const isPastEvent = (dateStart: string, dateEnd: string | null): boolean 
 };
 
 /**
- * Ordre d'affichage d'un événement au sein d'une semaine :
- * 0 = court (journée / week-end), 1 = long (expo, festival), 2 = terminé.
- * Sans ça, une expo démarrée en mai remonte au même niveau qu'un atelier du jour.
- */
-export const eventSortRank = (dateStart: string, dateEnd: string | null): number => {
-  if (isPastEvent(dateStart, dateEnd)) return 2;
-  return isShortEvent(dateStart, dateEnd) ? 0 : 1;
-};
-
-/**
  * Événement « court » : sur une journée ou un week-end (≤ 3 jours), par
  * opposition aux expos et festivals qui courent sur plusieurs semaines.
  * Sert à prioriser l'affichage dans une semaine (courts d'abord).
@@ -171,14 +161,6 @@ export { toISODate };
 
 // ---------- Weekly grouping (Mon → Sun) ----------
 
-export interface Week {
-  key: string; // ISO date of Monday
-  monday: Date;
-  sunday: Date;
-  label: string;
-  past?: boolean;
-}
-
 /** Monday of the week containing `from`. */
 const mondayOf = (from: Date): Date => {
   const d = startOfDay(from);
@@ -191,45 +173,3 @@ const mondayOf = (from: Date): Date => {
 export const currentWeekKey = (from: Date = new Date()): string =>
   toISODate(mondayOf(from));
 
-export const buildWeeks = (
-  count = 8,
-  from: Date = new Date(),
-  includeLast = true,
-): Week[] => {
-  const currentMonday = mondayOf(from);
-  const currentKey = toISODate(currentMonday);
-  const result: Week[] = [];
-  const startI = includeLast ? -1 : 0;
-
-  for (let i = startI; i < count; i++) {
-    const mon = new Date(currentMonday);
-    mon.setDate(currentMonday.getDate() + i * 7);
-    const sun = new Date(mon);
-    sun.setDate(mon.getDate() + 6);
-    const key = toISODate(mon);
-    const past = i < 0;
-    let label: string;
-    if (past) label = 'Semaine dernière';
-    else if (key === currentKey) label = 'Cette semaine';
-    else {
-      const day = mon.getDate();
-      const month = monthShort(mon);
-      label = `Semaine du ${day} ${month}`;
-    }
-    result.push({ key, monday: mon, sunday: sun, label, past });
-  }
-  return result;
-};
-
-/** Does an event overlap the given week (Mon..Sun)? */
-export const eventInWeek = (
-  dateStart: string,
-  dateEnd: string | null,
-  week: { monday: Date; sunday: Date },
-): boolean => {
-  const monISO = toISODate(week.monday);
-  const sunISO = toISODate(week.sunday);
-  const start = dateStart;
-  const end = dateEnd ?? dateStart;
-  return start <= sunISO && end >= monISO;
-};

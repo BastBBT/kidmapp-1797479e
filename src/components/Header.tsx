@@ -8,7 +8,7 @@ import AgeFilter from '@/components/AgeFilter';
 import { useCoachmarkTarget } from '@/hooks/useCoachmarks';
 import { CategoryGroup, LocationCategory } from '@/types/location';
 import { AgeBucket } from '@/lib/ageFilter';
-import { MascotteMiniature } from '@/components/Mascotte';
+import AssistantButton from '@/components/AssistantButton';
 
 
 interface HeaderProps {
@@ -67,19 +67,9 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
             {/* Uniquement la bulle de l'assistant et son texte : l'avatar
                 (lettre du compte) faisait doublon avec l'onglet compte de la
                 barre du bas et encombrait le coin sans raison d'y être. */}
-            {onOpenAssistant && (
-              <button
-                type="button"
-                onClick={onOpenAssistant}
-                className="flex items-center gap-1.5 cursor-pointer"
-                aria-label={t('assistant.open')}
-              >
-                <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                  {t('assistant.coup_de_main')}
-                </span>
-                <MascotteMiniature />
-              </button>
-            )}
+            {/* Même pastille sur Explorer et Sorties : un seul geste à apprendre,
+                chaque page ouvrant ensuite son propre assistant. */}
+            {onOpenAssistant && <AssistantButton onClick={onOpenAssistant} />}
           </nav>
         </div>
 

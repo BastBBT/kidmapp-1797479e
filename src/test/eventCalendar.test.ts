@@ -2,17 +2,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   buildSlots,
   defaultSelectedDay,
-  distinctEvents,
   eventsWindowFilter,
   longBarsForRow,
   longBarsForWeek,
-  longEventsOn,
   populatedMonths,
   weekRowColumns,
   shortSlotsByDay,
-  shortSlotsOn,
-  weekSlots,
 } from '@/lib/eventCalendar';
+import { longEventsInRange } from '@/lib/sortiesFilters';
 import { EventItem, EventOccurrence, eventCategoryInk } from '@/types/event';
 
 // Jeudi 13/08/2026 comme « aujourd'hui » : une partie des dates de test est
@@ -108,7 +105,7 @@ describe('shortSlotsByDay', () => {
     });
 
     expect(Object.keys(shortSlotsByDay(slots))).toEqual(['2026-08-15']);
-    expect(longEventsOn(slots, '2026-08-13').map((e) => e.id)).toEqual(['mix']);
+    expect(longEventsInRange(slots, ['2026-08-13']).map((e) => e.id)).toEqual(['mix']);
   });
 
   it('ne compte qu’une fois un event à deux créneaux longs', () => {
@@ -119,72 +116,7 @@ describe('shortSlotsByDay', () => {
       ],
     });
 
-    expect(longEventsOn(slots, '2026-08-13').map((e) => e.id)).toEqual(['expo']);
-  });
-});
-
-describe('shortSlotsOn', () => {
-  it('trie par horaire du créneau', () => {
-    const slots = buildSlots([ev('a', '2026-08-15'), ev('b', '2026-08-15')], {
-      a: [occ('a', '2026-08-15', { time: '15h00' })],
-      b: [occ('b', '2026-08-15', { time: '09h30' })],
-    });
-
-    expect(shortSlotsOn(shortSlotsByDay(slots), '2026-08-15').map((s) => s.event.id)).toEqual([
-      'b',
-      'a',
-    ]);
-  });
-
-  it('ne marque « terminé » que le créneau réellement passé', () => {
-    // Le trigger de synchro n'est pas rejoué chaque jour : la date portée par
-    // l'event peut être périmée alors qu'un créneau est encore à venir.
-    const slots = buildSlots([ev('serie', '2026-08-10')], {
-      serie: [occ('serie', '2026-08-10'), occ('serie', '2026-08-20')],
-    });
-    const byDay = shortSlotsByDay(slots);
-
-    expect(shortSlotsOn(byDay, '2026-08-10')[0].occurrence.date_start).toBe('2026-08-10');
-    expect(shortSlotsOn(byDay, '2026-08-20')[0].occurrence.date_start).toBe('2026-08-20');
-    expect(defaultSelectedDay(byDay)).toBe('2026-08-20');
-  });
-});
-
-describe('weekSlots', () => {
-  // Semaine du lundi 17 au dimanche 23 août 2026, entièrement à venir.
-  const week = { monday: new Date(2026, 7, 17), sunday: new Date(2026, 7, 23) } as never;
-
-  it('ne retient que les créneaux qui traversent la semaine', () => {
-    const slots = buildSlots([ev('contes', '2026-08-15')], {
-      contes: [occ('contes', '2026-08-15'), occ('contes', '2026-08-19'), occ('contes', '2026-08-26')],
-    });
-
-    expect(weekSlots(slots, week).map((s) => s.occurrence.date_start)).toEqual(['2026-08-19']);
-  });
-
-  it('garde les deux créneaux d’une même semaine, dans l’ordre des dates', () => {
-    const slots = buildSlots([ev('atelier', '2026-08-18')], {
-      atelier: [occ('atelier', '2026-08-22'), occ('atelier', '2026-08-18')],
-    });
-
-    expect(weekSlots(slots, week).map((s) => s.occurrence.date_start)).toEqual([
-      '2026-08-18',
-      '2026-08-22',
-    ]);
-    // La mini-carte, elle, ne veut qu'un marqueur par lieu.
-    expect(distinctEvents(weekSlots(slots, week)).map((e) => e.id)).toEqual(['atelier']);
-  });
-
-  it('place les créneaux longs après les courts', () => {
-    const slots = buildSlots(
-      [ev('expo', '2026-07-01', { date_end: '2026-09-30' }), ev('atelier', '2026-08-20')],
-      {
-        expo: [occ('expo', '2026-07-01', { date_end: '2026-09-30' })],
-        atelier: [occ('atelier', '2026-08-20')],
-      },
-    );
-
-    expect(weekSlots(slots, week).map((s) => s.event.id)).toEqual(['atelier', 'expo']);
+    expect(longEventsInRange(slots, ['2026-08-13']).map((e) => e.id)).toEqual(['expo']);
   });
 });
 
