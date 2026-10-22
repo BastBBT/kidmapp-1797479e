@@ -23,6 +23,10 @@ import { useTopContributors } from '@/hooks/useTopContributors';
 import { EVENT_CATEGORIES, EVENT_WEATHERS, MAX_EVENT_PHOTOS, eventCategoryHex, eventCategoryEmoji, type EventOccurrence } from '@/types/event';
 import { occurrencesOf } from '@/lib/eventCalendar';
 import RejectDialog from '@/components/admin/RejectDialog';
+import { DuplicateBadge, DuplicateReviewNote } from '@/components/admin/DuplicateReviewNote';
+import { suggestedRejectReason } from '@/lib/duplicateRejection';
+import { findDuplicateLocations, type DuplicateMatch } from '@/lib/duplicateLocation';
+import { useDuplicateCandidates } from '@/hooks/useDuplicateCandidates';
 import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
@@ -2883,6 +2887,20 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   );
   const { data: proposalEmails = {} } = useUserEmails(proposalUserIds);
 
+  // Doublons : seules les propositions en attente sont comparées aux lieux publiés. Le badge et le
+  // compteur sont un signal pour la modération, jamais un blocage (homonymes et enseignes existent).
+  const { data: publishedPlaces = [] } = useDuplicateCandidates();
+  const [duplicatesOnly, setDuplicatesOnly] = useState(false);
+  const duplicatesById = useMemo(() => {
+    const map = new Map<string, DuplicateMatch[]>();
+    for (const p of proposals) {
+      if (p.status !== 'pending') continue;
+      const matches = findDuplicateLocations(p.name ?? '', p.address ?? '', publishedPlaces);
+      if (matches.length > 0) map.set(p.id, matches);
+    }
+    return map;
+  }, [proposals, publishedPlaces]);
+
   const startEdit = (proposal: any) => {
     setEditingId(proposal.id);
     setEditPhotoFile(null);
@@ -3212,6 +3230,20 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         ];
         return (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {duplicatesById.size > 0 && (
+              <button
+                onClick={() => setDuplicatesOnly((v) => !v)}
+                style={{
+                  padding: '5px 12px', borderRadius: 100, fontSize: 12, fontWeight: 600,
+                  border: duplicatesOnly ? '1.5px solid #8A6A00' : '1.5px solid #EBD58A',
+                  background: duplicatesOnly ? '#8A6A00' : '#FEF9E7',
+                  color: duplicatesOnly ? '#fff' : '#8A6A00',
+                  fontFamily: 'DM Sans', cursor: 'pointer',
+                }}
+              >
+                ⚠ Doublons possibles ({duplicatesById.size})
+              </button>
+            )}
             {groupOptions.map((o) => {
               const active = groupFilter === o.key;
               return (
@@ -3248,7 +3280,8 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
           .filter((p: any) =>
             matchSearch(searchProposals, p.name, p.address, p.website) &&
             isDateInRange(p.created_at, proposalsDateRange) &&
-            (proposalsStatusFilter === 'all' || reviewStatusOf(p.status) === proposalsStatusFilter)
+            (proposalsStatusFilter === 'all' || reviewStatusOf(p.status) === proposalsStatusFilter) &&
+            (!duplicatesOnly || duplicatesById.has(p.id))
           );
         return (
           <>
@@ -3265,6 +3298,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
             {filteredProposals.map((proposal: any, i: number) => {
               const catStyle = categoryBadgeColors[proposal.category] ?? { bg: 'var(--bg)', color: 'var(--text-muted)' };
               const isProcessing = processingId === proposal.id;
+              const duplicates = duplicatesById.get(proposal.id);
               return (
           <motion.div
             key={proposal.id}
@@ -3294,11 +3328,15 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                   {categoryLabels[proposal.category as keyof typeof categoryLabels] ?? proposal.category}
                 </span>
               </div>
-              <StatusBadge status={proposal.status === 'approved' ? 'validated' : proposal.status} />
+              <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
+                {duplicates && <DuplicateBadge />}
+                <StatusBadge status={proposal.status === 'approved' ? 'validated' : proposal.status} />
+              </div>
             </div>
             <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
               📍 {proposal.address}
             </div>
+            {duplicates && <DuplicateReviewNote matches={duplicates} />}
             <div className="flex gap-3 mb-2" style={{ fontFamily: 'DM Sans', fontSize: '12px', flexWrap: 'wrap' }}>
               {isActivity(proposal.category) ? (
                 <>
@@ -3563,6 +3601,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         submissionType="location"
         submissionName={rejectTarget?.name || 'Proposition'}
         recipientEmail={rejectTarget?.user_id ? (proposalEmails[rejectTarget.user_id] ?? null) : null}
+        initialReason={rejectTarget ? suggestedRejectReason(rejectTarget.name ?? '', duplicatesById.get(rejectTarget.id)) : ''}
         onCancel={() => setRejectTarget(null)}
         onConfirm={confirmReject}
       />

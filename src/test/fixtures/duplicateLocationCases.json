@@ -1,0 +1,459 @@
+{
+ "_doc": "Tableau partagé de DuplicateLocationMatcher (iOS), duplicate_location.dart (Android) et duplicateLocation.ts (web) : copies identiques. Chaque cas donne ce que l'utilisateur a saisi, les lieux publiés, et les correspondances attendues dans l'ordre d'affichage.",
+ "cases": [
+  {
+   "label": "même lieu, nom raccourci, adresse reformulée",
+   "name": "You Kids Atlantis",
+   "address": "Centre Atlantis, Saint-Herblain",
+   "candidates": [
+    {
+     "id": "atl",
+     "name": "You Kids Nantes Atlantis",
+     "address": "Atlantis, Saint-Herblain"
+    }
+   ],
+   "expect": [
+    {
+     "id": "atl",
+     "level": "strong"
+    }
+   ]
+  },
+  {
+   "label": "exactement le même nom et la même adresse",
+   "name": "Café des Lutins",
+   "address": "5 rue Crébillon, 44000 Nantes",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Café des Lutins",
+     "address": "5 rue Crébillon, 44000 Nantes"
+    }
+   ],
+   "expect": [
+    {
+     "id": "a",
+     "level": "strong"
+    }
+   ]
+  },
+  {
+   "label": "majuscules et accents ignorés",
+   "name": "CAFE DES LUTINS",
+   "address": "5 rue Crebillon 44000 Nantes",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Café des Lutins",
+     "address": "5 rue Crébillon, 44000 Nantes"
+    }
+   ],
+   "expect": [
+    {
+     "id": "a",
+     "level": "strong"
+    }
+   ]
+  },
+  {
+   "label": "apostrophe collée ou non",
+   "name": "Le P'tit Zinc",
+   "address": "3 rue Kervégan, Nantes",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Ptit Zinc",
+     "address": "3 rue Kervegan 44100 Nantes"
+    }
+   ],
+   "expect": [
+    {
+     "id": "a",
+     "level": "strong"
+    }
+   ]
+  },
+  {
+   "label": "apostrophe typographique",
+   "name": "L’Île aux Enfants",
+   "address": "7 place Royale, Nantes",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "L'ile aux enfants",
+     "address": "7 place Royale, 44000 Nantes"
+    }
+   ],
+   "expect": [
+    {
+     "id": "a",
+     "level": "strong"
+    }
+   ]
+  },
+  {
+   "label": "ligature œ",
+   "name": "Cœur de ville",
+   "address": "2 rue Voltaire, Nantes",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Coeur de ville",
+     "address": "2 rue Voltaire, Nantes"
+    }
+   ],
+   "expect": [
+    {
+     "id": "a",
+     "level": "strong"
+    }
+   ]
+  },
+  {
+   "label": "code postal d'un côté seulement",
+   "name": "Crêperie du Port",
+   "address": "3 rue Kervégan 44100 Nantes",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Crêperie du Port",
+     "address": "3 rue Kervegan, Nantes"
+    }
+   ],
+   "expect": [
+    {
+     "id": "a",
+     "level": "strong"
+    }
+   ]
+  },
+  {
+   "label": "enseigne : même nom, numéros de rue différents",
+   "name": "Ludothèque Jeux Dits",
+   "address": "12 rue de la Paix, Rezé",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Ludothèque Jeux Dits",
+     "address": "8 av. des Sports, Saint-Sébastien"
+    }
+   ],
+   "expect": [
+    {
+     "id": "a",
+     "level": "weak"
+    }
+   ]
+  },
+  {
+   "label": "même rue, numéro différent, même nom",
+   "name": "Crêperie Bretonne",
+   "address": "12 rue de la Paix, Rezé",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Crêperie Bretonne",
+     "address": "14 rue de la Paix, Rezé"
+    }
+   ],
+   "expect": [
+    {
+     "id": "a",
+     "level": "weak"
+    }
+   ]
+  },
+  {
+   "label": "centre commercial sans numéro : lieux voisins, pas le même",
+   "name": "Pizzeria Roma",
+   "address": "Centre Atlantis, Saint-Herblain",
+   "candidates": [
+    {
+     "id": "atl",
+     "name": "You Kids Nantes Atlantis",
+     "address": "Atlantis, Saint-Herblain"
+    }
+   ],
+   "expect": []
+  },
+  {
+   "label": "nom proche (faute), adresse pas encore saisie",
+   "name": "Café Lutin",
+   "address": "",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Café des Lutins",
+     "address": "5 rue Crébillon, Nantes"
+    }
+   ],
+   "expect": [
+    {
+     "id": "a",
+     "level": "weak"
+    }
+   ]
+  },
+  {
+   "label": "nom contenu, un seul mot long, adresse pas encore saisie",
+   "name": "Atlantis",
+   "address": "",
+   "candidates": [
+    {
+     "id": "atl",
+     "name": "You Kids Nantes Atlantis",
+     "address": "Atlantis, Saint-Herblain"
+    }
+   ],
+   "expect": [
+    {
+     "id": "atl",
+     "level": "weak"
+    }
+   ]
+  },
+  {
+   "label": "candidat sans adresse, même nom",
+   "name": "Jungle Kids",
+   "address": "4 rue Neuve, Nantes",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Jungle Kids",
+     "address": null
+    }
+   ],
+   "expect": [
+    {
+     "id": "a",
+     "level": "weak"
+    }
+   ]
+  },
+  {
+   "label": "faute d'un caractère",
+   "name": "Jungle Kid",
+   "address": "4 rue Neuve, Nantes",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Jungle Kids",
+     "address": "4 rue Neuve, Nantes"
+    }
+   ],
+   "expect": [
+    {
+     "id": "a",
+     "level": "strong"
+    }
+   ]
+  },
+  {
+   "label": "lieux différents du même quartier",
+   "name": "Parc de la Beaujoire",
+   "address": "Route de Saint-Joseph, Nantes",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Parc de la Roche",
+     "address": "Route de Saint-Joseph, Nantes"
+    }
+   ],
+   "expect": []
+  },
+  {
+   "label": "deux musées de Nantes",
+   "name": "Musée des enfants de Nantes",
+   "address": "1 rue A, Nantes",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Musée d'histoire de Nantes",
+     "address": "4 place Marc Elder, Nantes"
+    }
+   ],
+   "expect": []
+  },
+  {
+   "label": "fermes pédagogiques voisines",
+   "name": "Ferme pédagogique du Bocage",
+   "address": "La Chapelle, Orvault",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Ferme pédagogique de la Chesnaie",
+     "address": "Chesnaie, Saint-Sébastien"
+    }
+   ],
+   "expect": []
+  },
+  {
+   "label": "nom trop court",
+   "name": "Ba",
+   "address": "",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Ba",
+     "address": null
+    }
+   ],
+   "expect": []
+  },
+  {
+   "label": "nom fait seulement de mots génériques",
+   "name": "Café",
+   "address": "",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Café du Port",
+     "address": null
+    }
+   ],
+   "expect": []
+  },
+  {
+   "label": "aucun candidat",
+   "name": "Mon super lieu",
+   "address": "1 rue X, Nantes",
+   "candidates": [],
+   "expect": []
+  },
+  {
+   "label": "rien de commun",
+   "name": "Zoo de Pont-Scorff",
+   "address": "Pont-Scorff",
+   "candidates": [
+    {
+     "id": "atl",
+     "name": "You Kids Nantes Atlantis",
+     "address": "Atlantis, Saint-Herblain"
+    }
+   ],
+   "expect": []
+  },
+  {
+   "label": "les forts éclipsent les faibles",
+   "name": "Jungle Kids",
+   "address": "4 rue Neuve, Nantes",
+   "candidates": [
+    {
+     "id": "w",
+     "name": "Jungle Kids",
+     "address": "9 rue Autre, Rezé"
+    },
+    {
+     "id": "s",
+     "name": "Jungle Kids",
+     "address": "4 rue Neuve, Nantes"
+    }
+   ],
+   "expect": [
+    {
+     "id": "s",
+     "level": "strong"
+    }
+   ]
+  },
+  {
+   "label": "trois forts : deux seulement, le meilleur d'abord",
+   "name": "Jungle Kids",
+   "address": "4 rue Neuve, Nantes",
+   "candidates": [
+    {
+     "id": "c",
+     "name": "Jungle Kids",
+     "address": "4 rue Neuve, Nantes"
+    },
+    {
+     "id": "a",
+     "name": "Jungle Kidz",
+     "address": "4 rue Neuve, Nantes"
+    },
+    {
+     "id": "b",
+     "name": "Jungle Kids",
+     "address": "4 rue Neuve, Nantes"
+    }
+   ],
+   "expect": [
+    {
+     "id": "b",
+     "level": "strong"
+    },
+    {
+     "id": "c",
+     "level": "strong"
+    }
+   ]
+  },
+  {
+   "label": "catégorie sans effet : seul le nom et l'adresse comptent",
+   "name": "Café Restaurant Le Lutin",
+   "address": "5 rue Crébillon, Nantes",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Le Lutin",
+     "address": "5 rue Crébillon, Nantes"
+    }
+   ],
+   "expect": [
+    {
+     "id": "a",
+     "level": "strong"
+    }
+   ]
+  },
+  {
+   "label": "espaces et tirets autour",
+   "name": "  Saint-Herblain Kids  ",
+   "address": "1 rue Neuve, Nantes",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Saint Herblain Kids",
+     "address": "1 rue Neuve, Nantes"
+    }
+   ],
+   "expect": [
+    {
+     "id": "a",
+     "level": "strong"
+    }
+   ]
+  },
+  {
+   "label": "même numéro de rue, noms sans rapport : rappel faible (lieu rebaptisé ?)",
+   "name": "Pizzeria Roma",
+   "address": "12 rue de la Paix, Rezé",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Boulangerie Dupont",
+     "address": "12 rue de la Paix, 44400 Rezé"
+    }
+   ],
+   "expect": [
+    {
+     "id": "a",
+     "level": "weak"
+    }
+   ]
+  },
+  {
+   "label": "même rue sans numéro, noms sans rapport : rien",
+   "name": "Pizzeria Roma",
+   "address": "Route de Saint-Joseph, Nantes",
+   "candidates": [
+    {
+     "id": "a",
+     "name": "Boulangerie Dupont",
+     "address": "Route de Saint-Joseph, Nantes"
+    }
+   ],
+   "expect": []
+  }
+ ]
+}

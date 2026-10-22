@@ -659,5 +659,15 @@
   },
   "far_badge": {
     "aria": "À {{km}} km de ta zone"
+  },
+  "duplicate_location": {
+    "title_place": "Ce lieu existe peut-être déjà",
+    "title_activity": "Cette activité existe peut-être déjà",
+    "title_same_address": "Un lieu existe déjà à cette adresse",
+    "title_similar_name": "Un lieu au nom proche est déjà dans Kidmapp",
+    "chip_same_address": "Même adresse",
+    "chip_similar_name": "Nom proche",
+    "view": "Voir ›",
+    "not_the_same": "Non, ce n'est pas le même"
   }
 }
