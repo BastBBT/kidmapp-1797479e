@@ -71,7 +71,7 @@ const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const categoriesTargetRef = useCoachmarkTarget('categories');
-  const { wantsLocationDetail, locationDetailRequestHandled, locationDetailUnavailable } = useCoachmarks();
+  const { current: coachmarkStep, wantsLocationDetail, locationDetailRequestHandled, locationDetailUnavailable } = useCoachmarks();
 
   // L'URL fait foi (lien partagé/rechargé) ; à défaut, la dernière tranche
   // choisie survit à la fermeture de l'onglet via localStorage.
@@ -106,7 +106,8 @@ const Index = () => {
 
   const [group, setGroupState] = useState<CategoryGroup>(initialGroup);
   const [category, setCategory] = useState<LocationCategory | 'all'>(initialCategory);
-  const [mealId, setMealId] = useState<string | null>(searchParams.get('meal'));
+  // Le repas n'a de sens que côté lieux : un lien `group=activities&meal=…` ne le garde pas.
+  const [mealId, setMealId] = useState<string | null>(initialGroup === 'places' ? searchParams.get('meal') : null);
   const [weather, setWeather] = useState<string | null>(null);
   const [duration, setDuration] = useState<string | null>(null);
   const [onlyFree, setOnlyFree] = useState(false);
@@ -274,6 +275,21 @@ const Index = () => {
     setAssistantOpen(false);
   };
 
+  const stopSearch = () => {
+    setSearchQuery('');
+    setSearchActive(false);
+  };
+
+  // La bulle « catégories » de la visite guidée vise les onglets et la rangée de
+  // catégories, que la recherche remplace : on ressort de la recherche pour
+  // qu'elle ait une cible.
+  useEffect(() => {
+    if (coachmarkStep === 'categories' && searchActive) {
+      setSearchQuery('');
+      setSearchActive(false);
+    }
+  }, [coachmarkStep, searchActive]);
+
   // Sync URL params (replaceState — pas de pollution de l'historique).
   const updateUrl = useCallback((overrides: Partial<{ lat: number; lng: number; zoom: number }> = {}) => {
     const params = new URLSearchParams();
@@ -283,7 +299,7 @@ const Index = () => {
     if (searchQuery) params.set('q', searchQuery);
     if (category !== 'all') params.set('category', category);
     else if (group !== 'places') params.set('group', group);
-    if (mealId) params.set('meal', mealId);
+    if (group === 'places' && mealId) params.set('meal', mealId);
     if (selectedAge !== 'all') params.set('age', selectedAge);
     if (Number.isFinite(lat) && (lat !== NANTES_CENTER[0] || lng !== NANTES_CENTER[1])) {
       params.set('lat', lat.toFixed(4));
@@ -441,10 +457,6 @@ const Index = () => {
     return out;
   };
 
-  const stopSearch = () => {
-    setSearchQuery('');
-    setSearchActive(false);
-  };
 
   return (
     <div className="min-h-screen flex flex-col pb-20" style={{ background: 'var(--bg)' }}>
