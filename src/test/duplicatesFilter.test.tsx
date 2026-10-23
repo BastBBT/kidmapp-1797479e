@@ -34,7 +34,7 @@ const state = () => (container.textContent ?? '').split(' · ')[0];
 const click = () => act(() => container.querySelector('button')!.click());
 
 describe('useDuplicatesFilter', () => {
-  it('reste actif tant qu'il reste des propositions signalées', () => {
+  it("reste actif tant qu'il reste des propositions signalées", () => {
     act(() => root.render(<Harness count={3} />));
     expect(state()).toBe('filtre-inactif');
 
