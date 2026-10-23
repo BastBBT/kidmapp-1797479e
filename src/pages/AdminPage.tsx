@@ -27,6 +27,7 @@ import { DuplicateBadge, DuplicateReviewNote } from '@/components/admin/Duplicat
 import { suggestedRejectReason } from '@/lib/duplicateRejection';
 import { findDuplicateLocations, type DuplicateMatch } from '@/lib/duplicateLocation';
 import { useDuplicateCandidates } from '@/hooks/useDuplicateCandidates';
+import { useDuplicatesFilter } from '@/hooks/useDuplicatesFilter';
 import EventFeedbackAdmin from '@/components/admin/EventFeedbackAdmin';
 import { sendRejectionEmail } from '@/lib/rejectionEmail';
 import { supabaseResized, onResizedImageError } from '@/lib/imageUrl';
@@ -2890,7 +2891,6 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   // Doublons : seules les propositions en attente sont comparées aux lieux publiés. Le badge et le
   // compteur sont un signal pour la modération, jamais un blocage (homonymes et enseignes existent).
   const { data: publishedPlaces = [] } = useDuplicateCandidates();
-  const [duplicatesOnly, setDuplicatesOnly] = useState(false);
   const duplicatesById = useMemo(() => {
     const map = new Map<string, DuplicateMatch[]>();
     for (const p of proposals) {
@@ -2900,6 +2900,9 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
     }
     return map;
   }, [proposals, publishedPlaces]);
+  // Le bouton du filtre se retire avec la dernière proposition signalée : le filtre se coupe avec lui,
+  // sinon la liste resterait vide sans aucun moyen de le rouvrir.
+  const { duplicatesOnly, toggleDuplicatesOnly } = useDuplicatesFilter(duplicatesById.size);
 
   const startEdit = (proposal: any) => {
     setEditingId(proposal.id);
@@ -3232,7 +3235,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {duplicatesById.size > 0 && (
               <button
-                onClick={() => setDuplicatesOnly((v) => !v)}
+                onClick={toggleDuplicatesOnly}
                 style={{
                   padding: '5px 12px', borderRadius: 100, fontSize: 12, fontWeight: 600,
                   border: duplicatesOnly ? '1.5px solid #8A6A00' : '1.5px solid #EBD58A',
