@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, ChevronsUpDown, List, Map as MapIcon, SlidersHorizontal, X } from 'lucide-react';
+import { CalendarDays, ChevronsUpDown, List, Map as MapIcon } from 'lucide-react';
+import { FilterChip, FiltersButton } from '@/components/FilterParts';
+import { segmentStyle } from '@/lib/segmentStyle';
 import Header from '@/components/Header';
 import EventsMap from '@/components/EventsMap';
 import EventsCalendar from '@/components/EventsCalendar';
@@ -71,26 +73,6 @@ const PERIOD_LABEL_KEY: Record<Exclude<SortiesWhen['kind'], 'day'>, string> = {
   weekend: 'sorties.period_weekend',
   week: 'sorties.period_week',
 };
-
-/** Pastille de la barre de filtres ; `removable` = filtre posé depuis le panneau, avec sa croix. */
-const FilterChip = ({ label, on, removable, onClick, removeLabel }: { label: string; on: boolean; removable?: boolean; onClick: () => void; removeLabel: string }) => (
-  <button
-    type="button"
-    aria-pressed={on}
-    title={removable ? removeLabel : undefined}
-    onClick={onClick}
-    style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0, minHeight: 36, padding: '0 13px', borderRadius: 999, cursor: 'pointer',
-      fontFamily: 'DM Sans', fontSize: 13, fontWeight: on ? 600 : 500, whiteSpace: 'nowrap',
-      color: on ? 'var(--text)' : 'var(--text-muted)',
-      background: on ? 'var(--secondary-light)' : 'var(--surface)',
-      border: `${on ? 1.5 : 1}px solid ${on ? 'var(--secondary)' : 'var(--border)'}`,
-    }}
-  >
-    {label}
-    {removable && <X size={13} aria-hidden />}
-  </button>
-);
 
 /**
  * Onglet Sorties : période (Auj. · Demain · Week-end · Semaine · 📅), une seule
@@ -281,13 +263,7 @@ const SortiesPage = () => {
           ? t('sorties.section_recents')
           : t('sorties.section_none');
 
-  const segStyle = (active: boolean): React.CSSProperties => ({
-    flex: 1, minHeight: 34, border: 'none', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap',
-    fontFamily: 'DM Sans', fontSize: 13, fontWeight: active ? 600 : 500,
-    background: active ? 'var(--surface)' : 'transparent',
-    color: active ? 'var(--text)' : 'var(--text-muted)',
-    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-  });
+  const segStyle = segmentStyle;
 
   return (
     <div className="min-h-screen pb-24" style={{ background: 'var(--bg)' }}>
@@ -325,23 +301,8 @@ const SortiesPage = () => {
 
         {/* Une seule rangée : le bouton Filtres, les filtres qu'on touche le plus
             (enfants, Gratuit), puis chaque autre filtre actif avec sa croix. */}
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', margin: '0 -16px', padding: '0 16px 2px' }}>
-          <button
-            type="button"
-            onClick={() => setFiltersOpen(true)}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0, minHeight: 36, padding: '0 13px', borderRadius: 999, cursor: 'pointer',
-              fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, color: 'var(--text)', background: 'var(--surface)', border: '1px solid var(--text)',
-            }}
-          >
-            <SlidersHorizontal size={14} aria-hidden />
-            {t('sorties.filters')}
-            {activeCount > 0 && (
-              <span style={{ minWidth: 18, height: 18, borderRadius: 9, background: 'var(--primary)', color: '#fff', fontSize: 11, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-                {activeCount}
-              </span>
-            )}
-          </button>
+        <div className="scrollbar-hide" style={{ display: 'flex', gap: 6, overflowX: 'auto', margin: '0 -16px', padding: '0 16px 2px' }}>
+          <FiltersButton label={t('sorties.filters')} count={activeCount} onClick={() => setFiltersOpen(true)} />
           {kids.length > 0
             ? kids.map((child) => (
                 <FilterChip key={child.id} label={childLabel(child)} on={isChildOn(child)} onClick={() => toggleChild(child)} removeLabel={t('sorties.remove_filter')} />

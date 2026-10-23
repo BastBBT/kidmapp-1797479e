@@ -1,40 +1,19 @@
-import { ReactNode } from 'react';
-import { Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
-import CategoryFilter from '@/components/CategoryFilter';
-import AgeFilter from '@/components/AgeFilter';
-import { useCoachmarkTarget } from '@/hooks/useCoachmarks';
-import { CategoryGroup, LocationCategory } from '@/types/location';
-import { AgeBucket } from '@/lib/ageFilter';
 import AssistantButton from '@/components/AssistantButton';
 
 
 interface HeaderProps {
-  onSearch?: (query: string) => void;
-  searchValue?: string;
-  selectedCategory?: LocationCategory | 'all';
-  onCategoryChange?: (cat: LocationCategory | 'all') => void;
-  selectedGroup?: CategoryGroup;
-  onGroupChange?: (g: CategoryGroup) => void;
-  selectedAge?: AgeBucket;
-  onAgeChange?: (b: AgeBucket) => void;
-  /** Remplace la barre de tranche générique par `ChildrenPillBar` dès qu'au
-   *  moins un enfant est enregistré — passé par la page, pas décidé ici. */
-  ageRowOverride?: ReactNode;
   /** Rouvre l'assistant mascotte à la demande — seul moyen de le relancer une
    *  fois la journée entamée, puisqu'il ne s'ouvre de lui-même qu'une fois
    *  par jour. Absent = pas d'icône (pages autres qu'Explorer). */
   onOpenAssistant?: () => void;
 }
 
-const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, selectedGroup, onGroupChange, selectedAge, onAgeChange, ageRowOverride, onOpenAssistant }: HeaderProps) => {
-  const categoriesTargetRef = useCoachmarkTarget('categories');
+const Header = ({ onOpenAssistant }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin } = useAuth();
-  const { t } = useTranslation();
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b" style={{ borderColor: 'var(--border)' }}>
@@ -73,47 +52,6 @@ const Header = ({ onSearch, searchValue, selectedCategory, onCategoryChange, sel
           </nav>
         </div>
 
-        {/* Row 2 — Search bar */}
-        {onSearch && (
-          <div className="relative pb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--text-muted)', marginTop: '-6px' }} />
-            <input
-              type="text"
-              placeholder={t('common.search_place')}
-              value={searchValue ?? ''}
-              onChange={(e) => onSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-full text-sm outline-none transition-colors"
-              style={{
-                border: '1px solid var(--border)',
-                background: 'var(--bg)',
-                color: 'var(--text)',
-              }}
-            />
-          </div>
-        )}
-
-        {/* Row 3 — Category filter */}
-        {selectedCategory !== undefined && onCategoryChange && selectedGroup && onGroupChange && (
-          <div className="pb-2" ref={categoriesTargetRef}>
-            <CategoryFilter
-              selected={selectedCategory}
-              onChange={onCategoryChange}
-              group={selectedGroup}
-              onGroupChange={onGroupChange}
-            />
-          </div>
-        )}
-
-        {/* Row 4 — Age filter (persistent), ou barre d'enfants si le compte en a */}
-        {ageRowOverride ? (
-          <div className="pb-2">{ageRowOverride}</div>
-        ) : (
-          selectedAge !== undefined && onAgeChange && (
-            <div className="pb-2">
-              <AgeFilter selected={selectedAge} onChange={onAgeChange} />
-            </div>
-          )
-        )}
       </div>
 
 
