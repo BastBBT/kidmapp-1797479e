@@ -1,1 +1,2 @@
 - `is_free` on locations/events is derived from `price` by DB trigger (`price_is_free`); never write it from clients — shipped mobile apps only write `price`.
+- Keep Google status normalization and guarded writes in sync-opening-hours/update.ts so manual-hour protection and independent status refresh are testable without invoking Google.
