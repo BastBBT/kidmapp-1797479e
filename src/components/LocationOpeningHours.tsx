@@ -6,6 +6,7 @@ import {
   dayName,
   formatTime,
   openStatus,
+  isBusinessClosed,
   parseOpeningHours,
   rangesForDay,
   todayInParis,
@@ -20,6 +21,8 @@ import {
  */
 interface Props {
   openingHours: unknown;
+  /** Statut d'activité Google : « fermé » l'emporte sur les horaires. */
+  businessStatus?: string | null;
   source: string | null | undefined;
   updatedAt: string | null | undefined;
 }
@@ -32,13 +35,23 @@ const ChevronDown = ({ open }: { open: boolean }) => (
   </svg>
 );
 
-const LocationOpeningHours = ({ openingHours, source, updatedAt }: Props) => {
+const LocationOpeningHours = ({ openingHours, businessStatus, source, updatedAt }: Props) => {
   const { t, i18n } = useTranslation();
   const locale = localeOf(i18n.language);
   const hours = useMemo(() => parseOpeningHours(openingHours), [openingHours]);
   const status = useMemo(() => (hours ? openStatus(hours) : null), [hours]);
   const isOpen = status?.kind === 'open' || status?.kind === 'always_open';
-  const [expanded, setExpanded] = useState(isOpen);
+  const closedStatus = isBusinessClosed(businessStatus) ? businessStatus : null;
+  const [expanded, setExpanded] = useState(isOpen && !closedStatus);
+
+  const closedBadge = closedStatus && (
+    <span style={{
+      display: 'inline-block', marginTop: 8, fontSize: 12, fontWeight: 600, padding: '3px 10px',
+      borderRadius: 100, background: '#FAF0EC', color: 'var(--primary)',
+    }}>
+      {t(closedStatus === 'CLOSED_TEMPORARILY' ? 'location_page.closed_temporarily' : 'location_page.closed_permanently')}
+    </span>
+  );
 
   const title = (
     <h2 className="font-display" style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
@@ -50,7 +63,10 @@ const LocationOpeningHours = ({ openingHours, source, updatedAt }: Props) => {
     return (
       <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
         {title}
-        <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 6 }}>{t('location_page.hours_unknown')}</p>
+        {closedBadge}
+        {!closedStatus && (
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 6 }}>{t('location_page.hours_unknown')}</p>
+        )}
       </div>
     );
   }
@@ -73,16 +89,18 @@ const LocationOpeningHours = ({ openingHours, source, updatedAt }: Props) => {
         <ChevronDown open={expanded} />
       </button>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-        <span style={{
-          fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 100,
-          background: isOpen ? '#EBF4F2' : '#FAF0EC',
-          color: isOpen ? '#3B7D6E' : 'var(--primary)',
-        }}>
-          {isOpen ? t('location_page.hours_open') : t('location_page.hours_closed')}
-        </span>
-        {detail && <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{detail}</span>}
-      </div>
+      {closedBadge ?? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 100,
+            background: isOpen ? '#EBF4F2' : '#FAF0EC',
+            color: isOpen ? '#3B7D6E' : 'var(--primary)',
+          }}>
+            {isOpen ? t('location_page.hours_open') : t('location_page.hours_closed')}
+          </span>
+          {detail && <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{detail}</span>}
+        </div>
+      )}
 
       {expanded && status.kind !== 'always_open' && (
         <table style={{ width: '100%', marginTop: 12, fontSize: 14, borderCollapse: 'collapse' }}>

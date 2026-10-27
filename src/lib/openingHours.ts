@@ -120,13 +120,26 @@ export function todayInParis(now: Date = new Date()): number {
   return Math.floor(weekMinutesInParis(now) / MINUTES_PER_DAY);
 }
 
+/** Statut d'activité Google (`locations.business_status`) ; NULL = inconnu. */
+export type BusinessStatus = 'OPERATIONAL' | 'CLOSED_TEMPORARILY' | 'CLOSED_PERMANENTLY';
+
+export const isBusinessClosed = (status: unknown): status is 'CLOSED_TEMPORARILY' | 'CLOSED_PERMANENTLY' =>
+  status === 'CLOSED_TEMPORARILY' || status === 'CLOSED_PERMANENTLY';
+
 /**
  * Filtre « Ouvert » d'Explorer : permissif. Un lieu sans horaires reste affiché (une donnée
  * absente ne cache jamais le lieu, comme météo et durée) ; seul un lieu dont on SAIT qu'il est
- * fermé à cet instant est écarté.
+ * fermé à cet instant est écarté. Un lieu que Google déclare fermé (temporairement ou
+ * définitivement) est écarté d'office, quels que soient ses horaires.
  */
-export function matchesOpenNow(rawHours: unknown, onlyOpen: boolean, now: Date = new Date()): boolean {
+export function matchesOpenNow(
+  rawHours: unknown,
+  onlyOpen: boolean,
+  now: Date = new Date(),
+  businessStatus?: unknown,
+): boolean {
   if (!onlyOpen) return true;
+  if (isBusinessClosed(businessStatus)) return false;
   const hours = parseOpeningHours(rawHours);
   if (!hours) return true;
   const status = openStatus(hours, now);

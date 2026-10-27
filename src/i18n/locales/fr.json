@@ -300,6 +300,8 @@
     "hours_opens_tomorrow": "ouvre demain à {{time}}",
     "hours_opens_day": "ouvre {{day}} à {{time}}",
     "hours_unknown": "Horaires non communiqués",
+    "closed_temporarily": "Fermé temporairement",
+    "closed_permanently": "Fermé définitivement",
     "hours_verified": "Vérifié le {{date}}",
     "hours_source_google": "Google"
   },

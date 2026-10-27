@@ -17,6 +17,7 @@ import { template as proposalApproved } from './proposal-approved.tsx'
 import { template as eventPublished } from './event-published.tsx'
 import { template as submissionRejected } from './submission-rejected.tsx'
 import { template as sourcingAlert } from './sourcing-alert.tsx'
+import { template as locationClosedAlert } from './location-closed-alert.tsx'
 import { template as welcome } from './welcome.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
@@ -28,5 +29,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'event-published': eventPublished,
   'submission-rejected': submissionRejected,
   'sourcing-alert': sourcingAlert,
+  'location-closed-alert': locationClosedAlert,
   'welcome': welcome,
 }
