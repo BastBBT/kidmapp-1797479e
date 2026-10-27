@@ -2,12 +2,13 @@ import { RichNoteEditor } from '@/components/RichNote';
 import { plainNote } from '@/lib/richNote';
 import { galleryPhotos } from '@/lib/gallery';
 import { isBucketPhotoUrl } from '@/lib/photoUpload';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { categoryLabels, categoryIcons, PLACE_CATEGORIES, ACTIVITY_CATEGORIES, isActivity } from '@/types/location';
 import { CATEGORY_ICONS } from '@/assets/icons';
 import { DURATIONS, WEATHERS, EFFORTS, PRICES } from '@/lib/activity';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import type { Tables } from '@/integrations/supabase/types';
 import { useAllLocations, useContributions } from '@/hooks/useLocations';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -3465,6 +3466,198 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   );
 }
 
+const EVENTS_PAGE_SIZE = 50;
+
+type AdminEvent = Tables<'events'>;
+
+type EventCardActions = {
+  toggleFav: (ev: AdminEvent) => void;
+  startEdit: (ev: AdminEvent, initialStatus?: 'pending' | 'published' | 'rejected') => void;
+  approve: (ev: AdminEvent) => void;
+  reject: (ev: AdminEvent) => void;
+  remove: (ev: AdminEvent) => void;
+};
+
+/**
+ * Carte d'un événement de l'onglet admin. Mémoïsée : les props sont des valeurs simples, l'objet
+ * `actions` est stable, et `editor` / `manualCoords` valent `null` sauf pour la carte en cours
+ * d'édition. Taper dans le formulaire d'édition (ou dans la recherche) ne redessine donc que cette
+ * carte au lieu de toute la liste.
+ */
+const EventCard = memo(function EventCard({
+  ev, isProcessing, isEditing, sourcing, proposerLabel, occurrenceCount, actions, editor, manualCoords,
+}: {
+  ev: AdminEvent;
+  isProcessing: boolean;
+  isEditing: boolean;
+  sourcing: boolean;
+  proposerLabel: string;
+  occurrenceCount: number;
+  actions: EventCardActions;
+  editor: React.ReactNode;
+  manualCoords: React.ReactNode;
+}) {
+  const catHex = eventCategoryHex(ev.category);
+  return (
+    <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-sm)', padding: '14px', boxShadow: 'var(--shadow)' }}>
+            <div className="flex items-start justify-between mb-2 gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* En attente : toutes les photos, pas seulement la couverture — approuver depuis
+                    la liste publierait sinon des photos 2 à 5 que personne n'a vues. */}
+                {(ev.status === 'pending' ? galleryPhotos(ev) : ev.photo ? [ev.photo] : []).map((url) => (
+                  <img
+                    key={url}
+                    src={supabaseResized(url, { width: 120, height: 120, quality: 70 })}
+                    onError={onResizedImageError(url)}
+                    alt={ev.name}
+                    style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
+                  />
+                ))}
+                <span style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, color: 'var(--text)' }}>
+                  {eventCategoryEmoji(ev.category)} {ev.name}
+                </span>
+                <span style={{
+                  display: 'inline-block', padding: '2px 8px', borderRadius: '100px',
+                  fontSize: '10px', fontWeight: 600, fontFamily: 'DM Sans',
+                  background: catHex, color: 'white',
+                }}>
+                  {ev.category}
+                </span>
+                <span style={{
+                  display: 'inline-block', padding: '2px 8px', borderRadius: '100px',
+                  fontSize: '10px', fontWeight: 600, fontFamily: 'DM Sans',
+                  background: !sourcing ? '#E8F1FF' : '#F3E8FF',
+                  color: !sourcing ? '#1B4B8F' : '#6B2FA6',
+                }}>
+                  {!sourcing ? '👤 Utilisateur' : '📰 Sourcing'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
+                <button
+                  onClick={() => actions.toggleFav(ev)}
+                  title={ev.admin_fav ? 'Retirer des coups de cœur' : 'Marquer comme coup de cœur'}
+                  aria-label={ev.admin_fav ? 'Retirer des coups de cœur' : 'Marquer comme coup de cœur'}
+                  aria-pressed={!!ev.admin_fav}
+                  style={{
+                    width: 32, height: 32, padding: 0, borderRadius: 100,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: `1.5px solid ${ev.admin_fav ? '#F2C94C' : 'var(--border)'}`,
+                    background: ev.admin_fav ? 'var(--accent-light)' : 'transparent',
+                    color: ev.admin_fav ? '#BA7517' : 'var(--text-muted)',
+                    fontSize: 15, lineHeight: 1, cursor: 'pointer',
+                  }}
+                >
+                  {ev.admin_fav ? '★' : '☆'}
+                </button>
+                {ev.status === 'pending' && reviewStateOf(ev) !== 'unchecked' && (
+                  <span style={{
+                    display: 'inline-block', padding: '2px 8px', borderRadius: '100px',
+                    fontSize: '10px', fontWeight: 600, fontFamily: 'DM Sans',
+                    background: reviewStateOf(ev) === 'flagged' ? '#FAEEDA' : '#E1F5EE',
+                    color: reviewStateOf(ev) === 'flagged' ? '#854F0B' : '#0F6E56',
+                  }}>
+                    {reviewStateOf(ev) === 'flagged' ? '🟠 À vérifier' : '🟢 Rien à vérifier'}
+                  </span>
+                )}
+                <StatusBadge status={ev.status === 'published' ? 'validated' : ev.status} />
+              </div>
+            </div>
+
+            {reviewStateOf(ev) === 'flagged' && (
+              <div style={{ borderLeft: '3px solid #EF9F27', background: '#FDF6EA', padding: '8px 10px', marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {reviewReasons(ev).map((r, idx) => (
+                  <div key={`${r.code ?? 'note'}-${idx}`} style={{ fontFamily: 'DM Sans', fontSize: 12, lineHeight: 1.45 }}>
+                    <span style={{ fontWeight: 600, color: '#854F0B' }}>{r.label}</span>
+                    {r.detail && <span style={{ color: 'var(--text-muted)', overflowWrap: 'anywhere' }}> — {r.detail}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {ev.address && (
+              <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                📍 {ev.address}
+                {ev.lat != null && ev.lng != null && (
+                  <span style={{ marginLeft: 6, color: '#3B7D6E' }}>✓ géocodé</span>
+                )}
+              </div>
+            )}
+            <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+              📅 {new Date(ev.date_start).toLocaleDateString('fr-FR')}
+              {ev.date_end && ` → ${new Date(ev.date_end).toLocaleDateString('fr-FR')}`}
+              {ev.time && ` · ⏰ ${ev.time}`}
+              {occurrenceCount > 1 && ` · 🔁 ${occurrenceCount} créneaux`}
+            </div>
+            <div className="flex gap-3 flex-wrap mb-2" style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)' }}>
+              {(ev.age_min_months != null || ev.age_max_months != null) && <span>👶 {formatAgeRange(ev.age_min_months, ev.age_max_months)}</span>}
+              {ev.duration && <span>⏱️ {ev.duration}</span>}
+              {ev.weather && <span>🌤️ {ev.weather}</span>}
+              {ev.price && <span>💶 {ev.price}</span>}
+            </div>
+            {ev.note && (
+              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '6px' }}>
+                "{plainNote(ev.note)}"
+              </div>
+            )}
+            <div style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              {sourcing ? 'Sourcing interne' : `Proposé par : ${proposerLabel}`}
+              {' · '}Créé le {new Date(ev.created_at).toLocaleDateString('fr-FR')}
+            </div>
+
+            <EventFeedbackAdmin eventId={ev.id} />
+
+
+            {editor}
+
+            {manualCoords}
+
+            {!isEditing && (
+              <div className="flex gap-2 flex-wrap">
+                {webLink(ev.website) && (
+                  <a href={webLink(ev.website)!} target="_blank" rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ flex: '1 1 30%', textAlign: 'center', textDecoration: 'none', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid #3B7D6E', background: 'transparent', color: '#3B7D6E', cursor: 'pointer' }}>
+                    ↗ Voir le lien
+                  </a>
+                )}
+                {webLink(ev.booking_url) && (
+                  <a href={webLink(ev.booking_url)!} target="_blank" rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ flex: '1 1 30%', textAlign: 'center', textDecoration: 'none', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer' }}>
+                    🎟️ Voir la réservation
+                  </a>
+                )}
+                {ev.status === 'pending' && (
+                  <>
+                    <button onClick={() => actions.approve(ev)} disabled={isProcessing}
+                      style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: 'none', background: '#3B7D6E', color: 'white', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
+                      ✓ Approuver
+                    </button>
+                    <button onClick={() => actions.startEdit(ev, 'published')} disabled={isProcessing}
+                      style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--secondary)', background: 'transparent', color: 'var(--secondary)', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
+                      ✏️ Modifier & approuver
+                    </button>
+                    <button onClick={() => actions.reject(ev)} disabled={isProcessing}
+                      style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
+                      ✗ Rejeter
+                    </button>
+                  </>
+                )}
+                <button onClick={() => actions.startEdit(ev)} disabled={isProcessing}
+                  style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer' }}>
+                  ✏️ Modifier
+                </button>
+                <button onClick={() => actions.remove(ev)} disabled={isProcessing}
+                  style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer' }}>
+                  🗑 Supprimer
+                </button>
+              </div>
+            )}
+    </div>
+  );
+});
+
+
 function EventsTab({ geocodeAddress, queryClient, toast }: {
   geocodeAddress: (address: string) => Promise<{lat: number; lng: number} | null>;
   queryClient: any;
@@ -3496,6 +3689,9 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  // La liste est paginée : chaque carte monte des vignettes et des requêtes d'avis, et la vue
+  // « Tous » dépasse vite les centaines de cartes.
+  const [visibleCount, setVisibleCount] = useState(EVENTS_PAGE_SIZE);
   // Photos supplémentaires de l'événement (en plus de la photo principale `photo`) : max 4.
   const [editGalleryUrls, setEditGalleryUrls] = useState<string[]>([]);
   const [editGalleryFiles, setEditGalleryFiles] = useState<File[]>([]);
@@ -3952,6 +4148,12 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     return arr;
   }, [filtered, eventSort]);
 
+  // Un autre filtre, tri ou recherche = une autre liste : on repart de la première page.
+  useEffect(() => {
+    setVisibleCount(EVENTS_PAGE_SIZE);
+  }, [statusFilter, sourceFilter, reviewFilter, favOnly, search, eventSort]);
+  const visibleEvents = useMemo(() => sorted.slice(0, visibleCount), [sorted, visibleCount]);
+
   const pillStyle = (active: boolean) => ({
     fontFamily: 'DM Sans',
     fontSize: '12px',
@@ -3964,126 +4166,9 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
     cursor: 'pointer',
   } as React.CSSProperties);
 
-  const renderEventCard = (ev: any, i: number) => {
-        const isProcessing = processingId === ev.id;
-        const isEditing = editingId === ev.id;
-        const catHex = eventCategoryHex(ev.category);
-        return (
-          <motion.div
-            key={ev.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.02 }}
-            style={{ background: 'var(--surface)', borderRadius: 'var(--radius-sm)', padding: '14px', boxShadow: 'var(--shadow)' }}
-          >
-            <div className="flex items-start justify-between mb-2 gap-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* En attente : toutes les photos, pas seulement la couverture — approuver depuis
-                    la liste publierait sinon des photos 2 à 5 que personne n'a vues. */}
-                {(ev.status === 'pending' ? galleryPhotos(ev) : ev.photo ? [ev.photo] : []).map((url) => (
-                  <img
-                    key={url}
-                    src={supabaseResized(url, { width: 120, height: 120, quality: 70 })}
-                    onError={onResizedImageError(url)}
-                    alt={ev.name}
-                    style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
-                  />
-                ))}
-                <span style={{ fontFamily: 'Fraunces', fontSize: '15px', fontWeight: 500, color: 'var(--text)' }}>
-                  {eventCategoryEmoji(ev.category)} {ev.name}
-                </span>
-                <span style={{
-                  display: 'inline-block', padding: '2px 8px', borderRadius: '100px',
-                  fontSize: '10px', fontWeight: 600, fontFamily: 'DM Sans',
-                  background: catHex, color: 'white',
-                }}>
-                  {ev.category}
-                </span>
-                <span style={{
-                  display: 'inline-block', padding: '2px 8px', borderRadius: '100px',
-                  fontSize: '10px', fontWeight: 600, fontFamily: 'DM Sans',
-                  background: !isSourcing(ev) ? '#E8F1FF' : '#F3E8FF',
-                  color: !isSourcing(ev) ? '#1B4B8F' : '#6B2FA6',
-                }}>
-                  {!isSourcing(ev) ? '👤 Utilisateur' : '📰 Sourcing'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
-                <button
-                  onClick={() => toggleFav(ev)}
-                  title={ev.admin_fav ? 'Retirer des coups de cœur' : 'Marquer comme coup de cœur'}
-                  aria-label={ev.admin_fav ? 'Retirer des coups de cœur' : 'Marquer comme coup de cœur'}
-                  aria-pressed={!!ev.admin_fav}
-                  style={{
-                    width: 32, height: 32, padding: 0, borderRadius: 100,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: `1.5px solid ${ev.admin_fav ? '#F2C94C' : 'var(--border)'}`,
-                    background: ev.admin_fav ? 'var(--accent-light)' : 'transparent',
-                    color: ev.admin_fav ? '#BA7517' : 'var(--text-muted)',
-                    fontSize: 15, lineHeight: 1, cursor: 'pointer',
-                  }}
-                >
-                  {ev.admin_fav ? '★' : '☆'}
-                </button>
-                {ev.status === 'pending' && reviewStateOf(ev) !== 'unchecked' && (
-                  <span style={{
-                    display: 'inline-block', padding: '2px 8px', borderRadius: '100px',
-                    fontSize: '10px', fontWeight: 600, fontFamily: 'DM Sans',
-                    background: reviewStateOf(ev) === 'flagged' ? '#FAEEDA' : '#E1F5EE',
-                    color: reviewStateOf(ev) === 'flagged' ? '#854F0B' : '#0F6E56',
-                  }}>
-                    {reviewStateOf(ev) === 'flagged' ? '🟠 À vérifier' : '🟢 Rien à vérifier'}
-                  </span>
-                )}
-                <StatusBadge status={ev.status === 'published' ? 'validated' : ev.status} />
-              </div>
-            </div>
-
-            {reviewStateOf(ev) === 'flagged' && (
-              <div style={{ borderLeft: '3px solid #EF9F27', background: '#FDF6EA', padding: '8px 10px', marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {reviewReasons(ev).map((r, idx) => (
-                  <div key={`${r.code ?? 'note'}-${idx}`} style={{ fontFamily: 'DM Sans', fontSize: 12, lineHeight: 1.45 }}>
-                    <span style={{ fontWeight: 600, color: '#854F0B' }}>{r.label}</span>
-                    {r.detail && <span style={{ color: 'var(--text-muted)', overflowWrap: 'anywhere' }}> — {r.detail}</span>}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {ev.address && (
-              <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                📍 {ev.address}
-                {ev.lat != null && ev.lng != null && (
-                  <span style={{ marginLeft: 6, color: '#3B7D6E' }}>✓ géocodé</span>
-                )}
-              </div>
-            )}
-            <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-              📅 {new Date(ev.date_start).toLocaleDateString('fr-FR')}
-              {ev.date_end && ` → ${new Date(ev.date_end).toLocaleDateString('fr-FR')}`}
-              {ev.time && ` · ⏰ ${ev.time}`}
-              {(occurrenceCounts[ev.id] ?? 1) > 1 && ` · 🔁 ${occurrenceCounts[ev.id]} créneaux`}
-            </div>
-            <div className="flex gap-3 flex-wrap mb-2" style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)' }}>
-              {(ev.age_min_months != null || ev.age_max_months != null) && <span>👶 {formatAgeRange(ev.age_min_months, ev.age_max_months)}</span>}
-              {ev.duration && <span>⏱️ {ev.duration}</span>}
-              {ev.weather && <span>🌤️ {ev.weather}</span>}
-              {ev.price && <span>💶 {ev.price}</span>}
-            </div>
-            {ev.note && (
-              <div style={{ fontFamily: 'Caveat', fontSize: '14px', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '6px' }}>
-                "{plainNote(ev.note)}"
-              </div>
-            )}
-            <div style={{ fontFamily: 'DM Sans', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-              {isSourcing(ev) ? 'Sourcing interne' : `Proposé par : ${emails[ev.user_id] ?? ev.user_id.slice(0, 8)}`}
-              {' · '}Créé le {new Date(ev.created_at).toLocaleDateString('fr-FR')}
-            </div>
-
-            <EventFeedbackAdmin eventId={ev.id} />
-
-
-            {isEditing && editDraft && (
+  // Formulaire d'édition et saisie manuelle des coordonnées : rendus seulement pour la carte
+  // concernée, passés à `EventCard` en `ReactNode` (null pour toutes les autres, d'où la mémoïsation).
+  const renderEditForm = (isProcessing: boolean) => editDraft ? (
               <div style={{ padding: '12px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', marginBottom: '10px' }}>
                 <div className="flex flex-col gap-2">
                   <input value={editDraft.name} onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })}
@@ -4211,9 +4296,9 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                   </div>
                 </div>
               </div>
-            )}
+  ) : null;
 
-            {manualCoordsFor === ev.id && (
+  const renderManualCoords = (ev: AdminEvent, isProcessing: boolean) => (
               <div style={{ padding: 12, borderRadius: 'var(--radius-sm)', background: 'var(--accent-light)', border: '1px solid #F2C94C', marginBottom: 10 }}>
                 <div style={{ fontFamily: 'Caveat', fontSize: 14, color: '#C49A35', marginBottom: 8 }}>
                   Adresse non reconnue — ajustez les coordonnées ✦
@@ -4229,52 +4314,37 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
                   </button>
                 </div>
               </div>
-            )}
+  );
 
-            {!isEditing && (
-              <div className="flex gap-2 flex-wrap">
-                {webLink(ev.website) && (
-                  <a href={webLink(ev.website)!} target="_blank" rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ flex: '1 1 30%', textAlign: 'center', textDecoration: 'none', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid #3B7D6E', background: 'transparent', color: '#3B7D6E', cursor: 'pointer' }}>
-                    ↗ Voir le lien
-                  </a>
-                )}
-                {webLink(ev.booking_url) && (
-                  <a href={webLink(ev.booking_url)!} target="_blank" rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ flex: '1 1 30%', textAlign: 'center', textDecoration: 'none', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer' }}>
-                    🎟️ Voir la réservation
-                  </a>
-                )}
-                {ev.status === 'pending' && (
-                  <>
-                    <button onClick={() => handleApprove(ev)} disabled={isProcessing}
-                      style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: 'none', background: '#3B7D6E', color: 'white', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
-                      ✓ Approuver
-                    </button>
-                    <button onClick={() => startEdit(ev, 'published')} disabled={isProcessing}
-                      style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--secondary)', background: 'transparent', color: 'var(--secondary)', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
-                      ✏️ Modifier & approuver
-                    </button>
-                    <button onClick={() => handleReject(ev)} disabled={isProcessing}
-                      style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: isProcessing ? 'not-allowed' : 'pointer', opacity: isProcessing ? 0.6 : 1 }}>
-                      ✗ Rejeter
-                    </button>
-                  </>
-                )}
-                <button onClick={() => startEdit(ev)} disabled={isProcessing}
-                  style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer' }}>
-                  ✏️ Modifier
-                </button>
-                <button onClick={() => handleDelete(ev)} disabled={isProcessing}
-                  style={{ flex: '1 1 30%', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: 8, borderRadius: 100, border: '1.5px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: 'pointer' }}>
-                  🗑 Supprimer
-                </button>
-              </div>
-            )}
-          </motion.div>
-        );
+  // Actions stables pour `EventCard` : elles lisent toujours les dernières versions des handlers
+  // (qui capturent l'état courant) sans changer d'identité entre deux rendus.
+  const latestActions = useRef({ toggleFav, startEdit, handleApprove, handleReject, handleDelete });
+  latestActions.current = { toggleFav, startEdit, handleApprove, handleReject, handleDelete };
+  const cardActions = useMemo<EventCardActions>(() => ({
+    toggleFav: (ev) => { void latestActions.current.toggleFav(ev); },
+    startEdit: (ev, initialStatus) => { void latestActions.current.startEdit(ev, initialStatus); },
+    approve: (ev) => { void latestActions.current.handleApprove(ev); },
+    reject: (ev) => { latestActions.current.handleReject(ev); },
+    remove: (ev) => { void latestActions.current.handleDelete(ev); },
+  }), []);
+
+  const renderEventCard = (ev: any) => {
+    const isProcessing = processingId === ev.id;
+    const isEditing = editingId === ev.id;
+    return (
+      <EventCard
+        key={ev.id}
+        ev={ev}
+        isProcessing={isProcessing}
+        isEditing={isEditing}
+        sourcing={isSourcing(ev)}
+        proposerLabel={ev.user_id ? emails[ev.user_id] ?? ev.user_id.slice(0, 8) : ''}
+        occurrenceCount={occurrenceCounts[ev.id] ?? 1}
+        actions={cardActions}
+        editor={isEditing ? renderEditForm(isProcessing) : null}
+        manualCoords={manualCoordsFor === ev.id ? renderManualCoords(ev, isProcessing) : null}
+      />
+    );
   };
 
   return (
@@ -4357,7 +4427,9 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
       )}
 
       <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text-muted)' }}>
-        {filtered.length} {filtered.length > 1 ? 'événements affichés' : 'événement affiché'}
+        {viewMode === 'list' && filtered.length > visibleEvents.length
+          ? `${visibleEvents.length} affichés sur ${filtered.length} événements`
+          : `${filtered.length} ${filtered.length > 1 ? 'événements affichés' : 'événement affiché'}`}
       </div>
 
       {filtered.length === 0 && (
@@ -4366,7 +4438,18 @@ function EventsTab({ geocodeAddress, queryClient, toast }: {
         </p>
       )}
 
-      {viewMode === 'list' && sorted.map(renderEventCard)}
+      {viewMode === 'list' && visibleEvents.map(renderEventCard)}
+
+      {viewMode === 'list' && filtered.length > visibleEvents.length && (
+        <div className="flex gap-2 justify-center">
+          <button onClick={() => setVisibleCount((n) => n + EVENTS_PAGE_SIZE)} style={pillStyle(false)}>
+            Voir {Math.min(EVENTS_PAGE_SIZE, filtered.length - visibleEvents.length)} de plus ({filtered.length - visibleEvents.length} restants)
+          </button>
+          <button onClick={() => setVisibleCount(filtered.length)} style={pillStyle(false)}>
+            Tout afficher
+          </button>
+        </div>
+      )}
 
       {viewMode === 'calendar' && (
         <EventsCalendarView events={filtered} renderEventCard={renderEventCard} occurrencesByEvent={occurrencesByEvent} />
