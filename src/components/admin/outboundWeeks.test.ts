@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildWeeks, countClicks, deltaPct, entityIdsClicked, groupOf, isCurrentWeek, previousWindow, rankClicks, trendByKey, weekLabel, weekStart, type ClickRow } from './outboundWeeks';
+import { buildWeeks, countClicks, deltaPct, groupOf, isCurrentWeek, previousWindow, rankClicks, trendByKey, weekLabel, weekStart, type ClickRow } from './outboundWeeks';
 
 const at = (y: number, m: number, d: number, h = 12) => new Date(y, m - 1, d, h);
 
@@ -94,13 +94,6 @@ describe('trendByKey', () => {
     const weeks = buildWeeks(at(2026, 10, 27), 3);
     const rows = [click({ when: at(2026, 10, 27) }), click({ when: at(2026, 10, 28) }), click({ when: at(2026, 10, 14) }), click({ when: at(2026, 8, 1) })];
     expect([...trendByKey(rows, weeks).values()]).toEqual([[1, 0, 2]]);
-  });
-});
-
-describe('entityIdsClicked', () => {
-  it('ignore le type de lien', () => {
-    const rows = [click({ when: at(2026, 10, 27) }), click({ when: at(2026, 10, 27), linkType: 'booking' })];
-    expect(entityIdsClicked(rows, 0, Infinity).size).toBe(1);
   });
 });
 

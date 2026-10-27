@@ -104,13 +104,6 @@ export function trendByKey(rows: ClickRow[], weeks: Week[]): Map<string, number[
   return out;
 }
 
-/** Entités (tous types de lien confondus) qui ont reçu au moins un clic dans la fenêtre. */
-export function entityIdsClicked(rows: ClickRow[], from: number, to: number): Set<string> {
-  const ids = new Set<string>();
-  for (const r of rows) if (inRange(r, from, to)) ids.add(`${r.entityType}:${r.entityId}`);
-  return ids;
-}
-
 /** Écart relatif en %, ou `null` quand il n'y avait rien à comparer. */
 export function deltaPct(current: number, previous: number): number | null {
   if (previous <= 0) return null;

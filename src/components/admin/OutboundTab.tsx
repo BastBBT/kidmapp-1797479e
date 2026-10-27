@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { categoryLabels } from '@/types/location';
 import { useOutboundClicks } from '@/hooks/useOutboundClicks';
 import {
-  addDays, buildWeeks, countClicks, dayMonth, deltaPct, entityIdsClicked, isCurrentWeek, previousWindow,
+  addDays, buildWeeks, countClicks, dayMonth, deltaPct, isCurrentWeek, previousWindow,
   rankClicks, trendByKey, weekLabel, type ClickGroup, type ClickRow, type RankedRow, type Week,
 } from './outboundWeeks';
 
@@ -112,12 +112,6 @@ function WeekView({
   });
 
   const events = useMemo(() => rankClicks(rows, from, to, 'events'), [rows, from, to]);
-  // Absente la semaine d'avant : aucun clic sur toute la semaine précédente (une sortie récurrente
-  // peut donc y figurer sans être nouvelle, d'où le libellé).
-  const seenBefore = useMemo(
-    () => entityIdsClicked(rows, addDays(week.start, -7).getTime(), from),
-    [rows, week, from],
-  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -186,7 +180,6 @@ function WeekView({
         title="Sorties les plus cliquées"
         rows={events}
         trends={null}
-        isNew={(r) => !prevPartial && !seenBefore.has(`${r.entityType}:${r.entityId}`)}
         empty={current ? 'Aucun clic pour l’instant cette semaine 😴' : 'Aucun clic cette semaine-là 😴'}
       />
 
@@ -227,9 +220,9 @@ function Delta({ delta, before, current, unreliable }: { delta: number | null; b
 }
 
 function Ranking({
-  title, rows, trends, isNew, empty, flat = false,
+  title, rows, trends, empty, flat = false,
 }: {
-  title: string; rows: RankedRow[]; trends: Map<string, number[]> | null; isNew?: (r: RankedRow) => boolean; empty: string; flat?: boolean;
+  title: string; rows: RankedRow[]; trends: Map<string, number[]> | null; empty: string; flat?: boolean;
 }) {
   const [all, setAll] = useState(false);
   const shown = all ? rows : rows.slice(0, TOP_SHOWN);
@@ -247,7 +240,7 @@ function Ranking({
       ) : (
         <div className="flex flex-col gap-2">
           {shown.map((r, i) => (
-            <RankingRow key={r.key} rank={i + 1} row={r} trend={trends?.get(r.key) ?? null} isNew={isNew?.(r) ?? false} />
+            <RankingRow key={r.key} rank={i + 1} row={r} trend={trends?.get(r.key) ?? null} />
           ))}
           {rows.length > TOP_SHOWN && (
             <button
@@ -264,7 +257,7 @@ function Ranking({
   );
 }
 
-function RankingRow({ rank, row, trend, isNew }: { rank: number; row: RankedRow; trend: number[] | null; isNew: boolean }) {
+function RankingRow({ rank, row, trend }: { rank: number; row: RankedRow; trend: number[] | null }) {
   const href = `/${row.entityType === 'event' ? 'event' : 'location'}/${row.entityId}`;
   const booking = row.linkType === 'booking';
   return (
@@ -288,7 +281,6 @@ function RankingRow({ rank, row, trend, isNew }: { rank: number; row: RankedRow;
         {row.entityType === 'event' && (
           <Pill tone={booking ? 'primary' : 'neutral'}>{booking ? 'réservation' : 'site web'}</Pill>
         )}
-        {isNew && <Pill tone="new">absent sem. préc.</Pill>}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
         {trend && <Trend values={trend} />}
@@ -315,11 +307,10 @@ function Trend({ values }: { values: number[] }) {
   );
 }
 
-function Pill({ tone, children }: { tone: 'primary' | 'neutral' | 'new'; children: React.ReactNode }) {
+function Pill({ tone, children }: { tone: 'primary' | 'neutral'; children: React.ReactNode }) {
   const styles = {
     primary: { background: 'var(--primary)', color: '#fff' },
     neutral: { background: 'var(--border)', color: 'var(--text-muted)' },
-    new: { background: UP, color: '#fff' },
   }[tone];
   return (
     <span style={{ fontFamily: 'DM Sans', fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 100, flexShrink: 0, ...styles }}>
