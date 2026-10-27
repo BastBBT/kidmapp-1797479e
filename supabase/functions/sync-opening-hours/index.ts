@@ -1,8 +1,8 @@
 // Horaires d'ouverture des lieux, alimentés par Google Places API (New).
 //
 // Trois modes (body JSON `{ mode, location_id?, dry_run? }`) :
-//   - batch  : rafraîchit tous les lieux qui ont un google_place_id, sauf ceux saisis à la main
-//              (opening_hours_source = 'manuel'). Appelé par le cron mensuel.
+//   - batch  : rafraîchit le statut de tous les lieux qui ont un google_place_id, et leurs
+//              horaires sauf ceux saisis à la main ('manuel'). Appelé par le cron mensuel.
 //   - single : rafraîchit un seul lieu (location_id), MÊME s'il était en saisie manuelle —
 //              c'est le bouton « Resynchroniser depuis Google » de l'admin.
 //   - match  : cherche le google_place_id des lieux qui n'en ont pas (Text Search). N'écrit que
@@ -16,6 +16,7 @@
 // rafraîchi chaque mois, daté par opening_hours_updated_at, que les clients affichent.
 
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
+import { normalizeBusinessStatus, writeGoogleUpdate } from './update.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -164,7 +165,7 @@ async function syncOne(
       headers: {
         'X-Goog-Api-Key': GOOGLE_KEY!,
         // `id` est gratuit (IDs Only) et permet de suivre un place_id que Google a fait évoluer.
-        'X-Goog-FieldMask': 'id,regularOpeningHours',
+        'X-Goog-FieldMask': 'id,regularOpeningHours,businessStatus',
       },
     })
     if (!res.ok) {
@@ -177,6 +178,7 @@ async function syncOne(
     const periods = Array.isArray(rawPeriods) ? normalizePeriods(rawPeriods) : []
 
     const update: Record<string, unknown> = {
+      business_status: normalizeBusinessStatus(place?.businessStatus),
       opening_hours: periods.length > 0 ? { periods } : null,
       opening_hours_source: 'google_auto',
       opening_hours_updated_at: new Date().toISOString(),
@@ -185,14 +187,11 @@ async function syncOne(
       update.google_place_id = place.id
     }
 
-    let query = admin.from('locations').update(update).eq('id', loc.id)
-    if (!force) query = query.or('opening_hours_source.is.null,opening_hours_source.neq.manuel')
-    const { data: written, error } = await query.select('id')
-    if (error) {
-      console.error('update failed', loc.id, error.message)
+    const written = await writeGoogleUpdate(admin, loc.id, update, force)
+    if (written === 'error') {
       return { ...base, status: 'error', error: 'db_update_failed' }
     }
-    if (!written || written.length === 0) return { ...base, status: 'skipped_manual' }
+    if (written === 'skipped_manual') return { ...base, status: 'skipped_manual' }
     return { ...base, status: periods.length > 0 ? 'updated' : 'no_hours' }
   } catch (e) {
     console.error('sync error', loc.id, e)
@@ -217,8 +216,6 @@ async function runBatch(admin: SupabaseClient) {
     .from('locations')
     .select('id, name, address, city, lat, lng, google_place_id, opening_hours_source')
     .not('google_place_id', 'is', null)
-    // NULL ou 'google_auto' : un `neq` seul exclurait les NULL.
-    .or('opening_hours_source.is.null,opening_hours_source.neq.manuel')
   if (error) throw new Error(`select failed: ${error.message}`)
 
   const budget = new CallBudget(MAX_GOOGLE_CALLS_PER_RUN)
