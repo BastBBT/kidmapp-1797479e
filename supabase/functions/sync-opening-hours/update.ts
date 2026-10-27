@@ -1,4 +1,12 @@
-import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
+interface WriteError { message: string }
+interface LocationUpdateQuery extends PromiseLike<{ error: WriteError | null }> {
+  eq(column: string, value: string): LocationUpdateQuery
+  or(filter: string): LocationUpdateQuery
+  select(columns: string): PromiseLike<{ data: { id: string }[] | null; error: WriteError | null }>
+}
+interface LocationWriter {
+  from(table: 'locations'): { update(values: Record<string, unknown>): LocationUpdateQuery }
+}
 
 export function normalizeBusinessStatus(value: unknown): string | null {
   return value === 'OPERATIONAL' || value === 'CLOSED_TEMPORARILY' || value === 'CLOSED_PERMANENTLY'
@@ -8,7 +16,7 @@ export function normalizeBusinessStatus(value: unknown): string | null {
 
 // The hours guard is evaluated at write time, including edits made during the Google request.
 export async function writeGoogleUpdate(
-  admin: SupabaseClient,
+  admin: LocationWriter,
   id: string,
   update: Record<string, unknown>,
   force: boolean,
