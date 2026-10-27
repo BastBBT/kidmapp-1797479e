@@ -3,6 +3,8 @@ project_id = "rcwepnqjyowlbtmltwxo"
 [functions]
   [functions.auth-email-hook]
     verify_jwt = false
+  [functions.handle-email-events]
+    verify_jwt = false
   [functions.notify-validation]
     verify_jwt = true
   [functions.preview-transactional-email]
