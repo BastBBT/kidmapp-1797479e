@@ -24,6 +24,11 @@ describe('buildWeeks', () => {
     expect(isCurrentWeek(weeks[7], at(2026, 10, 27))).toBe(true);
     expect(isCurrentWeek(weeks[6], at(2026, 10, 27))).toBe(false);
   });
+  it('dure 169 h quand le retour à l\'heure d\'hiver y tombe (TZ fixé à Europe/Paris)', () => {
+    const w = buildWeeks(at(2026, 10, 25), 1)[0]; // 19-25 oct. 2026 : retour à l'heure d'hiver le 25/10
+    expect((w.end.getTime() - w.start.getTime()) / 3_600_000).toBe(169);
+    expect(w.end.getHours()).toBe(0);
+  });
   it('enchaîne les semaines sans trou ni recouvrement (changement d\'heure compris)', () => {
     for (let i = 1; i < weeks.length; i++) expect(weeks[i].start.getTime()).toBe(weeks[i - 1].end.getTime());
     expect(weeks[0].start.getDate()).toBe(7); // 7 septembre : 7 semaines avant le 26/10

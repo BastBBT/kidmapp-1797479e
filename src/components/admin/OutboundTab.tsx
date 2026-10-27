@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { categoryLabels } from '@/types/location';
 import { useOutboundClicks } from '@/hooks/useOutboundClicks';
 import {
@@ -27,12 +27,16 @@ type Mode = 'week' | 'cumul';
  * 30 jours, avec tendance sur 4 semaines, pour les lieux et activités, dont le trafic est faible.
  */
 export function OutboundTab({ isAdmin }: { isAdmin: boolean }) {
-  const now = useMemo(() => new Date(), []);
+  const [now, setNow] = useState(() => new Date());
   // 1 semaine de plus que celles affichées : la plus ancienne a besoin d'une semaine précédente à comparer.
   const allWeeks = useMemo(() => buildWeeks(now, WEEKS_SHOWN + 1), [now]);
   const weeks = useMemo(() => allWeeks.slice(1), [allWeeks]);
 
-  const { data, isLoading, error } = useOutboundClicks(allWeeks[0].start, isAdmin);
+  const { data, isLoading, error, dataUpdatedAt } = useOutboundClicks(allWeeks[0].start, isAdmin);
+  // « Maintenant » suit chaque rechargement : sinon les nouveaux clics entreraient dans les chiffres
+  // de la semaine mais pas dans le cumul 30 jours, et la semaine en cours resterait celle de lundi
+  // dernier si l'onglet traverse minuit dimanche.
+  useEffect(() => { if (dataUpdatedAt) setNow(new Date()); }, [dataUpdatedAt]);
   const [mode, setMode] = useState<Mode>('week');
   const [sel, setSel] = useState(weeks.length - 1);
 
@@ -54,12 +58,13 @@ export function OutboundTab({ isAdmin }: { isAdmin: boolean }) {
       {error && <div style={{ ...muted, color: 'var(--primary)' }}>Impossible de charger les statistiques.</div>}
       {data?.truncated && (
         <div style={{ ...muted, color: 'var(--primary)', marginBottom: '12px' }}>
-          Très gros volume de clics : les chiffres sont tronqués, contacte le support pour passer sur une agrégation côté base.
+          Très gros volume de clics : seuls les plus récents ont été lus. Les semaines les plus anciennes sont incomplètes
+          {data.completeFrom ? ` (avant le ${new Date(data.completeFrom).toLocaleDateString('fr-FR')})` : ''} et leurs écarts sont masqués.
         </div>
       )}
 
       {!isLoading && !error && mode === 'week' && (
-        <WeekView rows={rows} weeks={weeks} sel={sel} onSelect={setSel} now={now} trends={trends} cumulFrom={cumulFrom} cumulTo={now.getTime() + 1} />
+        <WeekView rows={rows} weeks={weeks} sel={sel} onSelect={setSel} now={now} trends={trends} cumulFrom={cumulFrom} cumulTo={now.getTime() + 1} completeFrom={data?.completeFrom ?? null} />
       )}
       {!isLoading && !error && mode === 'cumul' && (
         <div className="flex flex-col gap-4">
@@ -81,10 +86,10 @@ export function OutboundTab({ isAdmin }: { isAdmin: boolean }) {
 const GROUP_LABELS: Record<ClickGroup, string> = { events: 'Sorties', places: 'Lieux', activities: 'Activités' };
 
 function WeekView({
-  rows, weeks, sel, onSelect, now, trends, cumulFrom, cumulTo,
+  rows, weeks, sel, onSelect, now, trends, cumulFrom, cumulTo, completeFrom,
 }: {
   rows: ClickRow[]; weeks: Week[]; sel: number; onSelect: (i: number) => void; now: Date;
-  trends: Map<string, number[]>; cumulFrom: number; cumulTo: number;
+  trends: Map<string, number[]>; cumulFrom: number; cumulTo: number; completeFrom: number | null;
 }) {
   const [showOthers, setShowOthers] = useState(false);
   const week = weeks[sel];
@@ -92,6 +97,10 @@ function WeekView({
   const from = week.start.getTime();
   const to = week.end.getTime();
   const prev = previousWindow(week, now);
+  // Lecture tronquée : une semaine entamée avant `completeFrom` est incomplète, et comparer à une
+  // semaine incomplète fabriquerait une hausse ou un « nouveau » qui n'existent pas.
+  const partial = completeFrom !== null && from < completeFrom;
+  const prevPartial = completeFrom !== null && prev.from < completeFrom;
 
   const totals = useMemo(() => weeks.map((w) => countClicks(rows, w.start.getTime(), w.end.getTime())), [rows, weeks]);
   const max = Math.max(1, ...totals);
@@ -99,11 +108,12 @@ function WeekView({
   const kpis = (['events', 'places', 'activities'] as ClickGroup[]).map((g) => {
     const value = countClicks(rows, from, to, g);
     const before = countClicks(rows, prev.from, prev.to, g);
-    return { g, value, before, delta: deltaPct(value, before) };
+    return { g, value, before, delta: prevPartial ? null : deltaPct(value, before) };
   });
 
   const events = useMemo(() => rankClicks(rows, from, to, 'events'), [rows, from, to]);
-  // « Nouveau » : la fiche n'avait reçu aucun clic sur toute la semaine d'avant.
+  // Absente la semaine d'avant : aucun clic sur toute la semaine précédente (une sortie récurrente
+  // peut donc y figurer sans être nouvelle, d'où le libellé).
   const seenBefore = useMemo(
     () => entityIdsClicked(rows, addDays(week.start, -7).getTime(), from),
     [rows, week, from],
@@ -116,9 +126,11 @@ function WeekView({
         <div style={{ flex: 1, textAlign: 'center' }}>
           <div style={{ fontFamily: 'Fraunces', fontSize: '18px', fontWeight: 500, color: 'var(--text)' }}>Semaine du {weekLabel(week)}</div>
           <div style={muted}>
-            {current
-              ? `En cours · ${now.toLocaleDateString('fr-FR', { weekday: 'long' })}, semaine incomplète`
-              : 'Semaine terminée'}
+            {partial
+              ? 'Données incomplètes (volume trop important)'
+              : current
+                ? `En cours · ${now.toLocaleDateString('fr-FR', { weekday: 'long' })}, semaine incomplète`
+                : 'Semaine terminée'}
           </div>
         </div>
         <NavButton label="Semaine suivante" disabled={sel === weeks.length - 1} onClick={() => onSelect(sel + 1)}>›</NavButton>
@@ -147,7 +159,7 @@ function WeekView({
                   width: '100%', maxWidth: '44px', borderRadius: '4px 4px 0 0',
                   height: `${Math.max(2, Math.round((totals[i] / max) * 72))}px`,
                   background: i === sel ? 'var(--primary)' : 'var(--border)',
-                  opacity: isCurrentWeek(w, now) ? 0.6 : 1,
+                  opacity: isCurrentWeek(w, now) || (completeFrom !== null && w.start.getTime() < completeFrom) ? 0.6 : 1,
                 }}
               />
               <span style={{ fontFamily: 'DM Sans', fontSize: '10px', color: i === sel ? 'var(--text)' : 'var(--text-muted)' }}>
@@ -165,7 +177,7 @@ function WeekView({
             <div style={{ fontFamily: 'Fraunces', fontSize: '32px', fontWeight: 500, color: k.value ? 'var(--primary)' : 'var(--text-muted)', letterSpacing: '-0.02em' }}>
               {fmt(k.value)}
             </div>
-            <Delta delta={k.delta} before={k.before} current={current} />
+            <Delta delta={k.delta} before={k.before} current={current} unreliable={prevPartial} />
           </div>
         ))}
       </div>
@@ -174,7 +186,7 @@ function WeekView({
         title="Sorties les plus cliquées"
         rows={events}
         trends={null}
-        isNew={(r) => !seenBefore.has(`${r.entityType}:${r.entityId}`)}
+        isNew={(r) => !prevPartial && !seenBefore.has(`${r.entityType}:${r.entityId}`)}
         empty={current ? 'Aucun clic pour l’instant cette semaine 😴' : 'Aucun clic cette semaine-là 😴'}
       />
 
@@ -200,8 +212,9 @@ function WeekView({
   );
 }
 
-function Delta({ delta, before, current }: { delta: number | null; before: number; current: boolean }) {
+function Delta({ delta, before, current, unreliable }: { delta: number | null; before: number; current: boolean; unreliable: boolean }) {
   const ref = current ? 'même point sem. préc.' : 'sem. préc.';
+  if (unreliable) return <div style={muted}>comparaison indisponible</div>;
   if (delta === null) {
     return <div style={muted}>{before === 0 ? `rien sur la ${ref}` : '—'}</div>;
   }
@@ -275,7 +288,7 @@ function RankingRow({ rank, row, trend, isNew }: { rank: number; row: RankedRow;
         {row.entityType === 'event' && (
           <Pill tone={booking ? 'primary' : 'neutral'}>{booking ? 'réservation' : 'site web'}</Pill>
         )}
-        {isNew && <Pill tone="new">nouveau</Pill>}
+        {isNew && <Pill tone="new">absent sem. préc.</Pill>}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
         {trend && <Trend values={trend} />}

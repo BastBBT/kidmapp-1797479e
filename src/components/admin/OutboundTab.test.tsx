@@ -2,7 +2,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OutboundTab } from './OutboundTab';
-import { weekStart, type ClickRow } from './outboundWeeks';
+import { addDays, weekStart, type ClickRow } from './outboundWeeks';
 
 const hook = vi.hoisted(() => ({ result: { data: undefined, isLoading: false, error: null } as Record<string, unknown> }));
 vi.mock('@/hooks/useOutboundClicks', () => ({ useOutboundClicks: () => hook.result }));
@@ -27,11 +27,12 @@ const count = (t: string) => text().split(t).length - 1;
 
 afterEach(() => { act(() => root.unmount()); host.remove(); });
 
-const DAY = 24 * 60 * 60 * 1000;
-const monday = weekStart(new Date()).getTime();
+const monday = weekStart(new Date());
 
+// Jours calendaires et non multiples de 24 h : la semaine d'un changement d'heure dure 167 ou 169 h.
 const click = (daysFromThisMonday: number, over: Partial<ClickRow> = {}): ClickRow => ({
-  entityType: 'event', entityId: 'e1', linkType: 'website', category: null, name: 'Marché de Noël', t: monday + daysFromThisMonday * DAY + 1000, ...over,
+  entityType: 'event', entityId: 'e1', linkType: 'website', category: null, name: 'Marché de Noël',
+  t: addDays(monday, daysFromThisMonday).getTime() + 1000, ...over,
 });
 
 describe('OutboundTab', () => {
@@ -51,7 +52,7 @@ describe('OutboundTab', () => {
     };
   });
 
-  it('affiche la semaine en cours : compteurs, classement des sorties et badge « nouveau »', () => {
+  it('affiche la semaine en cours : compteurs, classement des sorties et badge « absent sem. préc. »', () => {
     render(<OutboundTab isAdmin />);
     expect(has(/Semaine du/)).toBe(true);
     expect(has(/semaine incomplète/)).toBe(true);
@@ -59,7 +60,7 @@ describe('OutboundTab', () => {
     expect(has('Cirque')).toBe(true);
     expect(has('réservation')).toBe(true);
     // Cirque n'avait aucun clic la semaine d'avant, Marché de Noël si.
-    expect(count('nouveau')).toBe(1);
+    expect(count('absent sem. préc.')).toBe(1);
     // Ciné-goûter n'a de clic que la semaine passée : absent du classement de cette semaine.
     expect(has('Ciné-goûter')).toBe(false);
   });
@@ -78,6 +79,18 @@ describe('OutboundTab', () => {
     expect(has('Café des enfants')).toBe(true);
     expect(has('Ciné-goûter')).toBe(true);
     expect(has('Activités')).toBe(true);
+  });
+
+  it('lecture tronquée : prévient, et masque écarts et badges des semaines comparées à une semaine incomplète', () => {
+    const data = hook.result.data as { rows: ClickRow[]; truncated: boolean; completeFrom: number | null };
+    // Les données ne sont complètes qu'à partir de cette semaine : la semaine d'avant est incomplète.
+    hook.result = { data: { ...data, truncated: true, completeFrom: monday.getTime() }, isLoading: false, error: null };
+    render(<OutboundTab isAdmin />);
+    expect(has(/seuls les plus récents ont été lus/)).toBe(true);
+    expect(has('comparaison indisponible')).toBe(true);
+    expect(has('absent sem. préc.')).toBe(false);
+    click_(byLabel('Semaine précédente'));
+    expect(has(/Données incomplètes/)).toBe(true);
   });
 
   it('signale l\'absence de clic sans planter', () => {
