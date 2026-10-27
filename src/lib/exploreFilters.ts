@@ -32,6 +32,7 @@ export interface ExploreLoc {
   age_min_months?: number | null;
   age_max_months?: number | null;
   opening_hours?: unknown;
+  business_status?: string | null;
   is_free?: boolean | null;
   weather?: string | null;
   duration?: string | null;
@@ -65,7 +66,7 @@ export const matchesExplore = (loc: ExploreLoc, c: ExploreCriteria, ctx: Explore
   }
   // Plusieurs tranches (« Les deux ») = union, pas intersection.
   if (!matchesAgeBuckets(loc, c.ageBuckets)) return false;
-  if (!matchesOpenNow(loc.opening_hours, c.onlyOpen, ctx.now)) return false;
+  if (!matchesOpenNow(loc.opening_hours, c.onlyOpen, ctx.now, loc.business_status)) return false;
   if (c.onlyNearby && !ctx.isNear(loc)) return false;
   if (c.group === 'places') {
     if (c.mealId && !ctx.mealLocationIds(c.mealId).has(loc.id)) return false;

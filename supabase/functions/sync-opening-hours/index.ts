@@ -17,10 +17,14 @@
 
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { normalizeBusinessStatus, writeGoogleUpdate } from './update.ts'
+import { newlyClosedPermanently } from './closed-alert.ts'
+import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const GOOGLE_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY')
+
+const FALLBACK_ADMIN_EMAIL = 'bastien.boubat@gmail.com'
 
 const PLACES_BASE = 'https://places.googleapis.com/v1'
 
@@ -214,15 +218,62 @@ function summarize(outcomes: SyncOutcome[]) {
 async function runBatch(admin: SupabaseClient) {
   const { data, error } = await admin
     .from('locations')
-    .select('id, name, address, city, lat, lng, google_place_id, opening_hours_source')
+    .select('id, name, address, city, lat, lng, google_place_id, opening_hours_source, business_status')
     .not('google_place_id', 'is', null)
   if (error) throw new Error(`select failed: ${error.message}`)
+  const previousStatus = new Map(
+    (data as (LocationRow & { business_status: string | null })[]).map((l) => [l.id, l.business_status]),
+  )
 
   const budget = new CallBudget(MAX_GOOGLE_CALLS_PER_RUN)
   const outcomes = await mapPool(data as LocationRow[], CONCURRENCY, (loc) => syncOne(admin, loc, budget, false))
   const summary = summarize(outcomes)
   console.log('sync-opening-hours batch', JSON.stringify({ ...summary, google_calls: budget.used }))
+  // Un échec d'envoi ne doit jamais faire échouer la synchro : les horaires sont déjà écrits.
+  try {
+    await notifyNewlyClosed(admin, previousStatus)
+  } catch (e) {
+    console.error('closed-alert failed', e)
+  }
   return summary
+}
+
+// Prévient les admins des lieux publiés que Google vient de déclarer fermés définitivement.
+// On ne les désactive jamais nous-mêmes : un admin vérifie, puis désactive à la main.
+async function notifyNewlyClosed(admin: SupabaseClient, previousStatus: Map<string, string | null>) {
+  const { data, error } = await admin
+    .from('locations')
+    .select('id, name, city')
+    .eq('business_status', 'CLOSED_PERMANENTLY')
+    .eq('status', 'published')
+  if (error) throw new Error(`closed select failed: ${error.message}`)
+  const closed = newlyClosedPermanently(previousStatus, (data ?? []) as { id: string; name: string; city: string | null }[])
+  if (closed.length === 0) return
+
+  const { data: adminProfiles } = await admin.from('profiles').select('id').eq('role', 'admin')
+  const adminIds = new Set((adminProfiles ?? []).map((p: { id: string }) => p.id))
+  const { data: usersList } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+  const recipients = (usersList?.users ?? [])
+    .filter((u) => adminIds.has(u.id) && u.email)
+    .map((u) => u.email as string)
+  if (recipients.length === 0) recipients.push(FALLBACK_ADMIN_EMAIL)
+
+  const month = new Date().toISOString().slice(0, 7)
+  for (const recipient of recipients) {
+    try {
+      const result = await sendTemplateEmail('location-closed-alert', recipient, {
+        templateData: { locations: closed },
+        idempotencyKey: `location-closed-${month}-${closed.map((l) => l.name).join(',')}-${recipient}`,
+      })
+      await admin.from('email_send_log').insert({
+        template_name: 'location-closed-alert',
+        recipient_email: recipient,
+        status: result.sent ? 'sent' : 'suppressed',
+      })
+    } catch (e) {
+      console.error('location-closed-alert send error', recipient, e instanceof Error ? e.message : e)
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

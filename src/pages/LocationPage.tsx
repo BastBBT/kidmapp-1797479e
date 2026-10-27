@@ -194,6 +194,7 @@ const LocationPage = () => {
       {/* Horaires d'ouverture (Google Places, rafraîchis chaque mois) */}
       <LocationOpeningHours
         openingHours={location.opening_hours}
+        businessStatus={location.business_status}
         source={location.opening_hours_source}
         updatedAt={location.opening_hours_updated_at}
       />
