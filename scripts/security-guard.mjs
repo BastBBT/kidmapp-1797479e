@@ -279,7 +279,11 @@ for (const file of newMigrations) {
 //   lui-même sa provenance : createAuthEmailHandler (@lovable.dev/email-js) contrôle la
 //   signature HMAC horodatée (x-lovable-signature / x-lovable-timestamp, 401 sinon), et
 //   la route /preview exige `Authorization: Bearer <LOVABLE_API_KEY>`.
-const JWT_EXEMPT = new Set(['preview-transactional-email', 'auth-email-hook']);
+// - handle-email-events : webhook d'événements email (rejets, plaintes, désinscriptions)
+//   appelé par le service d'envoi Lovable, sans JWT Supabase. createEmailWebhookHandler
+//   (@lovable.dev/email-js) contrôle la même signature HMAC horodatée, 401 sinon. Sans cette
+//   exemption, la passerelle refusait chaque événement (aucun rejet logué du 31/08 au 27/10).
+const JWT_EXEMPT = new Set(['preview-transactional-email', 'auth-email-hook', 'handle-email-events']);
 
 // Tout le fichier est reparsé, pas seulement les lignes ajoutées : renommer une section
 // exemptée en laissant `verify_jwt = false` intact rendait auparavant une nouvelle fonction
