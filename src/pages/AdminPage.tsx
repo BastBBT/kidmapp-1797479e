@@ -2117,6 +2117,8 @@ const AdminPage = () => {
                       hoursPatch.opening_hours = null;
                       hoursPatch.opening_hours_source = null;
                       hoursPatch.opening_hours_updated_at = null;
+                      // Idem pour le statut d'activité : il décrivait l'ancien lieu Google.
+                      hoursPatch.business_status = null;
                     }
                     // Seule une vraie modification des horaires les passe en saisie manuelle :
                     // enregistrer la fiche pour une autre raison ne doit pas couper le sync Google.

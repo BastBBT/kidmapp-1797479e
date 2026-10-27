@@ -57,6 +57,7 @@ interface LocationRow {
   lng: number
   google_place_id: string | null
   opening_hours_source: string | null
+  business_status?: string | null
 }
 
 class CallBudget {
@@ -147,9 +148,12 @@ function normalizePeriods(rawPeriods: GooglePeriod[]): Period[] {
 }
 
 type SyncOutcome =
-  | { id: string; name: string; status: 'updated' | 'no_hours' }
+  // `business_status` : statut Google écrit, renvoyé pour que l'admin voie un lieu fermé après
+  // « Resynchroniser » (le mail n'est envoyé que par le batch).
+  | { id: string; name: string; status: 'updated' | 'no_hours'; business_status: string | null }
   | { id: string; name: string; status: 'error'; error: string }
-  | { id: string; name: string; status: 'skipped_budget' | 'skipped_manual' }
+  | { id: string; name: string; status: 'skipped_budget'; business_status?: undefined }
+  | { id: string; name: string; status: 'skipped_manual'; business_status: string | null }
 
 // `force` : écrase aussi une saisie manuelle (mode single = bouton « Resynchroniser »). Sans lui,
 // la garde est refaite au moment de l'écriture : un admin a pu passer le lieu en 'manuel'
@@ -181,8 +185,11 @@ async function syncOne(
     const rawPeriods = place?.regularOpeningHours?.periods
     const periods = Array.isArray(rawPeriods) ? normalizePeriods(rawPeriods) : []
 
+    // Si Google n'envoie pas de statut ce mois-ci, on garde le statut connu : l'écraser par null
+    // ferait repartir l'alerte « fermé définitivement » quand il revient.
+    const businessStatus = normalizeBusinessStatus(place?.businessStatus) ?? loc.business_status ?? null
     const update: Record<string, unknown> = {
-      business_status: normalizeBusinessStatus(place?.businessStatus),
+      business_status: businessStatus,
       opening_hours: periods.length > 0 ? { periods } : null,
       opening_hours_source: 'google_auto',
       opening_hours_updated_at: new Date().toISOString(),
@@ -195,8 +202,8 @@ async function syncOne(
     if (written === 'error') {
       return { ...base, status: 'error', error: 'db_update_failed' }
     }
-    if (written === 'skipped_manual') return { ...base, status: 'skipped_manual' }
-    return { ...base, status: periods.length > 0 ? 'updated' : 'no_hours' }
+    if (written === 'skipped_manual') return { ...base, status: 'skipped_manual', business_status: businessStatus }
+    return { ...base, status: periods.length > 0 ? 'updated' : 'no_hours', business_status: businessStatus }
   } catch (e) {
     console.error('sync error', loc.id, e)
     return { ...base, status: 'error', error: 'exception' }
@@ -249,6 +256,7 @@ async function notifyNewlyClosed(admin: SupabaseClient, previousStatus: Map<stri
   if (error) throw new Error(`closed select failed: ${error.message}`)
   const closed = newlyClosedPermanently(previousStatus, (data ?? []) as { id: string; name: string; city: string | null }[])
   if (closed.length === 0) return
+  const alertLocations = closed.map(({ name, city }) => ({ name, city }))
 
   const { data: adminProfiles } = await admin.from('profiles').select('id').eq('role', 'admin')
   const adminIds = new Set((adminProfiles ?? []).map((p: { id: string }) => p.id))
@@ -262,8 +270,8 @@ async function notifyNewlyClosed(admin: SupabaseClient, previousStatus: Map<stri
   for (const recipient of recipients) {
     try {
       const result = await sendTemplateEmail('location-closed-alert', recipient, {
-        templateData: { locations: closed },
-        idempotencyKey: `location-closed-${month}-${closed.map((l) => l.name).join(',')}-${recipient}`,
+        templateData: { locations: alertLocations },
+        idempotencyKey: `location-closed-${month}-${closed.map((l) => l.id).sort().join(',')}-${recipient}`,
       })
       await admin.from('email_send_log').insert({
         template_name: 'location-closed-alert',
@@ -489,7 +497,7 @@ Deno.serve(async (req) => {
     }
     const { data: loc, error } = await admin
       .from('locations')
-      .select('id, name, address, city, lat, lng, google_place_id, opening_hours_source')
+      .select('id, name, address, city, lat, lng, google_place_id, opening_hours_source, business_status')
       .eq('id', locationId)
       .maybeSingle()
     if (error) throw new Error(`select failed: ${error.message}`)

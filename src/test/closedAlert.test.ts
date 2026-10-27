@@ -7,14 +7,15 @@ describe('newlyClosedPermanently', () => {
   const b = { id: 'b', name: 'B', city: null };
   it('signale un lieu qui vient de passer en fermé définitivement', () => {
     const prev = new Map<string, string | null>([['a', 'OPERATIONAL'], ['b', null]]);
-    expect(newlyClosedPermanently(prev, [a, b])).toEqual([
-      { name: 'A', city: 'Nantes' },
-      { name: 'B', city: null },
-    ]);
+    expect(newlyClosedPermanently(prev, [a, b])).toEqual([a, b]);
   });
   it('ne renvoie pas un lieu déjà signalé à la synchro précédente', () => {
     const prev = new Map<string, string | null>([['a', 'CLOSED_PERMANENTLY'], ['b', 'OPERATIONAL']]);
-    expect(newlyClosedPermanently(prev, [a, b])).toEqual([{ name: 'B', city: null }]);
+    expect(newlyClosedPermanently(prev, [a, b])).toEqual([b]);
+  });
+  it('ignore un lieu absent du batch (Place ID retiré) même s\'il reste marqué fermé', () => {
+    const prev = new Map<string, string | null>([['b', 'OPERATIONAL']]);
+    expect(newlyClosedPermanently(prev, [a, b])).toEqual([b]);
   });
   it('ne signale rien quand aucun lieu n\'est fermé', () => {
     expect(newlyClosedPermanently(new Map(), [])).toEqual([]);
