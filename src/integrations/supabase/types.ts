@@ -766,6 +766,7 @@ export type Database = {
           age_min: number | null
           age_min_months: number | null
           bookable: string | null
+          business_status: string | null
           category: string
           changing_table: boolean
           city: string
@@ -804,6 +805,7 @@ export type Database = {
           age_min?: number | null
           age_min_months?: number | null
           bookable?: string | null
+          business_status?: string | null
           category: string
           changing_table?: boolean
           city?: string
@@ -842,6 +844,7 @@ export type Database = {
           age_min?: number | null
           age_min_months?: number | null
           bookable?: string | null
+          business_status?: string | null
           category?: string
           changing_table?: boolean
           city?: string
