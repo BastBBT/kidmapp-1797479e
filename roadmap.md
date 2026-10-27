@@ -1,0 +1,4 @@
+# Google business status
+- [x] Add nullable business_status and regenerate types.
+- [ ] Update sync-opening-hours and test manual-hours protection.
+- [ ] Deploy and run batch; verify counts and La Cantine du Voyage.
