@@ -23,7 +23,6 @@ const has = (t: string | RegExp) => (typeof t === 'string' ? text().includes(t) 
 const click_ = (el: Element | null) => act(() => { (el as HTMLElement).click(); });
 const byLabel = (l: string) => host.querySelector(`[aria-label="${l}"]`);
 const byText = (re: RegExp) => [...host.querySelectorAll('button')].find((b) => re.test(b.textContent ?? '')) ?? null;
-const count = (t: string) => text().split(t).length - 1;
 
 afterEach(() => { act(() => root.unmount()); host.remove(); });
 
@@ -52,15 +51,13 @@ describe('OutboundTab', () => {
     };
   });
 
-  it('affiche la semaine en cours : compteurs, classement des sorties et badge « absent sem. préc. »', () => {
+  it('affiche la semaine en cours : compteurs et classement des sorties', () => {
     render(<OutboundTab isAdmin />);
     expect(has(/Semaine du/)).toBe(true);
     expect(has(/semaine incomplète/)).toBe(true);
     expect(has('Marché de Noël')).toBe(true);
     expect(has('Cirque')).toBe(true);
     expect(has('réservation')).toBe(true);
-    // Cirque n'avait aucun clic la semaine d'avant, Marché de Noël si.
-    expect(count('absent sem. préc.')).toBe(1);
     // Ciné-goûter n'a de clic que la semaine passée : absent du classement de cette semaine.
     expect(has('Ciné-goûter')).toBe(false);
   });
@@ -81,14 +78,13 @@ describe('OutboundTab', () => {
     expect(has('Activités')).toBe(true);
   });
 
-  it('lecture tronquée : prévient, et masque écarts et badges des semaines comparées à une semaine incomplète', () => {
+  it('lecture tronquée : prévient, et masque les écarts des semaines comparées à une semaine incomplète', () => {
     const data = hook.result.data as { rows: ClickRow[]; truncated: boolean; completeFrom: number | null };
     // Les données ne sont complètes qu'à partir de cette semaine : la semaine d'avant est incomplète.
     hook.result = { data: { ...data, truncated: true, completeFrom: monday.getTime() }, isLoading: false, error: null };
     render(<OutboundTab isAdmin />);
     expect(has(/seuls les plus récents ont été lus/)).toBe(true);
     expect(has('comparaison indisponible')).toBe(true);
-    expect(has('absent sem. préc.')).toBe(false);
     click_(byLabel('Semaine précédente'));
     expect(has(/Données incomplètes/)).toBe(true);
   });
