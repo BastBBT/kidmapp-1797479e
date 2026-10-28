@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { FUNNEL_WINDOWS, buildFunnelSteps, type FunnelCounts, type FunnelStep, type FunnelWindow } from './engagementFunnel';
 
 type Segment = { with: { users: number; active: number }; without: { users: number; active: number } };
 type TemplateSends = {
@@ -32,6 +34,8 @@ type EngagementStats = {
   alertUnsubscribes30d: number;
   landingVisits30d: { semaine: number; nouveauxLieux: number };
   retentionBySegment: Record<'assistantCompleted' | 'hasChildren' | 'digestEnabled', Segment>;
+  /** Entonnoir par cohorte d'inscription (migration 20261028220000). Absent tant qu'elle n'est pas appliquée. */
+  funnel?: Partial<Record<FunnelWindow, FunnelCounts>>;
 };
 
 const EMPTY_SENDS: TemplateSends = { emailSent: 0, emailFailed: 0, emailSuppressed: 0, skippedNoMatch: 0, pushSent: 0, pushFailed: 0 };
@@ -52,6 +56,7 @@ const fmt = (n: number) => n.toLocaleString('fr-FR');
 const pct = (part: number, total: number) => (total > 0 ? Math.round((part / total) * 100) : 0);
 
 export function EngagementTab({ isAdmin }: { isAdmin: boolean }) {
+  const [funnelWindow, setFunnelWindow] = useState<FunnelWindow>('30');
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-engagement-stats'],
     enabled: isAdmin,
@@ -70,6 +75,7 @@ export function EngagementTab({ isAdmin }: { isAdmin: boolean }) {
   const { registered, assistant, profile, pushDevices, digestFeedback30d: feedback } = data;
   const digest = data.sends30d?.['weekly-digest'] ?? EMPTY_SENDS;
   const alerts = data.sends30d?.['new-location-alert'] ?? EMPTY_SENDS;
+  const funnelCounts = data.funnel?.[funnelWindow];
   const reactionsTotal = feedback.reactions.love + feedback.reactions.neutral + feedback.reactions.sad;
   const segments: { key: keyof EngagementStats['retentionBySegment']; label: string }[] = [
     { key: 'assistantCompleted', label: '🧸 A terminé l’assistant' },
@@ -79,7 +85,40 @@ export function EngagementTab({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <div>
-      <div style={{ ...sectionTitle, marginTop: 0 }}>Est-ce que ça sert ? ✦</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+        <div style={{ ...sectionTitle, margin: 0 }}>Parcours des familles inscrites ✦</div>
+        <WindowToggle value={funnelWindow} onChange={setFunnelWindow} />
+      </div>
+      <div style={card}>
+        {funnelCounts ? (
+          <>
+            {funnelWindow === '7' && (
+              <div style={{ ...muted, background: 'var(--accent-light)', borderRadius: 'var(--radius-sm)', padding: '6px 10px', marginBottom: '10px' }}>
+                Cohorte récente : les dernières étapes n’ont pas encore eu le temps de se remplir, à lire avec prudence.
+              </div>
+            )}
+            {buildFunnelSteps(funnelCounts).map((step, i) => (
+              <FunnelRow
+                key={step.key}
+                step={step}
+                first={i === 0}
+                detail={step.key === 'receivedSend' ? `dont email ${fmt(funnelCounts.receivedEmail)} · notif ${fmt(funnelCounts.receivedPush)}` : undefined}
+              />
+            ))}
+            <div style={{ ...muted, fontSize: '11px', marginTop: '8px' }}>
+              Familles inscrites sur la période choisie ; chaque étape est incluse dans la précédente.
+              À droite : part restante par rapport à l’étape d’avant, puis part du total des inscrits.
+              Flèche : la plus grosse perte. Envoi activé = ≥ 1 enfant + zone + email ou notif activé.
+              « Actif » se mesure toujours sur les 30 derniers jours, quelle que soit la période d’inscription ;
+              les détails email et notif peuvent se recouper.
+            </div>
+          </>
+        ) : (
+          <div style={{ ...muted, textAlign: 'center', padding: '12px 0' }}>Entonnoir indisponible pour cette période.</div>
+        )}
+      </div>
+
+      <div style={sectionTitle}>Est-ce que ça sert ? ✦</div>
       <div style={card}>
         <Row cols="minmax(0, 1fr) 90px 90px" header cells={['', 'avec', 'sans']} />
         {segments.map((s) => {
@@ -109,21 +148,6 @@ export function EngagementTab({ isAdmin }: { isAdmin: boolean }) {
         <Stat label="Ouvertures" value={fmt(assistant.opens)} sub={`${fmt(assistant.completions)} terminées`} />
         <Stat label="Utilisateurs" value={fmt(assistant.users)} sub={`${pct(assistant.users, registered)} % des inscrits`} />
         <Stat label="Taux de complétion" value={`${pct(assistant.completions, assistant.opens)} %`} sub="terminées / ouvertes" />
-      </div>
-
-      <div style={sectionTitle}>Profil famille 👶</div>
-      <div style={card}>
-        <div style={cardTitle}>Complétion — % des {fmt(registered)} inscrits</div>
-        <Funnel label="≥ 1 enfant renseigné" value={profile.withChildren} total={registered} />
-        <Funnel label="dont prénom donné" value={profile.withChildFirstName} total={registered} faded />
-        <Funnel label="Zone déclarée" value={profile.withZone} total={registered} />
-        <Funnel label="Sélection par email" value={profile.digestEmail} total={registered} />
-        <Funnel label="Sélection par notif" value={profile.digestPush} total={registered} />
-        <Funnel label="Profil complet" value={profile.complete} total={registered} color="#3B7D6E" />
-        <div style={{ ...muted, fontSize: '11px', marginTop: '8px' }}>
-          Profil complet = ≥ 1 enfant + zone + un envoi activé.
-          {profile.withChildren > 0 && ` ${(profile.childrenTotal / profile.withChildren).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} enfant(s) en moyenne par famille renseignée.`}
-        </div>
       </div>
 
       <div style={sectionTitle}>Envois 📬 <span style={muted}>· 30 derniers jours</span></div>
@@ -199,17 +223,59 @@ function SegmentValue({ value, users, strong = false }: { value: number; users: 
   );
 }
 
-function Funnel({ label, value, total, faded = false, color = 'var(--primary)', hint }: {
-  label: string; value: number; total: number; faded?: boolean; color?: string; hint?: string;
-}) {
-  const p = pct(value, total);
+function WindowToggle({ value, onChange }: { value: FunnelWindow; onChange: (w: FunnelWindow) => void }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '160px minmax(0, 1fr) 90px', alignItems: 'center', gap: '8px', marginBottom: '6px', fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--text)' }}>
-      <span style={{ paddingLeft: faded ? '12px' : 0 }}>{label}{hint && <span style={muted}> ({hint})</span>}</span>
-      <div style={{ height: '12px', borderRadius: '4px', background: 'var(--bg)', overflow: 'hidden' }}>
-        <div style={{ width: `${p}%`, height: '100%', background: color, opacity: faded ? 0.6 : 1, transition: 'width 0.3s ease' }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+      <span style={muted}>Inscrits sur</span>
+      {FUNNEL_WINDOWS.map((w) => {
+        const active = value === w.key;
+        return (
+          <button
+            key={w.key}
+            onClick={() => onChange(w.key)}
+            aria-pressed={active}
+            style={{
+              padding: '5px 12px', borderRadius: 100, fontSize: 12, fontWeight: 600,
+              border: active ? '1.5px solid var(--secondary)' : '1.5px solid var(--border)',
+              background: active ? 'var(--secondary)' : 'transparent',
+              color: active ? 'white' : 'var(--text-muted)',
+              fontFamily: 'DM Sans', cursor: 'pointer',
+            }}
+          >
+            {w.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function FunnelRow({ step, first, detail }: { step: FunnelStep; first: boolean; detail?: string }) {
+  // Barre centrée dont la largeur suit la part du total ; trop étroite, le nombre passe à côté.
+  const width = Math.max(step.ofTotal, 6);
+  const inside = width >= 14;
+  const count = <span style={{ fontSize: '13px', fontWeight: 600 }}>{fmt(step.value)}</span>;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(84px, 120px) minmax(0, 1fr) minmax(70px, 96px)', alignItems: 'center', gap: '8px', marginBottom: '6px', fontFamily: 'DM Sans', color: 'var(--text)' }}>
+      <div style={{ fontSize: '13px' }}>
+        {step.label}
+        {(step.hint || detail) && <div style={{ ...muted, fontSize: '11px' }}>{detail ?? step.hint}</div>}
       </div>
-      <span style={{ textAlign: 'right' }}>{p} % <span style={muted}>({fmt(value)})</span></span>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}>
+        <div
+          style={{
+            width: `${width}%`, height: '30px', borderRadius: '4px', background: 'var(--secondary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
+            transition: 'width 0.3s ease',
+          }}
+        >
+          {inside && count}
+        </div>
+        {!inside && count}
+      </div>
+      <div style={{ fontSize: '12px', textAlign: 'right', color: step.biggestDrop ? 'var(--primary)' : 'var(--text-muted)', fontWeight: step.biggestDrop ? 600 : 400 }}>
+        {first ? '100 %' : <>{step.biggestDrop && '↓ '}{step.ofPrevious} % <span style={muted}>· {step.ofTotal} %</span></>}
+      </div>
     </div>
   );
 }
