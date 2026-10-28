@@ -30,11 +30,14 @@ export type FunnelStep = {
   ofPrevious: number;
   /** Part du total des inscrits de la fenêtre. */
   ofTotal: number;
-  /** Plus grosse perte du parcours, en nombre de familles. */
+  /** Plus grosse perte du parcours, en proportion de l'étape précédente (la première en cas d'égalité). */
   biggestDrop: boolean;
 };
 
 const pct = (part: number, total: number) => (total > 0 ? Math.round((part / total) * 100) : 0);
+
+/** Une valeur manquante ou non numérique compte pour 0 : jamais de NaN à l'écran. */
+const safe = (n: number) => (Number.isFinite(n) ? Math.max(0, n) : 0);
 
 /** Étapes dans l'ordre du parcours. Chaque valeur est bornée par la précédente : l'entonnoir ne remonte jamais. */
 export function buildFunnelSteps(c: FunnelCounts): FunnelStep[] {
@@ -49,13 +52,14 @@ export function buildFunnelSteps(c: FunnelCounts): FunnelStep[] {
 
   let previous = Infinity;
   const clamped = raw.map((s) => {
-    previous = Math.min(previous, s.value);
+    previous = Math.min(previous, safe(s.value));
     return { ...s, value: previous };
   });
 
-  const drops = clamped.map((s, i) => (i === 0 ? 0 : clamped[i - 1].value - s.value));
-  const worst = Math.max(...drops);
-  const worstIndex = worst > 0 ? drops.indexOf(worst) : -1;
+  // Perte relative : en valeur absolue, inscrits -> enfant l'emporterait presque toujours.
+  const losses = clamped.map((s, i) => (i === 0 || clamped[i - 1].value === 0 ? 0 : (clamped[i - 1].value - s.value) / clamped[i - 1].value));
+  const worst = Math.max(...losses);
+  const worstIndex = worst > 0 ? losses.indexOf(worst) : -1;
 
   return clamped.map((s, i) => ({
     ...s,

@@ -15,7 +15,7 @@ type TemplateSends = {
   runAborted?: number;
 };
 
-/** Forme renvoyée par la RPC `admin_engagement_stats` (supabase/migrations/20260924210800). */
+/** Forme renvoyée par la RPC `admin_engagement_stats` (supabase/migrations/20260924210800, bloc `funnel` : 20261028220000). */
 type EngagementStats = {
   registered: number;
   assistant: { opens: number; completions: number; users: number; completers: number };
@@ -103,12 +103,14 @@ export function EngagementTab({ isAdmin }: { isAdmin: boolean }) {
                 step={step}
                 first={i === 0}
                 detail={step.key === 'receivedSend' ? `dont email ${fmt(funnelCounts.receivedEmail)} · notif ${fmt(funnelCounts.receivedPush)}` : undefined}
+                // Le prénom donné n'existe qu'en cumul (pas par cohorte) : affiché seulement sur « Depuis le début ».
+                suffix={step.key === 'withChildren' && funnelWindow === 'all' ? `(dont ${fmt(profile.withChildFirstName)} avec prénom)` : undefined}
               />
             ))}
             <div style={{ ...muted, fontSize: '11px', marginTop: '8px' }}>
               Familles inscrites sur la période choisie ; chaque étape est incluse dans la précédente.
               À droite : part restante par rapport à l’étape d’avant, puis part du total des inscrits.
-              Flèche : la plus grosse perte. Envoi activé = ≥ 1 enfant + zone + email ou notif activé.
+              Flèche : la plus grosse perte en proportion de l’étape d’avant. Envoi activé = ≥ 1 enfant + zone + email ou notif activé.
               « Actif » se mesure toujours sur les 30 derniers jours, quelle que soit la période d’inscription ;
               les détails email et notif peuvent se recouper.
             </div>
@@ -250,10 +252,10 @@ function WindowToggle({ value, onChange }: { value: FunnelWindow; onChange: (w: 
   );
 }
 
-function FunnelRow({ step, first, detail }: { step: FunnelStep; first: boolean; detail?: string }) {
+function FunnelRow({ step, first, detail, suffix }: { step: FunnelStep; first: boolean; detail?: string; suffix?: string }) {
   // Barre centrée dont la largeur suit la part du total ; trop étroite, le nombre passe à côté.
-  const width = Math.max(step.ofTotal, 6);
-  const inside = width >= 14;
+  const width = step.value === 0 ? 0 : Math.max(step.ofTotal, 6);
+  const inside = width >= 35;
   const count = <span style={{ fontSize: '13px', fontWeight: 600 }}>{fmt(step.value)}</span>;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(84px, 120px) minmax(0, 1fr) minmax(70px, 96px)', alignItems: 'center', gap: '8px', marginBottom: '6px', fontFamily: 'DM Sans', color: 'var(--text)' }}>
@@ -261,17 +263,20 @@ function FunnelRow({ step, first, detail }: { step: FunnelStep; first: boolean; 
         {step.label}
         {(step.hint || detail) && <div style={{ ...muted, fontSize: '11px' }}>{detail ?? step.hint}</div>}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}>
-        <div
-          style={{
-            width: `${width}%`, height: '30px', borderRadius: '4px', background: 'var(--secondary)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
-            transition: 'width 0.3s ease',
-          }}
-        >
-          {inside && count}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}>
+          <div
+            style={{
+              width: `${width}%`, height: '30px', borderRadius: '4px', background: 'var(--secondary)', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
+              transition: 'width 0.3s ease',
+            }}
+          >
+            {inside && count}
+          </div>
+          {!inside && count}
         </div>
-        {!inside && count}
+        {suffix && <div style={{ ...muted, fontSize: '11px', textAlign: 'center', marginTop: '2px' }}>{suffix}</div>}
       </div>
       <div style={{ fontSize: '12px', textAlign: 'right', color: step.biggestDrop ? 'var(--primary)' : 'var(--text-muted)', fontWeight: step.biggestDrop ? 600 : 400 }}>
         {first ? '100 %' : <>{step.biggestDrop && '↓ '}{step.ofPrevious} % <span style={muted}>· {step.ofTotal} %</span></>}

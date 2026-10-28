@@ -28,7 +28,7 @@ const segment = { with: { users: 0, active: 0 }, without: { users: 0, active: 0 
 const stats = (withFunnel: boolean) => ({
   registered: 529,
   assistant: { opens: 0, completions: 0, users: 0, completers: 0 },
-  profile: { withChildren: 0, withChildFirstName: 0, childrenTotal: 0, withZone: 0, digestEmail: 0, digestPush: 0, complete: 0 },
+  profile: { withChildren: 0, withChildFirstName: 80, childrenTotal: 0, withZone: 0, digestEmail: 0, digestPush: 0, complete: 0 },
   pushDevices: { ios: 0, android: 0 },
   sends30d: { 'weekly-digest': send, 'new-location-alert': send },
   digestFeedback30d: { sends: 0, reactions: { love: 0, neutral: 0, sad: 0 }, unsubscribes: 0 },
@@ -63,6 +63,25 @@ describe('EngagementTab — entonnoir', () => {
     act(() => button('Depuis le début').click());
     expect(text()).toContain('529');
     expect(text()).toContain('dont email 7 · notif 8');
+  });
+
+  it('affiche le prénom donné à côté des enfants, seulement sur « Depuis le début »', () => {
+    query.result = { data: stats(true), isLoading: false, error: null };
+    render();
+    expect(text()).not.toContain('avec prénom');
+    act(() => button('Depuis le début').click());
+    expect(text()).toContain('(dont 80 avec prénom)');
+    act(() => button('7 jours').click());
+    expect(text()).not.toContain('avec prénom');
+  });
+
+  it('dessine une barre de largeur nulle pour une étape à 0 et signale la perte', () => {
+    query.result = { data: stats(true), isLoading: false, error: null };
+    render();
+    act(() => button('7 jours').click());
+    const widths = [...host.querySelectorAll<HTMLElement>('div')].map((d) => d.style.width).filter(Boolean);
+    expect(widths.filter((w) => w === '0%')).toHaveLength(3); // envoi activé, a reçu, actif
+    expect(text()).toContain('↓ 0 %'); // 4 -> 0 : perte totale, la plus forte en proportion
   });
 
   it('signale une fenêtre absente sans casser le reste de l’onglet', () => {

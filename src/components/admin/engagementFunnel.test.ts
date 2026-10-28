@@ -22,9 +22,34 @@ describe('buildFunnelSteps', () => {
     expect(zone.ofTotal).toBe(18); // 42 / 229 = 18,3
   });
 
-  it('marque la plus grosse perte en nombre de familles, une seule fois', () => {
+  it('marque la plus grosse perte en proportion de l’étape précédente, une seule fois', () => {
     const flagged = buildFunnelSteps(base).filter((s) => s.biggestDrop).map((s) => s.key);
-    expect(flagged).toEqual(['withChildren']); // 229 -> 93 : -136
+    // 229 -> 93 : -59 %, 42 -> 16 : -62 % ; en valeur absolue inscrits -> enfant l'emporterait
+    expect(flagged).toEqual(['sendEnabled']);
+  });
+
+  it('retient l’étape la plus dure de la cohorte 30 jours du 28/10', () => {
+    const d30: FunnelCounts = { registered: 71, withChildren: 45, withZone: 13, sendEnabled: 2, receivedSend: 2, receivedEmail: 2, receivedPush: 0, active: 1 };
+    expect(buildFunnelSteps(d30).find((s) => s.biggestDrop)?.key).toBe('sendEnabled'); // 13 -> 2 : -85 %
+  });
+
+  it('garde la première étape en cas d’égalité de perte', () => {
+    const tie: FunnelCounts = { ...base, registered: 100, withChildren: 50, withZone: 25, sendEnabled: 25, receivedSend: 25, active: 25 };
+    expect(buildFunnelSteps(tie).filter((s) => s.biggestDrop).map((s) => s.key)).toEqual(['withChildren']);
+  });
+
+  it('ignore une étape à zéro dans le calcul de perte relative', () => {
+    const dead: FunnelCounts = { ...base, registered: 10, withChildren: 4, withZone: 0, sendEnabled: 0, receivedSend: 0, active: 0 };
+    const steps = buildFunnelSteps(dead);
+    expect(steps.find((s) => s.biggestDrop)?.key).toBe('withZone'); // -100 %
+    expect(steps.every((s) => Number.isFinite(s.ofPrevious) && Number.isFinite(s.ofTotal))).toBe(true);
+  });
+
+  it('traite une valeur manquante ou non numérique comme 0, sans NaN', () => {
+    const broken = { ...base, withZone: Number.NaN, sendEnabled: undefined, receivedSend: null } as unknown as FunnelCounts;
+    const steps = buildFunnelSteps(broken);
+    expect(steps.map((s) => s.value)).toEqual([229, 93, 0, 0, 0, 0]);
+    expect(steps.every((s) => Number.isFinite(s.ofPrevious) && Number.isFinite(s.ofTotal))).toBe(true);
   });
 
   it('ne signale aucune perte quand l’entonnoir est plat', () => {
