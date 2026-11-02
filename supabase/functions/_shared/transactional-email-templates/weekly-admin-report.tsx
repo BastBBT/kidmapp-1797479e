@@ -71,7 +71,7 @@ const BAR_GREY = '#E7E3DC'
 const MUTED = '#6B6B6B'
 const NUMBER_FONT = 'Georgia, serif'
 
-const fmt = (n: number) => n.toLocaleString('fr-FR').replace(/ /g, ' ')
+const fmt = (n: number) => n.toLocaleString('fr-FR').replace(/\u202f/g, '\u00a0')
 
 type Tone = 'up' | 'down' | 'flat' | 'new'
 
@@ -441,7 +441,7 @@ const WeeklyAdminReportEmail = ({
                       <span key={p.key}>
                         <Dot color={p.color} />
                         {p.label}
-                        {'  '}
+                        {'\u00a0\u00a0'}
                       </span>
                     ))}
                   </div>
