@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -26,8 +26,7 @@ function formatDate(d: Date): string {
 type PageView = { user_id: string | null; created_at: string }
 
 async function fetchPageViews(
-  // deno-lint-ignore no-explicit-any
-  supabase: { from: (table: string) => any },
+  supabase: SupabaseClient,
   from: Date,
   to: Date,
 ): Promise<PageView[]> {
