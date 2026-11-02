@@ -1220,6 +1220,30 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_inbox: {
+        Row: {
+          chat_id: number
+          fired_at: string | null
+          payload: Json
+          received_at: string
+          update_id: number
+        }
+        Insert: {
+          chat_id: number
+          fired_at?: string | null
+          payload: Json
+          received_at?: string
+          update_id: number
+        }
+        Update: {
+          chat_id?: number
+          fired_at?: string | null
+          payload?: Json
+          received_at?: string
+          update_id?: number
+        }
+        Relationships: []
+      }
       user_devices: {
         Row: {
           created_at: string
@@ -1330,6 +1354,13 @@ export type Database = {
       price_is_free: { Args: { p: string }; Returns: boolean }
       record_assistant_completed: { Args: never; Returns: undefined }
       record_assistant_opened: { Args: never; Returns: undefined }
+      telegram_relay_claim: {
+        Args: { p_chat_id: number }
+        Returns: {
+          payload: Json
+          update_id: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
