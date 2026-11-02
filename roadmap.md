@@ -4,6 +4,6 @@
 - [x] Deploy and run batch; verify counts and La Cantine du Voyage.
 
 # Telegram relay
-- [ ] Create service-only inbox and atomic reservation.
-- [ ] Implement and test relay authentication, grouping and retries.
-- [ ] Deploy relay, collect four secrets and verify endpoint.
+- [x] Create service-only inbox and atomic reservation.
+- [x] Implement and test relay authentication, grouping and retries.
+- [x] Deploy relay, collect four secrets and verify endpoint.
