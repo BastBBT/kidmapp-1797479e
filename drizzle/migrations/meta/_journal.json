@@ -127,6 +127,13 @@
       "when": 1793225358721,
       "tag": "0017_admin_engagement_funnel",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793658504184,
+      "tag": "0018_telegram_inbox_relay",
+      "breakpoints": true
     }
   ]
 }
