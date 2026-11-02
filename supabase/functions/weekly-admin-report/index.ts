@@ -1,5 +1,14 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
+import {
+  DAY_LABELS,
+  dailySessions,
+  eventStats,
+  type PlatformKey,
+  sessionsByPlatform,
+  totalSessions,
+  type ViewRow,
+} from '../_shared/weekly-report/stats.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -10,11 +19,6 @@ const EXCLUDED_TEST_EMAIL = 'bastien.boubat+event@gmail.com'
 // de plus de 1000 pages vues est tronquée en silence.
 const PAGE_SIZE = 1000
 
-interface UserStats {
-  contributions: number
-  proposals: string[]
-}
-
 function formatDate(d: Date): string {
   return d.toLocaleDateString('fr-FR', {
     day: '2-digit',
@@ -23,34 +27,80 @@ function formatDate(d: Date): string {
   })
 }
 
-type PageView = { user_id: string | null; created_at: string }
+/** Format court jj/mm, pour le libellé de la semaine de comparaison. */
+function formatShort(d: Date): string {
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+}
 
-async function fetchPageViews(
+/** « Sam 14/11 » pour une date seule, lue en UTC pour ne pas glisser d'un jour. */
+function formatEventDate(dateStart: string): string {
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(dateStart)
+  const label = new Date(dateStart).toLocaleDateString('fr-FR', {
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: dateOnly ? 'UTC' : 'Europe/Paris',
+  })
+  return label.charAt(0).toUpperCase() + label.slice(1).replace('.', '')
+}
+
+/**
+ * Lit toutes les lignes de `table` créées entre `from` et `to`, par pages de 1000. `id` départage
+ * les lignes de même created_at : sans tri stable, une page peut répéter ou sauter des lignes.
+ * Une erreur fait échouer le rapport : mieux vaut pas de mail qu'un total faux.
+ */
+async function fetchRows<T>(
   supabase: SupabaseClient,
+  table: string,
+  columns: string,
   from: Date,
   to: Date,
-): Promise<PageView[]> {
-  const rows: PageView[] = []
+  eq?: [column: string, value: string],
+): Promise<T[]> {
+  const rows: T[] = []
   for (let offset = 0; ; offset += PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from('page_views')
-      .select('user_id, created_at')
+    let query = supabase
+      .from(table)
+      .select(columns)
       .gte('created_at', from.toISOString())
       .lte('created_at', to.toISOString())
-      // `id` départage les lignes de même created_at : sans tri stable, une page
-      // peut répéter ou sauter des lignes d'une requête à l'autre.
+    if (eq) query = query.eq(eq[0], eq[1])
+    const { data, error } = await query
       .order('created_at', { ascending: true })
       .order('id', { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1)
-    // Mieux vaut échouer (mail non envoyé, visible dans les logs) qu'envoyer un total faux.
-    if (error) throw new Error(`page_views fetch failed: ${error.message}`)
-    rows.push(...((data ?? []) as PageView[]))
+    if (error) throw new Error(`${table} fetch failed: ${error.message}`)
+    rows.push(...((data ?? []) as T[]))
     if (!data || data.length < PAGE_SIZE) break
   }
   return rows
 }
 
-const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+/** Appareils (device_id) vus au moins une fois avec un compte exclu, sur tout l'historique. */
+async function fetchExcludedDevices(
+  supabase: SupabaseClient,
+  excludedIds: Set<string>,
+): Promise<Set<string>> {
+  const devices = new Set<string>()
+  const ids = [...excludedIds]
+  if (ids.length === 0) return devices
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('page_views')
+      .select('device_id')
+      .in('user_id', ids)
+      .not('device_id', 'is', null)
+      .order('id', { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1)
+    if (error) throw new Error(`excluded devices fetch failed: ${error.message}`)
+    for (const r of data ?? []) devices.add(r.device_id as string)
+    if (!data || data.length < PAGE_SIZE) break
+  }
+  return devices
+}
+
+type UserRow = { user_id: string | null }
+type ProfileRow = { id: string }
 
 async function runReport(callerAuth: string, overrideWeekStart?: Date) {
   let lastMonday: Date
@@ -97,90 +147,92 @@ async function runReport(callerAuth: string, overrideWeekStart?: Date) {
   }
   const isAdmin = (uid: string | null) => !!uid && excludedIds.has(uid)
 
+  const pv = 'user_id, created_at, platform, session_id, device_id, path'
   const [
-    { data: rawContributions },
-    { data: rawProposals },
-    rawVisitsA,
-    rawVisitsB,
+    viewsA,
+    viewsB,
+    contribA,
+    contribB,
+    proposalsA,
+    proposalsB,
+    profilesA,
+    profilesB,
+    clicksA,
   ] = await Promise.all([
-    supabase
-      .from('contributions')
-      .select('id, user_id, created_at')
-      .gte('created_at', lastMonday.toISOString())
-      .lte('created_at', lastSunday.toISOString()),
-    supabase
-      .from('location_proposals')
-      .select('id, user_id, created_at, name')
-      .gte('created_at', lastMonday.toISOString())
-      .lte('created_at', lastSunday.toISOString()),
-    fetchPageViews(supabase, lastMonday, lastSunday),
-    fetchPageViews(supabase, prevMonday, prevSunday),
+    fetchRows<ViewRow>(supabase, 'page_views', pv, lastMonday, lastSunday),
+    fetchRows<ViewRow>(supabase, 'page_views', pv, prevMonday, prevSunday),
+    fetchRows<UserRow>(supabase, 'contributions', 'id, user_id, created_at', lastMonday, lastSunday),
+    fetchRows<UserRow>(supabase, 'contributions', 'id, user_id, created_at', prevMonday, prevSunday),
+    fetchRows<UserRow>(supabase, 'location_proposals', 'id, user_id, created_at', lastMonday, lastSunday),
+    fetchRows<UserRow>(supabase, 'location_proposals', 'id, user_id, created_at', prevMonday, prevSunday),
+    fetchRows<ProfileRow>(supabase, 'profiles', 'id, created_at', lastMonday, lastSunday),
+    fetchRows<ProfileRow>(supabase, 'profiles', 'id, created_at', prevMonday, prevSunday),
+    fetchRows<UserRow>(supabase, 'link_clicks', 'id, user_id, created_at', lastMonday, lastSunday, [
+      'entity_type',
+      'event',
+    ]),
   ])
 
-  // Exclude admins and the test account. Anonymous visits (user_id null) are kept.
-  const contributions = (rawContributions ?? []).filter((c) => !isAdmin(c.user_id as string | null))
-  const proposals = (rawProposals ?? []).filter((p) => !isAdmin(p.user_id as string | null))
-  const visitsA = rawVisitsA.filter((v) => !isAdmin(v.user_id))
-  const visitsB = rawVisitsB.filter((v) => !isAdmin(v.user_id))
+  // Admins et compte de test exclus partout. Les visites anonymes (user_id null) restent comptées.
+  const notExcluded = <T extends UserRow>(rows: T[]) => rows.filter((r) => !isAdmin(r.user_id))
+  const pvA = notExcluded(viewsA)
+  const pvB = notExcluded(viewsB)
 
-  // Bucket visits A by day-of-week (Mon=0 .. Sun=6) using UTC.
-  const daily = DAY_LABELS.map((label) => ({ label, count: 0 }))
-  for (const v of visitsA) {
-    const d = new Date(v.created_at as string)
-    // getUTCDay: Sun=0..Sat=6 → convert to Mon=0..Sun=6
-    const idx = (d.getUTCDay() + 6) % 7
-    daily[idx].count++
-  }
+  const sessA = sessionsByPlatform(pvA)
+  const sessB = sessionsByPlatform(pvB)
 
-  const totalVisitsA = visitsA.length
-  const totalVisitsB = visitsB.length
-  const deltaPct = totalVisitsB === 0 ? null : Math.round(((totalVisitsA - totalVisitsB) / totalVisitsB) * 100)
+  const platformDefs: { key: PlatformKey; label: string; color: string }[] = [
+    { key: 'web', label: 'Web', color: '#E8A838' },
+    { key: 'ios', label: 'iOS', color: '#D95F3B' },
+    { key: 'android', label: 'Android', color: '#3B7D6E' },
+  ]
+  const platforms = platformDefs.map((p) => ({ ...p, count: sessA[p.key], prev: sessB[p.key] }))
 
-  // Per-user breakdown (admins already excluded).
-  const userStats: Record<string, UserStats> = {}
-  for (const c of contributions) {
-    if (!c.user_id) continue
-    if (!userStats[c.user_id]) userStats[c.user_id] = { contributions: 0, proposals: [] }
-    userStats[c.user_id].contributions++
-  }
-  for (const p of proposals) {
-    if (!p.user_id) continue
-    if (!userStats[p.user_id]) userStats[p.user_id] = { contributions: 0, proposals: [] }
-    userStats[p.user_id].proposals.push((p as any).name ?? 'Sans nom')
-  }
+  const daily = dailySessions(pvA).map((d, i) => ({ label: DAY_LABELS[i], ...d }))
 
-  const userIds = Object.keys(userStats)
-  const userInfoMap: Record<string, { name: string; email: string }> = {}
-  for (const u of usersList?.users ?? []) {
-    if (userIds.includes(u.id)) {
-      const meta = (u.user_metadata ?? {}) as Record<string, unknown>
-      const name =
-        (meta.full_name as string) ||
-        (meta.name as string) ||
-        u.email?.split('@')[0] ||
-        u.id.slice(0, 8)
-      userInfoMap[u.id] = { name, email: u.email ?? '' }
+  // Pour les sorties, comme dans l'onglet « Top pages » (admin_top_pages) : on écarte aussi les
+  // vues anonymes venues d'un appareil déjà vu avec un compte exclu. Sessions et inscrits, eux,
+  // suivent admin_audience_stats, qui n'exclut que par compte.
+  const excludedDevices = await fetchExcludedDevices(supabase, excludedIds)
+  const notExcludedDevice = (r: ViewRow) => !r.device_id || !excludedDevices.has(r.device_id)
+  const ev = eventStats(pvA.filter(notExcludedDevice), pvB.filter(notExcludedDevice))
+  const topIds = ev.top.map((t) => t.id)
+  const eventInfo = new Map<string, { name: string; sub: string }>()
+  if (topIds.length > 0) {
+    const { data: evRows, error: evError } = await supabase
+      .from('events')
+      .select('id, name, date_start, recurrence_label')
+      .in('id', topIds)
+    if (evError) throw new Error(`events fetch failed: ${evError.message}`)
+    for (const e of evRows ?? []) {
+      eventInfo.set(String(e.id).toLowerCase(), {
+        name: (e.name as string) ?? 'Sans nom',
+        sub: (e.recurrence_label as string) || (e.date_start ? formatEventDate(e.date_start as string) : ''),
+      })
     }
   }
+  const sorties = {
+    views: ev.views,
+    viewsPrev: ev.viewsPrev,
+    visitors: ev.visitors,
+    returningPct: ev.returningPct,
+    clicks: notExcluded(clicksA).length,
+    top: ev.top.map((t) => ({
+      name: eventInfo.get(t.id)?.name ?? 'Sortie supprimée',
+      sub: eventInfo.get(t.id)?.sub ?? '',
+      views: t.views,
+      deltaPct: t.deltaPct,
+    })),
+  }
 
-  const totalContributions = contributions.length
-  const totalProposals = proposals.length
-  const activeUsers = userIds.length
-
-  const rows = Object.entries(userStats)
-    .map(([userId, stats]) => {
-      const info = userInfoMap[userId] ?? { name: userId.slice(0, 8), email: '' }
-      return {
-        name: info.name,
-        email: info.email,
-        contributions: stats.contributions,
-        proposals: stats.proposals,
-      }
-    })
-    .sort(
-      (a, b) =>
-        b.contributions + b.proposals.length - (a.contributions + a.proposals.length),
-    )
+  const countSignups = (rows: ProfileRow[]) => rows.filter((r) => !excludedIds.has(r.id)).length
+  const tiles = {
+    sessions: { cur: totalSessions(sessA), prev: totalSessions(sessB) },
+    signups: { cur: countSignups(profilesA), prev: countSignups(profilesB) },
+    contributions: { cur: notExcluded(contribA).length, prev: notExcluded(contribB).length },
+    proposals: { cur: notExcluded(proposalsA).length, prev: notExcluded(proposalsB).length },
+  }
+  const prevPeriodLabel = formatShort(prevMonday)
 
   const weekKey = lastMonday.toISOString().slice(0, 10)
 
@@ -191,13 +243,11 @@ async function runReport(callerAuth: string, overrideWeekStart?: Date) {
   }
   const recipients = adminEmails.length > 0 ? adminEmails : [FALLBACK_ADMIN_EMAIL]
 
-  const visits = { totalA: totalVisitsA, totalB: totalVisitsB, deltaPct, daily }
-
   for (const recipient of recipients) {
     const idempotencyKey = `weekly-admin-report-${weekKey}-${recipient}`
     try {
       const result = await sendTemplateEmail('weekly-admin-report', recipient, {
-        templateData: { periodLabel, totalContributions, totalProposals, activeUsers, visits, rows },
+        templateData: { periodLabel, prevPeriodLabel, sorties, tiles, platforms, daily },
         idempotencyKey,
       })
       const { error: logError } = await supabase.from('email_send_log').insert({
@@ -221,10 +271,9 @@ async function runReport(callerAuth: string, overrideWeekStart?: Date) {
 
   console.log('weekly-admin-report sent', {
     periodLabel,
-    totalContributions,
-    totalProposals,
-    activeUsers,
-    visits,
+    tiles,
+    sorties: { ...sorties, top: sorties.top.length },
+    platforms: platforms.map((p) => `${p.key}:${p.count}/${p.prev}`),
     recipients,
   })
 }

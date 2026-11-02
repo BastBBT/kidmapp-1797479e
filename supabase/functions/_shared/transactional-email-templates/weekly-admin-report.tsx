@@ -6,128 +6,240 @@ import {
   Heading,
   Html,
   Preview,
-  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
+import { DAY_LABELS, deltaPct, stackHeights } from '../weekly-report/stats.ts'
 
 const SITE_NAME = 'Kidmapp'
 
-interface UserRow {
-  name: string
-  email: string
-  contributions: number
-  proposals: string[]
+interface Compare {
+  cur: number
+  prev: number
 }
 
-interface VisitsData {
-  totalA: number
-  totalB: number
+interface PlatformRow {
+  key: string
+  label: string
+  color: string
+  count: number
+  prev: number
+}
+
+interface DailyRow {
+  label: string
+  web: number
+  ios: number
+  android: number
+}
+
+interface TopEvent {
+  name: string
+  sub: string
+  views: number
   deltaPct: number | null
-  daily: { label: string; count: number }[]
+}
+
+interface Sorties {
+  views: number
+  viewsPrev: number
+  visitors: number
+  returningPct: number | null
+  clicks: number
+  top: TopEvent[]
 }
 
 interface WeeklyAdminReportProps {
   periodLabel?: string
-  totalContributions?: number
-  totalProposals?: number
-  activeUsers?: number
-  visits?: VisitsData
-  rows?: UserRow[]
+  prevPeriodLabel?: string
+  sorties?: Sorties
+  tiles?: {
+    sessions: Compare
+    signups: Compare
+    contributions: Compare
+    proposals: Compare
+  }
+  platforms?: PlatformRow[]
+  daily?: DailyRow[]
 }
 
-const DeltaBadge = ({ deltaPct }: { deltaPct: number | null }) => {
-  if (deltaPct === null) {
-    return <span style={{ ...badgeBase, backgroundColor: '#EDEAE3', color: '#6B6B6B' }}>nouveau</span>
-  }
-  const positive = deltaPct >= 0
+const GREEN = '#3B7D6E'
+const ORANGE = '#D95F3B'
+const GREY = '#EDEAE3'
+const BAR_GREY = '#E7E3DC'
+const MUTED = '#6B6B6B'
+const NUMBER_FONT = 'Georgia, serif'
+
+const fmt = (n: number) => n.toLocaleString('fr-FR').replace(/\u202f/g, '\u00a0')
+
+type Tone = 'up' | 'down' | 'flat' | 'new'
+
+const toneStyle: Record<Tone, { bg: string; color: string }> = {
+  up: { bg: '#E6F4F0', color: GREEN },
+  down: { bg: '#FBE8E2', color: ORANGE },
+  flat: { bg: GREY, color: MUTED },
+  new: { bg: '#FEF9E7', color: '#946E00' },
+}
+
+const Badge = ({ tone, children, size = 11 }: { tone: Tone; children: React.ReactNode; size?: number }) => (
+  <span
+    style={{
+      display: 'inline-block',
+      padding: '1px 6px',
+      borderRadius: '999px',
+      fontSize: `${size}px`,
+      fontWeight: 'bold' as const,
+      backgroundColor: toneStyle[tone].bg,
+      color: toneStyle[tone].color,
+      whiteSpace: 'nowrap' as const,
+    }}
+  >
+    {children}
+  </span>
+)
+
+/** Écart en pourcentage ; « nouveau » quand il n'y avait rien la semaine d'avant. */
+const PctBadge = ({ pct, size }: { pct: number | null; size?: number }) => {
+  if (pct === null) return <Badge tone="new" size={size}>nouveau</Badge>
+  if (pct === 0) return <Badge tone="flat" size={size}>= 0%</Badge>
   return (
-    <span
-      style={{
-        ...badgeBase,
-        backgroundColor: positive ? '#E6F4F0' : '#FBE8E2',
-        color: positive ? '#3B7D6E' : '#D95F3B',
-      }}
-    >
-      {positive ? '▲' : '▼'} {Math.abs(deltaPct)}%
-    </span>
+    <Badge tone={pct > 0 ? 'up' : 'down'} size={size}>
+      {pct > 0 ? '▲' : '▼'} {Math.abs(pct)}%
+    </Badge>
   )
 }
 
-// Barres en tableaux imbriqués : `position: absolute`, `overflow: hidden` et les hauteurs en %
-// ne sont pas fiables dans les clients mail (Gmail, Outlook), les barres s'y affichaient de
-// travers. Ici chaque barre = une cellule grise (le vide) au-dessus d'une cellule verte (la
-// valeur), hauteurs en pixels fixes.
-const BAR_AREA_PX = 80
-
-const BarChart = ({ daily }: { daily: { label: string; count: number }[] }) => {
-  const max = Math.max(1, ...daily.map((d) => d.count))
+/** Écart en valeur absolue, pour les petits comptes où un pourcentage n'aurait pas de sens. */
+const DiffBadge = ({ cur, prev }: Compare) => {
+  const diff = cur - prev
+  if (diff === 0) return <Badge tone="flat">= 0</Badge>
   return (
-    <table
-      role="presentation"
-      cellPadding={0}
-      cellSpacing={0}
-      style={{ width: '100%', borderCollapse: 'separate', margin: '0 0 24px' }}
+    <Badge tone={diff > 0 ? 'up' : 'down'}>
+      {diff > 0 ? '▲' : '▼'} {Math.abs(diff)}
+    </Badge>
+  )
+}
+
+/** Écart cur vs prev ; « = 0 » quand les deux semaines sont vides (rien à signaler, pas de « nouveau »). */
+const ChangeBadge = ({ cur, prev, size }: Compare & { size?: number }) =>
+  cur === 0 && prev === 0 ? <Badge tone="flat" size={size}>= 0</Badge> : <PctBadge pct={deltaPct(cur, prev)} size={size} />
+
+// Tout est en tableaux et en hauteurs/largeurs fixes : `position: absolute`, `overflow: hidden`,
+// flex et les hauteurs en % ne sont pas fiables dans les clients mail (Gmail, Outlook).
+
+const Tile = ({ value, label, badge }: { value: number; label: string; badge: React.ReactNode }) => (
+  <td
+    align="center"
+    valign="top"
+    style={{
+      width: '25%',
+      backgroundColor: '#ffffff',
+      border: `1px solid ${GREY}`,
+      borderRadius: '14px',
+      padding: '12px 2px 10px',
+      textAlign: 'center' as const,
+    }}
+  >
+    <div style={{ fontFamily: NUMBER_FONT, fontSize: '24px', fontWeight: 'bold', lineHeight: '1', color: '#2A2A2A' }}>
+      {fmt(value)}
+    </div>
+    <div
+      style={{
+        fontSize: '9.5px',
+        letterSpacing: '0.4px',
+        textTransform: 'uppercase' as const,
+        color: MUTED,
+        margin: '5px 0 6px',
+      }}
     >
+      {label}
+    </div>
+    {badge}
+  </td>
+)
+
+const Gap = () => <td style={{ width: '6px', padding: 0, fontSize: '1px' }}>&nbsp;</td>
+
+/** Une barre horizontale : `pct` % de la largeur disponible, 7 px de haut. */
+const HBar = ({ pct, color }: { pct: number; color: string }) => {
+  const w = pct <= 0 ? 0 : Math.max(1, Math.min(100, Math.round(pct)))
+  return (
+    <table role="presentation" cellPadding={0} cellSpacing={0} width="100%" style={{ width: '100%', borderCollapse: 'separate' }}>
+      <tbody>
+        <tr>
+          {w > 0 ? (
+            <td
+              width={`${w}%`}
+              style={{
+                width: `${w}%`,
+                height: '7px',
+                lineHeight: '7px',
+                fontSize: '1px',
+                backgroundColor: color,
+                borderRadius: '4px',
+              }}
+            >
+              &nbsp;
+            </td>
+          ) : null}
+          {w < 100 ? <td style={{ fontSize: '1px', lineHeight: '7px', height: '7px' }}>&nbsp;</td> : null}
+        </tr>
+      </tbody>
+    </table>
+  )
+}
+
+const BAR_AREA_PX = 70
+
+const DailyChart = ({ daily, platforms }: { daily: DailyRow[]; platforms: PlatformRow[] }) => {
+  const totals = daily.map((d) => d.web + d.ios + d.android)
+  const max = Math.max(1, ...totals)
+  const colors = Object.fromEntries(platforms.map((p) => [p.key, p.color]))
+  return (
+    <table role="presentation" cellPadding={0} cellSpacing={0} width="100%" style={{ width: '100%', borderCollapse: 'separate' }}>
       <tbody>
         <tr>
           {daily.map((d, i) => {
-            // Une valeur non nulle garde au moins 3 px pour rester visible.
-            const fill = d.count === 0 ? 0 : Math.max(3, Math.round((d.count / max) * BAR_AREA_PX))
-            const empty = BAR_AREA_PX - fill
+            // De haut en bas : vide, android, ios, web.
+            const order: ('android' | 'ios' | 'web')[] = ['android', 'ios', 'web']
+            const { empty, segs } = stackHeights(order.map((k) => d[k]), max, BAR_AREA_PX)
+            const cells = order
+              .map((k, j) => ({ k, h: segs[j] }))
+              .filter((c) => c.h > 0)
+            const rows: { key: string; h: number; color: string }[] = []
+            if (empty > 0) rows.push({ key: 'empty', h: empty, color: GREY })
+            for (const c of cells) rows.push({ key: c.k, h: c.h, color: colors[c.k] ?? GREEN })
             return (
-              <td
-                key={i}
-                align="center"
-                valign="bottom"
-                style={{ padding: '0 2px', verticalAlign: 'bottom', width: `${100 / 7}%` }}
-              >
-                <div style={{ fontSize: '11px', color: '#6B6B6B', margin: '0 0 4px', fontWeight: 'bold' }}>
-                  {d.count}
-                </div>
-                <table
-                  role="presentation"
-                  cellPadding={0}
-                  cellSpacing={0}
-                  width="100%"
-                  style={{ width: '100%', borderCollapse: 'separate' }}
-                >
+              <td key={i} align="center" valign="bottom" style={{ width: `${100 / 7}%`, padding: '0 2px', verticalAlign: 'bottom' }}>
+                <div style={{ fontSize: '10px', fontWeight: 'bold', color: MUTED, margin: '0 0 3px' }}>{fmt(totals[i])}</div>
+                <table role="presentation" cellPadding={0} cellSpacing={0} width="100%" style={{ width: '100%', borderCollapse: 'separate' }}>
                   <tbody>
-                    {empty > 0 ? (
-                      <tr>
+                    {rows.map((r, idx) => (
+                      <tr key={r.key}>
                         <td
-                          height={empty}
+                          height={r.h}
                           style={{
-                            height: `${empty}px`,
-                            lineHeight: `${empty}px`,
+                            height: `${r.h}px`,
+                            lineHeight: `${r.h}px`,
                             fontSize: '1px',
-                            backgroundColor: '#EDEAE3',
-                            borderRadius: fill === 0 ? '6px' : '6px 6px 0 0',
+                            backgroundColor: r.color,
+                            borderRadius:
+                              rows.length === 1
+                                ? '5px'
+                                : idx === 0
+                                  ? '5px 5px 0 0'
+                                  : idx === rows.length - 1
+                                    ? '0 0 5px 5px'
+                                    : '0',
                           }}
                         >
                           &nbsp;
                         </td>
                       </tr>
-                    ) : null}
-                    {fill > 0 ? (
-                      <tr>
-                        <td
-                          height={fill}
-                          style={{
-                            height: `${fill}px`,
-                            lineHeight: `${fill}px`,
-                            fontSize: '1px',
-                            backgroundColor: '#3B7D6E',
-                            borderRadius: empty === 0 ? '6px' : '0 0 6px 6px',
-                          }}
-                        >
-                          &nbsp;
-                        </td>
-                      </tr>
-                    ) : null}
+                    ))}
                   </tbody>
                 </table>
-                <div style={{ fontSize: '11px', color: '#6B6B6B', margin: '6px 0 0' }}>{d.label}</div>
+                <div style={{ fontSize: '10px', color: MUTED, margin: '5px 0 0' }}>{d.label}</div>
               </td>
             )
           })}
@@ -137,100 +249,255 @@ const BarChart = ({ daily }: { daily: { label: string; count: number }[] }) => {
   )
 }
 
+const Dot = ({ color }: { color: string }) => (
+  <span
+    style={{
+      display: 'inline-block',
+      width: '8px',
+      height: '8px',
+      borderRadius: '4px',
+      backgroundColor: color,
+      margin: '0 5px 0 0',
+    }}
+  />
+)
+
+const emptySorties: Sorties = { views: 0, viewsPrev: 0, visitors: 0, returningPct: null, clicks: 0, top: [] }
+const zero: Compare = { cur: 0, prev: 0 }
+const emptyDaily: DailyRow[] = DAY_LABELS.map((label) => ({
+  label,
+  web: 0,
+  ios: 0,
+  android: 0,
+}))
+
 const WeeklyAdminReportEmail = ({
   periodLabel = '',
-  totalContributions = 0,
-  totalProposals = 0,
-  activeUsers = 0,
-  visits = { totalA: 0, totalB: 0, deltaPct: null, daily: [] },
-  rows = [],
+  prevPeriodLabel = '',
+  sorties = emptySorties,
+  tiles = { sessions: zero, signups: zero, contributions: zero, proposals: zero },
+  platforms = [],
+  daily = emptyDaily,
 }: WeeklyAdminReportProps) => {
-  const empty = totalContributions === 0 && totalProposals === 0
-  const daily =
-    visits.daily.length === 7
-      ? visits.daily
-      : ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((label) => ({ label, count: 0 }))
+  const dailyRows = daily.length === 7 ? daily : emptyDaily
+  const platformMax = Math.max(1, ...platforms.flatMap((p) => [p.count, p.prev]))
 
   return (
     <Html lang="fr" dir="ltr">
       <Head />
       <Preview>
-        Rapport {SITE_NAME} — semaine du {periodLabel}
+        {fmt(sorties.views)} fiches de sorties ouvertes, {fmt(tiles.sessions.cur)} sessions — semaine du {periodLabel}
       </Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>📊 Rapport hebdomadaire</Heading>
-          <Text style={subtitle}>Semaine du {periodLabel}</Text>
-
-          {/* Stats: Visites → Utilisateurs actifs → Contributions → Propositions */}
-          <Section style={statBox}>
-            <Text style={statLabel}>Visites (7j)</Text>
-            <Text style={statNumber}>{visits.totalA}</Text>
-            <Text style={statSub}>
-              <DeltaBadge deltaPct={visits.deltaPct} />{' '}
-              <span style={{ color: '#888', fontSize: '12px' }}>vs {visits.totalB} la semaine précédente</span>
-            </Text>
-          </Section>
-
-          <Section style={statBox}>
-            <Text style={statNumber}>{activeUsers}</Text>
-            <Text style={statLabel}>Utilisateurs actifs</Text>
-          </Section>
-
-          <Section style={statBox}>
-            <Text style={statNumber}>{totalContributions}</Text>
-            <Text style={statLabel}>Contributions</Text>
-          </Section>
-
-          <Section style={statBox}>
-            <Text style={statNumber}>{totalProposals}</Text>
-            <Text style={statLabel}>Propositions</Text>
-          </Section>
-
-          <Heading as="h2" style={h2}>
-            Visites jour par jour
-          </Heading>
-          <BarChart daily={daily} />
-
-          <Heading as="h2" style={h2}>
-            Détail par utilisateur
-          </Heading>
-
-          {empty ? (
-            <Text style={emptyText}>Aucune activité cette semaine.</Text>
-          ) : (
-            <Section>
-              {rows.map((row, idx) => (
-                <Section key={idx} style={userCard}>
-                  <Text style={userName}>{row.name}</Text>
-                  {row.email ? <Text style={userEmail}>{row.email}</Text> : null}
-                  <Section style={countsRow}>
-                    <Text style={countText}>
-                      🤝 <strong>{row.contributions}</strong> contribution
-                      {row.contributions > 1 ? 's' : ''}
-                    </Text>
-                    <Text style={countText}>
-                      📍 <strong>{row.proposals.length}</strong> proposition
-                      {row.proposals.length > 1 ? 's' : ''}
-                    </Text>
-                  </Section>
-                  {row.proposals.length > 0 ? (
-                    <Section style={proposalsList}>
-                      {row.proposals.map((p, i) => (
-                        <Text key={i} style={proposalItem}>
-                          • {p}
-                        </Text>
-                      ))}
-                    </Section>
-                  ) : null}
-                </Section>
-              ))}
-            </Section>
-          )}
-
-          <Text style={footer}>
-            {SITE_NAME} — Rapport automatique chaque lundi matin
+          <Heading style={h1}>📊 Rapport hebdo</Heading>
+          <Text style={subtitle}>
+            Semaine du {periodLabel}
+            {prevPeriodLabel ? ` · comparée à la semaine du ${prevPeriodLabel}` : ''}
           </Text>
+
+          {/* Bandeau sorties : le chiffre qui doit monter d'une semaine à l'autre */}
+          <table
+            role="presentation"
+            cellPadding={0}
+            cellSpacing={0}
+            width="100%"
+            style={{
+              width: '100%',
+              backgroundColor: '#FAF0EC',
+              border: '1px solid #F0C4B4',
+              borderRadius: '16px',
+              margin: '0 0 10px',
+              borderCollapse: 'separate',
+            }}
+          >
+            <tbody>
+              <tr>
+                <td style={{ padding: '14px 14px 4px' }}>
+                  <div
+                    style={{
+                      fontSize: '10.5px',
+                      fontWeight: 'bold',
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase' as const,
+                      color: ORANGE,
+                      margin: '0 0 6px',
+                    }}
+                  >
+                    Sorties — fiches ouvertes
+                  </div>
+                  <span style={{ fontFamily: NUMBER_FONT, fontSize: '38px', fontWeight: 'bold', lineHeight: '1', color: '#2A2A2A' }}>
+                    {fmt(sorties.views)}
+                  </span>{' '}
+                  <ChangeBadge cur={sorties.views} prev={sorties.viewsPrev} size={12} />
+                  <div style={{ fontSize: '11px', color: MUTED, margin: '4px 0 0' }}>
+                    vs {fmt(sorties.viewsPrev)} la semaine du {prevPeriodLabel}
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: '0 14px 12px' }}>
+                  <table
+                    role="presentation"
+                    cellPadding={0}
+                    cellSpacing={0}
+                    width="100%"
+                    style={{ width: '100%', borderTop: '1px solid #F0C4B4', marginTop: '10px', tableLayout: 'fixed' as const }}
+                  >
+                    <tbody>
+                      <tr>
+                        {[
+                          { v: fmt(sorties.visitors), l: 'visiteurs distincts' },
+                          {
+                            v: sorties.returningPct === null ? '—' : `${sorties.returningPct} %`,
+                            l: "déjà venus voir une sortie la semaine d'avant",
+                          },
+                          { v: fmt(sorties.clicks), l: 'clics vers le site / la résa' },
+                        ].map((s, i) => (
+                          <td key={i} valign="top" style={{ padding: '9px 6px 0 0' }}>
+                            <div style={{ fontFamily: NUMBER_FONT, fontSize: '17px', fontWeight: 'bold', color: '#2A2A2A' }}>{s.v}</div>
+                            <div style={{ fontSize: '10.5px', color: MUTED, lineHeight: '1.3', margin: '2px 0 0' }}>{s.l}</div>
+                          </td>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Quatre repères sur une ligne */}
+          <table
+            role="presentation"
+            cellPadding={0}
+            cellSpacing={0}
+            width="100%"
+            style={{ width: '100%', tableLayout: 'fixed' as const, borderCollapse: 'separate' }}
+          >
+            <tbody>
+              <tr>
+                <Tile
+                  value={tiles.sessions.cur}
+                  label="Sessions"
+                  badge={<ChangeBadge {...tiles.sessions} />}
+                />
+                <Gap />
+                <Tile value={tiles.signups.cur} label="Inscrits" badge={<DiffBadge {...tiles.signups} />} />
+                <Gap />
+                <Tile value={tiles.contributions.cur} label="Contrib." badge={<DiffBadge {...tiles.contributions} />} />
+                <Gap />
+                <Tile value={tiles.proposals.cur} label="Propos." badge={<DiffBadge {...tiles.proposals} />} />
+              </tr>
+            </tbody>
+          </table>
+
+          <Heading as="h2" style={h2}>
+            Sessions par appareil
+          </Heading>
+          <table role="presentation" cellPadding={0} cellSpacing={0} width="100%" style={card}>
+            <tbody>
+              <tr>
+                <td style={{ padding: '12px 14px' }}>
+                  <table role="presentation" cellPadding={0} cellSpacing={0} width="100%" style={{ width: '100%' }}>
+                    <tbody>
+                      {platforms.map((p) => (
+                        <tr key={p.key}>
+                          <td style={{ width: '66px', padding: '5px 0', fontSize: '12px', fontWeight: 'bold', color: '#2A2A2A', whiteSpace: 'nowrap' as const }}>
+                            <Dot color={p.color} />
+                            {p.label}
+                          </td>
+                          <td style={{ padding: '5px 8px 5px 0' }}>
+                            <HBar pct={(p.prev / platformMax) * 100} color={BAR_GREY} />
+                            <div style={{ height: '2px', lineHeight: '2px', fontSize: '1px' }}>&nbsp;</div>
+                            <HBar pct={(p.count / platformMax) * 100} color={p.color} />
+                          </td>
+                          <td align="right" style={{ width: '96px', padding: '5px 0', fontSize: '12px', whiteSpace: 'nowrap' as const }}>
+                            <span style={{ fontFamily: NUMBER_FONT, fontSize: '15px', fontWeight: 'bold', color: '#2A2A2A' }}>
+                              {fmt(p.count)}
+                            </span>{' '}
+                            <ChangeBadge cur={p.count} prev={p.prev} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div style={legend}>Barre grise = semaine précédente, barre colorée = cette semaine.</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <Heading as="h2" style={h2}>
+            Sessions jour par jour
+          </Heading>
+          <table role="presentation" cellPadding={0} cellSpacing={0} width="100%" style={card}>
+            <tbody>
+              <tr>
+                <td style={{ padding: '12px 14px' }}>
+                  <DailyChart daily={dailyRows} platforms={platforms} />
+                  <div style={legend}>
+                    {platforms.map((p) => (
+                      <span key={p.key}>
+                        <Dot color={p.color} />
+                        {p.label}
+                        {'\u00a0\u00a0'}
+                      </span>
+                    ))}
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <Heading as="h2" style={h2}>
+            Sorties les plus visitées
+          </Heading>
+          <table role="presentation" cellPadding={0} cellSpacing={0} width="100%" style={card}>
+            <tbody>
+              <tr>
+                <td style={{ padding: '6px 14px 12px' }}>
+                  {sorties.top.length === 0 ? (
+                    <div style={{ fontSize: '13px', color: '#888', fontStyle: 'italic' as const, padding: '10px 0' }}>
+                      Aucune fiche de sortie ouverte cette semaine.
+                    </div>
+                  ) : (
+                    <table role="presentation" cellPadding={0} cellSpacing={0} width="100%" style={{ width: '100%' }}>
+                      <tbody>
+                        {sorties.top.map((t, i) => (
+                          <tr key={i}>
+                            <td
+                              valign="middle"
+                              style={{ width: '20px', padding: '7px 0', borderTop: i === 0 ? 'none' : `1px solid ${GREY}`, fontSize: '12.5px', fontWeight: 'bold', color: MUTED }}
+                            >
+                              {i + 1}
+                            </td>
+                            <td
+                              valign="middle"
+                              style={{ padding: '7px 6px 7px 0', borderTop: i === 0 ? 'none' : `1px solid ${GREY}`, fontSize: '12.5px', color: '#2A2A2A' }}
+                            >
+                              {t.name}
+                              {t.sub ? <div style={{ fontSize: '10.5px', color: MUTED, margin: '1px 0 0' }}>{t.sub}</div> : null}
+                            </td>
+                            <td
+                              align="right"
+                              valign="middle"
+                              style={{ width: '96px', padding: '7px 0', borderTop: i === 0 ? 'none' : `1px solid ${GREY}`, fontSize: '12.5px', fontWeight: 'bold', whiteSpace: 'nowrap' as const }}
+                            >
+                              {fmt(t.views)} <PctBadge pct={t.deltaPct} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                  <div style={legend}>Fiches ouvertes dans la semaine (web et apps), admins et leurs appareils exclus.</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <Text style={footer}>{SITE_NAME} — Rapport automatique chaque lundi matin</Text>
         </Container>
       </Body>
     </Html>
@@ -243,37 +510,41 @@ export const template = {
     `📊 ${SITE_NAME} — Rapport semaine du ${data.periodLabel ?? ''}`,
   displayName: 'Rapport admin hebdomadaire',
   previewData: {
-    periodLabel: '14/04/2026 → 20/04/2026',
-    totalContributions: 12,
-    totalProposals: 4,
-    activeUsers: 6,
-    visits: {
-      totalA: 342,
-      totalB: 287,
-      deltaPct: 19,
-      daily: [
-        { label: 'Lun', count: 38 },
-        { label: 'Mar', count: 52 },
-        { label: 'Mer', count: 61 },
-        { label: 'Jeu', count: 44 },
-        { label: 'Ven', count: 49 },
-        { label: 'Sam', count: 58 },
-        { label: 'Dim', count: 40 },
+    periodLabel: '26/10/2026 → 01/11/2026',
+    prevPeriodLabel: '19/10',
+    sorties: {
+      views: 412,
+      viewsPrev: 349,
+      visitors: 187,
+      returningPct: 38,
+      clicks: 64,
+      top: [
+        { name: 'Marché de Noël des petits', sub: 'Sam 14/11', views: 182, deltaPct: 40 },
+        { name: 'Ciné-goûter, Katorza', sub: 'Mer 04/11', views: 96, deltaPct: 8 },
+        { name: 'Atelier cuisine parents-enfants', sub: 'Chaque samedi', views: 74, deltaPct: 0 },
+        { name: 'Spectacle « Les Petits Pas »', sub: 'Dim 08/11', views: 61, deltaPct: -22 },
+        { name: 'Balade contée au Parc de Procé', sub: 'Mer 04/11', views: 48, deltaPct: null },
       ],
     },
-    rows: [
-      {
-        name: 'Marie Dupont',
-        email: 'marie@example.com',
-        contributions: 5,
-        proposals: ['Café des Petits', 'Parc Procé'],
-      },
-      {
-        name: 'Jean Martin',
-        email: 'jean@example.com',
-        contributions: 3,
-        proposals: [],
-      },
+    tiles: {
+      sessions: { cur: 1284, prev: 1145 },
+      signups: { cur: 23, prev: 18 },
+      contributions: { cur: 14, prev: 17 },
+      proposals: { cur: 3, prev: 3 },
+    },
+    platforms: [
+      { key: 'web', label: 'Web', color: '#E8A838', count: 760, prev: 690 },
+      { key: 'ios', label: 'iOS', color: '#D95F3B', count: 340, prev: 255 },
+      { key: 'android', label: 'Android', color: '#3B7D6E', count: 184, prev: 190 },
+    ],
+    daily: [
+      { label: 'Lun', web: 90, ios: 30, android: 20 },
+      { label: 'Mar', web: 100, ios: 45, android: 25 },
+      { label: 'Mer', web: 120, ios: 50, android: 28 },
+      { label: 'Jeu', web: 115, ios: 60, android: 30 },
+      { label: 'Ven', web: 110, ios: 55, android: 25 },
+      { label: 'Sam', web: 130, ios: 55, android: 30 },
+      { label: 'Dim', web: 95, ios: 45, android: 26 },
     ],
   },
 } satisfies TemplateEntry
@@ -286,108 +557,44 @@ const main = {
 const container = {
   backgroundColor: '#FAF9F6',
   borderRadius: '24px',
-  padding: '32px 28px',
+  padding: '24px 16px',
   margin: '20px auto',
   maxWidth: '600px',
 }
 const h1 = {
-  fontSize: '28px',
+  fontSize: '26px',
   fontWeight: 'bold',
-  color: '#D95F3B',
-  margin: '0 0 8px',
+  color: ORANGE,
+  margin: '0 0 4px',
   fontFamily: 'Georgia, serif',
 }
 const subtitle = {
-  fontSize: '14px',
-  color: '#6B6B6B',
-  margin: '0 0 28px',
+  fontSize: '13px',
+  color: MUTED,
+  margin: '0 0 16px',
 }
 const h2 = {
-  fontSize: '18px',
+  fontSize: '16px',
   fontWeight: 'bold',
   color: '#2A2A2A',
-  margin: '24px 0 16px',
+  margin: '22px 0 10px',
   fontFamily: 'Georgia, serif',
 }
-const statBox = {
+const card = {
+  width: '100%',
   backgroundColor: '#ffffff',
-  borderRadius: '18px',
-  padding: '20px 16px',
-  textAlign: 'center' as const,
-  margin: '0 0 12px',
-  border: '1px solid #EDEAE3',
+  border: `1px solid ${GREY}`,
+  borderRadius: '14px',
+  borderCollapse: 'separate' as const,
 }
-const statNumber = {
-  fontSize: '32px',
-  fontWeight: 'bold',
-  color: '#D95F3B',
-  margin: '0 0 4px',
-  lineHeight: '1',
-}
-const statLabel = {
-  fontSize: '13px',
-  color: '#6B6B6B',
-  margin: '0',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.5px',
-}
-const statSub = {
-  fontSize: '12px',
-  color: '#6B6B6B',
+const legend = {
+  fontSize: '10.5px',
+  color: MUTED,
   margin: '8px 0 0',
-}
-const badgeBase = {
-  display: 'inline-block',
-  padding: '2px 8px',
-  borderRadius: '999px',
-  fontSize: '12px',
-  fontWeight: 'bold' as const,
-}
-const userCard = {
-  backgroundColor: '#ffffff',
-  borderRadius: '18px',
-  padding: '16px 18px',
-  margin: '0 0 12px',
-  border: '1px solid #EDEAE3',
-}
-const userName = {
-  fontSize: '15px',
-  fontWeight: 'bold',
-  color: '#2A2A2A',
-  margin: '0 0 2px',
-}
-const userEmail = {
-  fontSize: '13px',
-  color: '#888',
-  margin: '0 0 10px',
-}
-const countsRow = {
-  margin: '8px 0 0',
-}
-const countText = {
-  fontSize: '13px',
-  color: '#3B7D6E',
-  margin: '0 0 4px',
-}
-const proposalsList = {
-  marginTop: '8px',
-  paddingLeft: '8px',
-}
-const proposalItem = {
-  fontSize: '13px',
-  color: '#555',
-  margin: '0 0 2px',
-}
-const emptyText = {
-  fontSize: '14px',
-  color: '#888',
-  fontStyle: 'italic' as const,
-  textAlign: 'center' as const,
-  padding: '20px',
 }
 const footer = {
-  fontSize: '12px',
+  fontSize: '11px',
   color: '#999',
-  margin: '32px 0 0',
+  margin: '24px 0 0',
   textAlign: 'center' as const,
 }
