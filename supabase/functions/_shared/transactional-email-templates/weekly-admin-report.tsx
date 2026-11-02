@@ -54,6 +54,12 @@ const DeltaBadge = ({ deltaPct }: { deltaPct: number | null }) => {
   )
 }
 
+// Barres en tableaux imbriqués : `position: absolute`, `overflow: hidden` et les hauteurs en %
+// ne sont pas fiables dans les clients mail (Gmail, Outlook), les barres s'y affichaient de
+// travers. Ici chaque barre = une cellule grise (le vide) au-dessus d'une cellule verte (la
+// valeur), hauteurs en pixels fixes.
+const BAR_AREA_PX = 80
+
 const BarChart = ({ daily }: { daily: { label: string; count: number }[] }) => {
   const max = Math.max(1, ...daily.map((d) => d.count))
   return (
@@ -61,44 +67,70 @@ const BarChart = ({ daily }: { daily: { label: string; count: number }[] }) => {
       role="presentation"
       cellPadding={0}
       cellSpacing={0}
-      style={{ width: '100%', borderCollapse: 'collapse', margin: '0 0 24px' }}
+      style={{ width: '100%', borderCollapse: 'separate', margin: '0 0 24px' }}
     >
       <tbody>
         <tr>
-          {daily.map((d, i) => (
-            <td
-              key={i}
-              align="center"
-              valign="bottom"
-              style={{ padding: '0 2px', verticalAlign: 'bottom', width: `${100 / 7}%` }}
-            >
-              <div style={{ fontSize: '11px', color: '#6B6B6B', margin: '0 0 4px', fontWeight: 'bold' }}>
-                {d.count}
-              </div>
-              <div
-                style={{
-                  height: '80px',
-                  backgroundColor: '#EDEAE3',
-                  borderRadius: '6px',
-                  position: 'relative' as const,
-                  overflow: 'hidden' as const,
-                }}
+          {daily.map((d, i) => {
+            // Une valeur non nulle garde au moins 3 px pour rester visible.
+            const fill = d.count === 0 ? 0 : Math.max(3, Math.round((d.count / max) * BAR_AREA_PX))
+            const empty = BAR_AREA_PX - fill
+            return (
+              <td
+                key={i}
+                align="center"
+                valign="bottom"
+                style={{ padding: '0 2px', verticalAlign: 'bottom', width: `${100 / 7}%` }}
               >
-                <div
-                  style={{
-                    position: 'absolute' as const,
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: `${Math.round((d.count / max) * 100)}%`,
-                    backgroundColor: '#3B7D6E',
-                    borderRadius: '6px',
-                  }}
-                />
-              </div>
-              <div style={{ fontSize: '11px', color: '#6B6B6B', margin: '6px 0 0' }}>{d.label}</div>
-            </td>
-          ))}
+                <div style={{ fontSize: '11px', color: '#6B6B6B', margin: '0 0 4px', fontWeight: 'bold' }}>
+                  {d.count}
+                </div>
+                <table
+                  role="presentation"
+                  cellPadding={0}
+                  cellSpacing={0}
+                  width="100%"
+                  style={{ width: '100%', borderCollapse: 'separate' }}
+                >
+                  <tbody>
+                    {empty > 0 ? (
+                      <tr>
+                        <td
+                          height={empty}
+                          style={{
+                            height: `${empty}px`,
+                            lineHeight: `${empty}px`,
+                            fontSize: '1px',
+                            backgroundColor: '#EDEAE3',
+                            borderRadius: fill === 0 ? '6px' : '6px 6px 0 0',
+                          }}
+                        >
+                          &nbsp;
+                        </td>
+                      </tr>
+                    ) : null}
+                    {fill > 0 ? (
+                      <tr>
+                        <td
+                          height={fill}
+                          style={{
+                            height: `${fill}px`,
+                            lineHeight: `${fill}px`,
+                            fontSize: '1px',
+                            backgroundColor: '#3B7D6E',
+                            borderRadius: empty === 0 ? '6px' : '0 0 6px 6px',
+                          }}
+                        >
+                          &nbsp;
+                        </td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+                <div style={{ fontSize: '11px', color: '#6B6B6B', margin: '6px 0 0' }}>{d.label}</div>
+              </td>
+            )
+          })}
         </tr>
       </tbody>
     </table>

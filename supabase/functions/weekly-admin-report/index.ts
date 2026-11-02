@@ -1,9 +1,14 @@
-import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const FALLBACK_ADMIN_EMAIL = 'bastien.boubat@gmail.com'
+// Compte de test des events : exclu du dashboard admin (admin_audience_stats), donc d'ici aussi.
+const EXCLUDED_TEST_EMAIL = 'bastien.boubat+event@gmail.com'
+// PostgREST plafonne chaque réponse à 1000 lignes (max_rows) : sans pagination, une semaine
+// de plus de 1000 pages vues est tronquée en silence.
+const PAGE_SIZE = 1000
 
 interface UserStats {
   contributions: number
@@ -16,6 +21,33 @@ function formatDate(d: Date): string {
     month: '2-digit',
     year: 'numeric',
   })
+}
+
+type PageView = { user_id: string | null; created_at: string }
+
+async function fetchPageViews(
+  supabase: SupabaseClient,
+  from: Date,
+  to: Date,
+): Promise<PageView[]> {
+  const rows: PageView[] = []
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('page_views')
+      .select('user_id, created_at')
+      .gte('created_at', from.toISOString())
+      .lte('created_at', to.toISOString())
+      // `id` départage les lignes de même created_at : sans tri stable, une page
+      // peut répéter ou sauter des lignes d'une requête à l'autre.
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1)
+    // Mieux vaut échouer (mail non envoyé, visible dans les logs) qu'envoyer un total faux.
+    if (error) throw new Error(`page_views fetch failed: ${error.message}`)
+    rows.push(...((data ?? []) as PageView[]))
+    if (!data || data.length < PAGE_SIZE) break
+  }
+  return rows
 }
 
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
@@ -54,13 +86,22 @@ async function runReport(callerAuth: string, overrideWeekStart?: Date) {
     .select('id')
     .eq('role', 'admin')
   const adminIds = new Set<string>((adminProfiles ?? []).map((p) => p.id as string))
-  const isAdmin = (uid: string | null) => !!uid && adminIds.has(uid)
+
+  const { data: usersList, error: usersError } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
+  // Sans cette liste, le compte de test ne serait pas exclu et les destinataires retomberaient
+  // en silence sur l'adresse de secours : mieux vaut ne pas envoyer.
+  if (usersError) throw new Error(`listUsers failed: ${usersError.message}`)
+  const excludedIds = new Set<string>(adminIds)
+  for (const u of usersList?.users ?? []) {
+    if (u.email?.toLowerCase() === EXCLUDED_TEST_EMAIL) excludedIds.add(u.id)
+  }
+  const isAdmin = (uid: string | null) => !!uid && excludedIds.has(uid)
 
   const [
     { data: rawContributions },
     { data: rawProposals },
-    { data: rawVisitsA },
-    { data: rawVisitsB },
+    rawVisitsA,
+    rawVisitsB,
   ] = await Promise.all([
     supabase
       .from('contributions')
@@ -72,23 +113,15 @@ async function runReport(callerAuth: string, overrideWeekStart?: Date) {
       .select('id, user_id, created_at, name')
       .gte('created_at', lastMonday.toISOString())
       .lte('created_at', lastSunday.toISOString()),
-    supabase
-      .from('page_views')
-      .select('user_id, created_at')
-      .gte('created_at', lastMonday.toISOString())
-      .lte('created_at', lastSunday.toISOString()),
-    supabase
-      .from('page_views')
-      .select('user_id, created_at')
-      .gte('created_at', prevMonday.toISOString())
-      .lte('created_at', prevSunday.toISOString()),
+    fetchPageViews(supabase, lastMonday, lastSunday),
+    fetchPageViews(supabase, prevMonday, prevSunday),
   ])
 
-  // Exclude admins. Anonymous visits (user_id null) are kept.
+  // Exclude admins and the test account. Anonymous visits (user_id null) are kept.
   const contributions = (rawContributions ?? []).filter((c) => !isAdmin(c.user_id as string | null))
   const proposals = (rawProposals ?? []).filter((p) => !isAdmin(p.user_id as string | null))
-  const visitsA = (rawVisitsA ?? []).filter((v) => !isAdmin(v.user_id as string | null))
-  const visitsB = (rawVisitsB ?? []).filter((v) => !isAdmin(v.user_id as string | null))
+  const visitsA = rawVisitsA.filter((v) => !isAdmin(v.user_id))
+  const visitsB = rawVisitsB.filter((v) => !isAdmin(v.user_id))
 
   // Bucket visits A by day-of-week (Mon=0 .. Sun=6) using UTC.
   const daily = DAY_LABELS.map((label) => ({ label, count: 0 }))
@@ -118,7 +151,6 @@ async function runReport(callerAuth: string, overrideWeekStart?: Date) {
 
   const userIds = Object.keys(userStats)
   const userInfoMap: Record<string, { name: string; email: string }> = {}
-  const { data: usersList } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
   for (const u of usersList?.users ?? []) {
     if (userIds.includes(u.id)) {
       const meta = (u.user_metadata ?? {}) as Record<string, unknown>
@@ -235,9 +267,20 @@ Deno.serve(async (req) => {
 
     // @ts-ignore
     EdgeRuntime.waitUntil(
-      runReport(auth, overrideWeekStart).catch((e) =>
-        console.error('weekly-admin-report background error', e),
-      ),
+      runReport(auth, overrideWeekStart).catch(async (e) => {
+        console.error('weekly-admin-report background error', e)
+        // Un rapport qui n'a pas pu se construire doit laisser la même trace qu'un envoi raté.
+        const message = e instanceof Error ? e.message : String(e)
+        const { error: logError } = await createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+          .from('email_send_log')
+          .insert({
+            template_name: 'weekly-admin-report',
+            recipient_email: FALLBACK_ADMIN_EMAIL,
+            status: 'failed',
+            error_message: message.slice(0, 1000),
+          })
+        if (logError) console.error('email_send_log insert failed', logError)
+      }),
     )
 
     return new Response(JSON.stringify({ ok: true, scheduled: true }), {
