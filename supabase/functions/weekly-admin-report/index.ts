@@ -87,7 +87,10 @@ async function runReport(callerAuth: string, overrideWeekStart?: Date) {
     .eq('role', 'admin')
   const adminIds = new Set<string>((adminProfiles ?? []).map((p) => p.id as string))
 
-  const { data: usersList } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
+  const { data: usersList, error: usersError } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
+  // Sans cette liste, le compte de test ne serait pas exclu et les destinataires retomberaient
+  // en silence sur l'adresse de secours : mieux vaut ne pas envoyer.
+  if (usersError) throw new Error(`listUsers failed: ${usersError.message}`)
   const excludedIds = new Set<string>(adminIds)
   for (const u of usersList?.users ?? []) {
     if (u.email?.toLowerCase() === EXCLUDED_TEST_EMAIL) excludedIds.add(u.id)
@@ -264,9 +267,20 @@ Deno.serve(async (req) => {
 
     // @ts-ignore
     EdgeRuntime.waitUntil(
-      runReport(auth, overrideWeekStart).catch((e) =>
-        console.error('weekly-admin-report background error', e),
-      ),
+      runReport(auth, overrideWeekStart).catch(async (e) => {
+        console.error('weekly-admin-report background error', e)
+        // Un rapport qui n'a pas pu se construire doit laisser la même trace qu'un envoi raté.
+        const message = e instanceof Error ? e.message : String(e)
+        const { error: logError } = await createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+          .from('email_send_log')
+          .insert({
+            template_name: 'weekly-admin-report',
+            recipient_email: FALLBACK_ADMIN_EMAIL,
+            status: 'failed',
+            error_message: message.slice(0, 1000),
+          })
+        if (logError) console.error('email_send_log insert failed', logError)
+      }),
     )
 
     return new Response(JSON.stringify({ ok: true, scheduled: true }), {

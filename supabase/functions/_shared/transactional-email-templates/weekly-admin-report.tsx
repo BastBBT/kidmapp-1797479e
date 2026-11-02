@@ -97,7 +97,6 @@ const BarChart = ({ daily }: { daily: { label: string; count: number }[] }) => {
                       <tr>
                         <td
                           height={empty}
-                          bgcolor="#EDEAE3"
                           style={{
                             height: `${empty}px`,
                             lineHeight: `${empty}px`,
@@ -114,7 +113,6 @@ const BarChart = ({ daily }: { daily: { label: string; count: number }[] }) => {
                       <tr>
                         <td
                           height={fill}
-                          bgcolor="#3B7D6E"
                           style={{
                             height: `${fill}px`,
                             lineHeight: `${fill}px`,
