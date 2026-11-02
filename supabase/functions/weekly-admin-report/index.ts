@@ -1,11 +1,12 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 import {
+  DAY_LABELS,
   dailySessions,
-  deltaPct,
   eventStats,
-  PLATFORM_KEYS,
+  type PlatformKey,
   sessionsByPlatform,
+  totalSessions,
   type ViewRow,
 } from '../_shared/weekly-report/stats.ts'
 
@@ -75,10 +76,31 @@ async function fetchRows<T>(
   return rows
 }
 
+/** Appareils (device_id) vus au moins une fois avec un compte exclu, sur tout l'historique. */
+async function fetchExcludedDevices(
+  supabase: SupabaseClient,
+  excludedIds: Set<string>,
+): Promise<Set<string>> {
+  const devices = new Set<string>()
+  const ids = [...excludedIds]
+  if (ids.length === 0) return devices
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('page_views')
+      .select('device_id')
+      .in('user_id', ids)
+      .not('device_id', 'is', null)
+      .order('id', { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1)
+    if (error) throw new Error(`excluded devices fetch failed: ${error.message}`)
+    for (const r of data ?? []) devices.add(r.device_id as string)
+    if (!data || data.length < PAGE_SIZE) break
+  }
+  return devices
+}
+
 type UserRow = { user_id: string | null }
 type ProfileRow = { id: string }
-
-const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 
 async function runReport(callerAuth: string, overrideWeekStart?: Date) {
   let lastMonday: Date
@@ -158,21 +180,22 @@ async function runReport(callerAuth: string, overrideWeekStart?: Date) {
 
   const sessA = sessionsByPlatform(pvA)
   const sessB = sessionsByPlatform(pvB)
-  const sumPlatforms = (c: Record<(typeof PLATFORM_KEYS)[number], number>) => c.web + c.ios + c.android
 
-  const platforms = [
+  const platformDefs: { key: PlatformKey; label: string; color: string }[] = [
     { key: 'web', label: 'Web', color: '#E8A838' },
     { key: 'ios', label: 'iOS', color: '#D95F3B' },
     { key: 'android', label: 'Android', color: '#3B7D6E' },
-  ].map((p) => ({
-    ...p,
-    count: sessA[p.key as keyof typeof sessA],
-    prev: sessB[p.key as keyof typeof sessB],
-  }))
+  ]
+  const platforms = platformDefs.map((p) => ({ ...p, count: sessA[p.key], prev: sessB[p.key] }))
 
   const daily = dailySessions(pvA).map((d, i) => ({ label: DAY_LABELS[i], ...d }))
 
-  const ev = eventStats(pvA, pvB)
+  // Pour les sorties, comme dans l'onglet « Top pages » (admin_top_pages) : on écarte aussi les
+  // vues anonymes venues d'un appareil déjà vu avec un compte exclu. Sessions et inscrits, eux,
+  // suivent admin_audience_stats, qui n'exclut que par compte.
+  const excludedDevices = await fetchExcludedDevices(supabase, excludedIds)
+  const notExcludedDevice = (r: ViewRow) => !r.device_id || !excludedDevices.has(r.device_id)
+  const ev = eventStats(pvA.filter(notExcludedDevice), pvB.filter(notExcludedDevice))
   const topIds = ev.top.map((t) => t.id)
   const eventInfo = new Map<string, { name: string; sub: string }>()
   if (topIds.length > 0) {
@@ -191,7 +214,6 @@ async function runReport(callerAuth: string, overrideWeekStart?: Date) {
   const sorties = {
     views: ev.views,
     viewsPrev: ev.viewsPrev,
-    deltaPct: deltaPct(ev.views, ev.viewsPrev),
     visitors: ev.visitors,
     returningPct: ev.returningPct,
     clicks: notExcluded(clicksA).length,
@@ -205,7 +227,7 @@ async function runReport(callerAuth: string, overrideWeekStart?: Date) {
 
   const countSignups = (rows: ProfileRow[]) => rows.filter((r) => !excludedIds.has(r.id)).length
   const tiles = {
-    sessions: { cur: sumPlatforms(sessA), prev: sumPlatforms(sessB) },
+    sessions: { cur: totalSessions(sessA), prev: totalSessions(sessB) },
     signups: { cur: countSignups(profilesA), prev: countSignups(profilesB) },
     contributions: { cur: notExcluded(contribA).length, prev: notExcluded(contribB).length },
     proposals: { cur: notExcluded(proposalsA).length, prev: notExcluded(proposalsB).length },
@@ -220,8 +242,6 @@ async function runReport(callerAuth: string, overrideWeekStart?: Date) {
     if (adminIds.has(u.id) && u.email) adminEmails.push(u.email)
   }
   const recipients = adminEmails.length > 0 ? adminEmails : [FALLBACK_ADMIN_EMAIL]
-
-  const visits = { totalA: totalVisitsA, totalB: totalVisitsB, deltaPct, daily }
 
   for (const recipient of recipients) {
     const idempotencyKey = `weekly-admin-report-${weekKey}-${recipient}`

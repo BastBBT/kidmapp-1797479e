@@ -15,6 +15,10 @@ export interface ViewRow {
 
 export type PlatformCounts = Record<PlatformKey, number>
 
+export const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+
+export const totalSessions = (c: PlatformCounts): number => c.web + c.ios + c.android
+
 const emptyCounts = (): PlatformCounts => ({ web: 0, ios: 0, android: 0 })
 const isPlatform = (p: string): p is PlatformKey => (PLATFORM_KEYS as readonly string[]).includes(p)
 

@@ -9,7 +9,7 @@ import {
   Text,
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
-import { stackHeights } from '../weekly-report/stats.ts'
+import { DAY_LABELS, deltaPct, stackHeights } from '../weekly-report/stats.ts'
 
 const SITE_NAME = 'Kidmapp'
 
@@ -43,7 +43,6 @@ interface TopEvent {
 interface Sorties {
   views: number
   viewsPrev: number
-  deltaPct: number | null
   visitors: number
   returningPct: number | null
   clicks: number
@@ -121,8 +120,9 @@ const DiffBadge = ({ cur, prev }: Compare) => {
   )
 }
 
-const pctOf = (cur: number, prev: number): number | null =>
-  prev === 0 ? null : Math.round(((cur - prev) / prev) * 100)
+/** Écart cur vs prev ; « = 0 » quand les deux semaines sont vides (rien à signaler, pas de « nouveau »). */
+const ChangeBadge = ({ cur, prev, size }: Compare & { size?: number }) =>
+  cur === 0 && prev === 0 ? <Badge tone="flat" size={size}>= 0</Badge> : <PctBadge pct={deltaPct(cur, prev)} size={size} />
 
 // Tout est en tableaux et en hauteurs/largeurs fixes : `position: absolute`, `overflow: hidden`,
 // flex et les hauteurs en % ne sont pas fiables dans les clients mail (Gmail, Outlook).
@@ -262,9 +262,9 @@ const Dot = ({ color }: { color: string }) => (
   />
 )
 
-const emptySorties: Sorties = { views: 0, viewsPrev: 0, deltaPct: null, visitors: 0, returningPct: null, clicks: 0, top: [] }
+const emptySorties: Sorties = { views: 0, viewsPrev: 0, visitors: 0, returningPct: null, clicks: 0, top: [] }
 const zero: Compare = { cur: 0, prev: 0 }
-const emptyDaily: DailyRow[] = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((label) => ({
+const emptyDaily: DailyRow[] = DAY_LABELS.map((label) => ({
   label,
   web: 0,
   ios: 0,
@@ -329,7 +329,7 @@ const WeeklyAdminReportEmail = ({
                   <span style={{ fontFamily: NUMBER_FONT, fontSize: '38px', fontWeight: 'bold', lineHeight: '1', color: '#2A2A2A' }}>
                     {fmt(sorties.views)}
                   </span>{' '}
-                  <PctBadge pct={sorties.deltaPct} size={12} />
+                  <ChangeBadge cur={sorties.views} prev={sorties.viewsPrev} size={12} />
                   <div style={{ fontSize: '11px', color: MUTED, margin: '4px 0 0' }}>
                     vs {fmt(sorties.viewsPrev)} la semaine du {prevPeriodLabel}
                   </div>
@@ -350,7 +350,7 @@ const WeeklyAdminReportEmail = ({
                           { v: fmt(sorties.visitors), l: 'visiteurs distincts' },
                           {
                             v: sorties.returningPct === null ? '—' : `${sorties.returningPct} %`,
-                            l: "déjà venus la semaine d'avant",
+                            l: "déjà venus voir une sortie la semaine d'avant",
                           },
                           { v: fmt(sorties.clicks), l: 'clics vers le site / la résa' },
                         ].map((s, i) => (
@@ -380,7 +380,7 @@ const WeeklyAdminReportEmail = ({
                 <Tile
                   value={tiles.sessions.cur}
                   label="Sessions"
-                  badge={<PctBadge pct={pctOf(tiles.sessions.cur, tiles.sessions.prev)} />}
+                  badge={<ChangeBadge {...tiles.sessions} />}
                 />
                 <Gap />
                 <Tile value={tiles.signups.cur} label="Inscrits" badge={<DiffBadge {...tiles.signups} />} />
@@ -416,7 +416,7 @@ const WeeklyAdminReportEmail = ({
                             <span style={{ fontFamily: NUMBER_FONT, fontSize: '15px', fontWeight: 'bold', color: '#2A2A2A' }}>
                               {fmt(p.count)}
                             </span>{' '}
-                            <PctBadge pct={pctOf(p.count, p.prev)} />
+                            <ChangeBadge cur={p.count} prev={p.prev} />
                           </td>
                         </tr>
                       ))}
@@ -491,7 +491,7 @@ const WeeklyAdminReportEmail = ({
                       </tbody>
                     </table>
                   )}
-                  <div style={legend}>Fiches ouvertes dans la semaine (web et apps), admins exclus.</div>
+                  <div style={legend}>Fiches ouvertes dans la semaine (web et apps), admins et leurs appareils exclus.</div>
                 </td>
               </tr>
             </tbody>
@@ -515,7 +515,6 @@ export const template = {
     sorties: {
       views: 412,
       viewsPrev: 349,
-      deltaPct: 18,
       visitors: 187,
       returningPct: 38,
       clicks: 64,
