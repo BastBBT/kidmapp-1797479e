@@ -17,3 +17,5 @@ project_id = "rcwepnqjyowlbtmltwxo"
     verify_jwt = true
   [functions.welcome-email]
     verify_jwt = true
+  [functions.telegram-relay]
+    verify_jwt = false
