@@ -141,6 +141,13 @@
       "when": 1793658714383,
       "tag": "0019_telegram_inbox_service_only_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794089357610,
+      "tag": "0020_event_category_marche_de_noel",
+      "breakpoints": true
     }
   ]
 }
