@@ -214,7 +214,7 @@ describe('groupItems / capGroups', () => {
 describe('toggleCategory', () => {
   it('décocher depuis « tout » (null) écrit la liste sans la catégorie', () => {
     expect(toggleCategory(null, EVENT_CATEGORIES, 'Marché')).toEqual([
-      'Spectacle', 'Atelier', 'Festival', 'Fête', 'Exposition', 'Autre',
+      'Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché de Noël', 'Exposition', 'Autre',
     ]);
   });
 

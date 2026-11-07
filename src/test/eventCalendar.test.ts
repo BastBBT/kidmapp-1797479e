@@ -265,3 +265,14 @@ describe('eventCategoryInk', () => {
     }
   });
 });
+
+describe('catégorie « Marché de Noël »', () => {
+  it('a son emoji, sa couleur et son libellé traduit', async () => {
+    const { eventCategoryEmoji, eventCategoryHex, EVENT_CATEGORIES } = await import('@/types/event');
+    expect(EVENT_CATEGORIES).toContain('Marché de Noël');
+    expect(eventCategoryEmoji('Marché de Noël')).toBe('🎄');
+    expect(eventCategoryHex('Marché de Noël')).toBe('#A63446');
+    // Distincte de « Marché », pas le repli « Autre ».
+    expect(eventCategoryHex('Marché de Noël')).not.toBe(eventCategoryHex('Marché'));
+  });
+});

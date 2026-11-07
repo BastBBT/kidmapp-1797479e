@@ -156,7 +156,7 @@ describe('DigestSection — personnalisation', () => {
     expect(marche?.getAttribute('aria-pressed')).toBe('true');
     click(marche);
     expect(updatePreferences).toHaveBeenCalledWith({
-      digest_event_categories: ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Exposition', 'Autre'],
+      digest_event_categories: ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché de Noël', 'Exposition', 'Autre'],
     });
   });
 
@@ -173,7 +173,7 @@ describe('DigestSection — personnalisation', () => {
     await renderSection();
     expect(
       hasText(
-        'Chaque jeudi, les sorties du samedi et du dimanche, et de toute la semaine pendant les vacances scolaires (2 types sur 7). Nouveaux lieux : 11 catégories sur 11.',
+        'Chaque jeudi, les sorties du samedi et du dimanche, et de toute la semaine pendant les vacances scolaires (2 types sur 8). Nouveaux lieux : 11 catégories sur 11.',
       ),
     ).toBe(true);
   });

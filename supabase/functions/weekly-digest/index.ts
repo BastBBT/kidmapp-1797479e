@@ -39,7 +39,7 @@ const SCHOOL_ZONE = 'B'
 // Mon compte (web ; l'app s'ouvre si le lien universel la couvre).
 const PREFERENCES_URL = 'https://kidmapp.app/account?section=digest'
 // Même vocabulaire que la contrainte events_category_check.
-const EVENT_CATEGORIES = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché', 'Exposition', 'Autre']
+const EVENT_CATEGORIES = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché', 'Marché de Noël', 'Exposition', 'Autre']
 
 interface ProfileRow {
   id: string

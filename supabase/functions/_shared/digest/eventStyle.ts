@@ -12,6 +12,7 @@ const CATEGORY_EMOJI: Record<string, string> = {
   Fete: '🎉',
   'Marché': '🧺',
   Marche: '🧺',
+  'Marché de Noël': '🎄',
   Exposition: '🖼️',
   Autre: '📅',
 }

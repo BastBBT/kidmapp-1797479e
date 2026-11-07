@@ -7,7 +7,7 @@ import { translateToken } from '@/i18n/tokenMaps';
 import { eventCategoryEmoji } from '@/types/event';
 import { DAY_MOMENTS, type DayMoment, type EventCriteria } from '@/lib/sortiesFilters';
 
-const KNOWN_CATEGORIES = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché', 'Exposition'];
+const KNOWN_CATEGORIES = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché', 'Marché de Noël', 'Exposition'];
 const AGE_BUCKET_CHOICES: ChildAgeBucket[] = ['0-2', '3-5', '6+'];
 
 interface Props {
