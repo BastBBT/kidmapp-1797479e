@@ -9,7 +9,7 @@ interface Props {
   onChange: (v: string | 'all') => void;
 }
 
-const KNOWN_ORDER = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché', 'Exposition'];
+const KNOWN_ORDER = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché', 'Marché de Noël', 'Exposition'];
 
 export const orderEventCategories = (cats: string[]): string[] => {
   const set = new Set(cats);

@@ -21,7 +21,7 @@ const MODEL = 'google/gemini-3.7-flash';
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'] as const;
 const MAX_BYTES = 12 * 1024 * 1024; // ~12 MB base64 payload cap
 
-const CATEGORIES = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché', 'Exposition', 'Autre'];
+const CATEGORIES = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché', 'Marché de Noël', 'Exposition', 'Autre'];
 const WEATHERS = ['En intérieur', 'En extérieur', 'Les deux'];
 
 const BodySchema = z.object({
@@ -33,7 +33,7 @@ const SYSTEM_PROMPT = `Tu es un assistant qui extrait les informations d'un év�
 
 {
   "name": "string (obligatoire : titre/nom de l'événement)",
-  "category": "Spectacle" | "Atelier" | "Festival" | "Fête" | "Marché" | "Exposition" | "Autre",
+  "category": "Spectacle" | "Atelier" | "Festival" | "Fête" | "Marché" | "Marché de Noël" | "Exposition" | "Autre",
   "address": "string | null",
   "date_start": "YYYY-MM-DD | null",
   "date_end": "YYYY-MM-DD | null",

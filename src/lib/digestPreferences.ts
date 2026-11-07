@@ -7,7 +7,7 @@ export type DigestDays = 'weekend' | 'wed_weekend' | 'all';
 export const DIGEST_DAYS_OPTIONS: DigestDays[] = ['weekend', 'wed_weekend', 'all'];
 
 /** Même vocabulaire que la contrainte events_category_check. */
-export const EVENT_CATEGORIES = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché', 'Exposition', 'Autre'];
+export const EVENT_CATEGORIES = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'Marché', 'Marché de Noël', 'Exposition', 'Autre'];
 
 /** Même vocabulaire que la contrainte locations_category_check, ordre d'affichage
  *  du réglage (les lieux « sortie » d'abord). */
