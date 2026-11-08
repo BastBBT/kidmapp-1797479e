@@ -7,9 +7,9 @@ import { isSpotlightFrequency, type SpotlightFrequency } from '@/lib/eventSpotli
 import { isPastEvent, todayISO } from '@/lib/weekend';
 import { hasRecurrence } from '@/types/event';
 import {
-  HEADLINE_MAX, MESSAGE_MAX, emptySpotlightForm, endForShortcut, overlapsOf, parseSpotlightStats,
-  hasStaleDates, percentOf, spotlightStatus, validateSpotlight, type EndShortcut, type SpotlightForm,
-  type SpotlightStats, type SpotlightStatus,
+  HEADLINE_MAX, MESSAGE_MAX, PLATFORMS, clickRate, countLabel, emptySpotlightForm, endForShortcut, overlapsOf,
+  parseSpotlightStats, hasStaleDates, rateLabel, spotlightStatus, unknownSpotlightStats, validateSpotlight,
+  viewedLabel, type EndShortcut, type SpotlightForm, type SpotlightPlatform, type SpotlightStats, type SpotlightStatus,
 } from './spotlightAdmin';
 
 interface SpotlightRow {
@@ -302,7 +302,7 @@ export function SpotlightsTab({ isAdmin }: { isAdmin: boolean }) {
 
       {rowsQuery.isLoading && <div style={muted}>Chargement…</div>}
       {rowsQuery.error && <div style={{ ...muted, color: 'var(--primary)' }}>Impossible de charger les mises en avant.</div>}
-      {statsQuery.error && <div style={{ ...muted, color: 'var(--primary)' }}>Impossible de charger les statistiques : les chiffres affichés sont à zéro.</div>}
+      {statsQuery.error && <div style={{ ...muted, color: 'var(--primary)' }}>Impossible de charger les statistiques : les chiffres affichés ne sont pas fiables.</div>}
       {!rowsQuery.isLoading && !rowsQuery.error && rows.length === 0 && editing === null && (
         <div style={card}><span style={muted}>Aucune mise en avant pour l'instant.</span></div>
       )}
@@ -330,16 +330,19 @@ export function SpotlightsTab({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
+const PLATFORM_LABEL: Record<SpotlightPlatform, string> = { web: 'Web', ios: 'iOS', android: 'Android' };
+
 function SpotlightCard({ row, status, stats, confirming, busy, onEdit, onAskDelete, onCancelDelete, onDelete }: {
   row: SpotlightRow; status: SpotlightStatus; stats: SpotlightStats | undefined; confirming: boolean; busy: boolean;
   onEdit: () => void; onAskDelete: () => void; onCancelDelete: () => void; onDelete: () => void;
 }) {
-  const s: SpotlightStats = stats ?? { id: row.id, shown: 0, shownLast: 0, opens: 0, calendarAdds: 0, dismisses: 0, uniqueViewers: 0 };
+  const s: SpotlightStats = stats ?? unknownSpotlightStats(row.id);
   const displays = s.shown + s.shownLast;
   const freq = isSpotlightFrequency(row.frequency) ? FREQUENCY_LABEL[row.frequency] : row.frequency;
-  const tapRate = percentOf(s.opens, displays);
+  const rate = clickRate(s.uniqueClickers, s.uniqueViewers);
+  const viewed = viewedLabel(s.firstShownAt, s.lastShownAt);
   return (
-    <div style={{ ...card, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ ...card, display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontFamily: 'Fraunces', fontSize: 16, fontWeight: 500, color: 'var(--text)' }}>{row.headline}</div>
@@ -349,17 +352,65 @@ function SpotlightCard({ row, status, stats, confirming, busy, onEdit, onAskDele
           {status === 'active' ? 'En cours' : status === 'planned' ? 'Planifiée' : 'Terminée'}
         </span>
       </div>
-      <div style={{ ...muted, fontSize: 13 }}>
-        Du {day(row.starts_on)} au {day(row.ends_on)} · {freq}
-        {row.last_reminder ? ' · dernier rappel' : ''}{row.show_calendar_cta ? ' · calendrier' : ''}{row.show_photo ? ' · photo' : ''}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{ ...muted, fontSize: 13 }}>
+          Du {day(row.starts_on)} au {day(row.ends_on)} · {freq}
+          {row.last_reminder ? ' · dernier rappel' : ''}{row.show_calendar_cta ? ' · calendrier' : ''}{row.show_photo ? ' · photo' : ''}
+        </div>
+        {viewed && <div style={{ ...muted, fontSize: 13 }}>{viewed}</div>}
       </div>
-      <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>
-        <Stat label="Affichages" value={displays} note={s.shownLast > 0 ? `dont ${s.shownLast} rappel${s.shownLast > 1 ? 's' : ''}` : undefined} />
-        <Stat label="Spectateurs uniques" value={s.uniqueViewers} />
-        <Stat label="Taps « Voir »" value={s.opens} note={tapRate !== null ? `${tapRate} % des affichages` : undefined} />
-        <Stat label="Ajouts agenda" value={s.calendarAdds} />
-        <Stat label="Croix" value={s.dismisses} />
-      </dl>
+
+      <StatGroup title="Vu">
+        <Stat label="Affichages" value={countLabel(displays)} note={s.shownLast > 0 ? `dont ${s.shownLast} rappel${s.shownLast > 1 ? 's' : ''}` : undefined} />
+        <Stat label="Sessions" value={countLabel(s.sessionsShown)} note="ouvertures de l'app" />
+        <Stat label="Appareils uniques" value={countLabel(s.uniqueViewers)} note="un appareil = un téléphone ou un navigateur" />
+      </StatGroup>
+
+      <StatGroup title="Cliqué">
+        <Stat label="Ont cliqué" value={countLabel(s.uniqueClickers)} note={rate !== null ? `${rate} % des appareils` : 'Voir ou agenda'} />
+        <Stat label="Voir" value={countLabel(s.uniqueOpeners)} note="appareils" />
+        <Stat label="Agenda" value={countLabel(s.uniqueCalendarAdders)} note="appareils" />
+        <Stat label="Croix" value={countLabel(s.uniqueDismissers)} note="appareils" />
+        <Stat label="Sessions avec clic" value={countLabel(s.sessionsClicked)} />
+      </StatGroup>
+
+      <StatGroup title="Compteurs bruts">
+        <Stat label="Taps « Voir »" value={countLabel(s.opens)} />
+        <Stat label="Ajouts agenda" value={countLabel(s.calendarAdds)} />
+        <Stat label="Croix" value={countLabel(s.dismisses)} />
+      </StatGroup>
+
+      <div>
+        <div style={{ ...muted, fontWeight: 600, marginBottom: 4 }}>Par plateforme</div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 280, fontFamily: 'DM Sans', fontSize: 13 }}>
+            <thead>
+              <tr style={{ color: 'var(--text-muted)', textAlign: 'right' }}>
+                <th scope="col" style={{ ...cell, textAlign: 'left' }}>Plateforme</th>
+                <th scope="col" style={cell}>Appareils vus</th>
+                <th scope="col" style={cell}>Ont cliqué</th>
+                <th scope="col" style={cell}>Taux</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PLATFORMS.map((p) => {
+                const ps = s.byPlatform[p];
+                return (
+                  <tr key={p} style={{ borderTop: '1px solid var(--border)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                    <th scope="row" style={{ ...cell, textAlign: 'left', fontWeight: 600 }}>{PLATFORM_LABEL[p]}</th>
+                    <td style={cell}>{countLabel(ps ? ps.viewers : null)}</td>
+                    <td style={cell}>{countLabel(ps ? ps.clickers : null)}</td>
+                    <td style={cell}>{rateLabel(ps ? clickRate(ps.clickers, ps.viewers) : null)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style={muted}>On ne compte que des appareils, sans identité : aucune liste de personnes n'est conservée.</div>
+
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         {!confirming ? (
           <>
@@ -378,11 +429,22 @@ function SpotlightCard({ row, status, stats, confirming, busy, onEdit, onAskDele
   );
 }
 
-function Stat({ label, value, note }: { label: string; value: number; note?: string }) {
+const cell: React.CSSProperties = { padding: '6px 8px', fontWeight: 400 };
+
+function StatGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div style={{ ...muted, fontWeight: 600, marginBottom: 4 }}>{title}</div>
+      <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>{children}</dl>
+    </div>
+  );
+}
+
+function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div style={{ background: 'var(--bg)', borderRadius: 12, padding: '8px 10px' }}>
       <dt style={muted}>{label}</dt>
-      <dd style={{ margin: 0, fontFamily: 'Fraunces', fontSize: 20, fontWeight: 500, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{value.toLocaleString('fr-FR')}</dd>
+      <dd style={{ margin: 0, fontFamily: 'Fraunces', fontSize: 20, fontWeight: 500, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{value}</dd>
       {note && <div style={{ ...muted, fontSize: 11 }}>{note}</div>}
     </div>
   );
