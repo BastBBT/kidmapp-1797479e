@@ -7,10 +7,13 @@ import {
   percentOf,
   spotlightStatus,
   validateSpotlight,
+  hasStaleDates,
+  STALE_DATES_WARNING,
   type SpotlightForm,
 } from '@/components/admin/spotlightAdmin';
 
 const event = { date_start: '2026-11-21', date_end: null };
+const TODAY = '2026-11-08';
 
 const form = (over: Partial<SpotlightForm> = {}): SpotlightForm => ({
   ...emptySpotlightForm('2026-11-12'),
@@ -64,35 +67,100 @@ describe('raccourcis de fin de période', () => {
 
 describe('validateSpotlight', () => {
   it('une mise en avant correcte n’a ni erreur ni avertissement', () => {
-    expect(validateSpotlight(form(), event, [])).toEqual({ errors: [], warnings: [] });
+    expect(validateSpotlight(form(), event, [], TODAY)).toEqual({ errors: [], warnings: [] });
   });
 
   it('refuse sans sortie, sans accroche, accroche ou texte trop longs', () => {
-    expect(validateSpotlight(form({ event_id: '' }), event, []).errors).toContain('Choisis la sortie à mettre en avant.');
-    expect(validateSpotlight(form({ headline: '   ' }), event, []).errors).toContain("L'accroche est obligatoire.");
-    expect(validateSpotlight(form({ headline: 'x'.repeat(51) }), event, []).errors).toHaveLength(1);
-    expect(validateSpotlight(form({ headline: 'x'.repeat(50) }), event, []).errors).toEqual([]);
-    expect(validateSpotlight(form({ message: 'x'.repeat(141) }), event, []).errors).toHaveLength(1);
-    expect(validateSpotlight(form({ message: 'x'.repeat(140) }), event, []).errors).toEqual([]);
+    expect(validateSpotlight(form({ event_id: '' }), event, [], TODAY).errors).toContain('Choisis la sortie à mettre en avant.');
+    expect(validateSpotlight(form({ headline: '   ' }), event, [], TODAY).errors).toContain("L'accroche est obligatoire.");
+    expect(validateSpotlight(form({ headline: 'x'.repeat(51) }), event, [], TODAY).errors).toHaveLength(1);
+    expect(validateSpotlight(form({ headline: 'x'.repeat(50) }), event, [], TODAY).errors).toEqual([]);
+    expect(validateSpotlight(form({ message: 'x'.repeat(141) }), event, [], TODAY).errors).toHaveLength(1);
+    expect(validateSpotlight(form({ message: 'x'.repeat(140) }), event, [], TODAY).errors).toEqual([]);
   });
 
   it('refuse des dates manquantes ou inversées', () => {
-    expect(validateSpotlight(form({ starts_on: '' }), event, []).errors).toContain('Renseigne une date de début et de fin.');
-    expect(validateSpotlight(form({ ends_on: '2026-11-01' }), event, []).errors).toContain('La fin tombe avant le début.');
+    expect(validateSpotlight(form({ starts_on: '' }), event, [], TODAY).errors).toContain('Renseigne une date de début et de fin.');
+    expect(validateSpotlight(form({ ends_on: '2026-11-01' }), event, [], TODAY).errors).toContain('La fin tombe avant le début.');
   });
 
   it('avertit sans bloquer quand la fin dépasse la sortie ou chevauche une autre mise en avant', () => {
-    const late = validateSpotlight(form({ ends_on: '2026-11-25' }), event, []);
+    const late = validateSpotlight(form({ ends_on: '2026-11-25' }), event, [], TODAY);
     expect(late.errors).toEqual([]);
     expect(late.warnings).toHaveLength(1);
-    const overlap = validateSpotlight(form(), event, [{ headline: 'Marché de Noël' }]);
+    const overlap = validateSpotlight(form(), event, [{ headline: 'Marché de Noël' }], TODAY);
     expect(overlap.errors).toEqual([]);
     expect(overlap.warnings[0]).toContain('« Marché de Noël »');
   });
 
   it('une sortie sur plusieurs jours n’avertit pas tant que la fin ne la dépasse pas', () => {
     const market = { date_start: '2026-11-28', date_end: '2026-12-24' };
-    expect(validateSpotlight(form({ starts_on: '2026-11-26', ends_on: '2026-12-06' }), market, []).warnings).toEqual([]);
+    expect(validateSpotlight(form({ starts_on: '2026-11-26', ends_on: '2026-12-06' }), market, [], TODAY).warnings).toEqual([]);
+  });
+});
+
+describe('sortie aux dates périmées', () => {
+  const stale = { date_start: '2026-10-01', date_end: null };
+
+  it('avertit sans bloquer, une seule fois, sans y ajouter l’avertissement « fin après la sortie »', () => {
+    const issues = validateSpotlight(form(), stale, [], TODAY);
+    expect(issues.errors).toEqual([]);
+    expect(issues.warnings).toEqual([STALE_DATES_WARNING]);
+  });
+
+  it('reconnaît des dates périmées, pas une sortie en cours ni du jour', () => {
+    expect(hasStaleDates(stale, TODAY)).toBe(true);
+    expect(hasStaleDates({ date_start: '2026-10-01', date_end: '2026-11-08' }, TODAY)).toBe(false);
+    expect(hasStaleDates({ date_start: '2026-11-08', date_end: null }, TODAY)).toBe(false);
+    expect(hasStaleDates(event, TODAY)).toBe(false);
+    expect(hasStaleDates(null, TODAY)).toBe(false);
+  });
+});
+
+describe('période sans moment d’affichage', () => {
+  it('avertit quand le week-end n’a aucun jour dans la période et que le rappel est coupé', () => {
+    const w = validateSpotlight(form({ starts_on: '2026-11-16', ends_on: '2026-11-18', last_reminder: false }), event, [], TODAY).warnings;
+    expect(w).toHaveLength(1);
+    expect(w[0]).toContain("ne s'affichera jamais");
+  });
+
+  it('avertit aussi quand le rappel est activé mais que la période ne couvre pas J-3 à J et n’a pas de week-end', () => {
+    const w = validateSpotlight(form({ starts_on: '2026-11-10', ends_on: '2026-11-11' }), event, [], TODAY).warnings;
+    expect(w).toHaveLength(1);
+    expect(w[0]).toContain("ne s'affichera jamais");
+  });
+
+  it('se tait quand le rappel tombe dans la période, même du lundi au mercredi', () => {
+    // Sortie le samedi 21 : le rappel part dès le mercredi 18.
+    expect(validateSpotlight(form({ starts_on: '2026-11-16', ends_on: '2026-11-18' }), event, [], TODAY).warnings).toEqual([]);
+  });
+
+  it('se tait pour une fréquence quotidienne ou unique, qui n’attend pas le week-end', () => {
+    const base = { starts_on: '2026-11-16', ends_on: '2026-11-18', last_reminder: false };
+    expect(validateSpotlight(form({ ...base, frequency: 'daily' }), event, [], TODAY).warnings).toEqual([]);
+    expect(validateSpotlight(form({ ...base, frequency: 'once' }), event, [], TODAY).warnings).toEqual([]);
+  });
+
+  it('prévient que le dernier rappel ne pourra pas s’afficher quand la période finit avant J-3', () => {
+    const w = validateSpotlight(form({ starts_on: '2026-11-12', ends_on: '2026-11-14' }), event, [], TODAY).warnings;
+    expect(w).toHaveLength(1);
+    expect(w[0]).toContain('dernier rappel ne pourra pas');
+    expect(validateSpotlight(form({ starts_on: '2026-11-12', ends_on: '2026-11-14', last_reminder: false }), event, [], TODAY).warnings).toEqual([]);
+  });
+
+  it('prévient aussi quand une sortie d’un jour est mise en avant après sa date', () => {
+    const w = validateSpotlight(form({ starts_on: '2026-11-22', ends_on: '2026-11-29' }), event, [], TODAY).warnings;
+    expect(w.some((m) => m.includes('dernier rappel ne pourra pas'))).toBe(true);
+  });
+
+  it('ne reproche pas au rappel d’une sortie de plusieurs jours déjà commencée de manquer', () => {
+    const market = { date_start: '2026-11-28', date_end: '2026-12-24' };
+    expect(validateSpotlight(form({ starts_on: '2026-11-29', ends_on: '2026-12-06' }), market, [], TODAY).warnings).toEqual([]);
+  });
+
+  it('ne dit rien de la fenêtre quand les dates de la sortie sont périmées (seul l’avertissement de dates sort)', () => {
+    const w = validateSpotlight(form({ starts_on: '2026-11-16', ends_on: '2026-11-18', last_reminder: false }), { date_start: '2026-10-01', date_end: null }, [], TODAY).warnings;
+    expect(w).toEqual([STALE_DATES_WARNING]);
   });
 });
 

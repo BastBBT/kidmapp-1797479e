@@ -83,7 +83,7 @@ const EventSpotlightSheet = ({ ready, blocked }: Props) => {
       const stored = readSpotlightState(active.rule.id);
       const decision = decideSpotlight(now, active.rule, active.eventDay, stored);
       if (!decision.show) return;
-      const next = recordShown(stored, now, decision.isLast);
+      const next = recordShown(stored, now);
       writeSpotlightState(active.rule.id, next);
       stateRef.current = next;
       actedThisTime.current = false;

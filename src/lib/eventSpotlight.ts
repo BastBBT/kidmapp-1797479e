@@ -35,10 +35,12 @@ export interface SpotlightRule {
 }
 
 export interface SpotlightShow {
-  /** Jour de l'affichage, `YYYY-MM-DD`, heure de l'appareil. */
+  /**
+   * Jour de l'affichage, `YYYY-MM-DD`, heure de l'appareil. C'est tout ce que la règle lit : un
+   * affichage dans la fenêtre du rappel vaut rappel, quelle qu'ait été sa nature. Les états écrits
+   * avant le retrait du champ `last` portent encore ce champ : il est ignoré à la lecture.
+   */
   day: string;
-  /** Vrai si cet affichage valait dernier rappel. */
-  last: boolean;
 }
 
 /** Mémoire « déjà vu » de cet appareil pour une mise en avant. */
@@ -166,9 +168,9 @@ export const countdownOf = (daysUntil: number): SpotlightCountdown => {
 };
 
 /** Note un affichage. Ne modifie pas l'état reçu. */
-export const recordShown = (state: SpotlightState, now: Date, isLast: boolean): SpotlightState => ({
+export const recordShown = (state: SpotlightState, now: Date): SpotlightState => ({
   ...state,
-  shows: [...state.shows, { day: dayOf(now), last: isLast }].slice(-MAX_STORED_SHOWS),
+  shows: [...state.shows, { day: dayOf(now) }].slice(-MAX_STORED_SHOWS),
 });
 
 /** Note un tap sur « Voir la sortie » ou « Ajouter au calendrier ». */
@@ -200,13 +202,13 @@ const parseState = (raw: string | null): SpotlightState => {
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null) return EMPTY_SPOTLIGHT_STATE;
     const p = parsed as Record<string, unknown>;
-    const shows = Array.isArray(p.shows)
-      ? p.shows.filter(
-          (s): s is SpotlightShow =>
-            typeof s === 'object' && s !== null &&
-            typeof (s as SpotlightShow).day === 'string' && DAY_RE.test((s as SpotlightShow).day) &&
-            typeof (s as SpotlightShow).last === 'boolean',
-        )
+    // Seul `day` compte ; l'ancien champ `last` d'un état déjà enregistré est ignoré, pas rejeté.
+    const shows: SpotlightShow[] = Array.isArray(p.shows)
+      ? p.shows.flatMap((s: unknown) => {
+          if (typeof s !== 'object' || s === null) return [];
+          const day = (s as { day?: unknown }).day;
+          return typeof day === 'string' && DAY_RE.test(day) ? [{ day }] : [];
+        })
       : [];
     return { shows, acted: p.acted === true, calendar: p.calendar === true };
   } catch {

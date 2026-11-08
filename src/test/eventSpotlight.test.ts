@@ -34,7 +34,7 @@ const simulate = (r: SpotlightRule, eventDay: string, from: number, to: number, 
     const now = at(d, opts.hour ?? 13, opts.month ?? 10);
     const dec = decideSpotlight(now, r, eventDay, state);
     if (dec.show) {
-      state = recordShown(state, now, dec.isLast);
+      state = recordShown(state, now);
       out.push({ day: now.toISOString().slice(0, 10), last: dec.isLast, daysUntil: dec.daysUntil });
       if (opts.actOn === d) state = recordAction(state, 'open');
     }
@@ -93,7 +93,7 @@ describe('sortie le samedi 21/11, période du 12 au 21/11, une fois par week-end
   });
 
   it('jeudi 19 à 9 h : le rappel attend midi, jeudi 19 à 13 h il part', () => {
-    const state = recordShown(EMPTY_SPOTLIGHT_STATE, at(12), false);
+    const state = recordShown(EMPTY_SPOTLIGHT_STATE, at(12));
     expect(decideSpotlight(at(19, 9), rule(), iso(21), state).show).toBe(false);
     expect(decideSpotlight(at(19, 13), rule(), iso(21), state)).toEqual({ show: true, isLast: true, daysUntil: 2 });
   });
@@ -122,7 +122,7 @@ describe('sortie le dimanche 15/11, période du 12 au 15/11', () => {
   });
 
   it('un parent qui a déjà agi revoit le rappel une fois, même ce jeudi-là', () => {
-    const state = recordAction(recordShown(EMPTY_SPOTLIGHT_STATE, at(5), false), 'calendar');
+    const state = recordAction(recordShown(EMPTY_SPOTLIGHT_STATE, at(5)), 'calendar');
     expect(decideSpotlight(at(12), rule({ ends_on: iso(15) }), iso(15), state)).toEqual({ show: true, isLast: true, daysUntil: 3 });
   });
 });
@@ -137,7 +137,7 @@ describe('marché de Noël du 28/11 au 24/12, période du 26/11 au 06/12', () =>
       const now = new Date(2026, 10, 25 + offset, 13, 0);
       const dec = decideSpotlight(now, market, iso(28), state);
       if (dec.show) {
-        state = recordShown(state, now, dec.isLast);
+        state = recordShown(state, now);
         out.push({ day: now.toISOString().slice(0, 10), last: dec.isLast, daysUntil: dec.daysUntil });
       }
     }
@@ -231,16 +231,26 @@ describe('mémoire sur l’appareil', () => {
   });
 
   it('retrouve ce qui a été écrit', () => {
-    const state = recordAction(recordShown(EMPTY_SPOTLIGHT_STATE, at(12), true), 'calendar');
+    const state = recordAction(recordShown(EMPTY_SPOTLIGHT_STATE, at(12)), 'calendar');
     writeSpotlightState('abc', state);
-    expect(readSpotlightState('abc')).toEqual({ shows: [{ day: '2026-11-12', last: true }], acted: true, calendar: true });
+    expect(readSpotlightState('abc')).toEqual({ shows: [{ day: '2026-11-12' }], acted: true, calendar: true });
   });
 
   it('une valeur illisible ou mal formée vaut « rien vu »', () => {
     localStorage.setItem('kidmapp_spotlight_x', '{pas du json');
     expect(readSpotlightState('x')).toEqual(EMPTY_SPOTLIGHT_STATE);
     localStorage.setItem('kidmapp_spotlight_y', JSON.stringify({ shows: [{ day: 'hier', last: true }, { day: '2026-11-12', last: false }, 3], acted: 'oui' }));
-    expect(readSpotlightState('y')).toEqual({ shows: [{ day: '2026-11-12', last: false }], acted: false, calendar: false });
+    expect(readSpotlightState('y')).toEqual({ shows: [{ day: '2026-11-12' }], acted: false, calendar: false });
+  });
+
+  it('lit un état enregistré avec l’ancien champ `last` sans le perdre ni le réécrire', () => {
+    localStorage.setItem('kidmapp_spotlight_old', JSON.stringify({
+      shows: [{ day: '2026-11-12', last: false }, { day: '2026-11-19', last: true }], acted: true, calendar: true,
+    }));
+    const state = readSpotlightState('old');
+    expect(state).toEqual({ shows: [{ day: '2026-11-12' }, { day: '2026-11-19' }], acted: true, calendar: true });
+    // La règle en tire les mêmes décisions qu'avant : rappel du 19 déjà montré, rien de plus ce jour-là.
+    expect(decideSpotlight(at(19, 15), rule(), iso(21), state).show).toBe(false);
   });
 
   it('un stockage bloqué ne casse rien, en lecture comme en écriture', () => {
@@ -252,7 +262,7 @@ describe('mémoire sur l’appareil', () => {
 
   it("n'enregistre jamais plus de soixante affichages", () => {
     let state: SpotlightState = EMPTY_SPOTLIGHT_STATE;
-    for (let i = 0; i < 80; i++) state = recordShown(state, at(12), false);
+    for (let i = 0; i < 80; i++) state = recordShown(state, at(12));
     expect(state.shows).toHaveLength(60);
   });
 });

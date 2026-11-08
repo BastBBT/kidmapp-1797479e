@@ -8,7 +8,7 @@ import { isPastEvent, todayISO } from '@/lib/weekend';
 import { hasRecurrence } from '@/types/event';
 import {
   HEADLINE_MAX, MESSAGE_MAX, emptySpotlightForm, endForShortcut, overlapsOf, parseSpotlightStats,
-  percentOf, spotlightStatus, validateSpotlight, type EndShortcut, type SpotlightForm,
+  hasStaleDates, percentOf, spotlightStatus, validateSpotlight, type EndShortcut, type SpotlightForm,
   type SpotlightStats, type SpotlightStatus,
 } from './spotlightAdmin';
 
@@ -51,7 +51,7 @@ const FREQUENCY_LABEL: Record<SpotlightFrequency, string> = {
   once: 'Une seule fois',
 };
 const FREQUENCY_HELP: Record<SpotlightFrequency, string> = {
-  weekend: 'À la première ouverture de chaque week-end de la période, dès le jeudi à 12 h. Rien du lundi au jeudi midi.',
+  weekend: 'À la première ouverture de chaque week-end de la période, dès le jeudi à 12 h. Rien du lundi au jeudi midi, sauf le dernier rappel.',
   daily: 'Pour une sortie très proche ou une période courte.',
   once: 'Un seul affichage sur toute la période.',
 };
@@ -135,7 +135,7 @@ export function SpotlightsTab({ isAdmin }: { isAdmin: boolean }) {
     () => overlapsOf({ id: editing && editing !== 'new' ? editing : undefined, starts_on: form.starts_on, ends_on: form.ends_on }, rows),
     [editing, form.starts_on, form.ends_on, rows],
   );
-  const issues = validateSpotlight(form, selectedEvent, overlapping);
+  const issues = validateSpotlight(form, selectedEvent, overlapping, today);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['admin', 'event-spotlights'] });
@@ -227,7 +227,7 @@ export function SpotlightsTab({ isAdmin }: { isAdmin: boolean }) {
               <option value="">Choisir une sortie…</option>
               {options.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.name} · {o.date_end && o.date_end !== o.date_start ? `du ${day(o.date_start)} au ${day(o.date_end)}` : day(o.date_start)}
+                  {`${o.name} · ${o.date_end && o.date_end !== o.date_start ? `du ${day(o.date_start)} au ${day(o.date_end)}` : day(o.date_start)}${hasStaleDates(o, today) ? ' · dates passées' : ''}`}
                 </option>
               ))}
             </select>
