@@ -176,6 +176,13 @@
       "when": 1794169783696,
       "tag": "0024_event_spotlight_logs_effacement_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794171455127,
+      "tag": "0025_event_spotlight_stats_sessions_appareils",
+      "breakpoints": true
     }
   ]
 }
