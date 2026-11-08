@@ -5,6 +5,11 @@ import {
   overlapsOf,
   parseSpotlightStats,
   percentOf,
+  clickRate,
+  countLabel,
+  rateLabel,
+  viewedLabel,
+  unknownSpotlightStats,
   spotlightStatus,
   validateSpotlight,
   hasStaleDates,
@@ -165,7 +170,13 @@ describe('période sans moment d’affichage', () => {
 });
 
 describe('statistiques', () => {
-  it('lit le JSON de la fonction, ignore les lignes mal formées, ramène le reste à des nombres', () => {
+  const noPlatform = { web: null, ios: null, android: null };
+  const unknownNew = {
+    sessionsShown: null, sessionsClicked: null, uniqueClickers: null, uniqueOpeners: null,
+    uniqueCalendarAdders: null, uniqueDismissers: null, firstShownAt: null, lastShownAt: null, byPlatform: noPlatform,
+  };
+
+  it('lit l’ancienne version de la fonction : les nouveaux champs sont « inconnus », pas 0', () => {
     const stats = parseSpotlightStats([
       { id: 'a', shown: 10, shownLast: '3', opens: 4, calendarAdds: 2, dismisses: 5, uniqueViewers: 8 },
       { id: 'b', shown: null },
@@ -174,8 +185,52 @@ describe('statistiques', () => {
       null,
     ]);
     expect(Object.keys(stats)).toEqual(['a', 'b']);
-    expect(stats.a).toEqual({ id: 'a', shown: 10, shownLast: 3, opens: 4, calendarAdds: 2, dismisses: 5, uniqueViewers: 8 });
+    expect(stats.a).toEqual({ id: 'a', shown: 10, shownLast: 3, opens: 4, calendarAdds: 2, dismisses: 5, uniqueViewers: 8, ...unknownNew });
     expect(stats.b.shown).toBe(0);
+    expect(stats.b.uniqueClickers).toBeNull();
+  });
+
+  it('lit la version enrichie, y compris les trois plateformes', () => {
+    const stats = parseSpotlightStats([{
+      id: 'a', shown: 10, shownLast: 3, opens: 4, calendarAdds: 2, dismisses: 5, uniqueViewers: 8,
+      sessionsShown: 12, sessionsClicked: 4, uniqueClickers: 3, uniqueOpeners: 2, uniqueCalendarAdders: 1, uniqueDismissers: 4,
+      firstShownAt: '2026-11-12T10:05:00+00:00', lastShownAt: '2026-11-19T17:30:00+00:00',
+      byPlatform: { web: { viewers: 5, clickers: 1 }, ios: { viewers: 3, clickers: 2 }, android: { viewers: 0, clickers: 0 } },
+    }]);
+    expect(stats.a).toEqual({
+      id: 'a', shown: 10, shownLast: 3, opens: 4, calendarAdds: 2, dismisses: 5, uniqueViewers: 8,
+      sessionsShown: 12, sessionsClicked: 4, uniqueClickers: 3, uniqueOpeners: 2, uniqueCalendarAdders: 1, uniqueDismissers: 4,
+      firstShownAt: '2026-11-12T10:05:00+00:00', lastShownAt: '2026-11-19T17:30:00+00:00',
+      byPlatform: { web: { viewers: 5, clickers: 1 }, ios: { viewers: 3, clickers: 2 }, android: { viewers: 0, clickers: 0 } },
+    });
+  });
+
+  it('un nouveau champ invalide se lit comme inconnu, sans abîmer les autres', () => {
+    const { a } = parseSpotlightStats([{
+      id: 'a', shown: 1, uniqueViewers: 2,
+      sessionsShown: 'beaucoup', sessionsClicked: -3, uniqueClickers: null, uniqueOpeners: '', uniqueCalendarAdders: {}, uniqueDismissers: 2,
+      firstShownAt: 'hier', lastShownAt: 42,
+      byPlatform: { web: { viewers: 5 }, ios: 'oui', android: { viewers: 1, clickers: -1 } },
+    }]);
+    expect(a).toMatchObject({
+      shown: 1, uniqueViewers: 2, uniqueDismissers: 2,
+      sessionsShown: null, sessionsClicked: null, uniqueClickers: null, uniqueOpeners: null, uniqueCalendarAdders: null,
+      firstShownAt: null, lastShownAt: null,
+    });
+    expect(a.byPlatform).toEqual(noPlatform);
+  });
+
+  it('un zéro lisible reste un zéro (une mise en avant sans clic n’est pas « inconnue »)', () => {
+    const { a } = parseSpotlightStats([{ id: 'a', uniqueClickers: 0, sessionsShown: '0', byPlatform: { web: { viewers: 0, clickers: 0 } } }]);
+    expect(a.uniqueClickers).toBe(0);
+    expect(a.sessionsShown).toBe(0);
+    expect(a.byPlatform.web).toEqual({ viewers: 0, clickers: 0 });
+    expect(a.byPlatform.ios).toBeNull();
+  });
+
+  it('une mise en avant sans ligne de résultat : le passé vaut 0, le reste est inconnu', () => {
+    const s = unknownSpotlightStats('x');
+    expect(s).toMatchObject({ id: 'x', shown: 0, opens: 0, uniqueViewers: 0, ...unknownNew });
   });
 
   it('ne casse pas sur autre chose qu’un tableau', () => {
@@ -187,5 +242,34 @@ describe('statistiques', () => {
     expect(percentOf(1, 3)).toBe(33);
     expect(percentOf(2, 3)).toBe(67);
     expect(percentOf(0, 0)).toBeNull();
+  });
+});
+
+describe('taux et libellés', () => {
+  it('le taux de clic compte des appareils ; inconnu ou sans appareil, il n’y a pas de taux', () => {
+    expect(clickRate(3, 8)).toBe(38);
+    expect(clickRate(0, 8)).toBe(0);
+    expect(clickRate(null, 8)).toBeNull();
+    expect(clickRate(3, 0)).toBeNull();
+  });
+
+  it('affiche « — » pour l’inconnu, jamais 0, et garde les vrais zéros', () => {
+    expect(countLabel(null)).toBe('—');
+    expect(countLabel(0)).toBe('0');
+    expect(rateLabel(null)).toBe('—');
+    expect(rateLabel(0)).toBe('0 %');
+    expect(rateLabel(38)).toBe('38 %');
+    expect(countLabel(1234)).toBe((1234).toLocaleString('fr-FR'));
+  });
+
+  it('« Vue du … au … », « Vue le … » ou rien', () => {
+    expect(viewedLabel('2026-11-12T10:05:00+00:00', '2026-11-19T17:30:00+00:00')).toBe('Vue du 12 nov. au 19 nov.');
+    expect(viewedLabel('2026-11-12T10:05:00+00:00', '2026-11-12T17:30:00+00:00')).toBe('Vue le 12 nov.');
+    expect(viewedLabel(null, '2026-11-19T17:30:00+00:00')).toBeNull();
+    expect(viewedLabel(null, null)).toBeNull();
+  });
+
+  it('compte le jour à Nantes, pas en UTC (23 h UTC = lendemain à Paris)', () => {
+    expect(viewedLabel('2026-11-12T23:30:00+00:00', '2026-11-12T23:45:00+00:00')).toBe('Vue le 13 nov.');
   });
 });

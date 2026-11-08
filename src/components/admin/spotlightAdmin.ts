@@ -136,7 +136,23 @@ export const validateSpotlight = (
   return { errors, warnings };
 };
 
-/** Statistiques d'une mise en avant, telles que les renvoie `admin_event_spotlight_stats`. */
+export const PLATFORMS = ['web', 'ios', 'android'] as const;
+export type SpotlightPlatform = (typeof PLATFORMS)[number];
+
+/** Appareils uniques vus et ayant cliqué sur une plateforme. */
+export interface PlatformStats {
+  viewers: number;
+  clickers: number;
+}
+
+/**
+ * Statistiques d'une mise en avant, telles que les renvoie `admin_event_spotlight_stats`.
+ *
+ * Les six premiers champs existent depuis la première version de la fonction : absents ou illisibles,
+ * ils valent 0. Les suivants sont arrivés avec la version enrichie : absents ou illisibles, ils valent
+ * `null` (« inconnu »), jamais 0, pour ne pas faire croire à une absence de clics quand la base
+ * n'a simplement pas encore la nouvelle version.
+ */
 export interface SpotlightStats {
   id: string;
   shown: number;
@@ -145,11 +161,44 @@ export interface SpotlightStats {
   calendarAdds: number;
   dismisses: number;
   uniqueViewers: number;
+  /** Sessions (ouvertures d'app) où la pop-in a été montrée. */
+  sessionsShown: number | null;
+  /** Sessions où un parent a tapé « Voir » ou « Ajouter au calendrier ». */
+  sessionsClicked: number | null;
+  /** Appareils qui ont tapé « Voir » ou « Ajouter au calendrier ». */
+  uniqueClickers: number | null;
+  uniqueOpeners: number | null;
+  uniqueCalendarAdders: number | null;
+  uniqueDismissers: number | null;
+  /** Premier et dernier affichage, ISO ; `null` sans affichage ou sans donnée. */
+  firstShownAt: string | null;
+  lastShownAt: string | null;
+  /** `null` pour une plateforme sans donnée lisible. */
+  byPlatform: Record<SpotlightPlatform, PlatformStats | null>;
 }
 
+/** Pour les champs historiques : tout ce qui n'est pas un nombre vaut 0. */
 const num = (v: unknown): number => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
+};
+
+/** Pour les champs récents : un compte lisible (entier positif ou nul), sinon « inconnu ». */
+const known = (v: unknown): number | null => {
+  if (typeof v === 'string' && v.trim() === '') return null;
+  if (typeof v !== 'number' && typeof v !== 'string') return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+};
+
+const knownDate = (v: unknown): string | null =>
+  typeof v === 'string' && !Number.isNaN(Date.parse(v)) ? v : null;
+
+const platformStats = (v: unknown): PlatformStats | null => {
+  if (typeof v !== 'object' || v === null) return null;
+  const viewers = known((v as Record<string, unknown>).viewers);
+  const clickers = known((v as Record<string, unknown>).clickers);
+  return viewers === null || clickers === null ? null : { viewers, clickers };
 };
 
 /** Lecture prudente du JSON de la fonction : une ligne mal formée est ignorée. */
@@ -160,6 +209,7 @@ export const parseSpotlightStats = (raw: unknown): Record<string, SpotlightStats
     if (typeof row !== 'object' || row === null) continue;
     const r = row as Record<string, unknown>;
     if (typeof r.id !== 'string') continue;
+    const bp = typeof r.byPlatform === 'object' && r.byPlatform !== null ? (r.byPlatform as Record<string, unknown>) : {};
     out[r.id] = {
       id: r.id,
       shown: num(r.shown),
@@ -168,11 +218,44 @@ export const parseSpotlightStats = (raw: unknown): Record<string, SpotlightStats
       calendarAdds: num(r.calendarAdds),
       dismisses: num(r.dismisses),
       uniqueViewers: num(r.uniqueViewers),
+      sessionsShown: known(r.sessionsShown),
+      sessionsClicked: known(r.sessionsClicked),
+      uniqueClickers: known(r.uniqueClickers),
+      uniqueOpeners: known(r.uniqueOpeners),
+      uniqueCalendarAdders: known(r.uniqueCalendarAdders),
+      uniqueDismissers: known(r.uniqueDismissers),
+      firstShownAt: knownDate(r.firstShownAt),
+      lastShownAt: knownDate(r.lastShownAt),
+      byPlatform: { web: platformStats(bp.web), ios: platformStats(bp.ios), android: platformStats(bp.android) },
     };
   }
   return out;
 };
 
+/** Statistiques d'une mise en avant sans ligne de résultat : le passé vaut 0, tout le reste est inconnu. */
+export const unknownSpotlightStats = (id: string): SpotlightStats =>
+  parseSpotlightStats([{ id, shown: 0, shownLast: 0, opens: 0, calendarAdds: 0, dismisses: 0, uniqueViewers: 0 }])[id];
+
 /** Part de `part` dans `total`, en pour cent entier ; `null` sans affichage. */
 export const percentOf = (part: number, total: number): number | null =>
   total > 0 ? Math.round((part / total) * 100) : null;
+
+/** Taux d'appareils ayant cliqué ; `null` si le nombre de clics est inconnu ou s'il n'y a aucun appareil. */
+export const clickRate = (clickers: number | null, viewers: number): number | null =>
+  clickers === null ? null : percentOf(clickers, viewers);
+
+/** Un compte pour l'affichage : « — » quand il est inconnu, jamais 0. */
+export const countLabel = (n: number | null): string => (n === null ? '—' : n.toLocaleString('fr-FR'));
+
+export const rateLabel = (rate: number | null): string => (rate === null ? '—' : `${rate} %`);
+
+const parisDay = (iso: string, opts: Intl.DateTimeFormatOptions) =>
+  new Date(iso).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', ...opts });
+
+/** « Vue du 12 nov. au 19 nov. », « Vue le 12 nov. », ou `null` sans affichage connu. */
+export const viewedLabel = (first: string | null, last: string | null): string | null => {
+  if (!first || !last) return null;
+  const a = parisDay(first, { day: 'numeric', month: 'short' });
+  const b = parisDay(last, { day: 'numeric', month: 'short' });
+  return a === b ? `Vue le ${a}` : `Vue du ${a} au ${b}`;
+};
