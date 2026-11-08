@@ -169,6 +169,13 @@
       "when": 1794169494656,
       "tag": "0023_event_spotlights_select_active_occurrences",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794169783696,
+      "tag": "0024_event_spotlight_logs_effacement_retention",
+      "breakpoints": true
     }
   ]
 }
