@@ -67,6 +67,9 @@ export type Database = {
           min_supported_build: number
           min_supported_label: string | null
           platform: string
+          seasonal_icon: string | null
+          seasonal_icon_from: string | null
+          seasonal_icon_until: string | null
           store_url: string | null
           updated_at: string
         }
@@ -74,6 +77,9 @@ export type Database = {
           min_supported_build?: number
           min_supported_label?: string | null
           platform: string
+          seasonal_icon?: string | null
+          seasonal_icon_from?: string | null
+          seasonal_icon_until?: string | null
           store_url?: string | null
           updated_at?: string
         }
@@ -81,6 +87,9 @@ export type Database = {
           min_supported_build?: number
           min_supported_label?: string | null
           platform?: string
+          seasonal_icon?: string | null
+          seasonal_icon_from?: string | null
+          seasonal_icon_until?: string | null
           store_url?: string | null
           updated_at?: string
         }

@@ -148,6 +148,13 @@
       "when": 1794089357610,
       "tag": "0020_event_category_marche_de_noel",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794166037864,
+      "tag": "0021_app_config_seasonal_icon",
+      "breakpoints": true
     }
   ]
 }
