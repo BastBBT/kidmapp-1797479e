@@ -162,6 +162,13 @@
       "when": 1794167453138,
       "tag": "0022_event_spotlights",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794169494656,
+      "tag": "0023_event_spotlights_select_active_occurrences",
+      "breakpoints": true
     }
   ]
 }
