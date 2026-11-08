@@ -22,6 +22,8 @@ import { AGE_LABEL_KEY, AgeBucket, ChildAgeBucket, ageAdequacyScoreForBuckets, b
 import { useChildren } from '@/hooks/useChildren';
 import { Child, ageInMonths } from '@/lib/children';
 import AgeBandCelebrationCard from '@/components/AgeBandCelebrationCard';
+import EventSpotlightSheet from '@/components/EventSpotlightSheet';
+import { useProposalModal } from '@/hooks/useProposalModal';
 import { useProfileSettings } from '@/hooks/useProfileSettings';
 import { translateToken } from '@/i18n/tokenMaps';
 import { ExploreCriteria, ExploreLoc, countExplore, inGroup, matchesExplore, weatherLabelKey } from '@/lib/exploreFilters';
@@ -145,7 +147,9 @@ const Index = () => {
   const {
     children: kids, selection: childSelection, setSelection: setChildSelection,
     resolvedBuckets, requestHookIfNeeded, ageBandCrossing, acknowledgeAgeBandCrossing,
+    wantsHookSheet, wantsCaptureFlow,
   } = useChildren();
+  const { isOpen: proposalOpen } = useProposalModal();
   const { settings: profileSettings } = useProfileSettings();
   // D7 : dès qu'un canal digest est actif, la célébration partira par ce
   // canal — la carte in-app n'est que le repli du canal « aucun ». Attendre
@@ -674,6 +678,12 @@ const Index = () => {
         mealTypes={mealTypes}
         onFinish={handleAssistantOutcome}
         onSkip={() => setAssistantOpen(false)}
+      />
+
+      {/* « À la une » : attend la liste, puis 1,5 s ; laisse la place à toute autre fenêtre ouverte. */}
+      <EventSpotlightSheet
+        ready={!isLoading}
+        blocked={assistantOpen || filtersOpen || coachmarkStep !== null || proposalOpen || wantsHookSheet || wantsCaptureFlow}
       />
     </div>
   );

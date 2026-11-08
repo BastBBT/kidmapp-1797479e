@@ -761,5 +761,18 @@
     "escape_count_other": "{{count}} sorties ces 7 prochains jours, sans filtre",
     "escape_all": "Toutes les sorties, sans filtre",
     "from_to": "Du {{start}} au {{end}}"
+  },
+  "spotlight": {
+    "label": "À la une",
+    "countdown_days": "Dans {{count}} jours",
+    "countdown_tomorrow": "Demain",
+    "countdown_today": "Aujourd'hui",
+    "see_event": "Voir la sortie",
+    "add_to_calendar": "Ajouter au calendrier",
+    "added_to_calendar": "Ajoutée à ton agenda",
+    "already_in_calendar": "Déjà dans ton agenda",
+    "later": "Plus tard",
+    "close": "Fermer",
+    "date_range": "Du {{start}} au {{end}}"
   }
 }
