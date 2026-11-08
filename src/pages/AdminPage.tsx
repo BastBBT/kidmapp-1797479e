@@ -45,12 +45,13 @@ import { fr } from 'date-fns/locale';
 import { sanitizePhotoUrls } from '@/lib/sanitizePhotoUrls';
 import { AudienceTab } from '@/components/admin/AudienceTab';
 import { EngagementTab } from '@/components/admin/EngagementTab';
+import { SpotlightsTab } from '@/components/admin/SpotlightsTab';
 import { TopPagesTab } from '@/components/admin/TopPagesTab';
 import { PLATFORMS, type AudienceStats } from '@/components/admin/audiencePlatforms';
 import { webLink } from '@/lib/webLink';
 
 
-type AdminTab = 'dashboard' | 'audience' | 'top-pages' | 'engagement' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events' | 'outbound';
+type AdminTab = 'dashboard' | 'audience' | 'top-pages' | 'engagement' | 'locations' | 'contributions' | 'add' | 'add-event' | 'proposals' | 'events' | 'outbound' | 'spotlights';
 
 type MealsState = Record<string, { enabled: boolean; time_open: string; time_close: string; confirmed_count: number }>;
 
@@ -68,6 +69,7 @@ const tabs: { key: AdminTab; label: string }[] = [
   { key: 'top-pages', label: 'Top pages' },
   { key: 'engagement', label: 'Engagement' },
   { key: 'outbound', label: 'Trafic sortant' },
+  { key: 'spotlights', label: 'À la une' },
   { key: 'locations', label: 'Lieux & activités' },
   { key: 'contributions', label: 'Contributions' },
   { key: 'proposals', label: 'Propositions' },
@@ -1628,6 +1630,7 @@ const AdminPage = () => {
 
         {/* Outbound traffic */}
         {activeTab === 'outbound' && <OutboundTab isAdmin={isAdmin} />}
+        {activeTab === 'spotlights' && <SpotlightsTab isAdmin={isAdmin} />}
 
         {/* Add location */}
         {activeTab === 'add' && (

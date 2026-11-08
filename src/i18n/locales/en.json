@@ -761,5 +761,18 @@
     "escape_count_other": "{{count}} outings over the next 7 days, unfiltered",
     "escape_all": "All outings, unfiltered",
     "from_to": "From {{start}} to {{end}}"
+  },
+  "spotlight": {
+    "label": "Featured",
+    "countdown_days": "In {{count}} days",
+    "countdown_tomorrow": "Tomorrow",
+    "countdown_today": "Today",
+    "see_event": "See the outing",
+    "add_to_calendar": "Add to calendar",
+    "added_to_calendar": "Added to your calendar",
+    "already_in_calendar": "Already in your calendar",
+    "later": "Later",
+    "close": "Close",
+    "date_range": "From {{start}} to {{end}}"
   }
 }

@@ -30,6 +30,7 @@ import { useAuth, AuthProvider } from "./hooks/useAuth";
 import { RequireAuthProvider, useRequireAuth } from "./hooks/useRequireAuth";
 import { ProposalModalProvider, useProposalModal, ProposalMode } from "./hooks/useProposalModal";
 import { usePageviewTracker } from "./hooks/usePageviewTracker";
+import { useRegisterBlockingOverlay } from "./hooks/useBlockingOverlays";
 import { CoachmarkProvider } from "./hooks/useCoachmarks";
 import { ChildrenProvider } from "./hooks/useChildren";
 import ChildrenCaptureFlow from "./components/ChildrenCaptureFlow";
@@ -49,6 +50,10 @@ const ACQUISITION_FLAG = 'hasAnsweredAcquisition';
 const AcquisitionOverlay = () => {
   const { user, isLoading } = useAuth();
   const [show, setShow] = useState(false);
+  // Le temps de la vérification en base, la question est « peut-être » à venir : la pop-in
+  // « À la une » attend aussi, sinon elle s'ouvrirait juste avant de se faire recouvrir.
+  const [checking, setChecking] = useState(false);
+  useRegisterBlockingOverlay('acquisition', show || checking);
 
   useEffect(() => {
     if (isLoading || !user) return;
@@ -59,6 +64,7 @@ const AcquisitionOverlay = () => {
     }
 
     let cancelled = false;
+    setChecking(true);
     supabase
       .from('profiles')
       .select('acquisition_source')
@@ -66,6 +72,7 @@ const AcquisitionOverlay = () => {
       .single()
       .then(({ data, error }) => {
         if (cancelled) return;
+        setChecking(false);
         if (error) {
           console.error('acquisition check error', error);
           return;
@@ -82,10 +89,13 @@ const AcquisitionOverlay = () => {
           return;
         }
         setShow(true);
+      }, () => {
+        if (!cancelled) setChecking(false);
       });
 
     return () => {
       cancelled = true;
+      setChecking(false);
     };
   }, [isLoading, user]);
 

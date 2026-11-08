@@ -761,5 +761,18 @@
     "escape_count_other": "{{count}} salidas en los próximos 7 días, sin filtro",
     "escape_all": "Todas las salidas, sin filtro",
     "from_to": "Del {{start}} al {{end}}"
+  },
+  "spotlight": {
+    "label": "Destacado",
+    "countdown_days": "En {{count}} días",
+    "countdown_tomorrow": "Mañana",
+    "countdown_today": "Hoy",
+    "see_event": "Ver la salida",
+    "add_to_calendar": "Añadir al calendario",
+    "added_to_calendar": "Añadida a tu calendario",
+    "already_in_calendar": "Ya está en tu calendario",
+    "later": "Más tarde",
+    "close": "Cerrar",
+    "date_range": "Del {{start}} al {{end}}"
   }
 }
