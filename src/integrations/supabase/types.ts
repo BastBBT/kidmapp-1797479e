@@ -409,6 +409,106 @@ export type Database = {
           },
         ]
       }
+      event_spotlight_logs: {
+        Row: {
+          app_version: string | null
+          created_at: string
+          device_id: string | null
+          id: string
+          is_last: boolean
+          kind: string
+          platform: string
+          session_id: string | null
+          spotlight_id: string
+          user_id: string | null
+        }
+        Insert: {
+          app_version?: string | null
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          is_last?: boolean
+          kind: string
+          platform?: string
+          session_id?: string | null
+          spotlight_id: string
+          user_id?: string | null
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string
+          device_id?: string | null
+          id?: string
+          is_last?: boolean
+          kind?: string
+          platform?: string
+          session_id?: string | null
+          spotlight_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_spotlight_logs_spotlight_id_fkey"
+            columns: ["spotlight_id"]
+            isOneToOne: false
+            referencedRelation: "event_spotlights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_spotlights: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_on: string
+          event_id: string
+          frequency: string
+          headline: string
+          id: string
+          last_reminder: boolean
+          message: string | null
+          show_calendar_cta: boolean
+          show_photo: boolean
+          starts_on: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_on: string
+          event_id: string
+          frequency?: string
+          headline: string
+          id?: string
+          last_reminder?: boolean
+          message?: string | null
+          show_calendar_cta?: boolean
+          show_photo?: boolean
+          starts_on: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string
+          event_id?: string
+          frequency?: string
+          headline?: string
+          id?: string
+          last_reminder?: boolean
+          message?: string | null
+          show_calendar_cta?: boolean
+          show_photo?: boolean
+          starts_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_spotlights_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           address: string | null
@@ -1309,6 +1409,7 @@ export type Database = {
       admin_audience_stats: { Args: never; Returns: Json }
       admin_dashboard_stats: { Args: never; Returns: Json }
       admin_engagement_stats: { Args: never; Returns: Json }
+      admin_event_spotlight_stats: { Args: never; Returns: Json }
       admin_link_clicks_stats: {
         Args: { p_days?: number }
         Returns: {
