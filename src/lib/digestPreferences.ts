@@ -12,11 +12,17 @@ export const EVENT_CATEGORIES = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'M
 /** Même vocabulaire que la contrainte locations_category_check, ordre d'affichage
  *  du réglage (les lieux « sortie » d'abord). */
 export const LOCATION_CATEGORIES = [
-  'public', 'nature', 'sport', 'creatif', 'culture', 'jeux', 'librairie', 'restaurant', 'cafe', 'shop', 'coiffeur',
+  'aire_de_jeux', 'nature', 'sport', 'creatif', 'culture', 'jeux', 'laep', 'librairie', 'manege', 'restaurant', 'cafe', 'shop', 'coiffeur',
 ];
 
 export function parseDigestDays(value: string | null | undefined): DigestDays {
   return value === 'weekend' || value === 'wed_weekend' ? value : 'all';
+}
+
+/** `public` (ancien « Lieu public ») est devenu `aire_de_jeux` : un profil qui
+ *  l'avait coché garde sa préférence, affichée sur la nouvelle pastille. */
+function normalizeCategories(list: string[]): string[] {
+  return Array.from(new Set(list.map((c) => (c === 'public' ? 'aire_de_jeux' : c))));
 }
 
 /**
@@ -25,7 +31,7 @@ export function parseDigestDays(value: string | null | undefined): DigestDays {
  * l'interdit) — décocher la dernière catégorie ne fait rien.
  */
 export function toggleCategory(current: string[] | null, all: string[], id: string): string[] | null {
-  const effective = current && current.length > 0 ? current : all;
+  const effective = current && current.length > 0 ? normalizeCategories(current) : all;
   const isOn = effective.includes(id);
   if (isOn && effective.length === 1) return current;
   const next = all.filter((c) => (c === id ? !isOn : effective.includes(c)));
@@ -33,5 +39,5 @@ export function toggleCategory(current: string[] | null, all: string[], id: stri
 }
 
 export function isCategoryOn(current: string[] | null, id: string): boolean {
-  return !current || current.length === 0 || current.includes(id);
+  return !current || current.length === 0 || normalizeCategories(current).includes(id);
 }

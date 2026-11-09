@@ -44,7 +44,11 @@ export function parseDigestDays(value: string | null | undefined): DigestDays {
  * on ne filtre jamais tout sur une donnée inattendue). */
 export function categoryAllowed(category: string | null | undefined, allowed: string[] | null | undefined): boolean {
   if (!allowed || allowed.length === 0) return true
-  return !!category && allowed.includes(category)
+  if (!category) return false
+  if (allowed.includes(category)) return true
+  // `public` est devenu `aire_de_jeux` (2026-11) : les profils qui avaient
+  // coché l'ancienne catégorie continuent de recevoir les aires de jeux.
+  return category === 'aire_de_jeux' && allowed.includes('public')
 }
 
 /** 0 = dimanche … 6 = samedi (convention EXTRACT(DOW), comme `digest_day`). */

@@ -46,7 +46,7 @@ const needGroup = (need: Need): CategoryGroup => (need === 'manger' ? 'places' :
 // « Manger dehors » vise restaurants ET cafés, ce qu'une pastille unique ne
 // sait pas dire — le repas choisi à la question 3 s'en charge (seuls ces
 // lieux-là en servent). On reste donc sur « Tout » des Lieux.
-const needCategory = (need: Need): LocationCategory | null => (need === 'air' ? 'nature' : null);
+const needCategory = (need: Need): LocationCategory | null => (need === 'air' ? 'aire_de_jeux' : null);
 
 const AGE_BUCKET_CHOICES: Exclude<AgeBucket, 'all'>[] = ['0-2', '3-5', '6+'];
 

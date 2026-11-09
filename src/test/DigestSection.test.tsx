@@ -173,7 +173,7 @@ describe('DigestSection — personnalisation', () => {
     await renderSection();
     expect(
       hasText(
-        'Chaque jeudi, les sorties du samedi et du dimanche, et de toute la semaine pendant les vacances scolaires (2 types sur 8). Nouveaux lieux : 11 catégories sur 11.',
+        'Chaque jeudi, les sorties du samedi et du dimanche, et de toute la semaine pendant les vacances scolaires (2 types sur 8). Nouveaux lieux : 13 catégories sur 13.',
       ),
     ).toBe(true);
   });

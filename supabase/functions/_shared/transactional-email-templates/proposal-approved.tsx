@@ -29,6 +29,15 @@ const CATEGORY_EMOJI: Record<string, string> = {
   shop: '🛍️',
   public: '🌳',
   coiffeur: '✂️',
+  librairie: '📚',
+  nature: '🌿',
+  sport: '⚽',
+  creatif: '🎨',
+  culture: '🏛️',
+  jeux: '🎲',
+  laep: '🧸',
+  aire_de_jeux: '🛝',
+  manege: '🎠',
 }
 
 const ProposalApprovedEmail = ({

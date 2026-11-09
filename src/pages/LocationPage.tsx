@@ -48,6 +48,9 @@ const categoryGradients: Record<string, string> = {
   creatif: 'linear-gradient(145deg, #F5C5D5, #D96A8E)',
   culture: 'linear-gradient(145deg, #CFC0EA, #7E5FBF)',
   jeux: 'linear-gradient(145deg, #F5D89A, #E0A040)',
+  laep: 'linear-gradient(145deg, #BFE3E3, #2E9C9C)',
+  aire_de_jeux: 'linear-gradient(145deg, #D1E8CF, #5A9A56)',
+  manege: 'linear-gradient(145deg, #F4D3AC, #D9822B)',
 };
 
 const HighChairSVG = ({ color }: { color: string }) => (

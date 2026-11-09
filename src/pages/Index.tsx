@@ -36,8 +36,8 @@ import {
 type SortMode = 'default' | 'loved' | 'recent';
 
 const VALID_CATEGORIES = new Set<string>([
-  'all', 'restaurant', 'cafe', 'shop', 'public', 'coiffeur', 'librairie',
-  'nature', 'sport', 'creatif', 'culture', 'jeux',
+  'all', 'restaurant', 'cafe', 'shop', 'coiffeur', 'librairie', 'manege',
+  'nature', 'sport', 'creatif', 'culture', 'jeux', 'laep', 'aire_de_jeux',
 ]);
 const VALID_AGES = new Set<string>(['all', '0-2', '3-5', '6+']);
 const VALID_GROUPS = new Set<string>(['places', 'activities']);
@@ -78,7 +78,9 @@ const Index = () => {
   // L'URL fait foi (lien partagé/rechargé) ; à défaut, la dernière tranche
   // choisie survit à la fermeture de l'onglet via localStorage.
   const initialCategory = (() => {
-    const c = searchParams.get('category');
+    const raw = searchParams.get('category');
+    // Anciens liens : « public » est devenu « aire_de_jeux ».
+    const c = raw === 'public' ? 'aire_de_jeux' : raw;
     return c && VALID_CATEGORIES.has(c) ? (c as LocationCategory | 'all') : 'all';
   })();
   const initialAge = (() => {

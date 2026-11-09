@@ -81,7 +81,10 @@
     "sport": "Deporte",
     "creatif": "Creativo",
     "culture": "Cultura",
-    "jeux": "Juegos"
+    "jeux": "Parque temático",
+    "manege": "Tiovivo",
+    "laep": "LAEP",
+    "aire_de_jeux": "Zona de juegos"
   },
   "category_event": {
     "Spectacle": "Espectáculo",
@@ -699,7 +702,7 @@
     "need_meal_title": "Comer fuera",
     "need_meal_subtitle": "Restaurantes y cafés acogedores",
     "need_air_title": "Tomar el aire",
-    "need_air_subtitle": "Parques, jardines, naturaleza",
+    "need_air_subtitle": "Parques, zonas de juegos, naturaleza",
     "duration_1h_title": "Una horita",
     "duration_1h_subtitle": "Cerca y rápido",
     "duration_23h_title": "Dos o tres horas",

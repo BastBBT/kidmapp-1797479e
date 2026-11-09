@@ -94,6 +94,12 @@ describe('categoryAllowed', () => {
     expect(categoryAllowed('Atelier', ['Spectacle', 'Atelier'])).toBe(true);
     expect(categoryAllowed(null, ['Atelier'])).toBe(false);
   });
+
+  it('un profil qui avait « public » reçoit les aires de jeux, pas plus', () => {
+    expect(categoryAllowed('aire_de_jeux', ['public', 'nature'])).toBe(true);
+    expect(categoryAllowed('laep', ['public', 'nature'])).toBe(false);
+    expect(categoryAllowed('aire_de_jeux', ['nature'])).toBe(false);
+  });
 });
 
 describe('parseDigestDays', () => {
@@ -286,5 +292,15 @@ describe('envoi un dimanche', () => {
 
   it('digestMode : un parent « week-end » reste en mode week-end', () => {
     expect(digestMode(SUNDAY_WINDOW, weekendStrict, HOLIDAYS)).toBe('weekend');
+  });
+});
+
+describe('préférences héritées avec « public »', () => {
+  const ALL = ['aire_de_jeux', 'nature', 'sport'];
+  it('la pastille Aire de jeux apparaît cochée', () => {
+    expect(isCategoryOn(['public', 'nature'], 'aire_de_jeux')).toBe(true);
+  });
+  it('décocher Aire de jeux retire bien l\'ancien token', () => {
+    expect(toggleCategory(['public', 'nature'], ALL, 'aire_de_jeux')).toEqual(['nature']);
   });
 });
