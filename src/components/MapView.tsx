@@ -101,6 +101,13 @@ const categoryLabels: Record<string, string> = {
   coiffeur: 'Coiffeur',
   librairie: 'Librairie',
   manege: 'Manège',
+  nature: 'Nature',
+  sport: 'Sport',
+  creatif: 'Créatif',
+  culture: 'Culture',
+  jeux: 'Parc à thème',
+  laep: 'LAEP',
+  aire_de_jeux: 'Aire de jeux',
 };
 
 interface MapViewProps {

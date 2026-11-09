@@ -423,9 +423,9 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               transition: 'all .15s',
                             }}>
-                              CATEGORY_ICONS[c.id]
+                              {CATEGORY_ICONS[c.id]
                                 ? <img src={CATEGORY_ICONS[c.id]} alt="" style={{ width: 36, height: 36, objectFit: 'contain' }} />
-                                : <span aria-hidden style={{ fontSize: 28, lineHeight: 1 }}>{categoryIcons[c.id as LocationCategory]}</span>
+                                : <span aria-hidden style={{ fontSize: 28, lineHeight: 1 }}>{categoryIcons[c.id as LocationCategory]}</span>}
                             </span>
                             <span style={{
                               fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600,
