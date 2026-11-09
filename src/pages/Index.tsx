@@ -78,7 +78,9 @@ const Index = () => {
   // L'URL fait foi (lien partagé/rechargé) ; à défaut, la dernière tranche
   // choisie survit à la fermeture de l'onglet via localStorage.
   const initialCategory = (() => {
-    const c = searchParams.get('category');
+    const raw = searchParams.get('category');
+    // Anciens liens : « public » est devenu « aire_de_jeux ».
+    const c = raw === 'public' ? 'aire_de_jeux' : raw;
     return c && VALID_CATEGORIES.has(c) ? (c as LocationCategory | 'all') : 'all';
   })();
   const initialAge = (() => {

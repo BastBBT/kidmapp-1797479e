@@ -19,6 +19,9 @@ import catSport from './cat-sport.png.asset.json';
 import catCreatif from './cat-creatif.png.asset.json';
 import catCulture from './cat-culture.png.asset.json';
 import catJeux from './cat-jeux.png.asset.json';
+import catManege from './cat-manege.png';
+import catLaep from './cat-laep.png';
+import catAireDeJeux from './cat-aire-de-jeux.png';
 
 export const CATEGORY_ICONS: Record<string, string> = {
   all: catTout,
@@ -33,6 +36,9 @@ export const CATEGORY_ICONS: Record<string, string> = {
   creatif: catCreatif.url,
   culture: catCulture.url,
   jeux: catJeux.url,
+  manege: catManege,
+  laep: catLaep,
+  aire_de_jeux: catAireDeJeux,
 };
 
 export const MEAL_ICONS: Record<string, string> = {
