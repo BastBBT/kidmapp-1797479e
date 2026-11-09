@@ -4,6 +4,7 @@ import {
   LocationCategory,
   PLACE_CATEGORIES,
   ACTIVITY_CATEGORIES,
+  categoryIcons,
 } from '@/types/location';
 import { motion } from 'framer-motion';
 import { CATEGORY_ICONS } from '@/assets/icons';
@@ -30,11 +31,18 @@ const CATEGORY_TINT: Record<LocationCategory | 'all', { stroke: string; bg: stri
   creatif:    { stroke: '#7F5BB5', bg: '#F1EAF9' },
   culture:    { stroke: '#BA7517', bg: '#FAEEDA' },
   jeux:       { stroke: '#C64B7A', bg: '#FBEAF0' },
+  laep:         { stroke: '#2E9C9C', bg: '#E4F4F4' },
+  aire_de_jeux: { stroke: '#5A9A56', bg: '#EEF6EC' },
+  manege:       { stroke: '#D9822B', bg: '#FDF1E3' },
 };
 
 const CategoryIcon = ({ cat }: { cat: string }) => {
   const src = CATEGORY_ICONS[cat];
-  if (!src) return null;
+  // Pas encore d'illustration pour manège / LAEP / aire de jeux : repli sur l'emoji.
+  if (!src) {
+    const emoji = categoryIcons[cat as LocationCategory];
+    return emoji ? <span aria-hidden style={{ fontSize: 14, lineHeight: '16px', width: 16, textAlign: 'center', flexShrink: 0 }}>{emoji}</span> : null;
+  }
   return <img src={src} alt="" style={{ width: 16, height: 16, objectFit: 'contain', flexShrink: 0 }} />;
 };
 

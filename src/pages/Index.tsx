@@ -36,8 +36,8 @@ import {
 type SortMode = 'default' | 'loved' | 'recent';
 
 const VALID_CATEGORIES = new Set<string>([
-  'all', 'restaurant', 'cafe', 'shop', 'public', 'coiffeur', 'librairie',
-  'nature', 'sport', 'creatif', 'culture', 'jeux',
+  'all', 'restaurant', 'cafe', 'shop', 'coiffeur', 'librairie', 'manege',
+  'nature', 'sport', 'creatif', 'culture', 'jeux', 'laep', 'aire_de_jeux',
 ]);
 const VALID_AGES = new Set<string>(['all', '0-2', '3-5', '6+']);
 const VALID_GROUPS = new Set<string>(['places', 'activities']);

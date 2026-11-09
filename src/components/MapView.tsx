@@ -2,7 +2,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Location } from '@/types/location';
+import { Location, LocationCategory, categoryIcons } from '@/types/location';
 import { useNavigate } from 'react-router-dom';
 import { memo, useEffect, useMemo } from 'react';
 import { EQUIP_ICONS, EquipKey, CATEGORY_ICONS } from '@/assets/icons';
@@ -37,11 +37,17 @@ export const getMarkerIcon = (category: string, isSelected: boolean) => {
     creatif:    { bg: '#F3EAF7', border: '#D7BDE2', stroke: '#8E44AD' },
     culture:    { bg: '#FEF9E7', border: '#F5E6C8', stroke: '#B7791F' },
     jeux:       { bg: '#FDECEA', border: '#F5C7C0', stroke: '#D95F3B' },
+    aire_de_jeux: { bg: '#EEF6EC', border: '#D1E8CF', stroke: '#5A9A56' },
+    manege:     { bg: '#FDF1E3', border: '#F4D3AC', stroke: '#D9822B' },
+    laep:       { bg: '#E4F4F4', border: '#BFE3E3', stroke: '#2E9C9C' },
   };
   const c = configs[category] ?? configs.restaurant;
   const size = isSelected ? 48 : 40;
   const iconSize = isSelected ? 26 : 24;
-  const assetUrl = CATEGORY_ICONS[category] ?? CATEGORY_ICONS.restaurant;
+  const assetUrl = CATEGORY_ICONS[category];
+  const glyph = assetUrl
+    ? `<img src="${assetUrl}" alt="" style="width:${iconSize}px;height:${iconSize}px;object-fit:contain;" />`
+    : `<span style="font-size:${iconSize - 4}px;line-height:1;">${categoryIcons[category as LocationCategory] ?? categoryIcons.restaurant}</span>`;
   const icon = L.divIcon({
     className: '',
     iconSize: [size, size],
@@ -57,7 +63,7 @@ export const getMarkerIcon = (category: string, isSelected: boolean) => {
         box-shadow:${isSelected ? `0 4px 16px ${c.stroke}55` : '0 2px 8px rgba(0,0,0,0.14)'};
         transition:all 0.2s ease;
         ${isSelected ? 'transform:scale(1.1);' : ''}
-      "><img src="${assetUrl}" alt="" style="width:${iconSize}px;height:${iconSize}px;object-fit:contain;" /></div>
+      ">${glyph}</div>
     `
   });
   iconCache.set(cacheKey, icon);
@@ -94,6 +100,7 @@ const categoryLabels: Record<string, string> = {
   public: 'Lieu public',
   coiffeur: 'Coiffeur',
   librairie: 'Librairie',
+  manege: 'Manège',
 };
 
 interface MapViewProps {
@@ -176,6 +183,9 @@ const MARKER_COLORS: Record<string, { stroke: string }> = {
   public: { stroke: '#5A9A56' },
   coiffeur: { stroke: '#9B59B6' },
   librairie: { stroke: '#4A55A2' },
+  manege: { stroke: '#D9822B' },
+  aire_de_jeux: { stroke: '#5A9A56' },
+  laep: { stroke: '#2E9C9C' },
 };
 
 const MapView = ({ locations, selectedId, initialCenter, initialZoom, onViewChange }: MapViewProps) => {

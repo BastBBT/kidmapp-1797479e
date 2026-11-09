@@ -969,7 +969,7 @@ const AdminPage = () => {
           const byGroup = scoped.filter((l) =>
             groupFilter === 'all' ? true :
             groupFilter === 'activities' ? (ACTIVITY_CATEGORIES as readonly string[]).includes(l.category) :
-            (PLACE_CATEGORIES as readonly string[]).includes(l.category)
+            !(ACTIVITY_CATEGORIES as readonly string[]).includes(l.category)
           );
           return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-3">
@@ -981,7 +981,7 @@ const AdminPage = () => {
             {(() => {
               const groupCounts = {
                 all: scoped.length,
-                places: scoped.filter((l) => (PLACE_CATEGORIES as readonly string[]).includes(l.category)).length,
+                places: scoped.filter((l) => !(ACTIVITY_CATEGORIES as readonly string[]).includes(l.category)).length,
                 activities: scoped.filter((l) => (ACTIVITY_CATEGORIES as readonly string[]).includes(l.category)).length,
               };
               const groupOptions: { key: typeof groupFilter; label: string }[] = [
@@ -1016,7 +1016,7 @@ const AdminPage = () => {
               const cats: string[] = groupFilter === 'activities' ? [...ACTIVITY_CATEGORIES] : groupFilter === 'places' ? [...PLACE_CATEGORIES] : [...PLACE_CATEGORIES, ...ACTIVITY_CATEGORIES];
               const catOptions: { key: string | null; label: string; icon?: string }[] = [
                 { key: null, label: 'Toutes' },
-                ...cats.map((c) => ({ key: c, label: categoryLabels[c as keyof typeof categoryLabels] ?? c, icon: CATEGORY_ICONS[c] })),
+                ...cats.map((c) => ({ key: c, label: `${CATEGORY_ICONS[c] ? '' : `${categoryIcons[c as keyof typeof categoryIcons] ?? ''} `}${categoryLabels[c as keyof typeof categoryLabels] ?? c}`, icon: CATEGORY_ICONS[c] })),
               ];
               return (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1660,14 +1660,16 @@ const AdminPage = () => {
                     <option value="restaurant">🍽️ Restaurant</option>
                     <option value="cafe">☕ Café</option>
                     <option value="shop">🛍️ Boutique</option>
-                    <option value="public">🌳 Lieu public</option>
                     <option value="coiffeur">✂️ Coiffeur</option>
                     <option value="librairie">📚 Librairie</option>
+                    <option value="manege">🎠 Manège</option>
                     <option value="nature">🌿 Nature</option>
                     <option value="sport">⚽ Sport</option>
                     <option value="creatif">🎨 Créatif</option>
                     <option value="culture">🏛️ Culture</option>
-                    <option value="jeux">🎲 Jeux</option>
+                    <option value="jeux">🎲 Parc à thème</option>
+                    <option value="laep">🧸 LAEP</option>
+                    <option value="aire_de_jeux">🛝 Aire de jeux</option>
                   </select>
                 </div>
                 <div>
@@ -1967,14 +1969,16 @@ const AdminPage = () => {
                   <option value="restaurant">🍽️ Restaurant</option>
                   <option value="cafe">☕ Café</option>
                   <option value="shop">🛍️ Boutique</option>
-                  <option value="public">🌳 Lieu public</option>
                   <option value="coiffeur">✂️ Coiffeur</option>
                   <option value="librairie">📚 Librairie</option>
+                  <option value="manege">🎠 Manège</option>
                   <option value="nature">🌿 Nature</option>
                   <option value="sport">⚽ Sport</option>
                   <option value="creatif">🎨 Créatif</option>
                   <option value="culture">🏛️ Culture</option>
-                  <option value="jeux">🎲 Jeux</option>
+                  <option value="jeux">🎲 Parc à thème</option>
+                  <option value="laep">🧸 LAEP</option>
+                  <option value="aire_de_jeux">🛝 Aire de jeux</option>
                 </select>
               </div>
               <FormField label="Adresse" value={editForm.address} onChange={(v) => setEditForm((f: any) => ({ ...f, address: v }))} />
@@ -3080,7 +3084,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
       {(() => {
         const groupCounts = {
           all: proposals.length,
-          places: proposals.filter((p: any) => (PLACE_CATEGORIES as readonly string[]).includes(p.category)).length,
+          places: proposals.filter((p: any) => !(ACTIVITY_CATEGORIES as readonly string[]).includes(p.category)).length,
           activities: proposals.filter((p: any) => (ACTIVITY_CATEGORIES as readonly string[]).includes(p.category)).length,
         };
         const groupOptions: { key: typeof groupFilter; label: string }[] = [
@@ -3135,7 +3139,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
           .filter((p: any) =>
             groupFilter === 'all' ? true :
             groupFilter === 'activities' ? (ACTIVITY_CATEGORIES as readonly string[]).includes(p.category) :
-            (PLACE_CATEGORIES as readonly string[]).includes(p.category)
+            !(ACTIVITY_CATEGORIES as readonly string[]).includes(p.category)
           )
           .filter((p: any) =>
             matchSearch(searchProposals, p.name, p.address, p.website) &&
@@ -3243,7 +3247,9 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                     onChange={(e) => setEditDraft({ ...editDraft, category: e.target.value })}
                     style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', fontFamily: 'DM Sans', fontSize: 16 }}
                   >
-                    {Object.entries(categoryLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    {Object.entries(categoryLabels)
+                      .filter(([k]) => k !== 'public' || editDraft.category === 'public')
+                      .map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
                 </div>
                 <FormField label="Adresse *" value={editDraft.address} onChange={(v) => setEditDraft({ ...editDraft, address: v })} />

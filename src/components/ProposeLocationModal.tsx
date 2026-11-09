@@ -11,7 +11,7 @@ import { MEAL_ICONS, EQUIP_ICONS, CATEGORY_ICONS } from '@/assets/icons';
 import { translateToken } from '@/i18n/tokenMaps';
 
 import { DURATIONS, WEATHERS, EFFORTS, PRICES } from '@/lib/activity';
-import { isActivity } from '@/types/location';
+import { isActivity, categoryIcons, type LocationCategory } from '@/types/location';
 import { ageToMonths, ageRangeError, type AgeUnit } from '@/lib/ageFormat';
 import AgeRangeInput from '@/components/AgeRangeInput';
 import { compressImage } from '@/lib/compressImage';
@@ -24,9 +24,9 @@ const PLACE_CATEGORY_OPTIONS: { id: string; label: string }[] = [
   { id: 'restaurant', label: 'Restaurant' },
   { id: 'cafe', label: 'Café' },
   { id: 'shop', label: 'Boutique' },
-  { id: 'public', label: 'Lieu public' },
   { id: 'coiffeur', label: 'Coiffeur' },
   { id: 'librairie', label: 'Librairie' },
+  { id: 'manege', label: 'Manège' },
 ];
 
 const ACTIVITY_CATEGORY_OPTIONS: { id: string; label: string }[] = [
@@ -34,7 +34,9 @@ const ACTIVITY_CATEGORY_OPTIONS: { id: string; label: string }[] = [
   { id: 'sport', label: 'Sport' },
   { id: 'creatif', label: 'Créatif' },
   { id: 'culture', label: 'Culture' },
-  { id: 'jeux', label: 'Jeux' },
+  { id: 'jeux', label: 'Parc à thème' },
+  { id: 'laep', label: 'LAEP' },
+  { id: 'aire_de_jeux', label: 'Aire de jeux' },
 ];
 
 interface ProposeLocationModalProps {
@@ -421,7 +423,9 @@ const ProposeLocationModal = ({ open, onClose, initialCategory = 'restaurant', m
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               transition: 'all .15s',
                             }}>
-                              <img src={CATEGORY_ICONS[c.id]} alt="" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+                              CATEGORY_ICONS[c.id]
+                                ? <img src={CATEGORY_ICONS[c.id]} alt="" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+                                : <span aria-hidden style={{ fontSize: 28, lineHeight: 1 }}>{categoryIcons[c.id as LocationCategory]}</span>
                             </span>
                             <span style={{
                               fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600,
