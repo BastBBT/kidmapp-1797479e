@@ -15,6 +15,9 @@ const CATEGORY_EMOJI: Record<string, string> = {
   creatif: '🎨',
   culture: '🏛️',
   jeux: '🎲',
+  manege: '🎠',
+  laep: '🧸',
+  aire_de_jeux: '🛝',
 }
 
 export function locationCategoryEmoji(category?: string | null): string {

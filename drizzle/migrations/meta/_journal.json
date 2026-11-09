@@ -183,6 +183,13 @@
       "when": 1794171455127,
       "tag": "0025_event_spotlight_stats_sessions_appareils",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794220182265,
+      "tag": "0026_location_categories_manege_laep_aire_de_jeux",
+      "breakpoints": true
     }
   ]
 }
