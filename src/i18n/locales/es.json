@@ -81,7 +81,10 @@
     "sport": "Deporte",
     "creatif": "Creativo",
     "culture": "Cultura",
-    "jeux": "Juegos"
+    "jeux": "Parque temático",
+    "manege": "Tiovivo",
+    "laep": "LAEP",
+    "aire_de_jeux": "Zona de juegos"
   },
   "category_event": {
     "Spectacle": "Espectáculo",

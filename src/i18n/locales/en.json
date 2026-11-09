@@ -81,7 +81,10 @@
     "sport": "Sport",
     "creatif": "Creative",
     "culture": "Culture",
-    "jeux": "Games"
+    "jeux": "Theme park",
+    "manege": "Carousel",
+    "laep": "LAEP",
+    "aire_de_jeux": "Playground"
   },
   "category_event": {
     "Spectacle": "Show",

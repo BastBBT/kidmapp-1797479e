@@ -81,7 +81,10 @@
     "sport": "Sport",
     "creatif": "Créatif",
     "culture": "Culture",
-    "jeux": "Jeux"
+    "jeux": "Parc à thème",
+    "manege": "Manège",
+    "laep": "LAEP",
+    "aire_de_jeux": "Aire de jeux"
   },
   "category_event": {
     "Spectacle": "Spectacle",

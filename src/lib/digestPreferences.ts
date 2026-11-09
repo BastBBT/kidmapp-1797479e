@@ -12,7 +12,7 @@ export const EVENT_CATEGORIES = ['Spectacle', 'Atelier', 'Festival', 'Fête', 'M
 /** Même vocabulaire que la contrainte locations_category_check, ordre d'affichage
  *  du réglage (les lieux « sortie » d'abord). */
 export const LOCATION_CATEGORIES = [
-  'public', 'nature', 'sport', 'creatif', 'culture', 'jeux', 'librairie', 'restaurant', 'cafe', 'shop', 'coiffeur',
+  'aire_de_jeux', 'nature', 'sport', 'creatif', 'culture', 'jeux', 'laep', 'librairie', 'manege', 'restaurant', 'cafe', 'shop', 'coiffeur',
 ];
 
 export function parseDigestDays(value: string | null | undefined): DigestDays {
