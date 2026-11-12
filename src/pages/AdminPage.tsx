@@ -2829,6 +2829,13 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         }
       }
 
+      // Fichiers envoyés pendant cette approbation (principale + galerie) : retirés du bucket
+      // si l'upload d'une photo suivante ou l'insertion du lieu échoue, pour ne rien laisser d'orphelin.
+      const uploadedPaths: string[] = [];
+      const cleanupUploads = async () => {
+        if (uploadedPaths.length) await supabase.storage.from('location-photos').remove(uploadedPaths);
+      };
+
       // Upload new photo if provided
       let photoUrl: string | null = editDraft.photo || null;
       if (editPhotoFile) {
@@ -2836,22 +2843,22 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         const fileName = `admin/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage.from('location-photos').upload(fileName, editPhotoFile);
         if (upErr) throw upErr;
+        uploadedPaths.push(fileName);
         photoUrl = supabase.storage.from('location-photos').getPublicUrl(fileName).data.publicUrl;
       }
 
       // Photos de galerie (en plus de la principale), envoyées avant l'insertion du lieu pour
-      // échouer tôt. Si l'insertion échoue ensuite, on retire ces fichiers du bucket.
+      // échouer tôt.
       const galleryUrls: string[] = [];
-      const galleryPaths: string[] = [];
       for (const gf of editGalleryFiles) {
         const gExt = gf.name.split('.').pop() || 'jpg';
         const gPath = `admin/gallery-${crypto.randomUUID()}.${gExt}`;
         const { error: gErr } = await supabase.storage.from('location-photos').upload(gPath, gf, { contentType: gf.type });
         if (gErr) {
-          if (galleryPaths.length) await supabase.storage.from('location-photos').remove(galleryPaths);
+          await cleanupUploads();
           throw new Error("Erreur lors de l'upload de la galerie, réessaie");
         }
-        galleryPaths.push(gPath);
+        uploadedPaths.push(gPath);
         galleryUrls.push(supabase.storage.from('location-photos').getPublicUrl(gPath).data.publicUrl);
       }
 
@@ -2890,7 +2897,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         .select('id')
         .single();
       if (insErr) {
-        if (galleryPaths.length) await supabase.storage.from('location-photos').remove(galleryPaths);
+        await cleanupUploads();
         throw insErr;
       }
 
