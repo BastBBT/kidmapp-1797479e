@@ -2729,6 +2729,8 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<any>(null);
   const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
+  // Photos de galerie ajoutées à l'approbation (la proposition n'en porte qu'une seule).
+  const [editGalleryFiles, setEditGalleryFiles] = useState<File[]>([]);
 
   const { data: proposals = [] } = useQuery({
     queryKey: ['proposals'],
@@ -2768,6 +2770,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
   const startEdit = (proposal: any) => {
     setEditingId(proposal.id);
     setEditPhotoFile(null);
+    setEditGalleryFiles([]);
     setManualCoordsProposal(null);
     setEditDraft({
       name: proposal.name ?? '',
@@ -2836,6 +2839,22 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         photoUrl = supabase.storage.from('location-photos').getPublicUrl(fileName).data.publicUrl;
       }
 
+      // Photos de galerie (en plus de la principale), envoyées avant l'insertion du lieu pour
+      // échouer tôt. Si l'insertion échoue ensuite, on retire ces fichiers du bucket.
+      const galleryUrls: string[] = [];
+      const galleryPaths: string[] = [];
+      for (const gf of editGalleryFiles) {
+        const gExt = gf.name.split('.').pop() || 'jpg';
+        const gPath = `admin/gallery-${crypto.randomUUID()}.${gExt}`;
+        const { error: gErr } = await supabase.storage.from('location-photos').upload(gPath, gf, { contentType: gf.type });
+        if (gErr) {
+          if (galleryPaths.length) await supabase.storage.from('location-photos').remove(galleryPaths);
+          throw new Error("Erreur lors de l'upload de la galerie, réessaie");
+        }
+        galleryPaths.push(gPath);
+        galleryUrls.push(supabase.storage.from('location-photos').getPublicUrl(gPath).data.publicUrl);
+      }
+
       const insertData: any = {
         name: editDraft.name,
         category: editDraft.category,
@@ -2847,6 +2866,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         kids_area: editDraft.kids_area,
         kids_menu: editDraft.kids_menu,
         photo: photoUrl,
+        photos: galleryUrls.length ? galleryUrls : null,
         website: editDraft.website || null,
         instagram: editDraft.instagram || null,
         note: editDraft.note || null,
@@ -2869,7 +2889,10 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         .insert(insertData)
         .select('id')
         .single();
-      if (insErr) throw insErr;
+      if (insErr) {
+        if (galleryPaths.length) await supabase.storage.from('location-photos').remove(galleryPaths);
+        throw insErr;
+      }
 
       // Carry meal_types from proposal metadata
       const proposalMealTypes: string[] = (proposal.metadata as any)?.meal_types ?? [];
@@ -2900,6 +2923,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
         const after = (editDraft as any)[k] ?? null;
         if (JSON.stringify(before) !== JSON.stringify(after)) editedFields.push(k);
       });
+      if (galleryUrls.length > 0) editedFields.push('photos');
       if (proposal.age_min_months !== insertData.age_min_months) editedFields.push('age_min');
       if (proposal.age_max_months !== insertData.age_max_months) editedFields.push('age_max');
       const newMetadata = {
@@ -2923,6 +2947,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
       setEditDraft(null);
       setManualCoordsProposal(null);
       setEditPhotoFile(null);
+      setEditGalleryFiles([]);
     } catch (err: any) {
       toast({ title: 'Erreur', description: err?.message ?? 'Échec', variant: 'destructive' });
     } finally {
@@ -3271,6 +3296,12 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                   onUrlChange={(u) => setEditDraft({ ...editDraft, photo: u })}
                   urlValue={editDraft.photo}
                 />
+                <GalleryUpload
+                  urls={[]}
+                  onUrlsChange={() => {}}
+                  files={editGalleryFiles}
+                  onFilesChange={setEditGalleryFiles}
+                />
                 {isActivity(editDraft.category) ? (
                   <div className="flex flex-col gap-3">
                     <PillGroup label="Durée" options={DURATIONS as any} value={editDraft.duration ?? ''} onChange={(v) => setEditDraft({ ...editDraft, duration: v })} />
@@ -3366,7 +3397,7 @@ function ProposalsTab({ geocodeAddress, queryClient, toast }: {
                     {isProcessing ? 'En cours…' : manualCoordsProposal === proposal.id ? '✓ Enregistrer & approuver (coords)' : '✓ Enregistrer & approuver'}
                   </button>
                   <button
-                    onClick={() => { setEditingId(null); setEditDraft(null); setEditPhotoFile(null); setManualCoordsProposal(null); }}
+                    onClick={() => { setEditingId(null); setEditDraft(null); setEditPhotoFile(null); setEditGalleryFiles([]); setManualCoordsProposal(null); }}
                     disabled={isProcessing}
                     style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, padding: 10, borderRadius: 100, border: '1.5px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
                   >
